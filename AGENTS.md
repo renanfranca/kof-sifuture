@@ -1,91 +1,92 @@
-# AGENTS.md — Consulta à documentação do Kof
+# AGENTS.md — Consulting the Kof documentation
 
-## Regra principal
+## Primary rule
 
-Antes de orientar, planejar ou implementar qualquer tarefa que dependa da
-linguagem ou da plataforma Kof, consulte a documentação local relevante. Não
-responda por memória quando a sintaxe, o comportamento, a arquitetura, o estado
-de implementação ou as decisões do projeto puderem ser confirmados nas fontes.
+Before advising, planning, or implementing any task that depends on the Kof
+language or platform, consult the relevant local documentation. Do not answer
+from memory when syntax, behavior, architecture, implementation status, or
+project decisions can be confirmed from the sources.
 
-Consulte apenas as áreas relacionadas à tarefa; não é necessário reler toda a
-documentação em cada trabalho.
+Consult only the areas related to the task; there is no need to reread the
+entire documentation set for every task.
 
-## Documentação local
+## Local documentation
 
-A fonte local esperada é o repositório
-[Kof4j](/home/renanfranca/projects/kof), disponível também como
+The expected local source is the
+[Kof4j repository](/home/renanfranca/projects/kof), also available at
 `~/projects/kof/`.
 
-- [Training](/home/renanfranca/projects/kof/training/README.pt_BR.md): sintaxe,
-  semântica, exemplos, formas idiomáticas e antipadrões. Use-o para entender
-  como escrever e explicar Kof no estado atual.
-- [Development](/home/renanfranca/projects/kof/docs/development/README.pt_BR.md):
-  trabalho técnico em andamento. Leia o índice, o plano relacionado à tarefa e,
-  quando houver decisão arquitetural, `DECISIONS.pt_BR.md`.
-- [Future](/home/renanfranca/projects/kof/docs/development/future/README.pt_BR.md):
-  planos futuros ou frentes pausadas. Respeite a classificação e o estado
-  descritos no índice; não apresente uma proposta como funcionalidade já
-  implementada.
+- [Training](/home/renanfranca/projects/kof/training/README.md): syntax,
+  semantics, examples, idiomatic practices, and anti-patterns. Use it to
+  understand how to write and explain Kof in its current state.
+- [Development](/home/renanfranca/projects/kof/docs/development/README.md):
+  active technical work. Read the index, the plan related to the task, and
+  `DECISIONS.md` when an architectural decision applies.
+- [Future](/home/renanfranca/projects/kof/docs/development/future/README.md):
+  future plans or paused work. Respect the classification and status described
+  in the index; do not present a proposal as an implemented feature.
 
-Prefira a versão `.pt_BR.md` quando existir. Se precisar confirmar o estado real
-de uma capacidade, siga esta precedência registrada pelo próprio corpus:
+Prefer the English `.md` version whenever it is available. Use a localized
+version such as `.pt_BR.md` only when the English document is missing or when
+the task explicitly requires that translation. When confirming the real state
+of a capability, follow the precedence recorded by the corpus itself:
 
-1. implementação;
-2. testes;
-3. documentação;
+1. implementation;
+2. tests;
+3. documentation;
 4. `training/`.
 
-Quando houver divergência, informe-a em vez de escolher silenciosamente uma
-fonte conveniente. Ao responder, mencione os documentos consultados e separe
-claramente fato atual, plano futuro e hipótese.
+When sources disagree, report the discrepancy instead of silently choosing the
+most convenient source. In responses, mention the documents consulted and
+clearly separate current facts, future plans, and hypotheses.
 
-## Se o repositório local não existir
+## If the local repository is unavailable
 
-Se `~/projects/kof/` não estiver disponível, pause a tarefa antes de fazer
-afirmações sobre Kof. Mostre ao usuário o repositório oficial
-[KofLang/Kof4j](https://github.com/KofLang/Kof4j) e pergunte se deseja cloná-lo
-em `~/projects/kof` para manter as consultas locais.
+If `~/projects/kof/` is unavailable, pause the task before making claims about
+Kof. Show the user the official
+[KofLang/Kof4j repository](https://github.com/KofLang/Kof4j) and ask whether
+they want it cloned into `~/projects/kof` so documentation can be consulted
+locally.
 
-Só execute o clone após autorização explícita. O destino e a origem esperados
-são:
+Only run the clone after explicit authorization. The expected source and
+destination are:
 
 ```bash
 git clone https://github.com/KofLang/Kof4j.git ~/projects/kof
 ```
 
-Se o usuário preferir não clonar, use como fallback a documentação da branch
-`main` no GitHub:
+If the user prefers not to clone it, use the documentation from the `main`
+branch on GitHub as a fallback:
 
 - [training](https://github.com/KofLang/Kof4j/tree/main/training)
 - [docs/development](https://github.com/KofLang/Kof4j/tree/main/docs/development)
 - [docs/development/future](https://github.com/KofLang/Kof4j/tree/main/docs/development/future)
 
-## Modelo mental documentado
+## Documented mental model
 
-Use esta visão apenas como guia de navegação; os documentos e o código atuais
-continuam sendo a autoridade:
+Use this model only as a navigation guide; the current documentation and code
+remain authoritative:
 
 ```text
-intenção em Kof
+intent expressed in Kof
     ↓
-contrato da linguagem ou da plataforma
+language or platform contract
     ↓
-compilador e IR
+compiler and IR
     ↓
-backend/runtime específico do target
+target-specific backend/runtime
 ```
 
-- O programa expressa a intenção; o mecanismo pode variar entre JVM, Native,
-  JS e outros targets.
-- O fato de o compilador reconhecer ou baixar uma operação não significa que a
-  capacidade pertença conceitualmente ao compilador. A realização pode viver no
-  runtime, no host ou em uma integração própria do target.
-- Classifique novas capacidades pela camada mais adequada: core da linguagem,
-  stdlib/plataforma, pacote oficial, ecossistema ou interop/FFI. Ser reutilizável
-  não basta, por si só, para entrar no core ou na stdlib.
-- Portabilidade deve ser honesta. Quando um target não realizar uma capacidade,
-  procure o diagnóstico e o gap documentados; não invente paridade nem fallback
-  silencioso.
-- Não transforme interpretações de conversas anteriores em decisões do Kof.
-  Verifique `DECISIONS.pt_BR.md` e os planos atuais; trate o que não estiver
-  decidido como hipótese ou pergunta para o usuário/mantenedora.
+- The program expresses intent; the mechanism may differ across JVM, Native,
+  JS, and other targets.
+- A compiler recognizing or lowering an operation does not mean the capability
+  conceptually belongs to the compiler. Its realization may live in the
+  runtime, host, or a target-specific integration.
+- Classify new capabilities in the most appropriate layer: language core,
+  stdlib/platform, official package, ecosystem, or interop/FFI. Reusability
+  alone is not sufficient reason to place a capability in the core or stdlib.
+- Portability must be honest. When a target cannot realize a capability, find
+  the documented diagnostic and gap; do not invent parity or a silent fallback.
+- Do not turn interpretations of earlier conversations into Kof decisions.
+  Check `DECISIONS.md` and the current plans; treat anything undecided as a
+  hypothesis or a question for the user/maintainer.
