@@ -1,0 +1,209 @@
+// Logical coordinates and fixed updates are independent from kof.ui.
+class Meteor {
+    Int x = 0
+    Int y = 0
+}
+
+class Shot {
+    Int x = 0
+    Int y = 0
+    Bool active = false
+}
+
+class Game {
+    Int screen = 0 // 0 menu, 1 play, 2 result
+    Int shipX = 0
+    Int shipY = 100
+    Int lives = 3
+    Int score = 0
+    Int steps = 0
+    Int immunity = 0
+    Bool left = false
+    Bool right = false
+    Bool up = false
+    Bool down = false
+    List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
+    List<Shot> shots = listOf(Shot(), Shot(), Shot())
+
+    start(Int seed) {
+        rng.seed(seed)
+        screen = 1
+        shipX = 0
+        shipY = 100
+        lives = 3
+        score = 0
+        steps = 0
+        immunity = 0
+        clearInput()
+        for (var m in meteors) { resetMeteor(m) }
+        for (var s in shots) { s.active = false }
+    }
+
+    clearInput() {
+        left = false
+        right = false
+        up = false
+        down = false
+    }
+
+    key(String name, Bool pressed) {
+        if (name == "ArrowLeft") { left = pressed }
+        if (name == "ArrowRight") { right = pressed }
+        if (name == "ArrowUp") { up = pressed }
+        if (name == "ArrowDown") { down = pressed }
+        if (name == "Enter" && pressed) {
+            if (screen == 0) { start(random.int(2147483647)) }
+            else if (screen == 2) { screen = 0; clearInput() }
+        }
+    }
+
+    resetMeteor(Meteor m) {
+        // Historical horizontal spawn: world width + 0..199.
+        m.x = 176 + rng.int(200)
+        m.y = 30 + rng.int(172)
+    }
+
+    hit(Int ax, Int ay, Int aw, Int ah, Int bx, Int by, Int bw, Int bh): Bool {
+        return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by
+    }
+
+    step() {
+        if (screen != 1) { return }
+        steps = steps + 1
+        if (left && !right) { shipX = shipX - 5 }
+        if (right && !left) { shipX = shipX + 5 }
+        if (up && !down) { shipY = shipY - 5 }
+        if (down && !up) { shipY = shipY + 5 }
+        if (shipX < 0) { shipX = 0 }
+        if (shipX > 126) { shipX = 126 }
+        if (shipY < 30) { shipY = 30 }
+        if (shipY > 200) { shipY = 200 }
+
+        if (immunity > 0) { immunity = immunity - 1 }
+
+        // At the basic laser level the historical counter fires on step 13.
+        if (steps % 13 == 0) {
+            for (var s in shots) {
+                if (!s.active) {
+                    s.x = shipX + 15
+                    s.y = shipY + 8
+                    s.active = true
+                    break
+                }
+            }
+        }
+
+        for (var s in shots) {
+            if (s.active) {
+                s.x = s.x + 5
+                if (s.x > 176) { s.active = false }
+            }
+        }
+        for (var m in meteors) {
+            m.x = m.x - 1
+            if (m.x < -25) { resetMeteor(m) }
+            for (var s in shots) {
+                if (s.active && hit(s.x, s.y, 30, 12, m.x, m.y, 20, 18)) {
+                    s.active = false
+                    score = score + 5
+                    resetMeteor(m)
+                }
+            }
+            if (immunity == 0 && hit(shipX, shipY, 50, 20, m.x, m.y, 20, 18)) {
+                lives = lives - 1
+                resetMeteor(m)
+                if (lives == 0) {
+                    screen = 2
+                    clearInput()
+                    return
+                }
+                shipX = 0
+                shipY = 100
+                immunity = 15
+            }
+        }
+    }
+
+    resultIndex(): Int {
+        if (score < 1500) { return 0 }
+        if (score < 2200) { return 1 }
+        if (score < 3300) { return 2 }
+        return 3
+    }
+}
+
+test "same seed produces the same meteors" {
+    var a = Game()
+    a.start(42)
+    var x = a.meteors[0].x
+    var y = a.meteors[0].y
+    a.start(42)
+    assert(a.meteors[0].x == x && a.meteors[0].y == y)
+}
+
+test "ship moves five units and stops at bounds and release" {
+    var g = Game()
+    g.start(1)
+    g.key("ArrowRight", true)
+    g.step()
+    assert(g.shipX == 5)
+    g.key("ArrowRight", false)
+    g.step()
+    assert(g.shipX == 5)
+    g.shipX = 125
+    g.key("ArrowRight", true)
+    g.step()
+    assert(g.shipX == 126)
+    g.shipY = 31
+    g.key("ArrowUp", true)
+    g.step()
+    assert(g.shipY == 30)
+}
+
+test "normal fire starts on thirteenth step and earns five points" {
+    var g = Game()
+    g.start(2)
+    for (var i = 0; i < 12; i++) { g.step() }
+    assert(!g.shots[0].active)
+    g.step()
+    assert(g.shots[0].active)
+    g.meteors[0].x = g.shots[0].x + 4
+    g.meteors[0].y = g.shots[0].y
+    g.step()
+    assert(g.score == 5)
+    assert(!g.shots[0].active)
+}
+
+test "three meteor hits end the attempt and result persists" {
+    var g = Game()
+    g.start(3)
+    for (var i = 0; i < 3; i++) {
+        g.immunity = 0
+        g.meteors[0].x = g.shipX + 10
+        g.meteors[0].y = g.shipY
+        g.step()
+    }
+    assert(g.lives == 0 && g.screen == 2)
+    g.step()
+    assert(g.screen == 2)
+    g.key("Enter", true)
+    assert(g.screen == 0)
+    g.start(3)
+    assert(g.lives == 3 && g.score == 0 && g.steps == 0)
+}
+
+test "all result boundaries select a message" {
+    var g = Game()
+    g.score = 1499
+    assert(g.resultIndex() == 0)
+    g.score = 1500
+    assert(g.resultIndex() == 1)
+    g.score = 2199
+    assert(g.resultIndex() == 1)
+    g.score = 2200
+    assert(g.resultIndex() == 2)
+    g.score = 3299
+    assert(g.resultIndex() == 2)
+    g.score = 3300
+    assert(g.resultIndex() == 3)
+}
