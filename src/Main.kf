@@ -5,8 +5,11 @@ class GameView {
     Image title
     Image menu
     Image ship
-    Image meteor
+    List<Image> meteors
+    List<Image> meteorHits
+    List<Image> explosions
     Image laser
+    Image laserImpact
     Image result0
     Image result1
     Image result2
@@ -17,8 +20,11 @@ class GameView {
         title = Image("assets/sifuture.png")
         menu = Image("assets/menu0.png")
         ship = Image("assets/Middle.png")
-        meteor = Image("assets/meteor000.png")
+        meteors = listOf(Image("assets/meteor000.png"), Image("assets/meteor001.png"), Image("assets/meteor002.png"), Image("assets/meteor003.png"), Image("assets/meteor004.png"), Image("assets/meteor005.png"))
+        meteorHits = listOf(Image("assets/meteor0C0.png"), Image("assets/meteor0C1.png"), Image("assets/meteor0C2.png"))
+        explosions = listOf(Image("assets/explosion0.png"), Image("assets/explosion1.png"), Image("assets/explosion2.png"), Image("assets/explosion3.png"), Image("assets/explosion4.png"), Image("assets/explosion5.png"), Image("assets/explosion6.png"), Image("assets/explosion7.png"), Image("assets/explosion8.png"), Image("assets/explosion9.png"))
         laser = Image("assets/laser00.png")
+        laserImpact = Image("assets/laser03.png")
         result0 = Image("assets/result0.png")
         result1 = Image("assets/result1.png")
         result2 = Image("assets/result2.png")
@@ -45,12 +51,17 @@ class GameView {
         }
         canvas.fillText("PONTOS " + game.score + "   VIDAS " + game.lives, 4, 18)
         for (var m in game.meteors) {
-            canvas.drawImage(meteor, m.x, m.y)
+            if (m.collided) { canvas.drawImage(meteorHits[m.collisionSteps / 2], m.x, m.y) }
+            else { canvas.drawImage(meteors[m.frame], m.x, m.y) }
         }
         for (var s in game.shots) {
-            if (s.active) { canvas.drawImage(laser, s.x, s.y) }
+            if (s.active && s.impact) { canvas.drawImage(laserImpact, s.x + 5, s.y) }
+            else if (s.active) { canvas.drawImage(laser, s.x, s.y) }
         }
-        if (game.immunity % 2 == 0) { canvas.drawImage(ship, game.shipX, game.shipY) }
+        if (game.shipState == 1) { canvas.drawImage(explosions[game.explosionSteps / 3], game.shipX, game.shipY) }
+        if (game.shipState == 0 || (game.shipState == 2 && (game.restartFrame / 3) % 2 == 0)) {
+            canvas.drawImage(ship, game.shipX, game.shipY)
+        }
     }
 }
 

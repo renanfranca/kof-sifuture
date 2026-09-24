@@ -1,6 +1,6 @@
 # Port SiFuture to Kof
 
-- **Status:** Approved specification; implementation has not started.
+- **Status:** Approved specification; first browser gameplay cycle partially implemented. Full v1 remains open.
 - **Source:** The SiFuture port handoff and the approved proposal in the Codex task.
 - **Port repository:** `/home/renanfranca/projects/kof-sifuture`.
 - **Historical game:** `/home/renanfranca/projects/sifuture`.

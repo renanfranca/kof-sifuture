@@ -2,12 +2,18 @@
 class Meteor {
     Int x = 0
     Int y = 0
+    Int frame = 0
+    Int frameDirection = 1
+    Int frameSteps = 0
+    Int collisionSteps = 0
+    Bool collided = false
 }
 
 class Shot {
     Int x = 0
     Int y = 0
     Bool active = false
+    Bool impact = false
 }
 
 class Game {
@@ -17,11 +23,16 @@ class Game {
     Int lives = 3
     Int score = 0
     Int steps = 0
-    Int immunity = 0
+    Int shipState = 2 // 0 normal, 1 explosion, 2 restart
+    Int restartFrame = 0
+    Int explosionSteps = 0
+    Int fireSteps = 0
     Bool left = false
     Bool right = false
     Bool up = false
     Bool down = false
+    Int lastX = 0
+    Int lastY = 0
     List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
     List<Shot> shots = listOf(Shot(), Shot(), Shot())
 
@@ -33,10 +44,13 @@ class Game {
         lives = 3
         score = 0
         steps = 0
-        immunity = 0
+        shipState = 2
+        restartFrame = 0
+        explosionSteps = 0
+        fireSteps = 0
         clearInput()
         for (var m in meteors) { resetMeteor(m) }
-        for (var s in shots) { s.active = false }
+        for (var s in shots) { s.active = false; s.impact = false }
     }
 
     clearInput() {
@@ -44,13 +58,15 @@ class Game {
         right = false
         up = false
         down = false
+        lastX = 0
+        lastY = 0
     }
 
     key(String name, Bool pressed) {
-        if (name == "ArrowLeft") { left = pressed }
-        if (name == "ArrowRight") { right = pressed }
-        if (name == "ArrowUp") { up = pressed }
-        if (name == "ArrowDown") { down = pressed }
+        if (name == "ArrowLeft") { left = pressed; if (pressed) { lastX = 0 } }
+        if (name == "ArrowRight") { right = pressed; if (pressed) { lastX = 1 } }
+        if (name == "ArrowUp") { up = pressed; if (pressed) { lastY = 0 } }
+        if (name == "ArrowDown") { down = pressed; if (pressed) { lastY = 1 } }
         if (name == "Enter" && pressed) {
             if (screen == 0) { start(random.int(2147483647)) }
             else if (screen == 2) { screen = 0; clearInput() }
@@ -61,65 +77,121 @@ class Game {
         // Historical horizontal spawn: world width + 0..199.
         m.x = 176 + rng.int(200)
         m.y = 30 + rng.int(172)
+        m.frame = 0
+        m.frameDirection = 1
+        m.frameSteps = 0
+        m.collisionSteps = 0
+        m.collided = false
     }
 
-    hit(Int ax, Int ay, Int aw, Int ah, Int bx, Int by, Int bw, Int bh): Bool {
-        return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by
+    shipHitsMeteor(Meteor m): Bool {
+        return m.x >= shipX && m.x <= shipX + 50 &&
+            ((m.y >= shipY && m.y <= shipY + 20) ||
+             (m.y + 18 >= shipY && m.y + 18 <= shipY + 20))
+    }
+
+    laserHitsMeteor(Shot s, Meteor m): Bool {
+        return ((s.x + 30 >= m.x && s.x + 30 <= m.x + 20) &&
+                (s.y >= m.y && s.y <= m.y + 18)) ||
+               ((s.x + 30 >= m.x && s.x <= m.x + 20) &&
+                (s.y + 12 >= m.y && s.y + 12 <= m.y + 18))
     }
 
     step() {
         if (screen != 1) { return }
         steps = steps + 1
-        if (left && !right) { shipX = shipX - 5 }
-        if (right && !left) { shipX = shipX + 5 }
-        if (up && !down) { shipY = shipY - 5 }
-        if (down && !up) { shipY = shipY + 5 }
+        var vulnerable = shipState == 0
+        var restarting = shipState == 2
+        var exploding = shipState == 1
+        if (shipState == 1) {
+            explosionSteps = explosionSteps + 1
+            if (explosionSteps == 30) {
+                lives = lives - 1
+                if (lives == 0) {
+                    screen = 2
+                    clearInput()
+                    return
+                }
+                shipState = 2
+                restartFrame = 0
+                shipX = 5
+                shipY = 100
+            }
+        }
+        if (restarting) {
+            restartFrame = restartFrame + 1
+            if (restartFrame == 45) { shipState = 0 }
+        }
+        if (!exploding) {
+            if (left && (!right || lastX == 0)) { shipX = shipX - 5 }
+            if (right && (!left || lastX == 1)) { shipX = shipX + 5 }
+            if (up && (!down || lastY == 0)) { shipY = shipY - 5 }
+            if (down && (!up || lastY == 1)) { shipY = shipY + 5 }
+        }
         if (shipX < 0) { shipX = 0 }
         if (shipX > 126) { shipX = 126 }
         if (shipY < 30) { shipY = 30 }
         if (shipY > 200) { shipY = 200 }
 
-        if (immunity > 0) { immunity = immunity - 1 }
-
         // At the basic laser level the historical counter fires on step 13.
-        if (steps % 13 == 0) {
-            for (var s in shots) {
-                if (!s.active) {
-                    s.x = shipX + 15
-                    s.y = shipY + 8
-                    s.active = true
-                    break
+        if (vulnerable) {
+            fireSteps = fireSteps + 1
+            if (fireSteps == 13) {
+                fireSteps = 0
+                var shot = shots[0]
+                if (!shot.active) {
+                    shot.x = shipX + 15
+                    shot.y = shipY + 8
+                    shot.active = true
+                    shot.impact = false
                 }
             }
         }
 
         for (var s in shots) {
             if (s.active) {
-                s.x = s.x + 5
-                if (s.x > 176) { s.active = false }
+                if (s.impact) {
+                    s.active = false
+                    s.impact = false
+                } else {
+                    s.x = s.x + 5
+                    if (s.x > 176) { s.active = false }
+                }
             }
         }
         for (var m in meteors) {
-            m.x = m.x - 1
-            if (m.x < -25) { resetMeteor(m) }
-            for (var s in shots) {
-                if (s.active && hit(s.x, s.y, 30, 12, m.x, m.y, 20, 18)) {
-                    s.active = false
+            if (m.collided) {
+                m.collisionSteps = m.collisionSteps + 1
+                if (m.collisionSteps == 6) { resetMeteor(m) }
+            } else {
+                m.x = m.x - 1
+                if (m.x < -25) { resetMeteor(m) }
+                m.frameSteps = m.frameSteps + 1
+                if (m.frameSteps == 2) {
+                    m.frameSteps = 0
+                    m.frame = m.frame + m.frameDirection
+                    if (m.frame == 5) { m.frameDirection = -1 }
+                    if (m.frame == 0) { m.frameDirection = 1 }
+                }
+                if (vulnerable && shipState == 0 && shipHitsMeteor(m)) {
                     score = score + 5
-                    resetMeteor(m)
+                    m.collided = true
+                    m.collisionSteps = 0
+                    shipState = 1
+                    explosionSteps = 0
                 }
-            }
-            if (immunity == 0 && hit(shipX, shipY, 50, 20, m.x, m.y, 20, 18)) {
-                lives = lives - 1
-                resetMeteor(m)
-                if (lives == 0) {
-                    screen = 2
-                    clearInput()
-                    return
+                if (!m.collided) {
+                    for (var s in shots) {
+                        if (s.active && !s.impact && laserHitsMeteor(s, m)) {
+                            s.x = m.x
+                            s.y = m.y
+                            s.impact = true
+                            score = score + 5
+                            m.collided = true
+                            m.collisionSteps = 0
+                        }
+                    }
                 }
-                shipX = 0
-                shipY = 100
-                immunity = 15
             }
         }
     }
@@ -163,25 +235,29 @@ test "ship moves five units and stops at bounds and release" {
 test "normal fire starts on thirteenth step and earns five points" {
     var g = Game()
     g.start(2)
+    g.shipState = 0
     for (var i = 0; i < 12; i++) { g.step() }
     assert(!g.shots[0].active)
     g.step()
     assert(g.shots[0].active)
+    g.shipY = 50
     g.meteors[0].x = g.shots[0].x + 4
     g.meteors[0].y = g.shots[0].y
     g.step()
     assert(g.score == 5)
-    assert(!g.shots[0].active)
+    assert(g.shots[0].active && g.shots[0].impact)
 }
 
 test "three meteor hits end the attempt and result persists" {
     var g = Game()
     g.start(3)
     for (var i = 0; i < 3; i++) {
-        g.immunity = 0
+        g.shipState = 0
         g.meteors[0].x = g.shipX + 10
         g.meteors[0].y = g.shipY
         g.step()
+        assert(g.shipState == 1 && g.lives == 3 - i)
+        for (var j = 0; j < 30; j++) { g.step() }
     }
     assert(g.lives == 0 && g.screen == 2)
     g.step()
@@ -206,4 +282,169 @@ test "all result boundaries select a message" {
     assert(g.resultIndex() == 2)
     g.score = 3300
     assert(g.resultIndex() == 3)
+}
+
+test "initial restart is invulnerable for fifteen three-step alternations" {
+    var g = Game()
+    g.start(11)
+    assert(g.shipState == 2 && g.restartFrame == 0)
+    for (var i = 0; i < 44; i++) {
+        g.meteors[0].x = g.shipX + 10
+        g.meteors[0].y = g.shipY
+        g.step()
+        assert(g.lives == 3 && g.shipState == 2)
+    }
+    assert(g.restartFrame == 44)
+    g.step()
+    assert(g.shipState == 0 && g.lives == 3)
+}
+
+test "last pressed opposite direction wins until released" {
+    var g = Game()
+    g.start(9)
+    g.shipX = 60
+    g.shipY = 100
+    g.key("ArrowLeft", true)
+    g.key("ArrowRight", true)
+    g.key("ArrowUp", true)
+    g.key("ArrowDown", true)
+    g.step()
+    assert(g.shipX == 65 && g.shipY == 105)
+    g.key("ArrowRight", false)
+    g.key("ArrowDown", false)
+    g.step()
+    assert(g.shipX == 60 && g.shipY == 100)
+}
+
+test "basic laser allows only one active shot and retries each thirteen normal steps" {
+    var g = Game()
+    g.start(7)
+    g.shipState = 0
+    for (var i = 0; i < 13; i++) { g.step() }
+    assert(g.shots[0].active)
+    var firstX = g.shots[0].x
+    for (var i = 0; i < 13; i++) { g.step() }
+    assert(g.shots[0].active && g.shots[0].x > firstX)
+    assert(!g.shots[1].active && !g.shots[2].active)
+    g.shots[0].active = false
+    for (var i = 0; i < 13; i++) { g.step() }
+    assert(g.shots[0].active)
+}
+
+test "ship collision scores once and explosion blocks movement and fire for thirty steps" {
+    var g = Game()
+    g.start(17)
+    g.shipState = 0
+    g.key("ArrowRight", true)
+    g.meteors[0].x = 20
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.score == 5 && g.lives == 3 && g.shipState == 1)
+    var x = g.shipX
+    for (var i = 0; i < 29; i++) {
+        g.step()
+        assert(g.shipX == x && g.lives == 3 && !g.shots[0].active)
+    }
+    assert(g.explosionSteps == 29)
+    g.step()
+    assert(g.lives == 2 && g.shipState == 2 && g.shipX == 5)
+}
+
+test "laser hit holds meteor collision images for three pairs of steps" {
+    var g = Game()
+    g.start(21)
+    g.shipState = 0
+    for (var i = 0; i < 13; i++) { g.step() }
+    g.shipY = 50
+    g.meteors[0].x = g.shots[0].x + 4
+    g.meteors[0].y = g.shots[0].y
+    g.step()
+    assert(g.score == 5 && g.meteors[0].collided)
+    var x = g.meteors[0].x
+    for (var i = 0; i < 5; i++) {
+        g.step()
+        assert(g.meteors[0].collided && g.meteors[0].x == x && g.score == 5)
+    }
+    g.step()
+    assert(!g.meteors[0].collided && g.meteors[0].x >= 176)
+}
+
+test "meteor sprite advances every two steps and returns through the historical frames" {
+    var g = Game()
+    g.start(31)
+    var m = g.meteors[0]
+    assert(m.frame == 0)
+    g.step()
+    assert(m.frame == 0)
+    g.step()
+    assert(m.frame == 1)
+    for (var i = 0; i < 8; i++) { g.step() }
+    assert(m.frame == 5)
+    g.step()
+    g.step()
+    assert(m.frame == 4)
+}
+
+test "ship collision takes priority when its laser reaches the same meteor" {
+    var g = Game()
+    g.start(33)
+    g.shipState = 0
+    g.meteors[0].x = 20
+    g.meteors[0].y = 100
+    g.shots[0].x = 20
+    g.shots[0].y = 100
+    g.shots[0].active = true
+    g.step()
+    assert(g.shipState == 1 && g.score == 5 && g.shots[0].active)
+}
+
+test "ship meteor collision uses meteor left edge and inclusive ship bounds" {
+    var g = Game()
+    g.start(51)
+    g.shipState = 0
+    g.meteors[0].x = -5
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.score == 0 && g.shipState == 0)
+    g.meteors[0].x = 51
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.score == 5 && g.shipState == 1)
+}
+
+test "laser meteor collision uses historical tip and bottom conditions" {
+    var g = Game()
+    g.start(53)
+    g.shipState = 0
+    g.shipY = 50
+    g.shots[0].active = true
+    g.shots[0].x = 0
+    g.shots[0].y = 110
+    g.meteors[0].x = 10
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.score == 0 && !g.meteors[0].collided)
+    g.shots[0].x = 0
+    g.shots[0].y = 100
+    g.meteors[0].x = 36
+    g.step()
+    assert(g.score == 5 && g.meteors[0].collided)
+}
+
+test "laser impact remains at meteor for one rendered step without scoring twice" {
+    var g = Game()
+    g.start(55)
+    g.shipState = 0
+    g.shipY = 50
+    g.shots[0].active = true
+    g.shots[0].x = 0
+    g.shots[0].y = 100
+    g.meteors[0].x = 36
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.score == 5 && g.shots[0].active && g.shots[0].impact)
+    assert(g.shots[0].x == g.meteors[0].x && g.shots[0].y == g.meteors[0].y)
+    g.step()
+    assert(g.score == 5 && !g.shots[0].active && !g.shots[0].impact)
+    assert(g.meteors[0].collided)
 }

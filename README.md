@@ -1,6 +1,6 @@
 # SiFuture em Kof: primeiro ciclo jogável
 
-Este recorte executa **menu → Novo Jogo → nave, tiros e meteoros → resultado após três vidas → menu** no navegador. É parte da [especificação do port](.agent/specifications/port-sifuture-to-kof.md), sem representar a versão completa. O mundo lógico mede 176 × 220; cada atualização avança 30 ms. Clique no campo **Clique para teclado** para lhe dar foco, depois use **Enter** e as **setas**. Soltar uma seta interrompe o movimento.
+Este recorte executa **menu → Novo Jogo → nave, tiros e meteoros → resultado após três vidas → menu** no navegador. É parte da [especificação do port](.agent/specifications/port-sifuture-to-kof.md), sem representar a versão completa. O mundo lógico mede 176 × 220; cada atualização avança 30 ms. Clique no campo **Clique para teclado** para lhe dar foco, depois use **Enter** e as **setas**. Soltar uma seta interrompe o movimento. Se o campo perder foco, clique nele novamente antes de continuar.
 
 ## Preparar Kof
 
@@ -31,7 +31,7 @@ Abra `http://127.0.0.1:8765/`, clique no campo, pressione e solte uma seta. **Ex
 
 ## Etapa 2: regras e testes
 
-[`src/Game.kf`](src/Game.kf) guarda o estado sem depender do desenho. `Game.start(seed)` chama `rng.seed(seed)`; `step()` altera posições, cria um tiro normal a cada 13 passos, testa colisões, soma cinco pontos por meteoro destruído e consome até três vidas. `resultIndex()` separa as faixas de pontuação, inclusive 1500 e 2200. As classes `Meteor` e `Shot` guardam campos mutáveis simples. Os blocos `test` no mesmo arquivo exercitam o código de produção e não participam da execução normal.
+[`src/Game.kf`](src/Game.kf) guarda o estado sem depender do desenho. `Game.start(seed)` chama `rng.seed(seed)`; `step()` altera posições, tenta disparar um único laser básico a cada 13 passos normais e soma cinco pontos tanto na colisão nave/meteoro quanto em laser/meteoro. As colisões seguem as condições de borda do jogo histórico, inclusive seus limites inclusivos e a assimetria do laser. O impacto mostra `laser03.png` por um passo sem repetir a pontuação. A nave começa invulnerável por 15 alternâncias de três passos. Após uma colisão, a explosão dura 10 quadros de três passos; só então uma vida é perdida e a nave reinicia. O meteoro atingido mostra três quadros de dois passos antes de reaparecer. `resultIndex()` separa as faixas de pontuação, inclusive 1500 e 2200. Os blocos `test` no mesmo arquivo exercitam o código de produção e não participam da execução normal.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
@@ -39,11 +39,11 @@ cd /home/renanfranca/projects/kof-sifuture
 /home/renanfranca/projects/kof/bin/kof test src/Game.kf --target js
 ```
 
-Cada comando deve mostrar **5 testes aprovados**. **Experimento:** altere temporariamente o incremento de movimento de `5` para `4` em `step()` e observe o teste de limites falhar; restaure `5` depois.
+Cada comando deve mostrar **15 testes aprovados**. **Experimento:** altere temporariamente o incremento de movimento de `5` para `4` em `step()` e observe o teste de limites falhar; restaure `5` depois.
 
 ## Etapa 3: percurso no navegador
 
-[`src/Main.kf`](src/Main.kf) liga os eventos à classe `Game` e desenha separadamente cada tela. `GameView.render()` lê o estado; o intervalo chama `step()` e depois `render()`. `Window.size(210, 340)` deixa o canvas exibido exatamente em 176 × 220 pixels no Chrome testado. O resultado permanece até Enter. Uma partida normal recebe uma semente variável de `random.int(...)`; os testes passam semente fixa.
+[`src/Main.kf`](src/Main.kf) liga os eventos à classe `Game` e desenha separadamente cada tela. `GameView.render()` apenas lê o estado, inclusive os quadros dos sprites históricos; o intervalo chama `step()` e depois `render()`. `Window.size(210, 340)` deixa o canvas exibido exatamente em 176 × 220 pixels no Chrome testado. O resultado permanece até Enter. Uma partida normal recebe uma semente variável de `random.int(...)`; os testes passam semente fixa.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
@@ -52,7 +52,7 @@ cp -r assets /tmp/sifuture-game/
 python3 -m http.server 8766 --directory /tmp/sifuture-game
 ```
 
-Abra `http://127.0.0.1:8766/` no navegador. Clique no campo de teclado, pressione Enter, mova a nave com as setas e solte uma delas. Aguarde perder as três vidas; o resultado fica visível até Enter voltar ao menu. **Experimento:** troque a semente de `Game.start()` no teste e compare as posições iniciais dos meteoros; usando a mesma semente novamente, a sequência se repete.
+Abra `http://127.0.0.1:8766/` no navegador. Clique no campo de teclado, pressione Enter, mova a nave com as setas e solte uma delas. Pressione duas direções opostas juntas e observe que a última pressionada vence; ao soltá-la, a outra volta a mover. Observe o piscar inicial, a explosão da nave e o meteoro atingido. Aguarde perder as três vidas; o resultado fica visível até Enter voltar ao menu. **Experimento:** troque a semente de `Game.start()` no teste e compare as posições iniciais dos meteoros; usando a mesma semente novamente, a sequência se repete.
 
 Para repetir a verificação automatizada no Chrome, instale Python Playwright e Pillow e rode, com o servidor acima ativo:
 
