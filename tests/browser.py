@@ -8,18 +8,29 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 SHIP = Image.open(Path(__file__).resolve().parents[1] / "assets/Middle.png").convert("RGBA")
+SHIP_RIGHT = Image.open(Path(__file__).resolve().parents[1] / "assets/Middle2.png").convert("RGBA")
 SAMPLES = [(x, y, SHIP.getpixel((x, y))[:3]) for y in range(20) for x in range(50)
            if SHIP.getpixel((x, y))[3] == 255][::7]
+JET_SAMPLES = [(x, y, SHIP_RIGHT.getpixel((x, y))[:3]) for y in range(20) for x in range(50)
+               if SHIP.getpixel((x, y))[3] == 0 and SHIP_RIGHT.getpixel((x, y))[3] == 255][::3]
 
 
-def ship_x(page):
+def ship_observation(page):
     canvas = Image.open(io.BytesIO(page.locator("canvas").screenshot())).convert("RGB")
     candidates = []
     for left in range(127):
         matches = sum(canvas.getpixel((left + x, 100 + y)) == rgb for x, y, rgb in SAMPLES)
         candidates.append(matches)
     best = max(candidates)
-    return candidates.index(best) if best >= len(SAMPLES) * 0.9 else None
+    if best < len(SAMPLES) * 0.9:
+        return None, None
+    x = candidates.index(best)
+    jets = sum(canvas.getpixel((x + px, 100 + py)) == rgb for px, py, rgb in JET_SAMPLES)
+    return x, jets >= len(JET_SAMPLES) * 0.9
+
+
+def ship_x(page):
+    return ship_observation(page)[0]
 
 
 def wait_for(predicate, page, timeout=5):
@@ -51,6 +62,8 @@ with sync_playwright() as playwright:
         stable = stable + 1 if ship_x(page) is not None else 0
         page.wait_for_timeout(40)
     assert stable == 5, "ship did not settle after its initial blink"
+    page.wait_for_timeout(1600)  # finish the 45-step opening invulnerability
+    wait_for(lambda: ship_x(page) is not None, page)
     initial = ship_x(page)
     page.keyboard.down("ArrowRight")
     moving = wait_for(lambda: (x if x is not None and x > initial else None)
@@ -61,6 +74,16 @@ with sync_playwright() as playwright:
     released = ship_x(page)
     page.wait_for_timeout(150)
     assert ship_x(page) == released and released >= moving
+    assert ship_observation(page)[1], "right movement did not select Middle2.png"
+
+    page.keyboard.down("ArrowRight")
+    page.keyboard.down("ArrowLeft")
+    wait_for(lambda: (view[0] is not None and view[0] < released and view[1] is False)
+             if (view := ship_observation(page)) else False, page)
+    page.keyboard.up("ArrowLeft")
+    wait_for(lambda: (view[0] is not None and view[1] is True)
+             if (view := ship_observation(page)) else False, page)
+    page.keyboard.up("ArrowRight")
 
     clock = page.context.new_cdp_session(page)
     result_deadline = time.monotonic() + 30
@@ -74,5 +97,5 @@ with sync_playwright() as playwright:
     clock.send("Emulation.setVirtualTimePolicy", {"policy": "advance", "budget": 1000})
     wait_for(lambda: "Menu" in page.locator(".kof-label").inner_text(), page)
     assert not errors, errors
-    print("PASS menu, arrows/release, three lives, persistent result, Enter/menu")
+    print("PASS menu, arrow sprites/opposites/release, three lives, persistent result, Enter/menu")
     browser.close()

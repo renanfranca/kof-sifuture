@@ -33,6 +33,7 @@ class Game {
     Bool down = false
     Int lastX = 0
     Int lastY = 0
+    Bool shipRightFrame = false
     List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
     List<Shot> shots = listOf(Shot(), Shot(), Shot())
 
@@ -48,6 +49,7 @@ class Game {
         restartFrame = 0
         explosionSteps = 0
         fireSteps = 0
+        shipRightFrame = false
         clearInput()
         for (var m in meteors) { resetMeteor(m) }
         for (var s in shots) { s.active = false; s.impact = false }
@@ -116,17 +118,22 @@ class Game {
                 restartFrame = 0
                 shipX = 5
                 shipY = 100
+                shipRightFrame = false
             }
         }
         if (restarting) {
             restartFrame = restartFrame + 1
-            if (restartFrame == 45) { shipState = 0 }
+            if (restartFrame == 45) { shipState = 0; shipRightFrame = false }
         }
         if (!exploding) {
             if (left && (!right || lastX == 0)) { shipX = shipX - 5 }
             if (right && (!left || lastX == 1)) { shipX = shipX + 5 }
             if (up && (!down || lastY == 0)) { shipY = shipY - 5 }
             if (down && (!up || lastY == 1)) { shipY = shipY + 5 }
+        }
+        if (!exploding && !restarting) {
+            if (left && (!right || lastX == 0)) { shipRightFrame = false }
+            if (right && (!left || lastX == 1)) { shipRightFrame = true }
         }
         if (shipX < 0) { shipX = 0 }
         if (shipX > 126) { shipX = 126 }
@@ -160,12 +167,17 @@ class Game {
             }
         }
         for (var m in meteors) {
+            m.x = m.x - 1
+            if (m.x < -25) {
+                if (m.collided) {
+                    m.x = 176 + rng.int(200)
+                    m.y = 30 + rng.int(172)
+                } else { resetMeteor(m) }
+            }
             if (m.collided) {
                 m.collisionSteps = m.collisionSteps + 1
                 if (m.collisionSteps == 6) { resetMeteor(m) }
             } else {
-                m.x = m.x - 1
-                if (m.x < -25) { resetMeteor(m) }
                 m.frameSteps = m.frameSteps + 1
                 if (m.frameSteps == 2) {
                     m.frameSteps = 0
@@ -363,10 +375,33 @@ test "laser hit holds meteor collision images for three pairs of steps" {
     var x = g.meteors[0].x
     for (var i = 0; i < 5; i++) {
         g.step()
-        assert(g.meteors[0].collided && g.meteors[0].x == x && g.score == 5)
+        assert(g.meteors[0].collided && g.meteors[0].x == x - i - 1 && g.score == 5)
+        assert(g.meteors[0].collisionSteps / 2 == (i + 1) / 2)
     }
     g.step()
     assert(!g.meteors[0].collided && g.meteors[0].x >= 176)
+}
+
+test "ship image follows horizontal direction and last opposing key" {
+    var g = Game()
+    g.start(63)
+    assert(!g.shipRightFrame)
+    g.shipState = 0
+    g.key("ArrowRight", true)
+    g.step()
+    assert(g.shipRightFrame)
+    g.key("ArrowLeft", true)
+    g.step()
+    assert(!g.shipRightFrame)
+    g.key("ArrowLeft", false)
+    g.step()
+    assert(g.shipRightFrame)
+    g.key("ArrowRight", false)
+    g.step()
+    assert(g.shipRightFrame)
+    g.key("ArrowLeft", true)
+    g.step()
+    assert(!g.shipRightFrame)
 }
 
 test "meteor sprite advances every two steps and returns through the historical frames" {

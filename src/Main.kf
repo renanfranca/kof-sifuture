@@ -5,6 +5,7 @@ class GameView {
     Image title
     Image menu
     Image ship
+    Image shipRight
     List<Image> meteors
     List<Image> meteorHits
     List<Image> explosions
@@ -20,6 +21,7 @@ class GameView {
         title = Image("assets/sifuture.png")
         menu = Image("assets/menu0.png")
         ship = Image("assets/Middle.png")
+        shipRight = Image("assets/Middle2.png")
         meteors = listOf(Image("assets/meteor000.png"), Image("assets/meteor001.png"), Image("assets/meteor002.png"), Image("assets/meteor003.png"), Image("assets/meteor004.png"), Image("assets/meteor005.png"))
         meteorHits = listOf(Image("assets/meteor0C0.png"), Image("assets/meteor0C1.png"), Image("assets/meteor0C2.png"))
         explosions = listOf(Image("assets/explosion0.png"), Image("assets/explosion1.png"), Image("assets/explosion2.png"), Image("assets/explosion3.png"), Image("assets/explosion4.png"), Image("assets/explosion5.png"), Image("assets/explosion6.png"), Image("assets/explosion7.png"), Image("assets/explosion8.png"), Image("assets/explosion9.png"))
@@ -60,7 +62,9 @@ class GameView {
         }
         if (game.shipState == 1) { canvas.drawImage(explosions[game.explosionSteps / 3], game.shipX, game.shipY) }
         if (game.shipState == 0 || (game.shipState == 2 && (game.restartFrame / 3) % 2 == 0)) {
-            canvas.drawImage(ship, game.shipX, game.shipY)
+            if (game.shipState == 0 && game.shipRightFrame) {
+                canvas.drawImage(shipRight, game.shipX, game.shipY)
+            } else { canvas.drawImage(ship, game.shipX, game.shipY) }
         }
     }
 }
