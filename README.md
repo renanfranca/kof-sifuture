@@ -31,7 +31,7 @@ Abra `http://127.0.0.1:8765/`, clique no campo, pressione e solte uma seta. **Ex
 
 ## Etapa 2: regras e testes
 
-[`src/Game.kf`](src/Game.kf) guarda o estado sem depender do desenho. `Game.start(seed)` chama `rng.seed(seed)`; `step()` altera posições, tenta disparar um único laser básico a cada 13 passos normais e soma cinco pontos tanto na colisão nave/meteoro quanto em laser/meteoro. As colisões seguem as condições de borda do jogo histórico, inclusive seus limites inclusivos e a assimetria do laser. O impacto mostra `laser03.png` por um passo sem repetir a pontuação. A nave começa invulnerável por 15 alternâncias de três passos. Após uma colisão, a explosão dura 10 quadros de três passos; só então uma vida é perdida e a nave reinicia. O meteoro atingido continua avançando uma unidade por passo enquanto mostra três quadros de dois passos antes de reaparecer. O campo `shipRightFrame` registra o quadro horizontal escolhido pela última seta pressionada; durante o reinício, o desenho usa o quadro normal. `resultIndex()` separa as faixas de pontuação, inclusive 1500 e 2200. Os blocos `test` no mesmo arquivo exercitam o código de produção e não participam da execução normal.
+[`src/Game.kf`](src/Game.kf) guarda o estado sem depender do desenho. `Game.start(seed)` chama `rng.seed(seed)`; `step()` altera posições, tenta disparar um único laser básico a cada 13 passos normais e soma cinco pontos tanto na colisão nave/meteoro quanto em laser/meteoro. As colisões seguem as condições de borda do jogo histórico, inclusive seus limites inclusivos e a assimetria do laser. O impacto mostra `laser03.png` por um passo sem repetir a pontuação. Se a nave tocar vários meteoros no mesmo passo, todos animam e reaparecem, mas a colisão da nave rende apenas cinco pontos. A nave começa invulnerável por 15 alternâncias de três passos; no 45º passo ela já pode colidir, enquanto o disparo automático só volta no passo seguinte. Após uma colisão, a explosão dura 10 quadros de três passos; só então uma vida é perdida e a nave reinicia. O meteoro atingido continua avançando uma unidade por passo enquanto mostra três quadros de dois passos antes de reaparecer. O campo `shipRightFrame` acompanha a direção horizontal efetiva: `Middle2.png` aparece somente enquanto a direita vence; soltar direita restaura `Middle.png` no próximo passo, mesmo que uma seta vertical continue pressionada. Esta escolha é uma exceção deliberada ao jogo histórico, que mantém o fogo aceso após soltar direita. Durante o reinício, o desenho usa o quadro normal. `resultIndex()` separa as faixas de pontuação, inclusive 1500 e 2200. Os blocos `test` no mesmo arquivo exercitam o código de produção e não participam da execução normal.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
@@ -39,7 +39,7 @@ cd /home/renanfranca/projects/kof-sifuture
 /home/renanfranca/projects/kof/bin/kof test src/Game.kf --target js
 ```
 
-Cada comando deve mostrar **16 testes aprovados**. **Experimento:** altere temporariamente o incremento de movimento de `5` para `4` em `step()` e observe o teste de limites falhar; restaure `5` depois.
+Cada comando deve mostrar **18 testes aprovados**. **Experimento:** altere temporariamente o incremento de movimento de `5` para `4` em `step()` e observe o teste de limites falhar; restaure `5` depois.
 
 ## Etapa 3: percurso no navegador
 

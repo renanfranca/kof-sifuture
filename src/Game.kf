@@ -132,8 +132,7 @@ class Game {
             if (down && (!up || lastY == 1)) { shipY = shipY + 5 }
         }
         if (!exploding && !restarting) {
-            if (left && (!right || lastX == 0)) { shipRightFrame = false }
-            if (right && (!left || lastX == 1)) { shipRightFrame = true }
+            shipRightFrame = right && (!left || lastX == 1)
         }
         if (shipX < 0) { shipX = 0 }
         if (shipX > 126) { shipX = 126 }
@@ -166,6 +165,8 @@ class Game {
                 }
             }
         }
+        var shipCanCollide = shipState == 0
+        var shipCollision = false
         for (var m in meteors) {
             m.x = m.x - 1
             if (m.x < -25) {
@@ -185,12 +186,15 @@ class Game {
                     if (m.frame == 5) { m.frameDirection = -1 }
                     if (m.frame == 0) { m.frameDirection = 1 }
                 }
-                if (vulnerable && shipState == 0 && shipHitsMeteor(m)) {
-                    score = score + 5
+                if (shipCanCollide && shipHitsMeteor(m)) {
+                    if (!shipCollision) {
+                        score = score + 5
+                        shipState = 1
+                        explosionSteps = 0
+                        shipCollision = true
+                    }
                     m.collided = true
                     m.collisionSteps = 0
-                    shipState = 1
-                    explosionSteps = 0
                 }
                 if (!m.collided) {
                     for (var s in shots) {
@@ -307,8 +311,44 @@ test "initial restart is invulnerable for fifteen three-step alternations" {
         assert(g.lives == 3 && g.shipState == 2)
     }
     assert(g.restartFrame == 44)
+    g.meteors[0].x = 400
     g.step()
     assert(g.shipState == 0 && g.lives == 3)
+}
+
+test "restart ends before collision on step forty five but fire waits" {
+    var g = Game()
+    g.start(71)
+    g.restartFrame = 43
+    g.fireSteps = 12
+    for (var m in g.meteors) { m.x = 400; m.y = 30 }
+    g.meteors[0].x = 11
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.shipState == 2 && g.score == 0 && g.fireSteps == 12)
+    g.meteors[0].x = 11
+    g.step()
+    assert(g.shipState == 1 && g.score == 5)
+    assert(g.fireSteps == 12 && !g.shots[0].active)
+}
+
+test "one ship collision marks every overlapping meteor and scores once" {
+    var g = Game()
+    g.start(73)
+    g.shipState = 0
+    for (var m in g.meteors) { m.x = 400; m.y = 30 }
+    g.meteors[0].x = 20
+    g.meteors[0].y = 100
+    g.meteors[1].x = 30
+    g.meteors[1].y = 100
+    g.step()
+    assert(g.shipState == 1 && g.score == 5)
+    assert(g.meteors[0].collided && g.meteors[1].collided)
+    for (var i = 0; i < 5; i++) { g.step() }
+    assert(g.meteors[0].collided && g.meteors[1].collided && g.score == 5)
+    g.step()
+    assert(!g.meteors[0].collided && !g.meteors[1].collided)
+    assert(g.meteors[0].x >= 176 && g.meteors[1].x >= 176 && g.score == 5)
 }
 
 test "last pressed opposite direction wins until released" {
@@ -398,7 +438,10 @@ test "ship image follows horizontal direction and last opposing key" {
     assert(g.shipRightFrame)
     g.key("ArrowRight", false)
     g.step()
-    assert(g.shipRightFrame)
+    assert(!g.shipRightFrame)
+    g.key("ArrowUp", true)
+    g.step()
+    assert(!g.shipRightFrame)
     g.key("ArrowLeft", true)
     g.step()
     assert(!g.shipRightFrame)

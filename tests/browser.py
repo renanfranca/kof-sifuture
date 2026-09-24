@@ -68,13 +68,14 @@ with sync_playwright() as playwright:
     page.keyboard.down("ArrowRight")
     moving = wait_for(lambda: (x if x is not None and x > initial else None)
                       if (x := ship_x(page)) is not None else None, page)
+    wait_for(lambda: ship_observation(page)[1] is True, page)
     page.keyboard.up("ArrowRight")
-    page.wait_for_timeout(120)
+    wait_for(lambda: ship_observation(page)[1] is False, page)
     wait_for(lambda: ship_x(page) is not None, page)
     released = ship_x(page)
     page.wait_for_timeout(150)
     assert ship_x(page) == released and released >= moving
-    assert ship_observation(page)[1], "right movement did not select Middle2.png"
+    assert ship_observation(page)[1] is False, "release did not restore Middle.png"
 
     page.keyboard.down("ArrowRight")
     page.keyboard.down("ArrowLeft")
@@ -84,6 +85,7 @@ with sync_playwright() as playwright:
     wait_for(lambda: (view[0] is not None and view[1] is True)
              if (view := ship_observation(page)) else False, page)
     page.keyboard.up("ArrowRight")
+    wait_for(lambda: ship_observation(page)[1] is False, page)
 
     clock = page.context.new_cdp_session(page)
     result_deadline = time.monotonic() + 30
