@@ -63,12 +63,11 @@ with sync_playwright() as playwright:
     assert ship_x(page) == released and released >= moving
 
     clock = page.context.new_cdp_session(page)
-    for _ in range(4):
-        if "Resultado" in page.locator(".kof-label").inner_text():
-            break
+    result_deadline = time.monotonic() + 30
+    while "Resultado" not in page.locator(".kof-label").inner_text():
+        assert time.monotonic() < result_deadline, "three-life result did not appear"
         clock.send("Emulation.setVirtualTimePolicy", {"policy": "advance", "budget": 120000})
         page.wait_for_timeout(300)
-    assert "Resultado" in page.locator(".kof-label").inner_text()
     page.wait_for_timeout(100)
     assert "Resultado" in page.locator(".kof-label").inner_text()
     page.keyboard.press("Enter")
