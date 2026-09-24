@@ -26,6 +26,12 @@ The expected local source is the
   future plans or paused work. Respect the classification and status described
   in the index; do not present a proposal as an implemented feature.
 
+Also consult the [Complete Kof Course](/home/renanfranca/projects/curso-completo-de-kof/README.md)
+for guided study, practical examples, exercises, and idiomatic usage related to
+the task. Use its relevant modules alongside the Kof4j sources above; confirm
+claims about current language behavior and implementation status against the
+implementation, tests, and official documentation.
+
 Prefer the English `.md` version whenever it is available. Use a localized
 version such as `.pt_BR.md` only when the English document is missing or when
 the task explicitly requires that translation. When confirming the real state
