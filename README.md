@@ -29,21 +29,25 @@ python3 -m http.server 8765 --directory /tmp/sifuture-probe
 
 Abra `http://127.0.0.1:8765/`, clique no campo, pressione e solte uma seta. **Experimento:** troque `30` por `60` em `time.interval` e observe o contador avançar mais devagar.
 
-## Etapa 2: regras e testes
+## Etapa 2: regras, módulos e testes
 
-[`src/Game.kf`](src/Game.kf) guarda o estado sem depender do desenho. `Game.start(seed)` chama `rng.seed(seed)`; `step()` altera posições, tenta disparar um único laser básico a cada 13 passos normais e soma cinco pontos tanto na colisão nave/meteoro quanto em laser/meteoro. As colisões seguem as condições de borda do jogo histórico, inclusive seus limites inclusivos e a assimetria do laser. O impacto mostra `laser03.png` por um passo sem repetir a pontuação. Se a nave tocar vários meteoros no mesmo passo, todos animam e reaparecem, mas a colisão da nave rende apenas cinco pontos. A nave começa invulnerável por 15 alternâncias de três passos; no 45º passo ela já pode colidir, enquanto o disparo automático só volta no passo seguinte. Após uma colisão, a explosão dura 10 quadros de três passos; só então uma vida é perdida e a nave reinicia. O meteoro atingido continua avançando uma unidade por passo enquanto mostra três quadros de dois passos antes de reaparecer. O campo `shipRightFrame` acompanha a direção horizontal efetiva: `Middle2.png` aparece somente enquanto a direita vence; soltar direita restaura `Middle.png` no próximo passo, mesmo que uma seta vertical continue pressionada. Esta escolha é uma exceção deliberada ao jogo histórico, que mantém o fogo aceso após soltar direita. Durante o reinício, o desenho usa o quadro normal. `resultIndex()` separa as faixas de pontuação, inclusive 1500 e 2200. Os blocos `test` no mesmo arquivo exercitam o código de produção e não participam da execução normal.
+[`src/game/Game.kf`](src/game/Game.kf) coordena cada passo lógico. [`src/game/Ship.kf`](src/game/Ship.kf) governa movimento, explosão, reinício e imagem da nave; [`src/game/Lasers.kf`](src/game/Lasers.kf), [`src/game/Shot.kf`](src/game/Shot.kf) e [`src/game/Meteor.kf`](src/game/Meteor.kf) governam seus próprios contadores, posições e animações. [`src/game/Rules.kf`](src/game/Rules.kf) nomeia limites e durações. `Game.start(seed)` chama `rng.seed(seed)` para repetir partidas em testes.
+
+A ordem de `step()` preserva uma sutileza: a fase anterior ao passo decide se há movimento e tentativa de disparo; a fase após o avanço da nave decide se há colisão. Assim, no 45º passo de reinício a nave já pode colidir, mas o laser só volta a ser tentado no seguinte. Cada meteoro sobreposto à nave inicia sua animação, enquanto a colisão da nave rende cinco pontos uma única vez. O impacto de laser mostra `laser03.png` por um passo. A explosão dura 10 quadros de três passos; o reinício, 15 alternâncias de três passos. Os meteoros atingidos seguem avançando uma unidade por passo durante três quadros de dois passos.
+
+[`src/game/State.kf`](src/game/State.kf) usa enums para a tela, a fase da nave e as direções. Neste checkout, enums são valores próprios: a [referência de classes](/home/renanfranca/projects/kof/docs/language-reference/classes.md) e os testes do compilador confirmam comparação entre constantes do mesmo enum. `training/language/types.md` ainda os descreve como strings; essa descrição diverge da implementação atual. Um campo mutável como `ship.phase` usa uma classe com campos explícitos, seguindo o [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md). O [manifesto](src/kof.toml) permite que cada arquivo de [`src/tests/`](src/tests/GameJourney.kf) importe `game.*` quando `kof test` o compila isoladamente.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
-/home/renanfranca/projects/kof/bin/kof test src/Game.kf --target jvm
-/home/renanfranca/projects/kof/bin/kof test src/Game.kf --target js
+/home/renanfranca/projects/kof/bin/kof test src/tests --target jvm
+/home/renanfranca/projects/kof/bin/kof test src/tests --target js
 ```
 
-Cada comando deve mostrar **18 testes aprovados**. **Experimento:** altere temporariamente o incremento de movimento de `5` para `4` em `step()` e observe o teste de limites falhar; restaure `5` depois.
+Cada comando deve mostrar **18 testes aprovados**. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
 
 ## Etapa 3: percurso no navegador
 
-[`src/Main.kf`](src/Main.kf) liga os eventos à classe `Game` e desenha separadamente cada tela. `GameView.render()` apenas lê o estado, inclusive os quadros dos sprites históricos: `Middle.png` para o quadro normal e `Middle2.png` quando a direção horizontal escolhida é a direita. O intervalo chama `step()` e depois `render()`. `Window.size(210, 340)` deixa o canvas exibido exatamente em 176 × 220 pixels no Chrome testado. O resultado permanece até Enter. Uma partida normal recebe uma semente variável de `random.int(...)`; os testes passam semente fixa.
+[`src/Main.kf`](src/Main.kf) traduz `Event.key()` em ações `Direction` e confirmações, cria a janela e avança o relógio. [`src/GameView.kf`](src/GameView.kf) desenha cada tela; `GameView.render()` apenas lê o estado, inclusive os quadros dos sprites históricos: `Middle.png` para o quadro normal e `Middle2.png` somente enquanto a direção horizontal efetiva é direita. Soltar a seta restaura `Middle.png` no próximo passo, mesmo com movimento vertical. Esta é uma exceção deliberada ao histórico, que mantinha o quadro de fogo após a soltura. O intervalo chama `step()` e depois `render()`. `Window.size(210, 340)` deixa o canvas exibido exatamente em 176 × 220 pixels no Chrome testado. O resultado permanece até Enter. Uma partida normal recebe uma semente variável de `random.int(...)`; os testes passam semente fixa.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
@@ -61,7 +65,7 @@ python3 tests/browser.py
 python3 tests/browser_meteor.py
 ```
 
-O primeiro teste abre a página real, confirma movimento, soltura e a troca de sprite com setas opostas, acelera o tempo do navegador até a derrota, confirma a persistência do resultado e volta ao menu. O segundo compila [`tests/meteor-motion.kf`](tests/meteor-motion.kf) com o modelo real e usa cliques para avançar exatamente um passo de cada vez no Chrome; verifica posição e quadro do meteoro atingido. Python e Playwright servem apenas à automação de teste; a aplicação e a prova visual são escritas em Kof. O JavaScript e o CSS da saída são gerados por Kof.
+O primeiro teste abre a página real, confirma movimento, soltura e a troca de sprite com setas opostas, acelera o tempo do navegador até a derrota, confirma a persistência do resultado e volta ao menu. O segundo compila [`tests/meteor-motion.kf`](tests/meteor-motion.kf) com o pacote `game` real e usa cliques para avançar exatamente um passo de cada vez no Chrome; verifica posição e quadro do meteoro atingido. Python e Playwright servem apenas à automação de teste; a aplicação e a prova visual são escritas em Kof. O JavaScript e o CSS da saída são gerados por Kof.
 
 ## Escopo e fontes
 

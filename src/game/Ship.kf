@@ -1,0 +1,86 @@
+package game
+
+class Ship {
+    Int x = 0
+    Int y = Rules.SHIP_START_Y
+    Int lives = Rules.START_LIVES
+    ShipPhase phase = ShipPhase.Restart
+    Int restartFrame = 0
+    Int explosionSteps = 0
+    Bool left = false
+    Bool right = false
+    Bool up = false
+    Bool down = false
+    Int lastX = 0
+    Int lastY = 0
+    Bool rightFrame = false
+
+    reset() {
+        x = 0
+        y = Rules.SHIP_START_Y
+        lives = Rules.START_LIVES
+        phase = ShipPhase.Restart
+        restartFrame = 0
+        explosionSteps = 0
+        rightFrame = false
+        clearInput()
+    }
+
+    clearInput() {
+        left = false
+        right = false
+        up = false
+        down = false
+        lastX = 0
+        lastY = 0
+    }
+
+    direction(Direction direction, Bool pressed) {
+        if (direction == Direction.Left) { left = pressed; if (pressed) { lastX = 0 } }
+        if (direction == Direction.Right) { right = pressed; if (pressed) { lastX = 1 } }
+        if (direction == Direction.Up) { up = pressed; if (pressed) { lastY = 0 } }
+        if (direction == Direction.Down) { down = pressed; if (pressed) { lastY = 1 } }
+    }
+
+    advance() {
+        var exploding = phase == ShipPhase.Explosion
+        var restarting = phase == ShipPhase.Restart
+        if (exploding) {
+            explosionSteps = explosionSteps + 1
+            if (explosionSteps == Rules.SHIP_EXPLOSION_STEPS) {
+                lives = lives - 1
+                if (lives == 0) { return }
+                phase = ShipPhase.Restart
+                restartFrame = 0
+                x = Rules.SHIP_RESPAWN_X
+                y = Rules.SHIP_START_Y
+                rightFrame = false
+            }
+        }
+        if (restarting) {
+            restartFrame = restartFrame + 1
+            if (restartFrame == Rules.SHIP_RESTART_STEPS) {
+                phase = ShipPhase.Normal
+                rightFrame = false
+            }
+        }
+        if (!exploding) {
+            if (left && (!right || lastX == 0)) { x = x - Rules.SHIP_SPEED }
+            if (right && (!left || lastX == 1)) { x = x + Rules.SHIP_SPEED }
+            if (up && (!down || lastY == 0)) { y = y - Rules.SHIP_SPEED }
+            if (down && (!up || lastY == 1)) { y = y + Rules.SHIP_SPEED }
+        }
+        if (!exploding && !restarting) {
+            rightFrame = right && (!left || lastX == 1)
+        }
+        if (x < 0) { x = 0 }
+        if (x > Rules.SHIP_RIGHT_BOUND) { x = Rules.SHIP_RIGHT_BOUND }
+        if (y < Rules.HEADER_HEIGHT) { y = Rules.HEADER_HEIGHT }
+        if (y > Rules.SHIP_BOTTOM_BOUND) { y = Rules.SHIP_BOTTOM_BOUND }
+    }
+
+    explode() {
+        phase = ShipPhase.Explosion
+        explosionSteps = 0
+    }
+}

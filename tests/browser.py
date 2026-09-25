@@ -62,7 +62,6 @@ with sync_playwright() as playwright:
         stable = stable + 1 if ship_x(page) is not None else 0
         page.wait_for_timeout(40)
     assert stable == 5, "ship did not settle after its initial blink"
-    page.wait_for_timeout(1600)  # finish the 45-step opening invulnerability
     wait_for(lambda: ship_x(page) is not None, page)
     initial = ship_x(page)
     page.keyboard.down("ArrowRight")

@@ -1,0 +1,23 @@
+package game
+
+class Lasers {
+    Int fireSteps = 0
+    List<Shot> shots = listOf(Shot(), Shot(), Shot())
+
+    reset() {
+        fireSteps = 0
+        for (var shot in shots) { shot.reset() }
+    }
+
+    attemptFire(Ship ship) {
+        fireSteps = fireSteps + 1
+        if (fireSteps == Rules.LASER_INTERVAL) {
+            fireSteps = 0
+            shots[0].fire(ship.x, ship.y)
+        }
+    }
+
+    advance() {
+        for (var shot in shots) { shot.advance() }
+    }
+}

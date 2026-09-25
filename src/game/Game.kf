@@ -1,0 +1,73 @@
+package game
+
+class Game {
+    Screen screen = Screen.Menu
+    Ship ship = Ship()
+    Int score = 0
+    Int steps = 0
+    List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
+    Lasers lasers = Lasers()
+
+    start(Int seed) {
+        rng.seed(seed)
+        screen = Screen.Play
+        ship.reset()
+        score = 0
+        steps = 0
+        lasers.reset()
+        for (var m in meteors) { m.reset() }
+    }
+
+    confirm() {
+        if (screen == Screen.Menu) { start(random.int(2147483647)) }
+        else if (screen == Screen.Result) { screen = Screen.Menu; ship.clearInput() }
+    }
+
+    step() {
+        if (screen != Screen.Play) { return }
+        steps = steps + 1
+        var normalBefore = ship.phase == ShipPhase.Normal
+        ship.advance()
+        if (ship.lives == 0) {
+            screen = Screen.Result
+            ship.clearInput()
+            return
+        }
+
+        if (normalBefore) { lasers.attemptFire(ship) }
+        lasers.advance()
+
+        var shipCanCollide = ship.phase == ShipPhase.Normal
+        var shipCollision = false
+        for (var m in meteors) {
+            var wasCollided = m.collided
+            m.advance()
+            if (!wasCollided && !m.collided) {
+                if (shipCanCollide && m.touchesShip(ship.x, ship.y)) {
+                    if (!shipCollision) {
+                        score = score + Rules.COLLISION_SCORE
+                        ship.explode()
+                        shipCollision = true
+                    }
+                    m.collide()
+                }
+                if (!m.collided) {
+                    for (var s in lasers.shots) {
+                        if (s.active && !s.impact && s.hitsMeteor(m)) {
+                            s.impactAt(m)
+                            score = score + Rules.COLLISION_SCORE
+                            m.collide()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    resultIndex(): Int {
+        if (score < Rules.RESULT_GOOD) { return 0 }
+        if (score < Rules.RESULT_GREAT) { return 1 }
+        if (score < Rules.RESULT_BEST) { return 2 }
+        return 3
+    }
+}

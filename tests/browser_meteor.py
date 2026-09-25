@@ -47,8 +47,9 @@ with tempfile.TemporaryDirectory(prefix="sifuture-meteor-browser-") as directory
     source = temporary / "source"
     output = temporary / "web"
     source.mkdir()
-    shutil.copy2(ROOT / "src/Game.kf", source / "Game.kf")
-    shutil.copy2(ROOT / "tests/meteor-motion.kf", source / "meteor-motion.kf")
+    shutil.copy2(ROOT / "src/kof.toml", source / "kof.toml")
+    shutil.copytree(ROOT / "src/game", source / "game")
+    shutil.copy2(ROOT / "tests/meteor-motion.kf", source / "Main.kf")
     subprocess.run([str(KOF), "build", str(source), "--target", "js", "--output", str(output)], check=True)
     (output / "assets").mkdir()
     for frame in range(3):

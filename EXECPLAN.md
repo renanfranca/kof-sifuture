@@ -37,3 +37,19 @@ Comandos observados no SHA acima: `mvn -q package -DskipTests` (exit 0, Maven 3.
 - O checkout Kof não tem distribuição empacotada e não há `mvn` no PATH atual. Isso pode atrasar a validação, mas o compilador deve ser preparado antes de assumir um bloqueio da linguagem.
 - Recursos históricos têm direitos incertos segundo `/home/renanfranca/projects/sifuture/NOTICE`; copiar apenas os necessários e preservar aviso explícito.
 - O teclado requer foco explícito no `Input`; a composição funciona depois do clique, mas não recebe Enter logo na abertura. O dossier `docs/kof-input-gap.md` conserva o reproducer e a classificação cautelosa.
+
+## Refatoração aprovada após o primeiro ciclo
+
+O plano adicional em `.agent/tmp/sifuture-refactor.md` reorganiza o código sem mudar as regras: `src/game/` contém o modelo, `src/GameView.kf` contém o desenho e `src/Main.kf` contém janela/eventos. Os 18 cenários observáveis vivem em `src/tests/GameJourney.kf`; `src/kof.toml` fixa a raiz de importação para `kof test` por arquivo. `Game.step()` coordena as fases: estado anterior decide disparo; estado posterior decide colisão. A entrada de teclado vira `Direction` em Main.
+
+Validação da refatoração em Kof `0.4.10-beta` (`ebd11a1af42b525c583c28ab444e060fae8a9c6a`):
+
+```bash
+/home/renanfranca/projects/kof/bin/kof test src/tests --target jvm
+/home/renanfranca/projects/kof/bin/kof test src/tests --target js
+/home/renanfranca/projects/kof/bin/kof build src --target js --output /tmp/sifuture-game
+python3 tests/browser.py http://127.0.0.1:8766/
+python3 tests/browser_meteor.py
+```
+
+O curso de testes ensina separar suítes; a referência de módulos e `ProjectModuleResolutionTest` fundamentam a raiz com manifesto. `training/language/types.md` descreve enums como strings, divergindo de `docs/language-reference/classes.md` e `EnumIdentityE2ETest`; JVM/JS foram provados com um módulo pequeno antes da migração.
