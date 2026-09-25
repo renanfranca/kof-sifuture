@@ -1,0 +1,35 @@
+import kof.ui.*
+
+class Probe {
+    static Int ticks = 0
+    static String pressed = "nenhuma"
+}
+
+main() {
+    var window = Window("SiFuture: prova de KofJS")
+    var canvas = Canvas(176, 220)
+    var ship = Image("assets/Middle.png")
+    var keys = Input("clique aqui para ativar o teclado")
+    var status = Label("Aguardando")
+
+    keys.on("keydown", (e: Event) -> {
+        Probe.pressed = e.key()
+        status.text = "pressionada: " + Probe.pressed + " / quadro " + Probe.ticks
+    })
+    keys.on("keyup", (e: Event) -> {
+        Probe.pressed = "nenhuma"
+        status.text = "solta: " + e.key() + " / quadro " + Probe.ticks
+    })
+
+    window.bind(Column(listOf(canvas, keys, status)))
+    window.show()
+
+    time.interval(30, () -> {
+        Probe.ticks = Probe.ticks + 1
+        canvas.clearRect(0, 0, 176, 220)
+        canvas.drawImage(ship, 55, 100)
+        if (Probe.ticks % 30 == 0) {
+            status.text = "tecla: " + Probe.pressed + " / quadro " + Probe.ticks
+        }
+    })
+}

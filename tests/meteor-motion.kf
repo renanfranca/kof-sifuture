@@ -1,0 +1,35 @@
+import game.*
+import kof.ui.*
+
+// Browser fixture: advance the real Game model one logical step per click.
+main() {
+    var game = Game()
+    game.start(77)
+    var meteor = game.meteors[0]
+    meteor.x = 100
+    meteor.y = 80
+    meteor.collided = true
+    meteor.collisionSteps = 0
+
+    var canvas = Canvas(176, 220)
+    var impacts = listOf(Image("assets/meteor0C0.png"), Image("assets/meteor0C1.png"), Image("assets/meteor0C2.png"))
+    var label = Label("impact:100:0")
+    var next = Button("Next step", () -> {
+        game.step()
+        if (meteor.collided) {
+            label.text = "impact:" + meteor.x + ":" + meteor.collisionSteps
+        } else {
+            label.text = "respawn:" + meteor.x
+        }
+    })
+    var window = Window("Meteor motion check")
+    window.size(210, 340)
+    window.bind(Column(listOf(canvas, next, label)))
+    window.show()
+    time.interval(30, () -> {
+        canvas.clearRect(0, 0, 176, 220)
+        if (meteor.collided) {
+            canvas.drawImage(impacts[meteor.collisionSteps / 2], meteor.x, meteor.y)
+        }
+    })
+}

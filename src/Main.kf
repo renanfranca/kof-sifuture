@@ -1,0 +1,39 @@
+import game.*
+import kof.ui.*
+
+handleKey(Game game, String key, Bool pressed) {
+    if (key == "ArrowLeft") { game.ship.direction(Direction.Left, pressed) }
+    if (key == "ArrowRight") { game.ship.direction(Direction.Right, pressed) }
+    if (key == "ArrowUp") { game.ship.direction(Direction.Up, pressed) }
+    if (key == "ArrowDown") { game.ship.direction(Direction.Down, pressed) }
+    if (key == "Enter" && pressed) { game.confirm() }
+}
+
+main() {
+    var game = Game()
+    var canvas = Canvas(Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
+    var view = GameView(canvas)
+    var keys = Input("Clique para teclado")
+    var hint = Label("Menu: Enter inicia")
+    keys.on("keydown", (e: Event) -> {
+        handleKey(game, e.key(), true)
+        view.render(game)
+    })
+    keys.on("keyup", (e: Event) -> {
+        handleKey(game, e.key(), false)
+    })
+    keys.on("blur", (e: Event) -> { game.ship.clearInput() })
+
+    var window = Window("SiFuture em Kof")
+    window.size(210, 340)
+    window.bind(Column(listOf(canvas, keys, hint)))
+    window.show()
+    view.render(game)
+    time.interval(Rules.STEP_MS, () -> {
+        game.step()
+        view.render(game)
+        if (game.screen == Screen.Menu) { hint.text = "Menu: Enter inicia" }
+        if (game.screen == Screen.Play) { hint.text = "Setas: mover" }
+        if (game.screen == Screen.Result) { hint.text = "Resultado: Enter volta" }
+    })
+}

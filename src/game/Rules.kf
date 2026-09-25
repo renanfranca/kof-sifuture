@@ -1,0 +1,35 @@
+package game
+
+class Rules {
+    static final Int STEP_MS = 30
+    static final Int WORLD_WIDTH = 176
+    static final Int WORLD_HEIGHT = 220
+    static final Int HEADER_HEIGHT = 30
+    static final Int START_LIVES = 3
+    static final Int SHIP_START_Y = 100
+    static final Int SHIP_RESPAWN_X = 5
+    static final Int SHIP_WIDTH = 50
+    static final Int SHIP_HEIGHT = 20
+    static final Int SHIP_RIGHT_BOUND = 126
+    static final Int SHIP_BOTTOM_BOUND = 200
+    static final Int SHIP_SPEED = 5
+    static final Int METEOR_WIDTH = 20
+    static final Int METEOR_HEIGHT = 18
+    static final Int METEOR_SPEED = 1
+    static final Int METEOR_SPAWN_RANGE = 200
+    static final Int METEOR_Y_RANGE = 172
+    static final Int METEOR_LEFT_BOUND = -25
+    static final Int METEOR_FRAMES = 6
+    static final Int METEOR_FRAME_STEPS = 2
+    static final Int METEOR_HIT_STEPS = 6
+    static final Int LASER_WIDTH = 30
+    static final Int LASER_HEIGHT = 12
+    static final Int LASER_SPEED = 5
+    static final Int LASER_INTERVAL = 13
+    static final Int COLLISION_SCORE = 5
+    static final Int RESULT_GOOD = 1500
+    static final Int RESULT_GREAT = 2200
+    static final Int RESULT_BEST = 3300
+    static final Int SHIP_EXPLOSION_STEPS = 30
+    static final Int SHIP_RESTART_STEPS = 45
+}

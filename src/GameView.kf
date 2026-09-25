@@ -1,0 +1,71 @@
+import game.*
+import kof.ui.*
+
+class GameView {
+    Canvas canvas
+    Image title
+    Image menu
+    Image ship
+    Image shipRight
+    List<Image> meteors
+    List<Image> meteorHits
+    List<Image> explosions
+    Image laser
+    Image laserImpact
+    Image result0
+    Image result1
+    Image result2
+    Image result3
+
+    public constructor(Canvas canvas) {
+        this.canvas = canvas
+        title = Image("assets/sifuture.png")
+        menu = Image("assets/menu0.png")
+        ship = Image("assets/Middle.png")
+        shipRight = Image("assets/Middle2.png")
+        meteors = listOf(Image("assets/meteor000.png"), Image("assets/meteor001.png"), Image("assets/meteor002.png"), Image("assets/meteor003.png"), Image("assets/meteor004.png"), Image("assets/meteor005.png"))
+        meteorHits = listOf(Image("assets/meteor0C0.png"), Image("assets/meteor0C1.png"), Image("assets/meteor0C2.png"))
+        explosions = listOf(Image("assets/explosion0.png"), Image("assets/explosion1.png"), Image("assets/explosion2.png"), Image("assets/explosion3.png"), Image("assets/explosion4.png"), Image("assets/explosion5.png"), Image("assets/explosion6.png"), Image("assets/explosion7.png"), Image("assets/explosion8.png"), Image("assets/explosion9.png"))
+        laser = Image("assets/laser00.png")
+        laserImpact = Image("assets/laser03.png")
+        result0 = Image("assets/result0.png")
+        result1 = Image("assets/result1.png")
+        result2 = Image("assets/result2.png")
+        result3 = Image("assets/result3.png")
+    }
+
+    render(Game game) {
+        canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
+        canvas.setFill(Palette.white)
+        if (game.screen == Screen.Menu) {
+            canvas.drawImage(title, 11, 30)
+            canvas.drawImage(menu, 48, 120)
+            canvas.fillText("Enter: Novo Jogo", 42, 174)
+            return
+        }
+        if (game.screen == Screen.Result) {
+            canvas.fillText("PONTOS: " + game.score, 40, 86)
+            if (game.resultIndex() == 0) { canvas.drawImage(result0, 31, 108) }
+            if (game.resultIndex() == 1) { canvas.drawImage(result1, 31, 108) }
+            if (game.resultIndex() == 2) { canvas.drawImage(result2, 31, 108) }
+            if (game.resultIndex() == 3) { canvas.drawImage(result3, 31, 108) }
+            canvas.fillText("Enter: menu", 52, 160)
+            return
+        }
+        canvas.fillText("PONTOS " + game.score + "   VIDAS " + game.ship.lives, 4, 18)
+        for (var m in game.meteors) {
+            if (m.collided) { canvas.drawImage(meteorHits[m.collisionSteps / 2], m.x, m.y) }
+            else { canvas.drawImage(meteors[m.frame], m.x, m.y) }
+        }
+        for (var s in game.lasers.shots) {
+            if (s.active && s.impact) { canvas.drawImage(laserImpact, s.x + 5, s.y) }
+            else if (s.active) { canvas.drawImage(laser, s.x, s.y) }
+        }
+        if (game.ship.phase == ShipPhase.Explosion) { canvas.drawImage(explosions[game.ship.explosionSteps / 3], game.ship.x, game.ship.y) }
+        if (game.ship.phase == ShipPhase.Normal || (game.ship.phase == ShipPhase.Restart && (game.ship.restartFrame / 3) % 2 == 0)) {
+            if (game.ship.phase == ShipPhase.Normal && game.ship.rightFrame) {
+                canvas.drawImage(shipRight, game.ship.x, game.ship.y)
+            } else { canvas.drawImage(ship, game.ship.x, game.ship.y) }
+        }
+    }
+}

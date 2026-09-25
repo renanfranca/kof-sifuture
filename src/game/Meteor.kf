@@ -1,0 +1,59 @@
+package game
+
+class Meteor {
+    Int x = 0
+    Int y = 0
+    Int frame = 0
+    Int frameDirection = 1
+    Int frameSteps = 0
+    Int collisionSteps = 0
+    Bool collided = false
+
+    relocate() {
+        Int spawnRange = Rules.METEOR_SPAWN_RANGE
+        Int yRange = Rules.METEOR_Y_RANGE
+        x = Rules.WORLD_WIDTH + rng.int(spawnRange)
+        y = Rules.HEADER_HEIGHT + rng.int(yRange)
+    }
+
+    reset() {
+        relocate()
+        frame = 0
+        frameDirection = 1
+        frameSteps = 0
+        collisionSteps = 0
+        collided = false
+    }
+
+    advance() {
+        x = x - Rules.METEOR_SPEED
+        if (x < Rules.METEOR_LEFT_BOUND) {
+            if (collided) {
+                relocate()
+            } else { reset() }
+        }
+        if (collided) {
+            collisionSteps = collisionSteps + 1
+            if (collisionSteps == Rules.METEOR_HIT_STEPS) { reset() }
+        } else {
+            frameSteps = frameSteps + 1
+            if (frameSteps == Rules.METEOR_FRAME_STEPS) {
+                frameSteps = 0
+                frame = frame + frameDirection
+                if (frame == Rules.METEOR_FRAMES - 1) { frameDirection = -1 }
+                if (frame == 0) { frameDirection = 1 }
+            }
+        }
+    }
+
+    touchesShip(Int shipX, Int shipY): Bool {
+        return x >= shipX && x <= shipX + Rules.SHIP_WIDTH &&
+            ((y >= shipY && y <= shipY + Rules.SHIP_HEIGHT) ||
+             (y + Rules.METEOR_HEIGHT >= shipY && y + Rules.METEOR_HEIGHT <= shipY + Rules.SHIP_HEIGHT))
+    }
+
+    collide() {
+        collided = true
+        collisionSteps = 0
+    }
+}

@@ -1,0 +1,45 @@
+package game
+
+class Shot {
+    Int x = 0
+    Int y = 0
+    Bool active = false
+    Bool impact = false
+
+    reset() {
+        active = false
+        impact = false
+    }
+
+    fire(Int shipX, Int shipY) {
+        if (active) { return }
+        x = shipX + Rules.LASER_WIDTH / 2
+        y = shipY + Rules.SHIP_HEIGHT / 2 - 2
+        active = true
+        impact = false
+    }
+
+    advance() {
+        if (!active) { return }
+        if (impact) {
+            active = false
+            impact = false
+        } else {
+            x = x + Rules.LASER_SPEED
+            if (x > Rules.WORLD_WIDTH) { active = false }
+        }
+    }
+
+    hitsMeteor(Meteor m): Bool {
+        return ((x + Rules.LASER_WIDTH >= m.x && x + Rules.LASER_WIDTH <= m.x + Rules.METEOR_WIDTH) &&
+                (y >= m.y && y <= m.y + Rules.METEOR_HEIGHT)) ||
+               ((x + Rules.LASER_WIDTH >= m.x && x <= m.x + Rules.METEOR_WIDTH) &&
+                (y + Rules.LASER_HEIGHT >= m.y && y + Rules.LASER_HEIGHT <= m.y + Rules.METEOR_HEIGHT))
+    }
+
+    impactAt(Meteor m) {
+        x = m.x
+        y = m.y
+        impact = true
+    }
+}
