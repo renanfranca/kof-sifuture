@@ -11,8 +11,8 @@ class Ship {
     Bool right = false
     Bool up = false
     Bool down = false
-    Int lastX = 0
-    Int lastY = 0
+    Direction lastX = Direction.Left
+    Direction lastY = Direction.Up
     Bool rightFrame = false
 
     reset() {
@@ -31,15 +31,15 @@ class Ship {
         right = false
         up = false
         down = false
-        lastX = 0
-        lastY = 0
+        lastX = Direction.Left
+        lastY = Direction.Up
     }
 
     direction(Direction direction, Bool pressed) {
-        if (direction == Direction.Left) { left = pressed; if (pressed) { lastX = 0 } }
-        if (direction == Direction.Right) { right = pressed; if (pressed) { lastX = 1 } }
-        if (direction == Direction.Up) { up = pressed; if (pressed) { lastY = 0 } }
-        if (direction == Direction.Down) { down = pressed; if (pressed) { lastY = 1 } }
+        if (direction == Direction.Left) { left = pressed; if (pressed) { lastX = Direction.Left } }
+        if (direction == Direction.Right) { right = pressed; if (pressed) { lastX = Direction.Right } }
+        if (direction == Direction.Up) { up = pressed; if (pressed) { lastY = Direction.Up } }
+        if (direction == Direction.Down) { down = pressed; if (pressed) { lastY = Direction.Down } }
     }
 
     advance() {
@@ -65,13 +65,13 @@ class Ship {
             }
         }
         if (!exploding) {
-            if (left && (!right || lastX == 0)) { x = x - Rules.SHIP_SPEED }
-            if (right && (!left || lastX == 1)) { x = x + Rules.SHIP_SPEED }
-            if (up && (!down || lastY == 0)) { y = y - Rules.SHIP_SPEED }
-            if (down && (!up || lastY == 1)) { y = y + Rules.SHIP_SPEED }
+            if (left && (!right || lastX == Direction.Left)) { x = x - Rules.SHIP_SPEED }
+            if (right && (!left || lastX == Direction.Right)) { x = x + Rules.SHIP_SPEED }
+            if (up && (!down || lastY == Direction.Up)) { y = y - Rules.SHIP_SPEED }
+            if (down && (!up || lastY == Direction.Down)) { y = y + Rules.SHIP_SPEED }
         }
         if (!exploding && !restarting) {
-            rightFrame = right && (!left || lastX == 1)
+            rightFrame = right && (!left || lastX == Direction.Right)
         }
         if (x < 0) { x = 0 }
         if (x > Rules.SHIP_RIGHT_BOUND) { x = Rules.SHIP_RIGHT_BOUND }

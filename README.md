@@ -4,7 +4,7 @@ Este recorte executa **menu → Novo Jogo → nave, tiros e meteoros → resulta
 
 ## Preparar Kof
 
-As instruções foram verificadas com **Kof 0.4.10-beta**, SHA **`ebd11a1af42b525c583c28ab444e060fae8a9c6a`**. O checkout local de Kof foi compilado antes de executar `bin/kof`:
+As instruções foram verificadas com **Kof 0.5.0-beta**, SHA **`317d9f6b1c3e27032cc955a05f859f6c627d9338`**. O checkout local de Kof foi compilado antes de executar `bin/kof`:
 
 ```bash
 cd /home/renanfranca/projects/kof
@@ -31,11 +31,11 @@ Abra `http://127.0.0.1:8765/`, clique no campo, pressione e solte uma seta. **Ex
 
 ## Etapa 2: regras, módulos e testes
 
-[`src/game/Game.kf`](src/game/Game.kf) coordena cada passo lógico. [`src/game/Ship.kf`](src/game/Ship.kf) governa movimento, explosão, reinício e imagem da nave; [`src/game/Lasers.kf`](src/game/Lasers.kf), [`src/game/Shot.kf`](src/game/Shot.kf) e [`src/game/Meteor.kf`](src/game/Meteor.kf) governam seus próprios contadores, posições e animações. [`src/game/Rules.kf`](src/game/Rules.kf) nomeia limites e durações. `Game.start(seed)` chama `rng.seed(seed)` para repetir partidas em testes.
+[`src/game/Game.kf`](src/game/Game.kf) coordena cada passo lógico. [`src/game/Ship.kf`](src/game/Ship.kf) governa movimento, explosão, reinício e imagem da nave; [`src/game/Lasers.kf`](src/game/Lasers.kf), [`src/game/Shot.kf`](src/game/Shot.kf) e [`src/game/Meteor.kf`](src/game/Meteor.kf) governam seus próprios contadores, posições e animações. [`src/game/Rules.kf`](src/game/Rules.kf) nomeia limites, durações, intervalos de quadros e o limite usado para sortear a semente. Os limites direito e inferior da nave são calculados pelas dimensões do mundo e da nave. `Game.start(seed)` chama `rng.seed(seed)` para repetir partidas em testes.
 
 A ordem de `step()` preserva uma sutileza: a fase anterior ao passo decide se há movimento e tentativa de disparo; a fase após o avanço da nave decide se há colisão. Assim, no 45º passo de reinício a nave já pode colidir, mas o laser só volta a ser tentado no seguinte. Cada meteoro sobreposto à nave inicia sua animação, enquanto a colisão da nave rende cinco pontos uma única vez. O impacto de laser mostra `laser03.png` por um passo. A explosão dura 10 quadros de três passos; o reinício, 15 alternâncias de três passos. Os meteoros atingidos seguem avançando uma unidade por passo durante três quadros de dois passos.
 
-[`src/game/State.kf`](src/game/State.kf) usa enums para a tela, a fase da nave e as direções. Neste checkout, enums são valores próprios: a [referência de classes](/home/renanfranca/projects/kof/docs/language-reference/classes.md) e os testes do compilador confirmam comparação entre constantes do mesmo enum. `training/language/types.md` ainda os descreve como strings; essa descrição diverge da implementação atual. Um campo mutável como `ship.phase` usa uma classe com campos explícitos, seguindo o [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md). O [manifesto](src/kof.toml) permite que cada arquivo de [`src/tests/`](src/tests/GameJourney.kf) importe `game.*` quando `kof test` o compila isoladamente.
+[`src/game/State.kf`](src/game/State.kf) usa enums para a tela, a fase da nave e as direções. `Ship.lastX` e `Ship.lastY` guardam a última direção pressionada como `Direction`, permitindo escolher entre duas setas opostas. Neste checkout, enums são valores próprios: a [referência de classes](/home/renanfranca/projects/kof/docs/language-reference/classes.md) e os testes do compilador confirmam comparação entre constantes do mesmo enum. `training/language/types.md` ainda os descreve como strings; essa descrição diverge da implementação atual. Um campo mutável como `ship.phase` usa uma classe com campos explícitos, seguindo o [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md). O [manifesto](src/kof.toml) permite que cada arquivo de [`src/tests/`](src/tests/GameJourney.kf) importe `game.*` quando `kof test` o compila isoladamente.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
@@ -43,7 +43,7 @@ cd /home/renanfranca/projects/kof-sifuture
 /home/renanfranca/projects/kof/bin/kof test src/tests --target js
 ```
 
-Cada comando deve mostrar **18 testes aprovados**. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
+Cada comando deve mostrar **19 testes aprovados**. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
 
 ## Etapa 3: percurso no navegador
 
@@ -71,6 +71,6 @@ O primeiro teste abre a página real, confirma movimento, soltura e a troca de s
 
 Este ciclo inclui o tiro normal, seis meteoros horizontais e colisões. Os outros sistemas da especificação, como créditos, telas de Controles e Opções, pausa, toque, Android, música, itens, inimigos e chefes, pertencem a ciclos posteriores. O campo de teclado precisa de um clique para obter foco; veja a [prova e limitação da entrada](docs/kof-input-gap.md).
 
-As regras usadas foram conferidas em `/home/renanfranca/projects/sifuture/src/AirShip.java`, `AirShipAllShoots.java`, `Meteor.java`, `MeteorArray.java` e `GameCanvas.java`. A sintaxe e o estado de Kof foram conferidos em `/home/renanfranca/projects/kof/training/language/syntax.md`, `learn/35-kof-ui.md`, `learn/37-kofjs.md`, `learn/39-stdlib.md`, `docs/ui/PLAN-CANVAS-WIDGET.md`, `docs/development/DECISIONS.md`, implementação e testes do compilador. As aulas pertinentes de frontend e testes em `/home/renanfranca/projects/curso-completo-de-kof/` serviram de guia didático; o curso declara 0.3.7-beta, por isso o comportamento atual foi confirmado nas fontes Kof 0.4.10-beta do SHA acima. Planos de expansão da UI não são tratados como recursos já disponíveis.
+As regras usadas foram conferidas em `/home/renanfranca/projects/sifuture/src/AirShip.java`, `AirShipAllShoots.java`, `Meteor.java`, `MeteorArray.java` e `GameCanvas.java`. A sintaxe e o estado de Kof foram conferidos em `/home/renanfranca/projects/kof/training/language/syntax.md`, `training/language/types.md`, `training/idioms/classes.md`, `training/anti-patterns/sentinel-values.md`, `learn/07-classes-and-objects.md`, `learn/23-testing.md`, `learn/35-kof-ui.md`, `learn/37-kofjs.md`, `learn/39-stdlib.md`, `docs/language-reference/classes.md`, `docs/ui/PLAN-CANVAS-WIDGET.md`, `docs/development/DECISIONS.md`, implementação e testes do compilador. As aulas pertinentes de frontend e testes em `/home/renanfranca/projects/curso-completo-de-kof/` serviram de guia didático; o curso declara 0.3.7-beta, por isso o comportamento atual foi confirmado nas fontes Kof 0.5.0-beta do SHA acima. Planos de expansão da UI não são tratados como recursos já disponíveis.
 
 Os sprites em `assets/` vêm do jogo histórico. O [NOTICE](NOTICE) distingue o código licenciado dos recursos de terceiros cujos autores e licenças não foram identificados; este repositório não atribui uma licença nova a eles.

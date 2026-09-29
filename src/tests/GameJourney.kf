@@ -26,6 +26,11 @@ test "ship moves five units and stops at bounds and release" {
     g.ship.direction(Direction.Up, true)
     g.step()
     assert(g.ship.y == 30)
+    g.ship.direction(Direction.Up, false)
+    g.ship.y = 199
+    g.ship.direction(Direction.Down, true)
+    g.step()
+    assert(g.ship.y == 200)
 }
 
 test "normal fire starts on thirteenth step and earns five points" {
@@ -146,6 +151,27 @@ test "last pressed opposite direction wins until released" {
     g.ship.direction(Direction.Down, false)
     g.step()
     assert(g.ship.x == 60 && g.ship.y == 100)
+}
+
+test "reversed opposing keys choose the latest and restore the held key on release" {
+    var g = Game()
+    g.start(91)
+    g.ship.phase = ShipPhase.Normal
+    g.ship.x = 60
+    g.ship.y = 100
+    for (var m in g.meteors) { m.x = 400; m.y = 30 }
+
+    g.ship.direction(Direction.Right, true)
+    g.ship.direction(Direction.Left, true)
+    g.ship.direction(Direction.Down, true)
+    g.ship.direction(Direction.Up, true)
+    g.step()
+    assert(g.ship.x == 55 && g.ship.y == 95 && !g.ship.rightFrame)
+
+    g.ship.direction(Direction.Left, false)
+    g.ship.direction(Direction.Up, false)
+    g.step()
+    assert(g.ship.x == 60 && g.ship.y == 100 && g.ship.rightFrame)
 }
 
 test "basic laser allows only one active shot and retries each thirteen normal steps" {

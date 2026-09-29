@@ -19,7 +19,10 @@ class Game {
     }
 
     confirm() {
-        if (screen == Screen.Menu) { start(random.int(2147483647)) }
+        if (screen == Screen.Menu) {
+            Int seedBound = Rules.RANDOM_SEED_BOUND
+            start(random.int(seedBound))
+        }
         else if (screen == Screen.Result) { screen = Screen.Menu; ship.clearInput() }
     }
 

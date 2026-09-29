@@ -54,15 +54,15 @@ class GameView {
         }
         canvas.fillText("PONTOS " + game.score + "   VIDAS " + game.ship.lives, 4, 18)
         for (var m in game.meteors) {
-            if (m.collided) { canvas.drawImage(meteorHits[m.collisionSteps / 2], m.x, m.y) }
+            if (m.collided) { canvas.drawImage(meteorHits[m.collisionSteps / Rules.METEOR_HIT_FRAME_STEPS], m.x, m.y) }
             else { canvas.drawImage(meteors[m.frame], m.x, m.y) }
         }
         for (var s in game.lasers.shots) {
             if (s.active && s.impact) { canvas.drawImage(laserImpact, s.x + 5, s.y) }
             else if (s.active) { canvas.drawImage(laser, s.x, s.y) }
         }
-        if (game.ship.phase == ShipPhase.Explosion) { canvas.drawImage(explosions[game.ship.explosionSteps / 3], game.ship.x, game.ship.y) }
-        if (game.ship.phase == ShipPhase.Normal || (game.ship.phase == ShipPhase.Restart && (game.ship.restartFrame / 3) % 2 == 0)) {
+        if (game.ship.phase == ShipPhase.Explosion) { canvas.drawImage(explosions[game.ship.explosionSteps / Rules.SHIP_EXPLOSION_FRAME_STEPS], game.ship.x, game.ship.y) }
+        if (game.ship.phase == ShipPhase.Normal || (game.ship.phase == ShipPhase.Restart && (game.ship.restartFrame / Rules.SHIP_RESTART_BLINK_STEPS) % 2 == 0)) {
             if (game.ship.phase == ShipPhase.Normal && game.ship.rightFrame) {
                 canvas.drawImage(shipRight, game.ship.x, game.ship.y)
             } else { canvas.drawImage(ship, game.ship.x, game.ship.y) }
