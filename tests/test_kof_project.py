@@ -14,8 +14,6 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import kof_project as project
 
-KOF = "/home/renanfranca/projects/kof/bin/kof"
-
 
 class KofProjectTest(unittest.TestCase):
     def setUp(self):
@@ -56,28 +54,28 @@ class KofProjectTest(unittest.TestCase):
     def test_real_cli_observes_source_update_and_suite_isolation(self):
         suite = self.root / "src/test/kof/sifuture/game/GameJourney.kf"
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(project.test(kof=KOF, root=self.root), 0)
+            self.assertEqual(project.test(root=self.root), 0)
         failing = suite.parent / "Failure.kf"
         failing.write_text('package sifuture.game\nimport sifuture.game.*\ntest "deliberate failure" { assert(false) }\n')
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(project.test(kof=KOF, root=self.root, suite="sifuture/game/GameJourney.kf"), 0)
-            self.assertNotEqual(project.test(kof=KOF, root=self.root), 0)
+            self.assertEqual(project.test(root=self.root, suite="sifuture/game/GameJourney.kf"), 0)
+            self.assertNotEqual(project.test(root=self.root), 0)
         failing.unlink()
         rules = self.root / "src/main/kof/sifuture/game/Rules.kf"
         rules.write_text(rules.read_text().replace('SHIP_SPEED = 5', 'SHIP_SPEED = 4'))
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertNotEqual(project.test(kof=KOF, root=self.root), 0)
+            self.assertNotEqual(project.test(root=self.root), 0)
         rules.write_text(rules.read_text().replace('SHIP_SPEED = 4', 'SHIP_SPEED = 5'))
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(project.test(kof=KOF, root=self.root), 0)
+            self.assertEqual(project.test(root=self.root), 0)
 
     def test_rejects_missing_outside_and_empty_suite(self):
         for suite in ("missing.kf", "../outside.kf", "/tmp/outside.kf"):
             with self.assertRaises(project.PreparationError):
-                project.test(kof=KOF, root=self.root, suite=suite)
+                project.test(root=self.root, suite=suite)
         shutil.rmtree(self.root / "src/test/kof")
         with self.assertRaisesRegex(project.PreparationError, "no Kof suites"):
-            project.test(kof=KOF, root=self.root)
+            project.test(root=self.root)
 
     def test_rejects_ancestral_manifest_and_cleans_temp(self):
         with tempfile.TemporaryDirectory(dir=self.root) as inside:
@@ -108,6 +106,9 @@ class KofProjectTest(unittest.TestCase):
         with patch.dict(os.environ, {"KOF": "environment"}):
             self.assertEqual(project.kof_executable("argument"), "argument")
             self.assertEqual(project.kof_executable(), "environment")
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("KOF", None)
+            self.assertEqual(project.kof_executable(), shutil.which("kof"))
 
     def test_first_suite_failure_code_is_retained(self):
         suites = self.root / "src/test/kof/sifuture/game"
@@ -129,7 +130,7 @@ class KofProjectTest(unittest.TestCase):
         main.write_text(main.read_text() + "\ninvalid syntax @@@\n")
         output = Path(self.space.name) / "failed-web"
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertNotEqual(project.build(output, kof=KOF, root=self.root), 0)
+            self.assertNotEqual(project.build(output, root=self.root), 0)
         self.assertFalse(output.exists())
 
 

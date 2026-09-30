@@ -2,27 +2,22 @@
 
 Este recorte executa **menu → Novo Jogo → nave, tiros e meteoros → resultado após três vidas → menu** no navegador. É parte da [especificação do port](.agent/specifications/port-sifuture-to-kof.md), sem representar a versão completa. O mundo lógico mede 176 × 220; cada atualização avança 30 ms. Clique no campo **Clique para teclado** para lhe dar foco, depois use **Enter** e as **setas**. Soltar uma seta interrompe o movimento. Se o campo perder foco, clique nele novamente antes de continuar.
 
-## Preparar Kof
+## Kof instalado
 
-As instruções foram verificadas com **Kof 0.5.0-beta**, SHA **`317d9f6b1c3e27032cc955a05f859f6c627d9338`**. O checkout local de Kof foi compilado antes de executar `bin/kof`:
+Use a instalação de Kof disponível no `PATH`. Confirme que o comando está acessível:
 
 ```bash
-cd /home/renanfranca/projects/kof
-mvn -q package -DskipTests
-mkdir -p lib
-cp "kof-cli/target/kof-cli-$(cat VERSION).jar" lib/kof.jar
-bin/kof version
+kof version
 ```
 
-Se Maven não estiver no PATH, instale ou use uma distribuição local de Maven. O projeto de SiFuture não modifica o código de Kof.
+O build e os testes abaixo passaram com a instalação Linux de **Kof 0.5.0-beta** encontrada no `PATH`. O checkout local do código-fonte de Kof é usado para consultar a implementação e sua documentação, sem ser necessário para compilar o SiFuture. Os resultados anteriores com o checkout no SHA `317d9f6b1c3e27032cc955a05f859f6c627d9338` permanecem no [histórico de validação](EXECPLAN.md).
 
 ## Compilar a aplicação com o workaround
 
-Execute estes comandos **na raiz do SiFuture**, depois de preparar o executável Kof acima. `build --output` é o comando para compilar a aplicação deste projeto; passe a ele o diretório onde deseja receber a página pronta:
+Execute estes comandos **na raiz do SiFuture**. `build --output` é o comando para compilar a aplicação deste projeto; passe a ele o diretório onde deseja receber a página pronta:
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
-export KOF=/home/renanfranca/projects/kof/bin/kof
 python3 scripts/kof_project.py build --output /tmp/sifuture-game
 ```
 
@@ -32,7 +27,7 @@ Ao terminar sem erro, abra `/tmp/sifuture-game/index.html` por um servidor HTTP 
 python3 -m http.server 8766 --directory /tmp/sifuture-game
 ```
 
-Visite `http://127.0.0.1:8766/`. Encerre o servidor com `Ctrl+C`. Para usar outra instalação do compilador sem definir `KOF`, passe `--kof /caminho/para/kof` ao comando `build`. A escolha é `--kof`, depois a variável `KOF`, depois `kof` do `PATH`.
+Visite `http://127.0.0.1:8766/`. Encerre o servidor com `Ctrl+C`. Para usar outra instalação do compilador, passe `--kof /caminho/para/kof` ao comando `build` ou defina `KOF`. A escolha é `--kof`, depois `KOF`, depois `kof` do `PATH`. Se uma sessão de terminal ainda tiver `KOF` definido pelo procedimento antigo, use `unset KOF` para voltar ao `kof` instalado no `PATH`.
 
 **WORKAROUND:** o script copia `src/main/kof` para uma pasta temporária fora do projeto, cria ali uma entrada `import sifuture.*`, chama `kof build ... --target js` e só copia o resultado e os assets para `--output` depois de verificar `index.html` e `Default.mjs`. A pasta de fontes temporárias é removida automaticamente. Não é preciso mover fontes, copiar assets ou criar a entrada manualmente. Se aparecer um erro sobre `TMPDIR` ou `kof.toml` ancestral, configure `TMPDIR` para um diretório temporário fora de qualquer projeto Kof e repita o comando. Os imports de pacote e arquivo usados nessa entrada seguem a [referência de módulos](/home/renanfranca/projects/kof/docs/language-reference/modules.md).
 
@@ -42,7 +37,7 @@ O programa [`probes/ui-input.kf`](probes/ui-input.kf) cria `Window`, `Canvas(176
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
-/home/renanfranca/projects/kof/bin/kof build probes/ui-input.kf --target js --output /tmp/sifuture-probe
+kof build probes/ui-input.kf --target js --output /tmp/sifuture-probe
 cp -r assets /tmp/sifuture-probe/
 python3 -m http.server 8765 --directory /tmp/sifuture-probe
 ```
@@ -55,11 +50,10 @@ Abra `http://127.0.0.1:8765/`, clique no campo, pressione e solte uma seta. **Ex
 
 A ordem de `step()` preserva uma sutileza: a fase anterior ao passo decide se há movimento e tentativa de disparo; a fase após o avanço da nave decide se há colisão. Assim, no 45º passo de reinício a nave já pode colidir, mas o laser só volta a ser tentado no seguinte. Cada meteoro sobreposto à nave inicia sua animação, enquanto a colisão da nave rende cinco pontos uma única vez. O impacto de laser mostra `laser03.png` por um passo. A explosão dura 10 quadros de três passos; o reinício, 15 alternâncias de três passos. Os meteoros atingidos seguem avançando uma unidade por passo durante três quadros de dois passos.
 
-[`src/main/kof/sifuture/game/State.kf`](src/main/kof/sifuture/game/State.kf) usa enums para a tela, a fase da nave e as direções. `Ship.lastX` e `Ship.lastY` guardam a última direção pressionada como `Direction`, permitindo escolher entre duas setas opostas. Neste checkout, enums são valores próprios: a [referência de classes](/home/renanfranca/projects/kof/docs/language-reference/classes.md) e os testes do compilador confirmam comparação entre constantes do mesmo enum. `training/language/types.md` ainda os descreve como strings; essa descrição diverge da implementação atual. Um campo mutável como `ship.phase` usa uma classe com campos explícitos, seguindo o [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md). O [manifesto](kof.toml) conserva o nome do projeto na raiz. **WORKAROUND:** o CLI Kof deste SHA ainda não recebe duas raízes de fontes separadas para esta preparação. [`scripts/kof_project.py`](scripts/kof_project.py) copia os bytes das fontes canônicas para uma árvore temporária sem manifesto ancestral, gera uma entrada de import específica e remove a árvore após cada comando. Essa preparação é infraestrutura provisória do projeto, não uma regra ou um idioma da linguagem. A suíte [`GameJourney.kf`](src/test/kof/sifuture/game/GameJourney.kf) importa `sifuture.game.*` e usa a única implementação das regras em `src/main/kof`. Se `TMPDIR` ficar dentro do projeto ou sob outro `kof.toml`, escolha um diretório temporário externo.
+[`src/main/kof/sifuture/game/State.kf`](src/main/kof/sifuture/game/State.kf) usa enums para a tela, a fase da nave e as direções. `Ship.lastX` e `Ship.lastY` guardam a última direção pressionada como `Direction`, permitindo escolher entre duas setas opostas. Na versão Kof 0.5.0-beta verificada, enums são valores próprios: a [referência de classes](/home/renanfranca/projects/kof/docs/language-reference/classes.md) e os testes do compilador confirmam comparação entre constantes do mesmo enum. `training/language/types.md` ainda os descreve como strings; essa descrição diverge da implementação atual. Um campo mutável como `ship.phase` usa uma classe com campos explícitos, seguindo o [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md). O [manifesto](kof.toml) conserva o nome do projeto na raiz. **WORKAROUND:** o CLI Kof 0.5.0-beta verificado ainda não recebe duas raízes de fontes separadas para esta preparação. [`scripts/kof_project.py`](scripts/kof_project.py) copia os bytes das fontes canônicas para uma árvore temporária sem manifesto ancestral, gera uma entrada de import específica e remove a árvore após cada comando. Essa preparação é infraestrutura provisória do projeto, não uma regra ou um idioma da linguagem. A suíte [`GameJourney.kf`](src/test/kof/sifuture/game/GameJourney.kf) importa `sifuture.game.*` e usa a única implementação das regras em `src/main/kof`. Se `TMPDIR` ficar dentro do projeto ou sob outro `kof.toml`, escolha um diretório temporário externo.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
-export KOF=/home/renanfranca/projects/kof/bin/kof
 python3 scripts/kof_project.py test --target jvm
 python3 scripts/kof_project.py test --target js
 python3 scripts/kof_project.py test --target jvm --suite sifuture/game/GameJourney.kf
