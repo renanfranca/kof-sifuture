@@ -31,20 +31,7 @@ Visite `http://127.0.0.1:8766/`. Encerre o servidor com `Ctrl+C`. Para usar outr
 
 **WORKAROUND:** o script copia `src/main/kof` para uma pasta temporária fora do projeto, cria ali uma entrada `import sifuture.*`, chama `kof build ... --target js` e só copia o resultado e os assets para `--output` depois de verificar `index.html` e `Default.mjs`. A pasta de fontes temporárias é removida automaticamente. Não é preciso mover fontes, copiar assets ou criar a entrada manualmente. Se aparecer um erro sobre `TMPDIR` ou `kof.toml` ancestral, configure `TMPDIR` para um diretório temporário fora de qualquer projeto Kof e repita o comando. Os imports de pacote e arquivo usados nessa entrada seguem a [referência de módulos](/home/renanfranca/projects/kof/docs/language-reference/modules.md).
 
-## Etapa 1: cena e eventos
-
-O programa [`probes/ui-input.kf`](probes/ui-input.kf) cria `Window`, `Canvas(176, 220)`, `Image`, `Input` e `Label`. O `time.interval(30, ...)` redesenha o sprite a cada passo. O `Input.on("keydown", ...)` e `Input.on("keyup", ...)` lê `Event.key()`; `Canvas` não oferece `.on(...)` neste SHA. Uma classe com campos `static` mantém o contador entre chamadas da função anônima.
-
-```bash
-cd /home/renanfranca/projects/kof-sifuture
-kof build probes/ui-input.kf --target js --output /tmp/sifuture-probe
-cp -r assets /tmp/sifuture-probe/
-python3 -m http.server 8765 --directory /tmp/sifuture-probe
-```
-
-Abra `http://127.0.0.1:8765/`, clique no campo, pressione e solte uma seta. **Experimento:** troque `30` por `60` em `time.interval` e observe o contador avançar mais devagar.
-
-## Etapa 2: regras, módulos e testes
+## Regras, módulos e testes
 
 [`src/main/kof/sifuture/game/Game.kf`](src/main/kof/sifuture/game/Game.kf) coordena cada passo lógico. [`src/main/kof/sifuture/game/Ship.kf`](src/main/kof/sifuture/game/Ship.kf) governa movimento, explosão, reinício e imagem da nave; [`src/main/kof/sifuture/game/Lasers.kf`](src/main/kof/sifuture/game/Lasers.kf), [`src/main/kof/sifuture/game/Shot.kf`](src/main/kof/sifuture/game/Shot.kf) e [`src/main/kof/sifuture/game/Meteor.kf`](src/main/kof/sifuture/game/Meteor.kf) governam seus próprios contadores, posições e animações. [`src/main/kof/sifuture/game/Rules.kf`](src/main/kof/sifuture/game/Rules.kf) nomeia limites, durações, intervalos de quadros e o limite usado para sortear a semente. Os limites direito e inferior da nave são calculados pelas dimensões do mundo e da nave. `Game.start(seed)` chama `rng.seed(seed)` para repetir partidas em testes.
 
@@ -61,7 +48,7 @@ python3 scripts/kof_project.py test --target jvm --suite sifuture/game/GameJourn
 
 Cada execução da suíte deve mostrar **19 testes aprovados**. As suítes `.kf` em `src/test/kof` são descobertas recursivamente e executadas em ordem de caminho, cada uma em uma árvore temporária nova; falhas não interrompem as suítes seguintes. `--suite` seleciona uma delas, relativa à raiz de testes. `--kof CAMINHO` em cada comando prevalece sobre `KOF`, que prevalece sobre `kof` do PATH. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
 
-## Etapa 3: percurso no navegador
+## Percurso no navegador
 
 [`src/main/kof/sifuture/Main.kf`](src/main/kof/sifuture/Main.kf) traduz `Event.key()` em ações `Direction` e confirmações, cria a janela e avança o relógio. [`src/main/kof/sifuture/GameView.kf`](src/main/kof/sifuture/GameView.kf) desenha cada tela; `GameView.render()` apenas lê o estado, inclusive os quadros dos sprites históricos: `Middle.png` para o quadro normal e `Middle2.png` somente enquanto a direção horizontal efetiva é direita. Soltar a seta restaura `Middle.png` no próximo passo, mesmo com movimento vertical. Esta é uma exceção deliberada ao histórico, que mantinha o quadro de fogo após a soltura. O intervalo chama `step()` e depois `render()`. `Window.size(210, 340)` deixa o canvas exibido exatamente em 176 × 220 pixels no Chrome testado. O resultado permanece até Enter. Uma partida normal recebe uma semente variável de `random.int(...)`; os testes passam semente fixa.
 
@@ -84,7 +71,7 @@ O primeiro teste abre a página real, confirma movimento, soltura e a troca de s
 
 ## Escopo e fontes
 
-Este ciclo inclui o tiro normal, seis meteoros horizontais e colisões. Os outros sistemas da especificação, como créditos, telas de Controles e Opções, pausa, toque, Android, música, itens, inimigos e chefes, pertencem a ciclos posteriores. O campo de teclado precisa de um clique para obter foco; veja a [prova e limitação da entrada](docs/kof-input-gap.md).
+Este ciclo inclui o tiro normal, seis meteoros horizontais e colisões. Os outros sistemas da especificação, como créditos, telas de Controles e Opções, pausa, toque, Android, música, itens, inimigos e chefes, pertencem a ciclos posteriores. O campo de teclado precisa de um clique para obter foco, conforme as instruções acima.
 
 As regras usadas foram conferidas em `/home/renanfranca/projects/sifuture/src/AirShip.java`, `AirShipAllShoots.java`, `Meteor.java`, `MeteorArray.java` e `GameCanvas.java`. A sintaxe e o estado de Kof foram conferidos em `/home/renanfranca/projects/kof/training/language/syntax.md`, `training/language/types.md`, `training/idioms/classes.md`, `training/anti-patterns/sentinel-values.md`, `learn/07-classes-and-objects.md`, `learn/23-testing.md`, `learn/35-kof-ui.md`, `learn/37-kofjs.md`, `learn/39-stdlib.md`, `docs/language-reference/classes.md`, `docs/ui/PLAN-CANVAS-WIDGET.md`, `docs/development/DECISIONS.md`, implementação e testes do compilador. As aulas pertinentes de frontend e testes em `/home/renanfranca/projects/curso-completo-de-kof/` serviram de guia didático; o curso declara 0.3.7-beta, por isso o comportamento atual foi confirmado nas fontes Kof 0.5.0-beta do SHA acima. Planos de expansão da UI não são tratados como recursos já disponíveis.
 
