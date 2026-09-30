@@ -31,41 +31,42 @@ Abra `http://127.0.0.1:8765/`, clique no campo, pressione e solte uma seta. **Ex
 
 ## Etapa 2: regras, módulos e testes
 
-[`src/game/Game.kf`](src/game/Game.kf) coordena cada passo lógico. [`src/game/Ship.kf`](src/game/Ship.kf) governa movimento, explosão, reinício e imagem da nave; [`src/game/Lasers.kf`](src/game/Lasers.kf), [`src/game/Shot.kf`](src/game/Shot.kf) e [`src/game/Meteor.kf`](src/game/Meteor.kf) governam seus próprios contadores, posições e animações. [`src/game/Rules.kf`](src/game/Rules.kf) nomeia limites, durações, intervalos de quadros e o limite usado para sortear a semente. Os limites direito e inferior da nave são calculados pelas dimensões do mundo e da nave. `Game.start(seed)` chama `rng.seed(seed)` para repetir partidas em testes.
+[`src/main/kof/sifuture/game/Game.kf`](src/main/kof/sifuture/game/Game.kf) coordena cada passo lógico. [`src/main/kof/sifuture/game/Ship.kf`](src/main/kof/sifuture/game/Ship.kf) governa movimento, explosão, reinício e imagem da nave; [`src/main/kof/sifuture/game/Lasers.kf`](src/main/kof/sifuture/game/Lasers.kf), [`src/main/kof/sifuture/game/Shot.kf`](src/main/kof/sifuture/game/Shot.kf) e [`src/main/kof/sifuture/game/Meteor.kf`](src/main/kof/sifuture/game/Meteor.kf) governam seus próprios contadores, posições e animações. [`src/main/kof/sifuture/game/Rules.kf`](src/main/kof/sifuture/game/Rules.kf) nomeia limites, durações, intervalos de quadros e o limite usado para sortear a semente. Os limites direito e inferior da nave são calculados pelas dimensões do mundo e da nave. `Game.start(seed)` chama `rng.seed(seed)` para repetir partidas em testes.
 
 A ordem de `step()` preserva uma sutileza: a fase anterior ao passo decide se há movimento e tentativa de disparo; a fase após o avanço da nave decide se há colisão. Assim, no 45º passo de reinício a nave já pode colidir, mas o laser só volta a ser tentado no seguinte. Cada meteoro sobreposto à nave inicia sua animação, enquanto a colisão da nave rende cinco pontos uma única vez. O impacto de laser mostra `laser03.png` por um passo. A explosão dura 10 quadros de três passos; o reinício, 15 alternâncias de três passos. Os meteoros atingidos seguem avançando uma unidade por passo durante três quadros de dois passos.
 
-[`src/game/State.kf`](src/game/State.kf) usa enums para a tela, a fase da nave e as direções. `Ship.lastX` e `Ship.lastY` guardam a última direção pressionada como `Direction`, permitindo escolher entre duas setas opostas. Neste checkout, enums são valores próprios: a [referência de classes](/home/renanfranca/projects/kof/docs/language-reference/classes.md) e os testes do compilador confirmam comparação entre constantes do mesmo enum. `training/language/types.md` ainda os descreve como strings; essa descrição diverge da implementação atual. Um campo mutável como `ship.phase` usa uma classe com campos explícitos, seguindo o [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md). O [manifesto](src/kof.toml) permite que cada arquivo de [`src/tests/`](src/tests/GameJourney.kf) importe `game.*` quando `kof test` o compila isoladamente.
+[`src/main/kof/sifuture/game/State.kf`](src/main/kof/sifuture/game/State.kf) usa enums para a tela, a fase da nave e as direções. `Ship.lastX` e `Ship.lastY` guardam a última direção pressionada como `Direction`, permitindo escolher entre duas setas opostas. Neste checkout, enums são valores próprios: a [referência de classes](/home/renanfranca/projects/kof/docs/language-reference/classes.md) e os testes do compilador confirmam comparação entre constantes do mesmo enum. `training/language/types.md` ainda os descreve como strings; essa descrição diverge da implementação atual. Um campo mutável como `ship.phase` usa uma classe com campos explícitos, seguindo o [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md). O [manifesto](kof.toml) conserva o nome do projeto na raiz. **WORKAROUND:** o CLI Kof deste SHA ainda não recebe duas raízes de fontes separadas para esta preparação. [`scripts/kof_project.py`](scripts/kof_project.py) copia os bytes das fontes canônicas para uma árvore temporária sem manifesto ancestral, gera uma entrada de import específica e remove a árvore após cada comando. Essa preparação é infraestrutura provisória do projeto, não uma regra ou um idioma da linguagem. A suíte [`GameJourney.kf`](src/test/kof/sifuture/game/GameJourney.kf) importa `sifuture.game.*` e usa a única implementação das regras em `src/main/kof`. Se `TMPDIR` ficar dentro do projeto ou sob outro `kof.toml`, escolha um diretório temporário externo.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
-/home/renanfranca/projects/kof/bin/kof test src/tests --target jvm
-/home/renanfranca/projects/kof/bin/kof test src/tests --target js
+export KOF=/home/renanfranca/projects/kof/bin/kof
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 scripts/kof_project.py test --target jvm --suite sifuture/game/GameJourney.kf
 ```
 
-Cada comando deve mostrar **19 testes aprovados**. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
+Cada execução da suíte deve mostrar **19 testes aprovados**. As suítes `.kf` em `src/test/kof` são descobertas recursivamente e executadas em ordem de caminho, cada uma em uma árvore temporária nova; falhas não interrompem as suítes seguintes. `--suite` seleciona uma delas, relativa à raiz de testes. `--kof CAMINHO` em cada comando prevalece sobre `KOF`, que prevalece sobre `kof` do PATH. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
 
 ## Etapa 3: percurso no navegador
 
-[`src/Main.kf`](src/Main.kf) traduz `Event.key()` em ações `Direction` e confirmações, cria a janela e avança o relógio. [`src/GameView.kf`](src/GameView.kf) desenha cada tela; `GameView.render()` apenas lê o estado, inclusive os quadros dos sprites históricos: `Middle.png` para o quadro normal e `Middle2.png` somente enquanto a direção horizontal efetiva é direita. Soltar a seta restaura `Middle.png` no próximo passo, mesmo com movimento vertical. Esta é uma exceção deliberada ao histórico, que mantinha o quadro de fogo após a soltura. O intervalo chama `step()` e depois `render()`. `Window.size(210, 340)` deixa o canvas exibido exatamente em 176 × 220 pixels no Chrome testado. O resultado permanece até Enter. Uma partida normal recebe uma semente variável de `random.int(...)`; os testes passam semente fixa.
+[`src/main/kof/sifuture/Main.kf`](src/main/kof/sifuture/Main.kf) traduz `Event.key()` em ações `Direction` e confirmações, cria a janela e avança o relógio. [`src/main/kof/sifuture/GameView.kf`](src/main/kof/sifuture/GameView.kf) desenha cada tela; `GameView.render()` apenas lê o estado, inclusive os quadros dos sprites históricos: `Middle.png` para o quadro normal e `Middle2.png` somente enquanto a direção horizontal efetiva é direita. Soltar a seta restaura `Middle.png` no próximo passo, mesmo com movimento vertical. Esta é uma exceção deliberada ao histórico, que mantinha o quadro de fogo após a soltura. O intervalo chama `step()` e depois `render()`. `Window.size(210, 340)` deixa o canvas exibido exatamente em 176 × 220 pixels no Chrome testado. O resultado permanece até Enter. Uma partida normal recebe uma semente variável de `random.int(...)`; os testes passam semente fixa.
 
 ```bash
 cd /home/renanfranca/projects/kof-sifuture
-/home/renanfranca/projects/kof/bin/kof build src --target js --output /tmp/sifuture-game
-cp -r assets /tmp/sifuture-game/
+python3 scripts/kof_project.py build --output /tmp/sifuture-game
 python3 -m http.server 8766 --directory /tmp/sifuture-game
 ```
 
 Abra `http://127.0.0.1:8766/` no navegador. Clique no campo de teclado, pressione Enter, mova a nave com as setas e solte uma delas. Pressione duas direções opostas juntas e observe que a última pressionada vence; ao soltá-la, a outra volta a mover. Observe o piscar inicial, a explosão da nave e o meteoro atingido. Aguarde perder as três vidas; o resultado fica visível até Enter voltar ao menu. **Experimento:** troque a semente de `Game.start()` no teste e compare as posições iniciais dos meteoros; usando a mesma semente novamente, a sequência se repete.
 
-Para repetir a verificação automatizada no Chrome, instale Python Playwright e Pillow e rode, com o servidor acima ativo:
+Para repetir a verificação automatizada no Chrome, instale Python Playwright e Pillow e rode os comandos abaixo. Cada teste compila, inicia um servidor em `127.0.0.1` com porta livre e limpa navegador, servidor e temporários. O teste principal aceita uma URL opcional já servida (`python3 tests/browser.py URL`); ambos aceitam `--kof CAMINHO`:
 
 ```bash
 python3 tests/browser.py
 python3 tests/browser_meteor.py
 ```
 
-O primeiro teste abre a página real, confirma movimento, soltura e a troca de sprite com setas opostas, acelera o tempo do navegador até a derrota, confirma a persistência do resultado e volta ao menu. O segundo compila [`tests/meteor-motion.kf`](tests/meteor-motion.kf) com o pacote `game` real e usa cliques para avançar exatamente um passo de cada vez no Chrome; verifica posição e quadro do meteoro atingido. Python e Playwright servem apenas à automação de teste; a aplicação e a prova visual são escritas em Kof. O JavaScript e o CSS da saída são gerados por Kof.
+O primeiro teste abre a página real, confirma movimento, soltura e a troca de sprite com setas opostas, acelera o tempo do navegador até a derrota, confirma a persistência do resultado e volta ao menu. O segundo compila [`tests/meteor-motion.kf`](tests/meteor-motion.kf) com o pacote `sifuture.game` real e usa cliques para avançar exatamente um passo de cada vez no Chrome; verifica posição e quadro do meteoro atingido. Python também prepara build e suítes; Playwright e Pillow são usados apenas nos testes de navegador. A automação pode ser validada com `python3 -m unittest discover -s tests -p 'test_kof_project.py'`. A aplicação e a prova visual são escritas em Kof. O JavaScript e o CSS da saída são gerados por Kof.
 
 ## Escopo e fontes
 

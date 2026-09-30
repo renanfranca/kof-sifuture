@@ -1,4 +1,6 @@
-import game.*
+package sifuture
+
+import sifuture.game.*
 import kof.ui.*
 
 handleKey(Game game, String key, Bool pressed) {

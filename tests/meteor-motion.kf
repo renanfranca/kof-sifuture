@@ -1,4 +1,4 @@
-import game.*
+import sifuture.game.*
 import kof.ui.*
 
 // Browser fixture: advance the real Game model one logical step per click.

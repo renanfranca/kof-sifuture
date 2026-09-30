@@ -1,26 +1,19 @@
 """Check the real Game model's hit-meteor steps in a KofJS browser fixture."""
 
+import argparse
 import io
-import shutil
-import subprocess
-import tempfile
-import threading
+import sys
 import time
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from kof_project import served_build
+
 
 ROOT = Path(__file__).resolve().parents[1]
-KOF = Path("/home/renanfranca/projects/kof/bin/kof")
-
-
-class QuietHandler(SimpleHTTPRequestHandler):
-    def log_message(self, _format, *_args):
-        pass
 
 
 def sprite_matches(page, x, frame):
@@ -42,48 +35,38 @@ def wait_for_sprite(page, x, frame):
     raise AssertionError(f"impact frame {frame} not visible at x={x}")
 
 
-with tempfile.TemporaryDirectory(prefix="sifuture-meteor-browser-") as directory:
-    temporary = Path(directory)
-    source = temporary / "source"
-    output = temporary / "web"
-    source.mkdir()
-    shutil.copy2(ROOT / "src/kof.toml", source / "kof.toml")
-    shutil.copytree(ROOT / "src/game", source / "game")
-    shutil.copy2(ROOT / "tests/meteor-motion.kf", source / "Main.kf")
-    subprocess.run([str(KOF), "build", str(source), "--target", "js", "--output", str(output)], check=True)
-    (output / "assets").mkdir()
-    for frame in range(3):
-        name = f"meteor0C{frame}.png"
-        shutil.copy2(ROOT / "assets" / name, output / "assets" / name)
-
-    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(output)))
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--kof", help="Kof executable")
+    args = parser.parse_args()
+    frames = [ROOT / "assets" / f"meteor0C{frame}.png" for frame in range(3)]
+    with served_build(kof=args.kof, fixture=ROOT / "tests/meteor-motion.kf",
+                      model_only=True, assets=frames) as url:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
                 executable_path="/usr/bin/google-chrome", headless=False,
                 args=["--no-sandbox", "--headless=new"]
             )
-            page = browser.new_page()
-            errors = []
-            page.on("pageerror", lambda error: errors.append(str(error)))
-            page.goto(f"http://127.0.0.1:{server.server_port}/")
-            assert page.locator(".kof-label").inner_text() == "impact:100:0"
-            wait_for_sprite(page, 100, 0)
-            for step in range(1, 6):
+            try:
+                page = browser.new_page()
+                errors = []
+                page.on("pageerror", lambda error: errors.append(str(error)))
+                page.goto(url)
+                assert page.locator(".kof-label").inner_text() == "impact:100:0"
+                wait_for_sprite(page, 100, 0)
+                for step in range(1, 6):
+                    page.get_by_text("Next step", exact=True).click()
+                    x = 100 - step
+                    frame = step // 2
+                    assert page.locator(".kof-label").inner_text() == f"impact:{x}:{step}"
+                    wait_for_sprite(page, x, frame)
                 page.get_by_text("Next step", exact=True).click()
-                x = 100 - step
-                frame = step // 2
-                assert page.locator(".kof-label").inner_text() == f"impact:{x}:{step}"
-                wait_for_sprite(page, x, frame)
-            page.get_by_text("Next step", exact=True).click()
-            assert page.locator(".kof-label").inner_text().startswith("respawn:")
-            assert not errors, errors
-            browser.close()
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
+                assert page.locator(".kof-label").inner_text().startswith("respawn:")
+                assert not errors, errors
+            finally:
+                browser.close()
+    print("PASS moving meteor, three impact frames, and respawn in Chrome")
 
-print("PASS moving meteor, three impact frames, and respawn in Chrome")
+
+if __name__ == "__main__":
+    main()

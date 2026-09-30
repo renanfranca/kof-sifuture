@@ -1,4 +1,6 @@
-import game.*
+package sifuture.game
+import sifuture.game.*
+
 
 test "same seed produces the same meteors" {
     var a = Game()

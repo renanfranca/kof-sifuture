@@ -1,4 +1,4 @@
-package game
+package sifuture.game
 
 enum Screen { Menu, Play, Result }
 enum ShipPhase { Normal, Explosion, Restart }
