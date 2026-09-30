@@ -16,6 +16,26 @@ bin/kof version
 
 Se Maven não estiver no PATH, instale ou use uma distribuição local de Maven. O projeto de SiFuture não modifica o código de Kof.
 
+## Compilar a aplicação com o workaround
+
+Execute estes comandos **na raiz do SiFuture**, depois de preparar o executável Kof acima. `build --output` é o comando para compilar a aplicação deste projeto; passe a ele o diretório onde deseja receber a página pronta:
+
+```bash
+cd /home/renanfranca/projects/kof-sifuture
+export KOF=/home/renanfranca/projects/kof/bin/kof
+python3 scripts/kof_project.py build --output /tmp/sifuture-game
+```
+
+Ao terminar sem erro, abra `/tmp/sifuture-game/index.html` por um servidor HTTP local, pois a página carrega o módulo JS e os sprites de `assets/`:
+
+```bash
+python3 -m http.server 8766 --directory /tmp/sifuture-game
+```
+
+Visite `http://127.0.0.1:8766/`. Encerre o servidor com `Ctrl+C`. Para usar outra instalação do compilador sem definir `KOF`, passe `--kof /caminho/para/kof` ao comando `build`. A escolha é `--kof`, depois a variável `KOF`, depois `kof` do `PATH`.
+
+**WORKAROUND:** o script copia `src/main/kof` para uma pasta temporária fora do projeto, cria ali uma entrada `import sifuture.*`, chama `kof build ... --target js` e só copia o resultado e os assets para `--output` depois de verificar `index.html` e `Default.mjs`. A pasta de fontes temporárias é removida automaticamente. Não é preciso mover fontes, copiar assets ou criar a entrada manualmente. Se aparecer um erro sobre `TMPDIR` ou `kof.toml` ancestral, configure `TMPDIR` para um diretório temporário fora de qualquer projeto Kof e repita o comando. Os imports de pacote e arquivo usados nessa entrada seguem a [referência de módulos](/home/renanfranca/projects/kof/docs/language-reference/modules.md).
+
 ## Etapa 1: cena e eventos
 
 O programa [`probes/ui-input.kf`](probes/ui-input.kf) cria `Window`, `Canvas(176, 220)`, `Image`, `Input` e `Label`. O `time.interval(30, ...)` redesenha o sprite a cada passo. O `Input.on("keydown", ...)` e `Input.on("keyup", ...)` lê `Event.key()`; `Canvas` não oferece `.on(...)` neste SHA. Uma classe com campos `static` mantém o contador entre chamadas da função anônima.
