@@ -1,0 +1,55 @@
+SiFuture
+Copyright 2006-2007 Renan Franca
+
+English
+-------
+
+The code authored by Renan Franca is available under the
+Apache License, Version 2.0. See the LICENSE file.
+
+Development of this game began in the second half of 2006 and was completed
+on August 1, 2007, exclusively as learning material and without any intention
+of commercial use. This historical purpose does not restrict the uses
+permitted by the Apache License 2.0 for the code.
+
+The images used belong to other games and their respective rights holders.
+They were found publicly on the internet and used for learning purposes.
+These images are excluded from the Apache License 2.0, including when
+embedded in the .jar distribution files. This repository does not grant
+rights to reuse these images or claim permission to redistribute them.
+Public availability on the internet does not imply a license to use
+or redistribute them.
+
+The MIDI files in the audio directory are also third-party material.
+Their original titles, authors, and licenses have not been identified.
+They are excluded from the Apache License 2.0. This repository does not
+grant rights to reuse or redistribute them.
+
+This notice is informational and does not modify the terms of the
+Apache License 2.0.
+
+Português
+---------
+
+O código de autoria de Renan Franca é disponibilizado sob a
+Apache License, Version 2.0. Consulte o arquivo LICENSE.
+
+O desenvolvimento deste jogo começou no segundo semestre de 2006 e foi
+concluído em 1º de agosto de 2007, exclusivamente como material de estudos e
+sem intenção de utilização para fins comerciais. Essa finalidade histórica
+não restringe os usos permitidos pela Apache License 2.0 sobre o código.
+
+As imagens utilizadas pertencem a outros jogos e aos respectivos titulares.
+Elas foram encontradas publicamente na internet e utilizadas para estudos.
+Essas imagens estão excluídas da Apache License 2.0, inclusive quando
+incorporadas aos arquivos de distribuição .jar. Este repositório não concede
+direitos de reutilização dessas imagens nem afirma autorização para sua
+redistribuição. A disponibilidade pública na internet não implica uma
+licença de uso ou redistribuição.
+
+Os arquivos MIDI no diretório audio também são materiais de terceiros.
+Seus títulos originais, autores e licenças não foram identificados. Eles
+estão excluídos da Apache License 2.0. Este repositório não concede direitos
+para sua reutilização ou redistribuição.
+
+Este aviso é informativo e não modifica os termos da Apache License 2.0.
