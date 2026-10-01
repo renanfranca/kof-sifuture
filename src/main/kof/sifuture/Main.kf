@@ -26,12 +26,15 @@ main() {
     var drawing = GameView(canvas)
     var overlay = Button("Ativar teclado do jogo", () -> {})
     var enterHeld = false
-    overlay.setStyle(Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none"))
-    overlay.on("focus", (e: Event) -> { overlay.setStyle(Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: 2px solid blue")) })
+    // KofJS retains Style handles, so focus changes reuse these two values.
+    var overlayStyle = Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
+    var focusedOverlayStyle = Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: 2px solid blue")
+    overlay.setStyle(overlayStyle)
+    overlay.on("focus", (e: Event) -> { overlay.setStyle(focusedOverlayStyle) })
     overlay.on("blur", (e: Event) -> {
         game.clearKeyboard()
         enterHeld = false
-        overlay.setStyle(Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none"))
+        overlay.setStyle(overlayStyle)
     })
     overlay.on("keydown", (e: Event) -> {
         if (e.key() == "Enter") {

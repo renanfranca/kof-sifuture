@@ -48,6 +48,15 @@ def wait_for(predicate, page, timeout=5):
     raise AssertionError("observable condition did not appear")
 
 
+def wait_for_ship_x(page):
+    """Capture one visible observation, including the valid position x=0."""
+    def visible_observation():
+        observation = ship_observation(page)
+        return observation if observation[0] is not None else None
+
+    return wait_for(visible_observation, page)[0]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("url", nargs="?", help="already served application URL")
@@ -97,14 +106,14 @@ def main():
                     page.wait_for_timeout(40)
                 assert stable == 5, "ship did not settle after its initial blink"
                 overlay.click()
-                initial = ship_x(page)
+                initial = wait_for_ship_x(page)
                 page.keyboard.down("ArrowRight")
                 moving = wait_for(lambda: x if (x := ship_x(page)) is not None and x > initial else None, page)
                 page.keyboard.up("ArrowRight")
                 wait_for(lambda: ship_observation(page)[1] is False, page)
-                released = ship_x(page)
+                released = wait_for_ship_x(page)
                 page.wait_for_timeout(150)
-                assert ship_x(page) == released and released >= moving
+                assert wait_for_ship_x(page) == released and released >= moving
                 page.keyboard.down("ArrowRight")
                 page.keyboard.down("ArrowLeft")
                 wait_for(lambda: (x := ship_x(page)) is not None and x < released, page)
@@ -112,56 +121,56 @@ def main():
                 wait_for(lambda: ship_observation(page)[1] is True, page)
                 page.keyboard.up("ArrowRight")
                 overlay.click()
-                before_blur = ship_x(page)
+                before_blur = wait_for_ship_x(page)
                 page.keyboard.down("ArrowRight")
                 wait_for(lambda: (x := ship_x(page)) is not None and x > before_blur, page)
                 page.mouse.click(500, 500)
                 page.wait_for_timeout(90)
-                blurred = ship_x(page)
+                blurred = wait_for_ship_x(page)
                 page.wait_for_timeout(120)
-                assert ship_x(page) == blurred
+                assert wait_for_ship_x(page) == blurred
                 assert page.get_by_role("button", name="Pausar").count() == 1
                 page.keyboard.up("ArrowRight")
                 east = page.get_by_role("button", name="→", exact=True)
                 box = east.bounding_box()
                 page.mouse.move(box["x"] + 24, box["y"] + 24)
                 page.mouse.down()
-                pad_start = ship_x(page)
+                pad_start = wait_for_ship_x(page)
                 wait_for(lambda: (x := ship_x(page)) is not None and x > pad_start, page)
                 page.mouse.move(box["x"] + 150, box["y"] + 24)
                 page.wait_for_timeout(90)
-                left_zone = ship_x(page)
+                left_zone = wait_for_ship_x(page)
                 page.wait_for_timeout(120)
-                assert ship_x(page) == left_zone, "leaving pad should stop movement"
+                assert wait_for_ship_x(page) == left_zone, "leaving pad should stop movement"
                 page.mouse.move(box["x"] + 24, box["y"] + 24)
                 page.wait_for_timeout(120)
-                assert ship_x(page) == left_zone, "reentering without a new press should stay stopped"
+                assert wait_for_ship_x(page) == left_zone, "reentering without a new press should stay stopped"
                 page.mouse.up()
                 wait_for(lambda: ship_x(page) is not None, page)
                 east.dispatch_event("pointerdown")
-                cancelled_start = ship_x(page)
+                cancelled_start = wait_for_ship_x(page)
                 wait_for(lambda: (x := ship_x(page)) is not None and x > cancelled_start, page)
                 east.dispatch_event("pointercancel")
                 page.wait_for_timeout(90)
-                cancelled = ship_x(page)
+                cancelled = wait_for_ship_x(page)
                 page.wait_for_timeout(120)
-                assert ship_x(page) == cancelled
+                assert wait_for_ship_x(page) == cancelled
                 overlay.click()
                 page.keyboard.down("ArrowLeft")
                 wait_for(lambda: ship_x(page) is not None, page)
                 east.dispatch_event("pointerdown")
-                pad_priority_start = ship_x(page)
+                pad_priority_start = wait_for_ship_x(page)
                 wait_for(lambda: (x := ship_x(page)) is not None and x > pad_priority_start, page)
                 page.keyboard.down("ArrowUp")
-                priority_x = ship_x(page)
+                priority_x = wait_for_ship_x(page)
                 wait_for(lambda: (x := ship_x(page)) is not None and x > priority_x, page)
                 east.dispatch_event("pointerup")
                 page.wait_for_timeout(90)
-                stopped = ship_x(page)
+                stopped = wait_for_ship_x(page)
                 page.keyboard.down("ArrowLeft")
                 page.keyboard.down("ArrowUp")
                 page.wait_for_timeout(120)
-                assert ship_x(page) == stopped, "held keys should not resume after pad release"
+                assert wait_for_ship_x(page) == stopped, "held keys should not resume after pad release"
                 page.keyboard.up("ArrowLeft")
                 page.keyboard.up("ArrowUp")
                 page.get_by_role("button", name="Pausar").click()
@@ -205,25 +214,25 @@ def main():
                 session = touch_context.new_cdp_session(touch_page)
                 x1, y1 = east_box["x"] + 24, east_box["y"] + 24
                 x2, y2 = north_box["x"] + 24, north_box["y"] + 24
-                initial_touch = ship_x(touch_page)
+                initial_touch = wait_for_ship_x(touch_page)
                 session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x1, "y": y1, "id": 1}]})
                 wait_for(lambda: (x := ship_x(touch_page)) is not None and x > initial_touch, touch_page)
                 session.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x2, "y": y2, "id": 1}]})
-                after_drag = ship_x(touch_page)
+                after_drag = wait_for_ship_x(touch_page)
                 wait_for(lambda: (x := ship_x(touch_page)) is not None and x > after_drag, touch_page)
                 session.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
                 touch_page.wait_for_timeout(80)
-                after_release = ship_x(touch_page)
+                after_release = wait_for_ship_x(touch_page)
                 touch_page.wait_for_timeout(120)
-                assert ship_x(touch_page) == after_release
+                assert wait_for_ship_x(touch_page) == after_release
                 session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x1, "y": y1, "id": 2}]})
-                cancel_start = ship_x(touch_page)
+                cancel_start = wait_for_ship_x(touch_page)
                 wait_for(lambda: (x := ship_x(touch_page)) is not None and x > cancel_start, touch_page)
                 session.send("Input.dispatchTouchEvent", {"type": "touchCancel", "touchPoints": []})
                 touch_page.wait_for_timeout(90)
-                cancelled_touch = ship_x(touch_page)
+                cancelled_touch = wait_for_ship_x(touch_page)
                 touch_page.wait_for_timeout(120)
-                assert ship_x(touch_page) == cancelled_touch
+                assert wait_for_ship_x(touch_page) == cancelled_touch
                 touch_context.close()
                 print("PASS buttons, Enter on four screens, focus/blur, pointer leave/cancel, touch drag/release/cancel, pause, result and menu in Chrome")
             finally:
