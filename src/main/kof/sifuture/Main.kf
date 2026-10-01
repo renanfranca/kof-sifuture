@@ -3,39 +3,84 @@ package sifuture
 import sifuture.game.*
 import kof.ui.*
 
+Button directionButton(Game game, Zone zone, String name) {
+    var button = Button(name, () -> {})
+    button.setStyle(Style("width: 48; height: 48; padding: 0; touch-action: none; user-select: none"))
+    button.on("pointerdown", (e: Event) -> { game.movement(zone, true) })
+    button.on("pointerup", (e: Event) -> { game.movement(zone, false) })
+    button.on("pointercancel", (e: Event) -> { game.movement(zone, false) })
+    button.on("pointerleave", (e: Event) -> { game.movement(zone, false) })
+    return button
+}
+
 handleKey(Game game, String key, Bool pressed) {
-    if (key == "ArrowLeft") { game.ship.direction(Direction.Left, pressed) }
-    if (key == "ArrowRight") { game.ship.direction(Direction.Right, pressed) }
-    if (key == "ArrowUp") { game.ship.direction(Direction.Up, pressed) }
-    if (key == "ArrowDown") { game.ship.direction(Direction.Down, pressed) }
-    if (key == "Enter" && pressed) { game.confirm() }
+    if (key == "ArrowLeft") { game.keyboard(Direction.Left, pressed) }
+    if (key == "ArrowRight") { game.keyboard(Direction.Right, pressed) }
+    if (key == "ArrowUp") { game.keyboard(Direction.Up, pressed) }
+    if (key == "ArrowDown") { game.keyboard(Direction.Down, pressed) }
 }
 
 main() {
     var game = Game()
     var canvas = Canvas(Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
-    var view = GameView(canvas)
-    var keys = Input("Clique para teclado")
-    var hint = Label("Menu: Enter inicia")
-    keys.on("keydown", (e: Event) -> {
-        handleKey(game, e.key(), true)
-        view.render(game)
+    var drawing = GameView(canvas)
+    var overlay = Button("Ativar teclado do jogo", () -> {})
+    var enterHeld = false
+    overlay.setStyle(Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none"))
+    overlay.on("focus", (e: Event) -> { overlay.setStyle(Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: 2px solid blue")) })
+    overlay.on("blur", (e: Event) -> {
+        game.clearKeyboard()
+        enterHeld = false
+        overlay.setStyle(Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none"))
     })
-    keys.on("keyup", (e: Event) -> {
-        handleKey(game, e.key(), false)
+    overlay.on("keydown", (e: Event) -> {
+        if (e.key() == "Enter") {
+            if (!enterHeld) { game.confirm(); enterHeld = true }
+        } else { handleKey(game, e.key(), true) }
+        drawing.render(game)
     })
-    keys.on("blur", (e: Event) -> { game.ship.clearInput() })
+    overlay.on("keyup", (e: Event) -> {
+        if (e.key() == "Enter") { enterHeld = false }
+        else { handleKey(game, e.key(), false) }
+    })
+
+    var surface = View(Style("position: relative; width: 176; height: 220; padding: 0"))
+    surface.bind(canvas)
+    surface.bind(overlay)
+
+    var northwest = directionButton(game, Zone.NorthWest, "↖")
+    var north = directionButton(game, Zone.North, "↑")
+    var northeast = directionButton(game, Zone.NorthEast, "↗")
+    var west = directionButton(game, Zone.West, "←")
+    var east = directionButton(game, Zone.East, "→")
+    var southwest = directionButton(game, Zone.SouthWest, "↙")
+    var south = directionButton(game, Zone.South, "↓")
+    var southeast = directionButton(game, Zone.SouthEast, "↘")
+    var empty = View(Style("width: 48; height: 48; padding: 0"))
+    var pad = Column(listOf(Row(listOf(northwest, north, northeast)), Row(listOf(west, empty, east)), Row(listOf(southwest, south, southeast))))
+    var action = Button("Novo Jogo", () -> { game.confirm(); drawing.render(game) })
+    var hint = Label("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age.")
 
     var window = Window("SiFuture em Kof")
-    window.size(210, 340)
-    window.bind(Column(listOf(canvas, keys, hint)))
+    window.size(240, 510)
+    window.bind(Column(listOf(surface, pad, action, hint)))
     window.show()
-    view.render(game)
+    drawing.render(game)
     time.interval(Rules.STEP_MS, () -> {
         game.step()
-        view.render(game)
-        if (game.screen == Screen.Menu) { hint.text = "Menu: Enter inicia" }
-        if (game.screen == Screen.Play) { hint.text = "Setas: mover" }
-        if (game.screen == Screen.Result) { hint.text = "Resultado: Enter volta" }
+        drawing.render(game)
+        var playing = game.screen == Screen.Play
+        northwest.setDisabled(!playing)
+        north.setDisabled(!playing)
+        northeast.setDisabled(!playing)
+        west.setDisabled(!playing)
+        east.setDisabled(!playing)
+        southwest.setDisabled(!playing)
+        south.setDisabled(!playing)
+        southeast.setDisabled(!playing)
+        if (game.screen == Screen.Menu) { action.text = "Novo Jogo" }
+        if (game.screen == Screen.Play) { action.text = "Pausar" }
+        if (game.screen == Screen.Pause) { action.text = "Continuar" }
+        if (game.screen == Screen.Result) { action.text = "Voltar ao menu" }
     })
 }

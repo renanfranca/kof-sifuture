@@ -1,12 +1,16 @@
 # Port SiFuture to Kof
 
-- **Status:** Approved specification; first browser gameplay cycle partially implemented. Full v1 remains open.
+- **Status:** Approved specification; browser gameplay and manual controls/pause slices implemented. Full v1 remains open.
 - **Source:** The SiFuture port handoff and the approved proposal in the Codex task.
 - **Port repository:** `/home/renanfranca/projects/kof-sifuture`.
 - **Historical game:** `/home/renanfranca/projects/sifuture`.
 - **Kof reference:** `/home/renanfranca/projects/kof`.
 
 ## Purpose and acceptance boundary
+
+### Implemented browser slice (issue #3)
+
+The current KofJS implementation provides menu → play → manual pause/continue → result → menu. Eight 48 × 48 direction buttons sit below the 176 × 220 canvas. A transparent, focusable Button overlays the canvas to receive keyboard events; click or Tab activates it. Enter performs one primary action per press on each screen. The pad takes priority over keyboard movement. Its direction stays fixed during touch drag and terminates on release or cancel; a mouse exit terminates the press and reentry alone does not restart it. Focus loss clears keyboard movement, and pausing freezes the simulation without catch-up. These are scoped behavior changes for this slice; the v1 input, lifecycle, screen, presentation, music, and Android contracts below remain open where they exceed this slice. Remaining gaps and needs are tracked with [issue #4](https://github.com/renanfranca/kof-sifuture/issues/4).
 
 Port the Java ME game SiFuture to Kof while preserving its rules and recognizable presentation. The graphical v1 MUST run in a browser through KofJS and on Android through KofJS in a WebView. A successful Android build alone is insufficient: the game MUST also run in an emulator or on a device. JVM and Native are portability research targets with their actual limitations recorded; graphical UI on those targets is not a v1 acceptance requirement. KofScript is outside this port.
 

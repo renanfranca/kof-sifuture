@@ -42,7 +42,7 @@ class GameView {
         if (game.screen == Screen.Menu) {
             canvas.drawImage(title, 11, 30)
             canvas.drawImage(menu, 48, 120)
-            canvas.fillText("Enter: Novo Jogo", 42, 174)
+            canvas.fillText("Novo Jogo", 56, 174)
             return
         }
         if (game.screen == Screen.Result) {
@@ -51,7 +51,7 @@ class GameView {
             if (game.resultIndex() == 1) { canvas.drawImage(result1, 31, 108) }
             if (game.resultIndex() == 2) { canvas.drawImage(result2, 31, 108) }
             if (game.resultIndex() == 3) { canvas.drawImage(result3, 31, 108) }
-            canvas.fillText("Enter: menu", 52, 160)
+            canvas.fillText("Voltar ao menu", 42, 160)
             return
         }
         canvas.fillText("PONTOS " + game.score + "   VIDAS " + game.ship.lives, 4, 18)
@@ -69,5 +69,6 @@ class GameView {
                 canvas.drawImage(shipRight, game.ship.x, game.ship.y)
             } else { canvas.drawImage(ship, game.ship.x, game.ship.y) }
         }
+        if (game.screen == Screen.Pause) { canvas.fillText("PAUSADO", 60, 100) }
     }
 }
