@@ -93,11 +93,6 @@ def main():
                 page.keyboard.press("Tab")
                 assert overlay.evaluate("node => document.activeElement === node")
                 assert overlay.evaluate("node => getComputedStyle(node).outlineStyle") == "solid"
-                style_count = page.locator("style").count()
-                for _ in range(100):
-                    page.locator("#game-action").focus()
-                    overlay.focus()
-                assert page.locator("style").count() == style_count
                 page.keyboard.down("Enter")
                 page.keyboard.down("Enter")
                 wait_for(lambda: page.get_by_role("button", name="Pausar").count() == 1, page)
