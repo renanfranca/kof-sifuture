@@ -1,0 +1,135 @@
+package sifuture
+
+import sifuture.game.*
+import kof.ui.*
+
+class GameControls {
+    Game game
+    GameView drawing
+    Button overlay
+    Button action
+    Button northwest
+    Button north
+    Button northeast
+    Button west
+    Button east
+    Button southwest
+    Button south
+    Button southeast
+    Column root
+    Bool enterHeld = false
+    Bool pointerClick = false
+    Bool spaceClick = false
+
+    public constructor(Game game, GameView drawing, Canvas canvas) {
+        this.game = game
+        this.drawing = drawing
+        var surface = keyboardSurface(canvas)
+
+        northwest = directionButton(Zone.NorthWest, "↖")
+        north = directionButton(Zone.North, "↑")
+        northeast = directionButton(Zone.NorthEast, "↗")
+        west = directionButton(Zone.West, "←")
+        east = directionButton(Zone.East, "→")
+        southwest = directionButton(Zone.SouthWest, "↙")
+        south = directionButton(Zone.South, "↓")
+        southeast = directionButton(Zone.SouthEast, "↘")
+        var empty = View(Style("width: 48; height: 48; padding: 0"))
+        var pad = Column(listOf(Row(listOf(northwest, north, northeast)), Row(listOf(west, empty, east)), Row(listOf(southwest, south, southeast))))
+        action = Button("Novo Jogo", () -> { this.activateAction() })
+        action.setId("game-action")
+        action.on("pointerdown", (e: Event) -> { this.pointerClick = true })
+        action.on("pointercancel", (e: Event) -> { this.pointerClick = false })
+        action.on("pointerleave", (e: Event) -> { this.pointerClick = false })
+        action.on("blur", (e: Event) -> { this.spaceClick = false })
+        var hint = Label("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age.")
+        root = Column(listOf(surface, pad, action, hint))
+        root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
+        root.on("keyup", (e: Event) -> { this.keyChanged(e.key(), e.target(), false) })
+    }
+
+    View keyboardSurface(Canvas canvas) {
+        overlay = Button("Ativar teclado do jogo", () -> {})
+        configureOverlay()
+        var surface = View(Style("position: relative; width: 176; height: 220; padding: 0"))
+        surface.bind(canvas)
+        surface.bind(overlay)
+        return surface
+    }
+
+    configureOverlay() {
+        overlay.setId("game-keyboard")
+        var idleStyle = overlayStyle(false)
+        var focusedStyle = overlayStyle(true)
+        overlay.setStyle(idleStyle)
+        overlay.on("focus", (e: Event) -> { overlay.setStyle(focusedStyle) })
+        overlay.on("blur", (e: Event) -> {
+            game.clearKeyboard()
+            overlay.setStyle(idleStyle)
+        })
+    }
+
+    Style overlayStyle(Bool focused) {
+        if (focused) {
+            return Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: 2px solid blue")
+        }
+        return Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
+    }
+
+    Button directionButton(Zone zone, String name) {
+        var button = Button(name, () -> {})
+        button.setStyle(Style("width: 48; height: 48; padding: 0; touch-action: none; user-select: none"))
+        button.on("pointerdown", (e: Event) -> { game.movement(zone, true) })
+        button.on("pointerup", (e: Event) -> { game.movement(zone, false) })
+        button.on("pointercancel", (e: Event) -> { game.movement(zone, false) })
+        button.on("pointerleave", (e: Event) -> { game.movement(zone, false) })
+        return button
+    }
+
+    activateAction() {
+        if (pointerClick || spaceClick || !enterHeld) {
+            game.confirm()
+            drawing.render(game)
+        }
+        pointerClick = false
+        spaceClick = false
+    }
+
+    keyChanged(String key, String target, Bool pressed) {
+        if (key == " " && !pressed && target == "game-action") {
+            spaceClick = true
+            return
+        }
+        if (key == "Enter") {
+            if (pressed && !enterHeld && (target == "game-keyboard" || target == "game-action")) {
+                enterHeld = true
+                game.confirm()
+                drawing.render(game)
+            }
+            if (!pressed) { enterHeld = false }
+            return
+        }
+        var movementAllowed = target == "game-keyboard"
+        if (key == "ArrowLeft") { game.keyboard(Direction.Left, pressed, movementAllowed) }
+        if (key == "ArrowRight") { game.keyboard(Direction.Right, pressed, movementAllowed) }
+        if (key == "ArrowUp") { game.keyboard(Direction.Up, pressed, movementAllowed) }
+        if (key == "ArrowDown") { game.keyboard(Direction.Down, pressed, movementAllowed) }
+        drawing.render(game)
+    }
+
+    update() {
+        var playing = game.screen == Screen.Play
+        northwest.setDisabled(!playing)
+        north.setDisabled(!playing)
+        northeast.setDisabled(!playing)
+        west.setDisabled(!playing)
+        east.setDisabled(!playing)
+        southwest.setDisabled(!playing)
+        south.setDisabled(!playing)
+        southeast.setDisabled(!playing)
+        if (game.screen == Screen.Menu) { action.text = "Novo Jogo" }
+        if (game.screen == Screen.Play) { action.text = "Pausar" }
+        if (game.screen == Screen.Pause) { action.text = "Continuar" }
+        if (game.screen == Screen.Result) { action.text = "Voltar ao menu" }
+    }
+}

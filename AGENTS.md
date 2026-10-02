@@ -72,6 +72,18 @@ the behavior of this checkout. When they disagree, report the discrepancy
 instead of turning a compiler defect into a language rule. Separate current
 facts, future plans, and hypotheses.
 
+## Code readability
+
+- Do not add comments to explain source-code organization or behavior,
+  including line comments (`//`) or block comments (`/* ... */`).
+- Express intent through clear names, focused functions or methods,
+  behavioral tests, and documentation.
+- When code is difficult to understand, improve its structure instead
+  of adding an explanatory comment.
+- Keep local declarations close to their first use, within the context
+  that makes their purpose clear.
+- Apply these rules to application code, tests, and fixtures.
+
 ## Explain with visible evidence and teach the concept
 
 These requirements apply to user-facing technical explanations throughout

@@ -82,6 +82,22 @@ test "held arrow cannot restart movement after resume without a release" {
     assert(g.ship.x == 70)
 }
 
+test "arrow observed outside canvas waits for release before moving" {
+    var g = Game()
+    g.start(107)
+    g.ship.x = 60
+
+    g.keyboard(Direction.Right, true, false)
+    g.keyboard(Direction.Right, true, true)
+    g.step()
+    assert(g.ship.x == 60)
+
+    g.keyboard(Direction.Right, false, false)
+    g.keyboard(Direction.Right, true, true)
+    g.step()
+    assert(g.ship.x == 65)
+}
+
 test "pause holds explosion and restart frames without consuming a life" {
     var phases = listOf(ShipPhase.Explosion, ShipPhase.Restart)
     for (var i = 0; i < 2; i++) {
