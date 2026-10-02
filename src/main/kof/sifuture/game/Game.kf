@@ -22,6 +22,14 @@ class Game {
         if (activeZone == Zone.Neutral) { ship.clearInput() }
     }
 
+    rearmKeyboard() {
+        heldLeft = false
+        heldRight = false
+        heldUp = false
+        heldDown = false
+        if (activeZone == Zone.Neutral) { ship.clearInput() }
+    }
+
     keyboard(Direction direction, Bool pressed) {
         this.keyboard(direction, pressed, true)
     }

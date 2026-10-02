@@ -98,6 +98,40 @@ test "arrow observed outside canvas waits for release before moving" {
     assert(g.ship.x == 65)
 }
 
+test "canvas click rearms arrows after lost release and next press moves" {
+    var g = Game()
+    g.start(108)
+    g.ship.x = 60
+
+    g.keyboard(Direction.Right, true)
+    g.step()
+    g.clearKeyboard()
+    g.rearmKeyboard()
+    g.step()
+    assert(g.ship.x == 65)
+
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 70)
+}
+
+test "canvas click preserves active pad movement and rearms keyboard" {
+    var g = Game()
+    g.start(109)
+    g.ship.x = 60
+    g.keyboard(Direction.Right, true)
+    g.movement(Zone.West, true)
+
+    g.rearmKeyboard()
+    g.step()
+    assert(g.activeZone == Zone.West && g.ship.x == 55)
+
+    g.movement(Zone.West, false)
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 60)
+}
+
 test "pause holds explosion and restart frames without consuming a life" {
     var phases = listOf(ShipPhase.Explosion, ShipPhase.Restart)
     for (var i = 0; i < 2; i++) {

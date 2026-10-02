@@ -18,8 +18,7 @@ class GameControls {
     Button southeast
     Column root
     Bool enterHeld = false
-    Bool pointerClick = false
-    Bool spaceClick = false
+    Bool discardEnterClick = false
 
     public constructor(Game game, GameView drawing, Canvas canvas) {
         this.game = game
@@ -39,10 +38,8 @@ class GameControls {
         pad.setStyle(Style("align-items: center"))
         action = Button("Novo Jogo", () -> { this.activateAction() })
         action.setId("game-action")
-        action.on("pointerdown", (e: Event) -> { this.pointerClick = true })
-        action.on("pointercancel", (e: Event) -> { this.pointerClick = false })
-        action.on("pointerleave", (e: Event) -> { this.pointerClick = false })
-        action.on("blur", (e: Event) -> { this.spaceClick = false })
+        action.on("pointerdown", (e: Event) -> { this.discardEnterClick = false })
+        action.on("blur", (e: Event) -> { this.discardEnterClick = false })
         var hint = Label("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age.")
         root = Column(listOf(surface, pad, action, hint))
         root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
@@ -63,6 +60,7 @@ class GameControls {
         var idleStyle = overlayStyle(false)
         var focusedStyle = overlayStyle(true)
         overlay.setStyle(idleStyle)
+        overlay.on("pointerdown", (e: Event) -> { game.rearmKeyboard() })
         overlay.on("focus", (e: Event) -> { overlay.setStyle(focusedStyle) })
         overlay.on("blur", (e: Event) -> {
             game.clearKeyboard()
@@ -88,26 +86,27 @@ class GameControls {
     }
 
     activateAction() {
-        if (pointerClick || spaceClick || !enterHeld) {
-            game.confirm()
-            drawing.render(game)
+        if (discardEnterClick) {
+            discardEnterClick = false
+            return
         }
-        pointerClick = false
-        spaceClick = false
+        game.confirm()
+        drawing.render(game)
     }
 
     keyChanged(String key, String target, Bool pressed) {
-        if (key == " " && !pressed && target == "game-action") {
-            spaceClick = true
-            return
-        }
+        if (key == " " && pressed && target == "game-action") { discardEnterClick = false }
         if (key == "Enter") {
+            if (pressed && target == "game-action") { discardEnterClick = true }
             if (pressed && !enterHeld && (target == "game-keyboard" || target == "game-action")) {
                 enterHeld = true
                 game.confirm()
                 drawing.render(game)
             }
-            if (!pressed) { enterHeld = false }
+            if (!pressed) {
+                enterHeld = false
+                discardEnterClick = false
+            }
             return
         }
         var movementAllowed = target == "game-keyboard"
