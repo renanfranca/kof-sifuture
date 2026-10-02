@@ -52,7 +52,7 @@ class GameControls {
     View keyboardSurface(Canvas canvas) {
         overlay = Button("Ativar teclado do jogo", () -> {})
         configureOverlay()
-        var surface = View(Style("position: relative; width: 176; height: 220; padding: 0"))
+        var surface = View(Style("position: relative; width: 176; height: 220; padding: 0; align-self: center"))
         surface.bind(canvas)
         surface.bind(overlay)
         return surface
