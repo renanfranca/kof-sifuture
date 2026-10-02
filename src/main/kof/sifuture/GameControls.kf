@@ -36,6 +36,7 @@ class GameControls {
         southeast = directionButton(Zone.SouthEast, "↘")
         var empty = View(Style("width: 48; height: 48; padding: 0"))
         var pad = Column(listOf(Row(listOf(northwest, north, northeast)), Row(listOf(west, empty, east)), Row(listOf(southwest, south, southeast))))
+        pad.setStyle(Style("align-items: center"))
         action = Button("Novo Jogo", () -> { this.activateAction() })
         action.setId("game-action")
         action.on("pointerdown", (e: Event) -> { this.pointerClick = true })
