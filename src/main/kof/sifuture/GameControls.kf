@@ -44,6 +44,7 @@ class GameControls {
         root = Column(listOf(surface, pad, action, hint))
         root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
         root.on("keyup", (e: Event) -> { this.keyChanged(e.key(), e.target(), false) })
+        update()
     }
 
     View keyboardSurface(Canvas canvas) {

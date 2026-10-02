@@ -54,7 +54,7 @@ python3 scripts/kof_project.py test --target js
 python3 scripts/kof_project.py test --target jvm --suite sifuture/game/GameJourney.kf
 ```
 
-Cada execução da suíte deve mostrar **26 testes aprovados**. As suítes `.kf` em `src/test/kof` são descobertas recursivamente e executadas em ordem de caminho, cada uma em uma árvore temporária nova; falhas não interrompem as suítes seguintes. `--suite` seleciona uma delas, relativa à raiz de testes. `--kof CAMINHO` em cada comando prevalece sobre `KOF`, que prevalece sobre `kof` do PATH. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
+Cada execução da suíte deve mostrar **28 testes aprovados**. As suítes `.kf` em `src/test/kof` são descobertas recursivamente e executadas em ordem de caminho, cada uma em uma árvore temporária nova; falhas não interrompem as suítes seguintes. `--suite` seleciona uma delas, relativa à raiz de testes. `--kof CAMINHO` em cada comando prevalece sobre `KOF`, que prevalece sobre `kof` do PATH. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
 
 ## Percurso no navegador
 
@@ -68,14 +68,15 @@ python3 -m http.server 8766 --directory /tmp/sifuture-game
 
 Abra `http://127.0.0.1:8766/` no navegador. Clique em **Novo Jogo**, depois use o direcional ou ative o teclado por clique sobre o canvas ou Tab. Pressione Enter para pausar ou continuar, mova a nave com as setas e solte uma delas. Pressione duas direções opostas juntas e observe que a última pressionada vence; ao soltá-la, a outra volta a mover. Observe o piscar inicial, a explosão da nave e o meteoro atingido. Aguarde perder as três vidas; o resultado fica visível até Enter ou **Voltar ao menu** retornar ao menu. **Experimento:** troque a semente de `Game.start()` no teste e compare as posições iniciais dos meteoros; usando a mesma semente novamente, a sequência se repete.
 
-Para repetir a verificação automatizada no Chrome, instale Python Playwright e Pillow e rode os comandos abaixo. Cada teste compila, inicia um servidor em `127.0.0.1` com porta livre e limpa navegador, servidor e temporários. O teste principal aceita uma URL opcional já servida (`python3 tests/browser.py URL`); ambos aceitam `--kof CAMINHO`:
+Para repetir a verificação automatizada no Chrome, instale Python Playwright e Pillow e rode os comandos abaixo. Cada teste compila, inicia um servidor em `127.0.0.1` com porta livre e limpa navegador, servidor e temporários. O teste da aplicação aceita uma URL opcional já servida (`python3 tests/browser.py URL`); os três aceitam `--kof CAMINHO`:
 
 ```bash
 python3 tests/browser.py
+python3 tests/browser_controls.py
 python3 tests/browser_meteor.py
 ```
 
-O primeiro teste abre a página real, exercita os botões, teclado por Tab/Enter/Espaço, recuperação de teclas, direcional com mouse e touch emulado, pausa congelada, derrota, resultado persistente e retorno ao menu. O segundo compila [`tests/meteor-motion.kf`](tests/meteor-motion.kf) com o pacote `sifuture.game` real e usa cliques para avançar exatamente um passo de cada vez no Chrome; verifica posição e quadro do meteoro atingido. Python também prepara build e suítes; Playwright e Pillow são usados apenas nos testes de navegador. A automação pode ser validada com `python3 -m unittest discover -s tests -p 'test_kof_project.py'`. A aplicação e a prova visual são escritas em Kof. O JavaScript e o CSS da saída são gerados por Kof.
+O primeiro teste abre a aplicação normal e verifica o menu antes do primeiro ciclo, Enter/Espaço, confirmação conservadora, pausa congelada, derrota, resultado persistente e retorno ao menu. O segundo compila a fixture [`tests/controls.kf`](tests/controls.kf) com o modelo, o desenho e os controles reais. Cada cenário abre um contexto novo no Chrome e avança o relógio em ciclos de 30 ms para verificar por pixels movimento, propulsão, foco, retorno por clique ou Tab, direcional com mouse e touch. O terceiro compila [`tests/meteor-motion.kf`](tests/meteor-motion.kf) com o pacote `sifuture.game` real e usa cliques para avançar exatamente um passo de cada vez no Chrome; verifica posição e quadro do meteoro atingido. Python também prepara build e suítes; Playwright e Pillow são usados apenas nos testes de navegador. A automação pode ser validada com `python3 -m unittest discover -s tests -p 'test_kof_project.py'`. A aplicação e as duas fixtures visuais são escritas em Kof. O JavaScript e o CSS da saída são gerados por Kof.
 
 ## Escopo e fontes
 
