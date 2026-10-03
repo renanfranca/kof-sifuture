@@ -116,8 +116,10 @@ O especial usa `e0`–`e2`, `e3`–`e5`, `e6`–`e8`; corrige caminhos inexisten
 - [x] Navegador determinístico: quadros `iten`, `life`, `effect`, laser, blaster e nove `e`; alfa parcial no último impacto do blaster; cabeçalho protegido; ordens de soltura e cancelamento de dois dedos.
 - [x] Capturas em 320 e 1200 pixels da aplicação normal e da fixture; inspeção visual local.
 - [x] Especificação e README atualizados, histórico anterior conservado.
-- [ ] Checkpoint, validação determinística inicial, revisão estrutural e validação final.
-- [ ] Registro versionado com SHA e resultados; PR e checks de CI acompanhados.
+- [x] Checkpoint `ab72af72471236fb336270a3b6ec8d7812dab6c4`, oito comandos iniciais aprovados e revisão estrutural sem delta de produção.
+- [ ] Validação final após registro.
+- [x] Registro versionado com SHA, ambiente, comandos, resultados e inspeção visual.
+- [ ] PR e checks de CI acompanhados.
 
 ### Validation
 
@@ -126,3 +128,5 @@ Inventário confirmado: `python3 scripts/kof_project.py test --target jvm` e `--
 Durante implementação: 47/47 regras em JVM; 46/46 em JS antes do último teste de capacidade/cadência; percurso completo do novo navegador passou com Chrome `139.0.7258.154`. Cada dois ciclos houve checkpoint de controles; evidências RED/GREEN e diagnósticos ficaram em `.agent/tmp/`. O registro de fechamento substituirá estes resultados intermediários pelos resultados do executor sobre commits identificados.
 
 Diagnóstico de validação inicial: a mensagem de checkpoint excedeu o limite de linha e o commit não ocorreu; o registro prematuro da revisão base foi invalidado por nota no fluxo, sem aceitar gate. A execução diagnóstica teve 47/47 em ambos os alvos e sete checks concluídos, mas o percurso antigo esgotou a espera por derrota espontânea. Esse critério não controla as novas coletas de vida/evolução. O percurso mantém a aplicação normal para menu, entrada e pausa e usa colisões determinísticas da fixture Kof real para morte, resultado, menu e nova partida. A validação completa será repetida após o checkpoint real.
+
+Checkpoint real validado em 03/10/2026: `ab72af72471236fb336270a3b6ec8d7812dab6c4`, oito comandos aprovados pelo executor, 47/47 em JVM e JS, quatro percursos de Chrome, oito testes Python e contrato CI. Inspeção visual e revisão estrutural registradas em `.agent/validation/background-items-weapons.md`; nenhum refactor de produção necessário. A documentação do registro é o único delta posterior ao checkpoint.
