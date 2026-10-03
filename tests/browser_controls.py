@@ -46,7 +46,6 @@ def control_page(browser, url, *, touch=False):
         page.clock.install(time=datetime(2026, 1, 1))
         page.clock.pause_at(datetime(2026, 1, 1))
         page.goto(url)
-        page.evaluate("Promise.all(Array.from(document.images, image => image.decode()))")
         page.clock.run_for(30)
         assert ship_observation(page) == (40, False)
         cycles = 1
