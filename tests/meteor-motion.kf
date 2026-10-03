@@ -1,7 +1,6 @@
 import sifuture.game.*
 import kof.ui.*
 
-// Browser fixture: advance the real Game model one logical step per click.
 main() {
     var game = Game()
     game.start(77)

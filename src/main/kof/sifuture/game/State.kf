@@ -1,5 +1,6 @@
 package sifuture.game
 
-enum Screen { Menu, Play, Result }
+enum Screen { Menu, Play, Pause, Result }
 enum ShipPhase { Normal, Explosion, Restart }
 enum Direction { Left, Right, Up, Down }
+enum Zone { Neutral, NorthWest, North, NorthEast, West, East, SouthWest, South, SouthEast }

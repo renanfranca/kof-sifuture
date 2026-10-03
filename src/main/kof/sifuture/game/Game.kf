@@ -7,8 +7,64 @@ class Game {
     Int steps = 0
     List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
     Lasers lasers = Lasers()
+    Zone activeZone = Zone.Neutral
+    Bool heldLeft = false
+    Bool heldRight = false
+    Bool heldUp = false
+    Bool heldDown = false
+
+    clearMovement() {
+        activeZone = Zone.Neutral
+        ship.clearInput()
+    }
+
+    clearKeyboard() {
+        if (activeZone == Zone.Neutral) { ship.clearInput() }
+    }
+
+    rearmKeyboard() {
+        heldLeft = false
+        heldRight = false
+        heldUp = false
+        heldDown = false
+        if (activeZone == Zone.Neutral) { ship.clearInput() }
+    }
+
+    keyboard(Direction direction, Bool pressed) {
+        this.keyboard(direction, pressed, true)
+    }
+
+    keyboard(Direction direction, Bool pressed, Bool movementAllowed) {
+        var held = false
+        if (direction == Direction.Left) { held = heldLeft }
+        if (direction == Direction.Right) { held = heldRight }
+        if (direction == Direction.Up) { held = heldUp }
+        if (direction == Direction.Down) { held = heldDown }
+        if (held == pressed) { return }
+        if (direction == Direction.Left) { heldLeft = pressed }
+        if (direction == Direction.Right) { heldRight = pressed }
+        if (direction == Direction.Up) { heldUp = pressed }
+        if (direction == Direction.Down) { heldDown = pressed }
+        if (screen == Screen.Play && activeZone == Zone.Neutral && movementAllowed) { ship.direction(direction, pressed) }
+    }
+
+    movement(Zone zone, Bool pressed) {
+        if (pressed) {
+            if (screen != Screen.Play || zone == Zone.Neutral || activeZone != Zone.Neutral) { return }
+            activeZone = zone
+            ship.clearInput()
+            ship.direction(Direction.Left, zone == Zone.NorthWest || zone == Zone.West || zone == Zone.SouthWest)
+            ship.direction(Direction.Right, zone == Zone.NorthEast || zone == Zone.East || zone == Zone.SouthEast)
+            ship.direction(Direction.Up, zone == Zone.NorthWest || zone == Zone.North || zone == Zone.NorthEast)
+            ship.direction(Direction.Down, zone == Zone.SouthWest || zone == Zone.South || zone == Zone.SouthEast)
+        } else if (activeZone == zone) {
+            activeZone = Zone.Neutral
+            ship.clearInput()
+        }
+    }
 
     start(Int seed) {
+        clearMovement()
         rng.seed(seed)
         screen = Screen.Play
         ship.reset()
@@ -23,7 +79,17 @@ class Game {
             Int seedBound = Rules.RANDOM_SEED_BOUND
             start(random.int(seedBound))
         }
-        else if (screen == Screen.Result) { screen = Screen.Menu; ship.clearInput() }
+        else if (screen == Screen.Play) { pause() }
+        else if (screen == Screen.Pause) { resume() }
+        else if (screen == Screen.Result) { screen = Screen.Menu; clearMovement() }
+    }
+
+    pause() {
+        if (screen == Screen.Play) { screen = Screen.Pause; clearMovement() }
+    }
+
+    resume() {
+        if (screen == Screen.Pause) { screen = Screen.Play; clearMovement() }
     }
 
     step() {
@@ -33,7 +99,7 @@ class Game {
         ship.advance()
         if (ship.lives == 0) {
             screen = Screen.Result
-            ship.clearInput()
+            clearMovement()
             return
         }
 

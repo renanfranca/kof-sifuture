@@ -1,6 +1,177 @@
 package sifuture.game
 import sifuture.game.*
 
+test "eight pad zones move by axis and stop on release" {
+    var zones = listOf(Zone.NorthWest, Zone.North, Zone.NorthEast, Zone.West, Zone.East, Zone.SouthWest, Zone.South, Zone.SouthEast)
+    var dx = listOf(-5, 0, 5, -5, 5, -5, 0, 5)
+    var dy = listOf(-5, -5, -5, 0, 0, 5, 5, 5)
+    for (var i = 0; i < 8; i++) {
+        var g = Game()
+        g.start(100 + i)
+        g.ship.x = 60
+        g.ship.y = 100
+        g.movement(zones[i], true)
+        g.step()
+        assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
+        g.movement(zones[i], false)
+        g.step()
+        assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
+    }
+}
+
+test "pad owns movement until held keyboard keys are released and pressed again" {
+    var g = Game()
+    g.start(101)
+    g.ship.x = 60
+    g.keyboard(Direction.Right, true)
+    g.movement(Zone.West, true)
+    g.keyboard(Direction.Up, true)
+    g.movement(Zone.East, true)
+    g.step()
+    assert(g.ship.x == 55 && g.ship.y == 100)
+    g.movement(Zone.East, false)
+    g.step()
+    assert(g.ship.x == 50 && g.activeZone == Zone.West)
+    g.movement(Zone.West, false)
+    g.keyboard(Direction.Right, true)
+    g.keyboard(Direction.Up, true)
+    g.step()
+    assert(g.ship.x == 50 && g.ship.y == 100)
+    g.keyboard(Direction.Right, false)
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 55 && g.ship.y == 100)
+}
+
+test "pause freezes ship lasers meteors and counters then resumes without movement" {
+    var g = Game()
+    g.start(102)
+    g.ship.phase = ShipPhase.Normal
+    g.keyboard(Direction.Right, true)
+    g.step()
+    g.pause()
+    var x = g.ship.x
+    var meteorX = g.meteors[0].x
+    var steps = g.steps
+    var fireSteps = g.lasers.fireSteps
+    var score = g.score
+    var lives = g.ship.lives
+    for (var i = 0; i < 50; i++) { g.step() }
+    assert(g.screen == Screen.Pause && g.ship.x == x)
+    assert(g.meteors[0].x == meteorX && g.steps == steps)
+    assert(g.lasers.fireSteps == fireSteps && g.score == score && g.ship.lives == lives)
+    g.confirm()
+    g.step()
+    assert(g.screen == Screen.Play && g.ship.x == x && g.steps == steps + 1)
+}
+
+test "held arrow cannot restart movement after resume without a release" {
+    var g = Game()
+    g.start(103)
+    g.ship.x = 60
+    g.keyboard(Direction.Right, true)
+    g.step()
+    g.pause()
+    g.resume()
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 65)
+    g.keyboard(Direction.Right, false)
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 70)
+}
+
+test "arrow observed outside canvas waits for release before moving" {
+    var g = Game()
+    g.start(107)
+    g.ship.x = 60
+
+    g.keyboard(Direction.Right, true, false)
+    g.keyboard(Direction.Right, true, true)
+    g.step()
+    assert(g.ship.x == 60)
+
+    g.keyboard(Direction.Right, false, false)
+    g.keyboard(Direction.Right, true, true)
+    g.step()
+    assert(g.ship.x == 65)
+}
+
+test "canvas click rearms arrows after lost release and next press moves" {
+    var g = Game()
+    g.start(108)
+    g.ship.x = 60
+
+    g.keyboard(Direction.Right, true)
+    g.step()
+    g.clearKeyboard()
+    g.rearmKeyboard()
+    g.step()
+    assert(g.ship.x == 65)
+
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 70)
+}
+
+test "canvas click preserves active pad movement and rearms keyboard" {
+    var g = Game()
+    g.start(109)
+    g.ship.x = 60
+    g.keyboard(Direction.Right, true)
+    g.movement(Zone.West, true)
+
+    g.rearmKeyboard()
+    g.step()
+    assert(g.activeZone == Zone.West && g.ship.x == 55)
+
+    g.movement(Zone.West, false)
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 60)
+}
+
+test "pause holds explosion and restart frames without consuming a life" {
+    var phases = listOf(ShipPhase.Explosion, ShipPhase.Restart)
+    for (var i = 0; i < 2; i++) {
+        var g = Game()
+        g.start(104 + i)
+        g.ship.phase = phases[i]
+        g.ship.explosionSteps = 12
+        g.ship.restartFrame = 20
+        g.meteors[0].collided = true
+        g.meteors[0].collisionSteps = 2
+        g.lasers.shots[0].active = true
+        g.lasers.shots[0].x = 44
+        g.pause()
+        for (var j = 0; j < 50; j++) { g.step() }
+        assert(g.ship.phase == phases[i] && g.ship.lives == 3)
+        assert(g.ship.explosionSteps == 12 && g.ship.restartFrame == 20)
+        assert(g.meteors[0].collisionSteps == 2 && g.lasers.shots[0].x == 44)
+        assert(g.steps == 0)
+    }
+}
+
+test "pausing and returning from result leave no directional movement" {
+    var g = Game()
+    g.start(106)
+    g.ship.x = 60
+    g.movement(Zone.East, true)
+    g.pause()
+    assert(g.activeZone == Zone.Neutral && !g.ship.right)
+    g.resume()
+    g.step()
+    assert(g.ship.x == 60)
+    g.ship.lives = 0
+    g.step()
+    assert(g.screen == Screen.Result && g.activeZone == Zone.Neutral)
+    g.confirm()
+    g.confirm()
+    g.step()
+    assert(g.screen == Screen.Play && g.activeZone == Zone.Neutral && !g.ship.right)
+}
+
 
 test "same seed produces the same meteors" {
     var a = Game()

@@ -72,14 +72,63 @@ the behavior of this checkout. When they disagree, report the discrepancy
 instead of turning a compiler defect into a language rule. Separate current
 facts, future plans, and hypotheses.
 
-## Explain the choice to the user
+## Code readability
 
-In a user-facing answer that makes a Kof decision, explain the Kof rule, why
-it applies here, and the relevant source or proof. Teach the concept with a
-short example when that helps the user learn it. Cite the pertinent `training/`
-file and, when used, the `learn/` chapter; include implementation, test, or
-target evidence for claims about current behavior. Keep this explanation
-proportionate to the decision rather than listing every file read.
+- Do not add comments to explain source-code organization or behavior,
+  including line comments (`//`) or block comments (`/* ... */`).
+- Express intent through clear names, focused functions or methods,
+  behavioral tests, and documentation.
+- When code is difficult to understand, improve its structure instead
+  of adding an explanatory comment.
+- Keep local declarations close to their first use, within the context
+  that makes their purpose clear.
+- Apply these rules to application code, tests, and fixtures.
+
+## Explain with visible evidence and teach the concept
+
+These requirements apply to user-facing technical explanations throughout
+this project: game code, Kof language and platform, tests, diagnostics, and
+architecture. Respond in the user's language, with depth proportionate to
+the question.
+
+1. **Show the evidence for each substantive technical conclusion.** State
+   the conclusion and include the actual supporting excerpt: a fenced code
+   block for source code or test output, or a blockquote for documentation.
+   Place a clickable source link with the file and starting line next to the
+   excerpt; for command output, identify the command and relevant target.
+   A reference or line number alone does not satisfy this requirement.
+2. **Explain how the excerpt supports the conclusion.** Identify the relevant
+   expressions or statements, explain what they mean, and connect them to the
+   user's problem. The user should understand the reasoning without having
+   to open the source file.
+3. **Teach the underlying concept explicitly.** Explain the applicable rule
+   or mechanism in plain language and connect the cause, observed behavior,
+   and practical consequence. Explain unfamiliar terms when needed rather
+   than assuming the excerpt is self-explanatory.
+4. **Add a small teaching example when it helps understanding.** Describe
+   its expected result and explain why. Label examples created by the agent
+   as teaching examples, separately from excerpts copied from existing
+   sources. Verify Kof syntax and capabilities against the required sources
+   before presenting them. State whether a code example was executed and on
+   which target; if it was only compiled or was not run, say so explicitly.
+   Follow the existing requirement for a focused target proof when a
+   construction is consequential or uncertain.
+5. **Keep excerpts faithful and sufficient.** Use the smallest excerpt that
+   supports the conclusion while preserving conditions that affect its
+   meaning. Mark omissions and do not rewrite a source excerpt as if it were
+   a quotation. Explain documentation in the user's language; label any
+   translation or paraphrase separately from the original quotation.
+6. **State the limits of the evidence.** Distinguish demonstrated facts,
+   inferences, and proposals. A successful compile alone does not prove
+   runtime behavior. An excerpt that omits an API does not prove the API is
+   absent; support absence claims with the relevant registry, search scope,
+   diagnostic, or focused test, and qualify what was actually established.
+
+For Kof decisions, explain the Kof rule and why it applies here. Continue to
+consult and cite the pertinent `training/` file and, when used, the `learn/`
+chapter; include implementation, test, or target evidence for claims about
+current behavior. Select the relevant sources and excerpts rather than
+listing every file read.
 
 ## If the local repository is unavailable
 
