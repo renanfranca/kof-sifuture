@@ -104,11 +104,50 @@ Grouping writes to a single Actions output/summary file was a maintainability op
 
 ## Production acceptance
 
-GitHub Pages was still disabled when inspected: `gh api repos/renanfranca/kof-sifuture/pages` returned HTTP 404. Before production acceptance, enable **Settings → Pages → Source: GitHub Actions** and merge the reviewed workflow to `main`.
+The real [PR #7 workflow run](https://github.com/renanfranca/kof-sifuture/actions/runs/37117396903) completed successfully on 2026-10-03. It tested the PR merge revision `2f79c9afc721cdffb98c0d87846b735bf56458b2`, with head implementation commit `90e619157897b791ffea7ef74f3db3515352383e`.
+
+Observed job results:
+
+```text
+Resolve verified Kof       success
+Kof tests (jvm)            success
+Kof tests (js)             success
+Build complete Pages site skipped
+Publish current main      skipped
+```
+
+Both target logs ended with `0 failed of 28 tests` and `1 passed, 0 failed`. Resolver and consumer logs recorded the same Kof commit and archive digest reported above, and the same tested PR merge SHA. The actual artifact inventory was:
+
+```text
+kof-37117396903-1
+kof-test-jvm-37117396903-1
+kof-test-js-37117396903-1
+```
+
+There was no Pages artifact. GitHub accepted the workflow containing `queue: max`; actual serialization at deployment still requires a main publication run.
+
+The JVM consumer was then rerun alone with `gh run rerun 37117396903 --job 111187077556`. Attempt 2 succeeded and its actual download step recorded:
+
+```text
+name: kof-37117396903-1
+Artifact download completed successfully.
+0 failed of 28 tests
+1 passed, 0 failed
+```
+
+Its new log artifact is `kof-test-jvm-37117396903-2`; the bundle remains `kof-37117396903-1`, with the same tested merge revision. No attempt-2 compiler bundle was produced. This confirms real consumer-only reruns use the original producer output instead of guessing the bundle name from the current attempt.
+
+GitHub Pages was disabled at the initial inspection: `gh api repos/renanfranca/kof-sifuture/pages` returned HTTP 404. The requested Source setting was then enabled through `POST /repos/renanfranca/kof-sifuture/pages` with `build_type=workflow`. A subsequent GET confirmed:
+
+```json
+{"build_type":"workflow","html_url":"https://renanfranca.github.io/kof-sifuture/","status":null}
+```
+
+Pages is configured for GitHub Actions, but no site has been deployed. Production acceptance still requires merging the reviewed workflow to `main` and exercising publication.
 
 Pending evidence:
 
-- Actual GitHub PR checks, including a documentation-only update.
+- GitHub checks after a documentation-only PR update.
 - Successful push-to-main JVM/JS jobs, build, artifact upload and serialized Pages deployment.
 - Actual workflow target/build/API failure and old-rerun cases, beyond the controlled local checks above.
 - Published URL: <https://renanfranca.github.io/kof-sifuture/>.
