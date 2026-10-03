@@ -102,6 +102,8 @@ The refactor-design rubric was applied to the helper, workflow and local verific
 
 Grouping writes to a single Actions output/summary file was a maintainability opportunity; the applied formatting change preserves the output values. Calendar-date validation was a defect found during review and returned to behavior TDD: a failing CLI case preceded the fix. The full relevant suite passed again afterward.
 
+A generally reusable heuristic was observed: Bash functions called through command substitution must explicitly propagate failed API/parsing assignments; `set -e` alone can be inactive inside that context. The tag-peeling function now propagates failures explicitly. This is a candidate for a separately authorized skill-evolution task; no skill files were modified.
+
 ## Production acceptance
 
 The real [PR #7 workflow run](https://github.com/renanfranca/kof-sifuture/actions/runs/37117396903) completed successfully on 2026-10-03. It tested the PR merge revision `2f79c9afc721cdffb98c0d87846b735bf56458b2`, with head implementation commit `90e619157897b791ffea7ef74f3db3515352383e`.
@@ -137,6 +139,8 @@ Artifact download completed successfully.
 
 Its new log artifact is `kof-test-jvm-37117396903-2`; the bundle remains `kof-37117396903-1`, with the same tested merge revision. No attempt-2 compiler bundle was produced. This confirms real consumer-only reruns use the original producer output instead of guessing the bundle name from the current attempt.
 
+The next commit, `b3a0555ef6ae9e05621b574b6901be5f8d1396a8`, changed only this validation document. Its [workflow run 37117663604](https://github.com/renanfranca/kof-sifuture/actions/runs/37117663604) also succeeded on both targets and skipped both Pages jobs. This demonstrates that a documentation-only update to the PR triggers the complete checks without producing a Pages artifact; a separate PR whose entire diff is documentation-only is additionally covered by the trigger assertions, rather than claimed as a live scenario here.
+
 GitHub Pages was disabled at the initial inspection: `gh api repos/renanfranca/kof-sifuture/pages` returned HTTP 404. The requested Source setting was then enabled through `POST /repos/renanfranca/kof-sifuture/pages` with `build_type=workflow`. A subsequent GET confirmed:
 
 ```json
@@ -147,7 +151,6 @@ Pages is configured for GitHub Actions, but no site has been deployed. Productio
 
 Pending evidence:
 
-- GitHub checks after a documentation-only PR update.
 - Successful push-to-main JVM/JS jobs, build, artifact upload and serialized Pages deployment.
 - Actual workflow target/build/API failure and old-rerun cases, beyond the controlled local checks above.
 - Published URL: <https://renanfranca.github.io/kof-sifuture/>.
