@@ -65,6 +65,12 @@ Os 41 sprites adicionados são byte a byte iguais aos arquivos históricos de `s
 
 ## Entrega e limites
 
-Checks de CI selecionados: Resolve verified Kof, Kof tests (jvm), Kof tests (js), em `.github/workflows/kof-ci-and-pages.yml`. O PR e o workflow terão links persistentes acrescentados ao registro ao terminar a entrega. Sonar, Habit e runner de mutação não são configurados neste repositório e foram excluídos; sua ausência não é aprovação. Os testes Python, de Chrome e do contrato CI foram executados localmente; o workflow executa a matriz Kof.
+Checks de CI selecionados: Resolve verified Kof, Kof tests (jvm), Kof tests (js), em `.github/workflows/kof-ci-and-pages.yml`. Entrega: [PR #9](https://github.com/renanfranca/kof-sifuture/pull/9), pronto para revisão. A [execução 37152371521](https://github.com/renanfranca/kof-sifuture/actions/runs/37152371521) aprovou os três checks selecionados em 03/10/2026, sobre o head `69301d86d915ecc2ce15f1e30a02566fa71ba7d9` e merge de teste `1b549883c2fc388823eea63dab9c2c5e06cffa85`. Resolveu Kof `0.5.0-beta` do commit `317d9f6b1c3e27032cc955a05f859f6c627d9338`; cada alvo executou 47 testes sem falhas. Build/Publish Pages foram pulados por ser PR. Sonar, Habit e runner de mutação não são configurados neste repositório e foram excluídos; sua ausência não é aprovação. Os testes Python, de Chrome e do contrato CI foram executados localmente; o workflow executa a matriz Kof.
 
 Este aceite fecha somente o ciclo aprovado. Chefes, música, Android, reformulação completa dos controles, eventos gerais da página, pausa automática/redimensionamento e requisitos restantes da v1 continuam abertos. Nenhum dispositivo físico/Android foi validado. Publicação Pages exige merge em main e o workflow de publicação; este ciclo não executa merge nem declara a página pública atualizada.
+
+## Validação final e registro da entrega
+
+A rodada final em `69301d86d915ecc2ce15f1e30a02566fa71ba7d9` repetiu os oito comandos acima: oito executados, nenhum bloqueado, exit 0 e coleta completa, em 65,94 s. JVM/JS 47/47, quatro percursos Chrome PASS, oito testes Python OK e contrato CI PASS. Os diagnósticos de parse na suíte Python pertencem ao teste intencional de fonte inválida, seguido de `Ran 8 tests` / `OK`.
+
+Este complemento registra resultados já observados; muda somente documentação. Seu commit posterior repete as verificações locais e CI exigidas antes da entrega. O PR concentra o estado corrente desses checks e conserva os links das execuções anteriores.
