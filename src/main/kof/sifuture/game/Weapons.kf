@@ -1,0 +1,107 @@
+package sifuture.game
+
+class Weapons {
+    Int level = 0
+    Int charges = 0
+    Int fireSteps = 0
+    Int laserAttempts = 0
+    Lasers lasers = Lasers()
+    Blaster blaster = Blaster()
+    List<SpecialBeam> beams = listOf(SpecialBeam(0), SpecialBeam(1), SpecialBeam(2))
+
+    reset() {
+        level = 0
+        charges = 0
+        fireSteps = 0
+        lasers.reset()
+        blaster.reset()
+        laserAttempts = 0
+        for (var beam in beams) { beam.reset() }
+    }
+
+    evolve() {
+        if (level < 3) { level = level + 1 }
+        else { charges = charges + 1 }
+    }
+
+    loseOnDeath() {
+        if (charges > 0) { charges = charges - 1 }
+        else if (level > 0) { level = level - 1 }
+    }
+
+    attemptFire(Ship ship) {
+        if (level == 2 && fireSteps > 10 && laserAttempts > 0 && laserAttempts % 6 == 0) { blaster.fire(ship) }
+        if (level == 3 && fireSteps > 4) { blaster.fire(ship) }
+        fireSteps = fireSteps + 1
+        if (fireSteps == Rules.LASER_INTERVAL) {
+            fireSteps = 0
+            if (level == 0) { lasers.shots[0].fire(ship.x, ship.y) }
+            else {
+                laserAttempts = laserAttempts + 1
+                for (var shot in lasers.shots) {
+                    if (!shot.active) {
+                        shot.fire(ship.x, ship.y)
+                        shot.animated = true
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    hitLaser(List<Meteor> meteors): Bool {
+        for (var shot in lasers.shots) {
+            for (var meteor in meteors) {
+                if (!meteor.collided && shot.active && !shot.impact && shot.hitsMeteor(meteor)) {
+                    shot.impactAt(meteor)
+                    meteor.collide()
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    hitBlaster(List<Meteor> meteors): Bool {
+        for (var meteor in meteors) {
+            if (!meteor.collided && blaster.hitsMeteor(meteor)) {
+                blaster.hit()
+                meteor.collide()
+                return true
+            }
+        }
+        return false
+    }
+
+    hitSpecial(List<Meteor> meteors): Bool {
+        for (var beam in beams) {
+            for (var meteor in meteors) {
+                if (!meteor.collided && beam.hitsMeteor(meteor)) {
+                    beam.hit()
+                    meteor.collide()
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    canSpecial(): Bool {
+        if (charges == 0) { return false }
+        for (var beam in beams) { if (beam.active) { return false } }
+        return true
+    }
+
+    fireSpecial(Ship ship): Bool {
+        if (!canSpecial()) { return false }
+        for (var beam in beams) { beam.fire(ship) }
+        charges = charges - 1
+        return true
+    }
+
+    advance() {
+        lasers.advance()
+        blaster.advance()
+        for (var beam in beams) { beam.advance() }
+    }
+}

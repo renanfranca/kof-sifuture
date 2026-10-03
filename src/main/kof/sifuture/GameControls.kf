@@ -8,6 +8,7 @@ class GameControls {
     GameView drawing
     Button overlay
     Button action
+    Button special
     Button northwest
     Button north
     Button northeast
@@ -18,6 +19,9 @@ class GameControls {
     Button southeast
     Column root
     Bool enterHeld = false
+    Bool oneHeld = false
+    Bool spaceHeld = false
+    Bool specialPointerHeld = false
     Bool discardEnterClick = false
 
     public constructor(Game game, GameView drawing, Canvas canvas) {
@@ -36,12 +40,26 @@ class GameControls {
         var empty = View(Style("width: 48; height: 48; padding: 0"))
         var pad = Column(listOf(Row(listOf(northwest, north, northeast)), Row(listOf(west, empty, east)), Row(listOf(southwest, south, southeast))))
         pad.setStyle(Style("align-items: center"))
+        special = Button("Especial", () -> {})
+        special.setId("game-special")
+        special.setStyle(Style("width: 72; height: 64; padding: 0; touch-action: none; user-select: none"))
+        special.on("pointerdown", (e: Event) -> {
+            if (!this.specialPointerHeld) {
+                this.specialPointerHeld = true
+                this.activateSpecial()
+            }
+        })
+        special.on("pointerup", (e: Event) -> { this.specialPointerHeld = false })
+        special.on("pointercancel", (e: Event) -> { this.specialPointerHeld = false })
+        special.on("pointerleave", (e: Event) -> { this.specialPointerHeld = false })
+        var movementControls = Row(listOf(pad, special))
+        movementControls.setStyle(Style("align-items: center; justify-content: center; gap: 16; padding: 0"))
         action = Button("Novo Jogo", () -> { this.activateAction() })
         action.setId("game-action")
         action.on("pointerdown", (e: Event) -> { this.discardEnterClick = false })
         action.on("blur", (e: Event) -> { this.discardEnterClick = false })
-        var hint = Label("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age.")
-        root = Column(listOf(surface, pad, action, hint))
+        var hint = Label("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age; 1 dispara especial.")
+        root = Column(listOf(surface, movementControls, action, hint))
         root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
         root.on("keyup", (e: Event) -> { this.keyChanged(e.key(), e.target(), false) })
         update()
@@ -95,14 +113,30 @@ class GameControls {
         drawing.render(game)
     }
 
+    activateSpecial() {
+        game.trySpecial()
+        drawing.render(game)
+        update()
+    }
+
     keyChanged(String key, String target, Bool pressed) {
+        if (key == "1") {
+            if (pressed && !oneHeld && (target == "game-keyboard" || target == "game-special")) { activateSpecial() }
+            oneHeld = pressed
+            return
+        }
+        if (key == " " && target == "game-special") {
+            if (pressed && !spaceHeld) { activateSpecial() }
+            spaceHeld = pressed
+            return
+        }
         if (key == " " && pressed && target == "game-action") { discardEnterClick = false }
         if (key == "Enter") {
             if (pressed && target == "game-action") { discardEnterClick = true }
-            if (pressed && !enterHeld && (target == "game-keyboard" || target == "game-action")) {
+            if (pressed && !enterHeld && (target == "game-keyboard" || target == "game-action" || target == "game-special")) {
                 enterHeld = true
-                game.confirm()
-                drawing.render(game)
+                if (target == "game-special") { activateSpecial() }
+                else { game.confirm(); drawing.render(game) }
             }
             if (!pressed) {
                 enterHeld = false
@@ -120,6 +154,7 @@ class GameControls {
 
     update() {
         var playing = game.screen == Screen.Play
+        special.setDisabled(!game.canSpecial())
         northwest.setDisabled(!playing)
         north.setDisabled(!playing)
         northeast.setDisabled(!playing)

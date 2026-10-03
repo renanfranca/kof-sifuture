@@ -12,7 +12,14 @@ class GameView {
     List<Image> meteors
     List<Image> meteorHits
     List<Image> explosions
-    Image laser
+    Image background
+    Image specialIcon
+    List<Image> evolutionItems
+    List<Image> lifeItems
+    List<Image> itemEffects
+    List<Image> lasers
+    List<Image> blasters
+    List<Image> specialFrames
     Image laserImpact
     Image result0
     Image result1
@@ -28,7 +35,14 @@ class GameView {
         meteors = listOf(Image("assets/meteor000.png"), Image("assets/meteor001.png"), Image("assets/meteor002.png"), Image("assets/meteor003.png"), Image("assets/meteor004.png"), Image("assets/meteor005.png"))
         meteorHits = listOf(Image("assets/meteor0C0.png"), Image("assets/meteor0C1.png"), Image("assets/meteor0C2.png"))
         explosions = listOf(Image("assets/explosion0.png"), Image("assets/explosion1.png"), Image("assets/explosion2.png"), Image("assets/explosion3.png"), Image("assets/explosion4.png"), Image("assets/explosion5.png"), Image("assets/explosion6.png"), Image("assets/explosion7.png"), Image("assets/explosion8.png"), Image("assets/explosion9.png"))
-        laser = Image("assets/laser00.png")
+        background = Image("assets/background.png")
+        specialIcon = Image("assets/especialActivated1.png")
+        evolutionItems = listOf(Image("assets/iten0.png"), Image("assets/iten1.png"), Image("assets/iten2.png"), Image("assets/iten3.png"), Image("assets/iten4.png"))
+        lifeItems = listOf(Image("assets/life0.png"), Image("assets/life1.png"), Image("assets/life2.png"), Image("assets/life3.png"), Image("assets/life4.png"), Image("assets/life5.png"), Image("assets/life6.png"), Image("assets/life7.png"), Image("assets/life8.png"), Image("assets/life9.png"), Image("assets/life10.png"))
+        itemEffects = listOf(Image("assets/effect0.png"), Image("assets/effect1.png"), Image("assets/effect2.png"))
+        lasers = listOf(Image("assets/laser00.png"), Image("assets/laser01.png"), Image("assets/laser02.png"))
+        blasters = listOf(Image("assets/ylwBlaster00.png"), Image("assets/ylwBlaster01.png"), Image("assets/ylwBlaster02.png"), Image("assets/ylwBlaster03.png"), Image("assets/ylwBlaster04.png"), Image("assets/ylwBlaster05.png"), Image("assets/ylwBlaster06.png"), Image("assets/ylwBlaster07.png"), Image("assets/ylwBlaster08.png"))
+        specialFrames = listOf(Image("assets/e0.png"), Image("assets/e1.png"), Image("assets/e2.png"), Image("assets/e3.png"), Image("assets/e4.png"), Image("assets/e5.png"), Image("assets/e6.png"), Image("assets/e7.png"), Image("assets/e8.png"))
         laserImpact = Image("assets/laser03.png")
         result0 = Image("assets/result0.png")
         result1 = Image("assets/result1.png")
@@ -54,14 +68,38 @@ class GameView {
             canvas.fillText("Voltar ao menu", 42, 160)
             return
         }
-        canvas.fillText("PONTOS " + game.score + "   VIDAS " + game.ship.lives, 4, 18)
+        for (var y = Rules.HEADER_HEIGHT; y < Rules.WORLD_HEIGHT; y = y + 60) {
+            for (var x = -game.background.offset; x < Rules.WORLD_WIDTH; x = x + 60) {
+                canvas.drawImage(background, x, y)
+            }
+        }
+        for (var item in game.items) {
+            if (item.collected) { canvas.drawImage(itemEffects[item.effectSteps / 2], item.x, item.y) }
+            else if (item.kind == ItemKind.Evolution) { canvas.drawImage(evolutionItems[item.frame], item.x, item.y) }
+            else { canvas.drawImage(lifeItems[item.frame], item.x, item.y) }
+        }
         for (var m in game.meteors) {
             if (m.collided) { canvas.drawImage(meteorHits[m.collisionSteps / Rules.METEOR_HIT_FRAME_STEPS], m.x, m.y) }
             else { canvas.drawImage(meteors[m.frame], m.x, m.y) }
         }
-        for (var s in game.lasers.shots) {
+        for (var s in game.weapons.lasers.shots) {
             if (s.active && s.impact) { canvas.drawImage(laserImpact, s.x + 5, s.y) }
-            else if (s.active) { canvas.drawImage(laser, s.x, s.y) }
+            else if (s.active) { canvas.drawImage(lasers[s.spriteFrame()], s.x, s.y) }
+        }
+        var blaster = game.weapons.blaster
+        if (blaster.active) {
+            if (blaster.lives > 0) {
+                if (blaster.spriteFrame() == 4) { canvas.drawImage(blasters[8], blaster.x, blaster.y) }
+                else { canvas.drawImage(blasters[blaster.spriteFrame()], blaster.x, blaster.y) }
+            } else {
+                var y = blaster.y
+                if (blaster.impactSteps == 1) { y = y - 14 }
+                if (blaster.impactSteps > 1) { y = y - 15 }
+                canvas.drawImage(blasters[4 + blaster.impactSteps], blaster.x, y)
+            }
+        }
+        for (var beam in game.weapons.beams) {
+            if (beam.active) { canvas.drawImage(specialFrames[beam.color * 3 + beam.spriteFrame()], beam.x, beam.y) }
         }
         if (game.ship.phase == ShipPhase.Explosion) { canvas.drawImage(explosions[game.ship.explosionSteps / Rules.SHIP_EXPLOSION_FRAME_STEPS], game.ship.x, game.ship.y) }
         if (game.ship.phase == ShipPhase.Normal || (game.ship.phase == ShipPhase.Restart && (game.ship.restartFrame / Rules.SHIP_RESTART_BLINK_STEPS) % 2 == 0)) {
@@ -69,6 +107,9 @@ class GameView {
                 canvas.drawImage(shipRight, game.ship.x, game.ship.y)
             } else { canvas.drawImage(ship, game.ship.x, game.ship.y) }
         }
+        canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.HEADER_HEIGHT)
+        canvas.fillText("PONTOS " + game.score + "   VIDAS " + game.ship.lives, 4, 18)
+        if (game.weapons.charges > 0) { canvas.drawImage(specialIcon, 149, 20) }
         if (game.screen == Screen.Pause) { canvas.fillText("PAUSADO", 60, 100) }
     }
 }
