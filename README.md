@@ -85,3 +85,72 @@ Este ciclo inclui o tiro normal, seis meteoros horizontais, colisões, direciona
 As regras usadas foram conferidas em `/home/renanfranca/projects/sifuture/src/AirShip.java`, `AirShipAllShoots.java`, `Meteor.java`, `MeteorArray.java` e `GameCanvas.java`. A sintaxe e o estado de Kof foram conferidos em `/home/renanfranca/projects/kof/training/language/syntax.md`, `training/language/types.md`, `training/idioms/classes.md`, `training/anti-patterns/sentinel-values.md`, `learn/07-classes-and-objects.md`, `learn/23-testing.md`, `learn/35-kof-ui.md`, `learn/37-kofjs.md`, `learn/39-stdlib.md`, `docs/language-reference/classes.md`, `docs/ui/PLAN-CANVAS-WIDGET.md`, `docs/development/DECISIONS.md`, implementação e testes do compilador. As aulas pertinentes de frontend e testes em `/home/renanfranca/projects/curso-completo-de-kof/` serviram de guia didático; o curso declara 0.3.7-beta, por isso o comportamento atual foi confirmado nas fontes Kof 0.5.0-beta do SHA acima. Planos de expansão da UI não são tratados como recursos já disponíveis.
 
 Os sprites em `assets/` vêm do jogo histórico. O [NOTICE](NOTICE) distingue o código licenciado dos recursos de terceiros cujos autores e licenças não foram identificados; este repositório não atribui uma licença nova a eles.
+
+## CI Kof e GitHub Pages
+
+O workflow [Kof CI and GitHub Pages](.github/workflows/kof-ci-and-pages.yml) executa em todo **PR destinado a `main`** e todo **push em `main`**, inclusive alterações apenas em documentação ou assets. Os checks **Kof tests (jvm)** e **Kof tests (js)** executam separadamente o comando completo `python3 scripts/kof_project.py test --target ALVO`. A matriz usa `fail-fast: false`: a falha de um alvo não cancela o outro e impede build e publicação. A descoberta recursiva inclui novas suítes aninhadas. Esse CI executa somente as suítes Kof; Python é o wrapper existente. Não instala nem executa testes Python, Playwright, navegadores ou Pillow.
+
+Os testes JS usam o engine embarcado, conforme o [treinamento de alvos Kof](/home/renanfranca/projects/kof/training/reference/targets.md:135):
+
+> ES Modules 2022+ via embedded GraalJS (KofJsRunner) — no Node.js
+
+O [capítulo de testes do Learn Kof](/home/renanfranca/projects/kof/learn/23-testing.md:42) registra:
+
+> Each test runs **in isolation** (one failing does not interrupt the others).
+
+Essa regra trata dos casos dentro de uma invocação Kof. A matriz do workflow preserva adicionalmente a independência entre JVM e JS. Ela não demonstra o funcionamento da interface publicada no navegador.
+
+### Uma distribuição por resolução
+
+[`scripts/kof_ci.sh`](scripts/kof_ci.sh) é um helper Bash com três operações. Requer Bash, `gh` autenticado, `jq`, `curl`, `sha256sum` e `tar`.
+
+- `resolve BUNDLE SHA`: percorre todas as páginas de releases e assets de `KofLang/Kof4j`, exclui `draft: true` e `prerelease: true` e escolhe o arquivo oficial Linux x86_64 de maior `published_at`. Um sufixo `beta` não exclui uma release elegível. Exige seu `SHA256SUMS`, exatamente uma entrada válida para o nome do arquivo, digest correto e tag resolvida até um commit, inclusive tags anotadas. Falhas e ambiguidades encerram a execução sem recorrer a outro compilador.
+- `install BUNDLE DIRETORIO SHA`: valida a revisão SiFuture do manifesto, confere novamente checksum e digest, extrai em diretório novo e valida `VERSION`, `kof version` e JVM embarcada. Em Actions, grava `KOF` em `GITHUB_ENV`; localmente, retorna JSON com o caminho do launcher.
+- `check-main OWNER/REPOSITORY SHA`: consulta o commit atual de `main` e retorna `fresh: true` ou `false`. Um SHA superado produz diagnóstico explícito e pula a publicação. Falha de API ou resposta inválida retorna erro; nunca autoriza deploy.
+
+A distribuição é completa, conforme o [treinamento de instalação](/home/renanfranca/projects/kof/training/distribution/install.md:13):
+
+> The official package contains: compiler, CLI, runtime, stdlib, tooling, editor
+> support, embedded OpenJDK and documentation.
+
+Por isso o CI instala o pacote oficial e exige a JVM embarcada, usando seu launcher por `KOF`. Não usa JAR avulso, compilação do checkout Kof ou cache de compilador. O job produtor transfere o arquivo original, `SHA256SUMS` e `manifest.json` em `kof-RUN_ID-TENTATIVA`. Testes e build baixam o nome recebido pelo output desse produtor e não consultam releases novamente.
+
+O manifesto, logs e resumos registram versão, release e tag, commit completo Kof, ID/nome/URL do arquivo, SHA-256 verificado e SHA completo SiFuture. Todos os checkouts usam explicitamente `github.sha`; em PR, essa é a revisão de merge testada pelo evento. Os logs de cada alvo e do build ficam nos respectivos jobs e em artefatos separados, retidos por 30 dias.
+
+### Publicação e atualização de main
+
+Antes da primeira publicação, habilite **Settings → Pages → Source: GitHub Actions**. O workflow usa `actions/configure-pages` com `enablement: false`: Pages desabilitado faz o deploy falhar e deve ser corrigido nas configurações do repositório. O endereço esperado é [https://renanfranca.github.io/kof-sifuture/](https://renanfranca.github.io/kof-sifuture/).
+
+Somente push em `main`, após ambos os checks aprovados, executa o build existente em diretório novo e vazio. `actions/upload-pages-artifact` recebe a raiz da saída inteira: HTML, módulos, runtimes e assets conservam os caminhos relativos. Não há uma pasta extra `kof-sifuture` dentro do pacote; o prefixo `/kof-sifuture/` pertence à URL de Pages. O [Learn Kof JS](/home/renanfranca/projects/kof/learn/37-kofjs.md:54) descreve esse modelo:
+
+> `kof build --target=js` generates `index.html` + modules: serve the
+> folder as a static web application (any HTTP server).
+
+Os jobs comuns têm somente `contents: read`. Apenas o deploy recebe `pages: write` e `id-token: write`, entra no ambiente `github-pages` e expõe a URL publicada. PRs não entram nesse ambiente nem produzem artefato Pages.
+
+O deploy inteiro mantém o grupo fixo `kof-sifuture-pages`, com `cancel-in-progress: false` e `queue: max`. Dentro dele, `check-main` compara o SHA construído com o `main` atual imediatamente antes de `actions/deploy-pages`. A [documentação de concorrência](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency) explica que a fila segue a chegada à exclusividade, que pode diferir da ordem dos commits. Assim, um build antigo concluído depois ou reexecutado pula publicação. Se `main` avançar durante um deploy já iniciado, a exclusividade continua até ele terminar; a publicação nova precisa aguardar e não pode ser substituída ao final pela antiga.
+
+### Diagnóstico, reprodução e reexecução
+
+Consulte primeiro **Resolve verified Kof** para erros de API, seleção, tag e integridade; depois o check do alvo para instalação/testes, **Build complete Pages site** para build e artefato, e **Publish current main** para Pages/freshness/deploy. Falhas anteriores ao deploy preservam o site existente. Falhas de deploy permanecem visíveis; não são registradas como publicação bem-sucedida.
+
+Para reproduzir exatamente uma distribuição selecionada, baixe o artefato `kof-...` indicado pelo job produtor, extraia seu conteúdo para um diretório e use o SHA do manifesto:
+
+```bash
+bundle=/caminho/para/bundle
+sha=$(jq -r .sifuture_sha "$bundle/manifest.json")
+scratch=$(mktemp -d)
+installation=$(bash scripts/kof_ci.sh install "$bundle" "$scratch/installation" "$sha")
+export KOF=$(jq -r .kof <<< "$installation")
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 scripts/kof_project.py build --output "$scratch/site"
+```
+
+Execute esses comandos num checkout desse mesmo SHA. Alternativamente, passe `--kof "$KOF"` aos comandos existentes. Para fazer uma nova resolução local, use `bash scripts/kof_ci.sh resolve "$scratch/bundle" "$(git rev-parse HEAD)"`; o destino ainda não pode existir. A resolução local também exige acesso autenticado de leitura ao GitHub.
+
+**Re-run failed jobs** reutiliza os outputs dos produtores bem-sucedidos, inclusive o nome do bundle ou pacote Pages original; o consumidor não calcula o nome usando sua nova tentativa. **Re-run all jobs** executa uma nova resolução e repete os testes e build com ela. Se os artefatos expiraram, reexecute todos os jobs; não substitua manualmente o compilador. Reexecutar um deploy antigo não restaura um site antigo: a atualização de `main` continua sendo obrigatória.
+
+As verificações locais de infraestrutura ficam em [`tests/ci-contract.sh`](tests/ci-contract.sh), com fixtures JSON e executáveis Bash para as APIs e downloads. Execute `bash tests/ci-contract.sh` com `yq` v4 disponível. Elas não fazem parte do workflow. O [registro de validação](.agent/validation/kof-ci-and-pages.md) distingue simulações locais, execução real do compilador e pendências de produção.
+
+O aceite de produção exige uma execução publicada e verificação manual de carregamento, módulos/runtimes, sprites, início da partida, movimento, pausa/continuação e retorno ao menu. Registre o navegador e o SHA publicado. Enquanto essas evidências não estiverem no registro, a página publicada não está validada.

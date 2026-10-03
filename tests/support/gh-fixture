@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+endpoint=${!#}
+printf '%s\n' "$endpoint" >> "$FIXTURE_ROOT/requests"
+[[ "$endpoint" != "${FAIL_API:-}" ]] || exit 22
+case "$endpoint" in
+    *'/releases?per_page=100&page='*)
+        page=${endpoint##*=}
+        if [[ -f "$FIXTURE_ROOT/releases-$page.json" ]]; then
+            cat "$FIXTURE_ROOT/releases-$page.json"
+        else
+            printf '[]\n'
+        fi
+        ;;
+    *'/releases/'*'/assets?per_page=100&page='*)
+        release=${endpoint#*/releases/}
+        release=${release%%/*}
+        page=${endpoint##*=}
+        if [[ -f "$FIXTURE_ROOT/assets-$release-$page.json" ]]; then
+            cat "$FIXTURE_ROOT/assets-$release-$page.json"
+        else
+            printf '[]\n'
+        fi
+        ;;
+    *'/git/ref/tags/'*) cat "$FIXTURE_ROOT/ref.json" ;;
+    *'/git/tags/'*) cat "$FIXTURE_ROOT/tag.json" ;;
+    *'/git/ref/heads/main') cat "$FIXTURE_ROOT/main.json" ;;
+    *) exit 23 ;;
+esac

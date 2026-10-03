@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+output=''
+url=''
+while (($#)); do
+    case "$1" in
+        --output) output=$2; shift 2 ;;
+        https://*) url=$1; shift ;;
+        *) shift ;;
+    esac
+done
+[[ "${FAIL_DOWNLOAD:-false}" == false ]] || exit 22
+cp "$FIXTURE_ROOT/downloads/${url##*/}" "$output"
