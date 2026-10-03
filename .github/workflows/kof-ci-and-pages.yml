@@ -1,0 +1,189 @@
+name: Kof CI and GitHub Pages
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  resolve-kof:
+    name: Resolve verified Kof
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact-name: ${{ steps.bundle.outputs.name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Resolve and verify official Linux distribution
+        id: bundle
+        env:
+          SIFUTURE_SHA: ${{ github.sha }}
+          BUNDLE_NAME: kof-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SIFUTURE_SHA"
+          bash scripts/kof_ci.sh resolve "$RUNNER_TEMP/kof-bundle" "$SIFUTURE_SHA"
+          echo "name=$BUNDLE_NAME" >> "$GITHUB_OUTPUT"
+      - name: Transfer original archive, checksum and manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ${{ steps.bundle.outputs.name }}
+          path: ${{ runner.temp }}/kof-bundle/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  test:
+    name: Kof tests (${{ matrix.target }})
+    needs: resolve-kof
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [jvm, js]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ needs.resolve-kof.outputs.artifact-name }}
+          path: ${{ runner.temp }}/kof-bundle
+      - name: Install the resolved distribution
+        env:
+          SIFUTURE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SIFUTURE_SHA"
+          bash scripts/kof_ci.sh install "$RUNNER_TEMP/kof-bundle" "$RUNNER_TEMP/kof-install" "$SIFUTURE_SHA"
+      - name: Run complete Kof suite
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          python3 scripts/kof_project.py test --target "$TARGET" 2>&1 | tee "$RUNNER_TEMP/kof-$TARGET.log"
+      - name: Keep target log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: kof-test-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kof-${{ matrix.target }}.log
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Record target result
+        if: ${{ always() }}
+        env:
+          TARGET: ${{ matrix.target }}
+          RESULT: ${{ job.status }}
+        run: printf "Kof target \`%s\` result \`%s\`.\n" "$TARGET" "$RESULT" >> "$GITHUB_STEP_SUMMARY"
+
+  build-pages:
+    name: Build complete Pages site
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [resolve-kof, test]
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact-name: ${{ steps.build.outputs.name }}
+      sifuture-sha: ${{ steps.build.outputs.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ needs.resolve-kof.outputs.artifact-name }}
+          path: ${{ runner.temp }}/kof-bundle
+      - name: Install the tested distribution
+        env:
+          SIFUTURE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SIFUTURE_SHA"
+          bash scripts/kof_ci.sh install "$RUNNER_TEMP/kof-bundle" "$RUNNER_TEMP/kof-install" "$SIFUTURE_SHA"
+      - name: Build in a fresh empty directory
+        id: build
+        env:
+          SIFUTURE_SHA: ${{ github.sha }}
+          PAGES_NAME: pages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          output=$(mktemp -d "$RUNNER_TEMP/sifuture-pages.XXXXXX")
+          python3 scripts/kof_project.py build --output "$output" 2>&1 | tee "$RUNNER_TEMP/kof-build.log"
+          {
+            echo "path=$output"
+            echo "name=$PAGES_NAME"
+            echo "sha=$SIFUTURE_SHA"
+          } >> "$GITHUB_OUTPUT"
+          printf "Pages build SHA \`%s\`; artifact \`%s\`.\n" "$SIFUTURE_SHA" "$PAGES_NAME" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload complete output at the Pages root
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
+        with:
+          name: ${{ steps.build.outputs.name }}
+          path: ${{ steps.build.outputs.path }}
+          retention-days: 30
+      - name: Keep build log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: kof-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kof-build.log
+          if-no-files-found: warn
+          retention-days: 30
+
+  deploy-pages:
+    name: Publish current main
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: build-pages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: kof-sifuture-pages
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Configure existing Pages site
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
+        with:
+          enablement: false
+      - name: Check main inside the deployment lock
+        id: freshness
+        env:
+          REPOSITORY: ${{ github.repository }}
+          BUILT_SHA: ${{ needs.build-pages.outputs.sifuture-sha }}
+          SIFUTURE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BUILT_SHA"
+          test "$BUILT_SHA" = "$SIFUTURE_SHA"
+          bash scripts/kof_ci.sh check-main "$REPOSITORY" "$BUILT_SHA"
+      - name: Publish verified current build
+        id: deployment
+        if: ${{ steps.freshness.outputs.fresh == 'true' }}
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
+        with:
+          artifact_name: ${{ needs.build-pages.outputs.artifact-name }}

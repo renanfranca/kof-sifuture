@@ -1,0 +1,5 @@
+[
+  {"id":1,"tag_name":"windows-new","published_at":"2026-10-02T00:00:00Z","draft":false,"prerelease":false},
+  {"id":2,"tag_name":"draft","published_at":"2026-10-03T00:00:00Z","draft":true,"prerelease":false},
+  {"id":3,"tag_name":"prerelease","published_at":"2026-10-03T00:00:00Z","draft":false,"prerelease":true}
+]
