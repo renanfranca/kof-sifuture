@@ -84,6 +84,27 @@ facts, future plans, and hypotheses.
   that makes their purpose clear.
 - Apply these rules to application code, tests, and fixtures.
 
+## Validation records and local evidence
+
+- Keep concise acceptance records in `.agent/validation/` under version
+  control. Record the tested or published commit SHA, commands, relevant
+  results, workflow links, and remaining acceptance gaps. For manual browser
+  acceptance, record the browser/version and the interactions checked.
+- Store generated local evidence in `.agent/tmp/`: raw logs, screenshots,
+  downloaded artifacts, generated checksum inventories, and intermediate
+  reports. Keep these files out of commits.
+- Ensure the repository-local Git exclusion file, obtained with
+  `git rev-parse --git-path info/exclude`, contains `/.agent/tmp/` exactly
+  once. This exclusion applies to the local checkout and is not shared
+  through Git.
+- Git exclusions do not hide changes to tracked files. Keep the acceptance
+  summary tracked; moving an existing tracked artifact out of version control
+  requires an explicit, reviewed change rather than adding an exclude rule.
+- Make versioned summaries understandable without the local evidence files.
+  Include essential excerpts and persistent workflow links. Mention local
+  evidence paths as optional supporting material, without making them
+  required links for readers of the repository.
+
 ## Explain with visible evidence and teach the concept
 
 These requirements apply to user-facing technical explanations throughout
