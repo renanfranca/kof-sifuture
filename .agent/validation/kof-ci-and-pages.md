@@ -147,14 +147,56 @@ GitHub Pages was disabled at the initial inspection: `gh api repos/renanfranca/k
 {"build_type":"workflow","html_url":"https://renanfranca.github.io/kof-sifuture/","status":null}
 ```
 
-Pages is configured for GitHub Actions, but no site has been deployed. Production acceptance still requires merging the reviewed workflow to `main` and exercising publication.
+At that initial configuration check no site had been deployed. The subsequent merge and publication are recorded below.
 
-Pending evidence:
+## Merge and live publication
 
-- Successful push-to-main JVM/JS jobs, build, artifact upload and serialized Pages deployment.
+After the owner's authorization, PR #7 was merged on 2026-10-03 at 11:51:19 UTC. Published SiFuture SHA: `f812999ebbbabb1677f5b114401ab311cf04fda2`.
+
+The actual [main workflow run 37120979032](https://github.com/renanfranca/kof-sifuture/actions/runs/37120979032) completed with:
+
+```text
+Resolve verified Kof       success
+Kof tests (jvm)            success
+Kof tests (js)             success
+Build complete Pages site success
+Publish current main      success
+```
+
+Resolver, JVM, JS and build all logged the published SiFuture SHA. Both complete target commands again ended with `0 failed of 28 tests` and `1 passed, 0 failed`. The deploy's freshness step recorded:
+
+```text
+Current main: f812999ebbbabb1677f5b114401ab311cf04fda2; publication eligible
+```
+
+The deployment API identified deployment `6827262269`, environment `github-pages`, and that same SHA. Its latest status at 11:54:35 UTC was:
+
+```json
+{"state":"success","environment_url":"https://renanfranca.github.io/kof-sifuture/"}
+```
+
+The original `pages-37120979032-1` artifact was downloaded and extracted. Every file in its complete 34-file tree was fetched from the published repository URL with `curl --fail`, compared byte-for-byte with `cmp`, and the complete fetched tree compared with `diff -r`:
+
+```text
+Published /kof-sifuture/: 34 files matched Pages artifact bytes
+```
+
+This includes `index.html`, `Default.mjs`, its source map, `kof-runtime.mjs`, `kof-runtime-io.mjs`, and all 29 PNG assets. The published entry returned HTTP 200. `Default.mjs` returned HTTP 200 with `content-type: text/javascript; charset=utf-8`. A generated file-digest inventory is retained locally at `.agent/tmp/kof-pages-files-f812999.sha256`, excluded from Git. The commands, workflow link and comparison result above remain the versioned evidence; reading this summary does not require that local file.
+
+## Manual acceptance still pending
+
+Computer Use was attempted through the bundled skill's supported `node_repl` / `@oai/sky` initialization. The first call and the retry after a kernel reset both failed before browser selection:
+
+```text
+sandboxCwd is not a local file URI: file:///home/renanfranca/projects/kof-sifuture
+```
+
+No browser window was accessed, and no browser/version, visual rendering, image decoding or keyboard/pointer interaction is claimed. The owner was asked to open the published URL and report the browser/version and results for sprites, new game, movement, pause/continue and return to menu after three lives. The game controls remain unchanged.
+
+Remaining evidence:
+
 - Actual workflow target/build/API failure and old-rerun cases, beyond the controlled local checks above.
-- Published URL: <https://renanfranca.github.io/kof-sifuture/>.
 - Manual browser acceptance: loading, modules/runtimes, sprites, new game, movement, pause/continue and return to menu.
 - Browser name/version and deployed SiFuture SHA.
 
-No live publication or manual browser acceptance is claimed by this local record.
+Live publication and byte-for-byte delivery are confirmed. Interactive browser acceptance remains pending.
