@@ -1330,8 +1330,10 @@ test "subchief seeded destinations movement and three shot slots use normal step
     for (var i = 0; i < 12; i++) { g.step() }
     assert(chief.shots[2].active && chief.lifeTime == 1 && chief.normalSteps == 0)
     var shotX = chief.shots[2].x
+    var firstShotX = chief.shots[0].x
     for (var i = 0; i < 12; i++) { g.step() }
     assert(chief.shots[2].x == shotX - 48 && chief.shots.size == 3)
+    assert(chief.shots[0].x == firstShotX - 48)
     chief.shots[0].active = false
     for (var i = 0; i < 12; i++) { g.step() }
     assert(chief.shots[0].active && chief.shots[0].x == chief.x - 11)
@@ -1648,4 +1650,31 @@ test "subchief moves one unit on both axes and arrival selects reproducible new 
     rng.seed(71)
     g.step()
     assert(g.subchief.endX == destinationX && g.subchief.endY == destinationY)
+}
+
+
+test "simultaneous fatal contacts preserve ship laser blaster special precedence" {
+    var g = Game()
+    for (var resistance = 1; resistance <= 5; resistance++) {
+        prepareSubchief(g)
+        g.subchief.lives = resistance
+        g.ship.x = 100
+        g.weapons.lasers.shots[0].active = true
+        g.weapons.lasers.shots[0].x = 86
+        g.weapons.lasers.shots[0].y = 100
+        g.weapons.blaster.active = true
+        g.weapons.blaster.x = 60
+        g.weapons.blaster.y = 100
+        for (var beam in g.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 }
+
+        g.step()
+        assert(g.ship.phase == ShipPhase.Explosion && g.subchief.phase == SubchiefPhase.Explosion)
+        assert(g.score == 600)
+        if (resistance == 1) { assert(!g.weapons.lasers.shots[0].impact) }
+        else { assert(g.weapons.lasers.shots[0].impact) }
+        if (resistance <= 2) { assert(g.weapons.blaster.lives == 2) }
+        else { assert(g.weapons.blaster.lives == 0) }
+        if (resistance <= 4) { assert(g.weapons.beams[0].lives == 10) }
+        else { assert(g.weapons.beams[0].lives == 9) }
+    }
 }
