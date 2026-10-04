@@ -1,0 +1,9 @@
+package sifuture.game
+
+class Background {
+    Int offset = 0
+
+    reset() { offset = 0 }
+
+    advance() { offset = (offset + 5) % 60 }
+}

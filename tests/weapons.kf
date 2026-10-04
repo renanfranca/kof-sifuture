@@ -1,0 +1,89 @@
+import sifuture.GameControls
+import sifuture.GameView
+import sifuture.game.*
+import kof.ui.*
+
+main() {
+    var game = Game()
+    game.start(301)
+    game.ship.x = 40
+    game.ship.phase = ShipPhase.Normal
+    for (var meteor in game.meteors) { meteor.x = 1000; meteor.y = 30 }
+    game.items[0].x = 100
+    game.items[0].y = 50
+    game.items[1].x = 130
+    game.items[1].y = 150
+    var canvas = Canvas(Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
+    var drawing = GameView(canvas)
+    var controls = GameControls(game, drawing, canvas)
+    var status = Label("")
+    status.setId("test-status")
+    var evolution = Button("Collect evolution", () -> {
+        game.items[0].collected = false
+        game.items[0].x = game.ship.x + 10
+        game.items[0].y = game.ship.y - 16
+        game.step()
+        drawing.render(game)
+        controls.update()
+    })
+    var life = Button("Collect life", () -> {
+        game.items[1].collected = false
+        game.items[1].x = game.ship.x + 10
+        game.items[1].y = game.ship.y - 16
+        game.step()
+        drawing.render(game)
+        controls.update()
+    })
+    var repaint = Button("Repaint", () -> { drawing.render(game) })
+    var normal = Button("Make normal", () -> { game.ship.phase = ShipPhase.Normal; controls.update() })
+    var restarting = Button("Make restarting", () -> { game.ship.phase = ShipPhase.Restart; game.ship.restartFrame = 0; controls.update() })
+    var moveShipUp = Button("Move ship up", () -> { game.ship.y = 45; drawing.render(game) })
+    var moveShip = Button("Move ship down", () -> { game.ship.y = 200; drawing.render(game) })
+    var blasterScene = Button("Blaster scene", () -> {
+        game.weapons.blaster.fire(game.ship)
+        game.ship.y = 200
+        drawing.render(game)
+    })
+    var blasterHit = Button("Blaster impact", () -> {
+        game.meteors[0].collided = false
+        game.meteors[0].x = game.weapons.blaster.x + 11
+        game.meteors[0].y = game.weapons.blaster.y
+        game.step()
+        drawing.render(game)
+    })
+    var specialHit = Button("Special impact", () -> { impactBeam(game, drawing, 1) })
+    var orangeHit = Button("Orange impact", () -> { impactBeam(game, drawing, 0) })
+    var darkHit = Button("Dark impact", () -> { impactBeam(game, drawing, 2) })
+    var hitShip = Button("Hit ship", () -> {
+        game.ship.phase = ShipPhase.Normal
+        for (var meteor in game.meteors) { meteor.x = 1000; meteor.y = 30 }
+        game.meteors[0].collided = false
+        game.meteors[0].x = game.ship.x + 11
+        game.meteors[0].y = game.ship.y
+        game.step()
+        for (var i = 0; i < 30; i++) { game.step() }
+        drawing.render(game)
+        controls.update()
+    })
+    var window = Window("SiFuture armamento")
+    window.size(320, 700)
+    window.bind(Column(listOf(controls.root, status, evolution, life, repaint, normal, restarting, moveShipUp, moveShip, blasterScene, blasterHit, specialHit, orangeHit, darkHit, hitShip)))
+    window.show()
+    drawing.render(game)
+    time.interval(Rules.STEP_MS, () -> {
+        game.step()
+        drawing.render(game)
+        controls.update()
+        status.text = "lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":x:" + game.ship.x + ":steps:" + game.steps
+    })
+}
+
+impactBeam(Game game, GameView drawing, Int color) {
+    game.weapons.beams[color].x = 0
+    game.meteors[0].collided = false
+    game.meteors[0].x = 11
+    game.meteors[0].y = game.weapons.beams[color].y
+    game.ship.y = 200
+    game.step()
+    drawing.render(game)
+}

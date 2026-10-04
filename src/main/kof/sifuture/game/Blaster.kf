@@ -1,0 +1,55 @@
+package sifuture.game
+
+class Blaster {
+    Int x = 0
+    Int y = 0
+    Int flightSteps = 0
+    Int lives = 2
+    Int impactSteps = 0
+    Bool active = false
+
+    reset() {
+        active = false
+        flightSteps = 0
+        lives = 2
+        impactSteps = 0
+    }
+
+    fire(Ship ship) {
+        if (active) { return }
+        reset()
+        active = true
+        x = ship.x
+        y = ship.y
+    }
+
+    spriteFrame(): Int {
+        if (flightSteps < 2) { return 0 }
+        if (flightSteps > 4) { return 4 }
+        return flightSteps - 1
+    }
+
+    hitsMeteor(Meteor m): Bool {
+        return active && lives > 0 && m.x >= x && m.x <= x + 68 &&
+            ((m.y >= y && m.y <= y + 21) ||
+             (m.y + Rules.METEOR_HEIGHT >= y && m.y + Rules.METEOR_HEIGHT <= y + 21))
+    }
+
+    hit() { lives = lives - 1 }
+
+    advance() {
+        if (!active) { return }
+        if (lives > 0) {
+            if (flightSteps == 3) { x = x + 3 }
+            else { x = x + 5 }
+            flightSteps = flightSteps + 1
+            if (x > Rules.WORLD_WIDTH) { reset() }
+        } else {
+            if (impactSteps < 2) { x = x + 2 }
+            if (impactSteps == 2) { x = x + 3 }
+            if (impactSteps == 3) { x = x + 4 }
+            impactSteps = impactSteps + 1
+            if (impactSteps == 4) { reset() }
+        }
+    }
+}

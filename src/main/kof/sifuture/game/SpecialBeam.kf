@@ -1,0 +1,60 @@
+package sifuture.game
+
+class SpecialBeam {
+    Int color
+    Int x = 0
+    Int y = 0
+    Int lives = 10
+    Int hitSteps = 0
+    Int deathSteps = 0
+    Bool active = false
+
+    public constructor(Int color) { this.color = color }
+
+    reset() {
+        active = false
+        lives = 10
+        hitSteps = 0
+        deathSteps = 0
+    }
+
+    fire(Ship ship) {
+        reset()
+        active = true
+        x = -638
+        if (color == 0) { y = ship.y - 3 * Rules.SHIP_HEIGHT }
+        if (color == 1) { x = -319; y = ship.y + Rules.SHIP_HEIGHT / 2 - 16 }
+        if (color == 2) { y = ship.y + 3 * Rules.SHIP_HEIGHT }
+    }
+
+    advance() {
+        if (!active) { return }
+        if (lives <= 0) {
+            deathSteps = deathSteps + 1
+            if (deathSteps == 6) { reset() }
+        } else {
+            if (color == 1) { x = x + 6 }
+            else { x = x + 5 }
+            if (hitSteps > 0) { hitSteps = hitSteps - 1 }
+            if (x > Rules.WORLD_WIDTH) { reset() }
+        }
+    }
+
+    hitsMeteor(Meteor m): Bool {
+        return active && lives > 0 && m.x >= x && m.x <= x + 319 &&
+            ((m.y >= y && m.y <= y + 32) ||
+             (m.y + Rules.METEOR_HEIGHT >= y && m.y + Rules.METEOR_HEIGHT <= y + 32))
+    }
+
+    hit() {
+        lives = lives - 1
+        hitSteps = 3
+        if (lives == 0) { deathSteps = 0 }
+    }
+
+    spriteFrame(): Int {
+        if (lives <= 0) { return 1 + deathSteps / 3 }
+        if (hitSteps > 0) { return 1 }
+        return 0
+    }
+}

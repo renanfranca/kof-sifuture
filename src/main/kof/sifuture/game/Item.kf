@@ -1,0 +1,60 @@
+package sifuture.game
+
+enum ItemKind { Evolution, Life }
+
+class Item {
+    ItemKind kind
+    Int x = 0
+    Int y = 0
+    Int frame = 0
+    Int frameSteps = 0
+    Int frameDirection = 1
+    Int effectSteps = 0
+    Bool collected = false
+
+    public constructor(ItemKind kind) { this.kind = kind }
+
+    reset() {
+        Int spawnRange = 200
+        Int yRange = Rules.WORLD_HEIGHT - Rules.HEADER_HEIGHT - 16
+        x = 220 + rng.int(spawnRange)
+        y = Rules.HEADER_HEIGHT + rng.int(yRange)
+        frame = 0
+        frameSteps = 0
+        effectSteps = 0
+        frameDirection = 1
+        collected = false
+    }
+
+    collect(Ship ship): Bool {
+        if (collected || ship.phase != ShipPhase.Normal) { return false }
+        if (x >= ship.x && x <= ship.x + Rules.SHIP_WIDTH &&
+            ((y >= ship.y && y <= ship.y + Rules.SHIP_HEIGHT) ||
+             (y + 16 >= ship.y && y + 16 <= ship.y + Rules.SHIP_HEIGHT))) {
+            collected = true
+            effectSteps = 0
+            return true
+        }
+        return false
+    }
+
+    advance() {
+        x = x - 1
+        if (collected) {
+            effectSteps = effectSteps + 1
+            if (effectSteps == 6) { reset() }
+        } else if (x < -20) { reset() }
+        else {
+            frameSteps = frameSteps + 1
+            if (frameSteps == 2) {
+                frameSteps = 0
+                if (kind == ItemKind.Evolution) { frame = (frame + 1) % 5 }
+                else {
+                    frame = frame + frameDirection
+                    if (frame == 10) { frameDirection = -1 }
+                    if (frame == 0) { frameDirection = 1 }
+                }
+            }
+        }
+    }
+}

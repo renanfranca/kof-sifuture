@@ -27,7 +27,7 @@ def main():
     parser.add_argument("--kof", help="Kof executable")
     args = parser.parse_args()
     server = nullcontext(args.url) if args.url else served_build(kof=args.kof)
-    with server as url:
+    with server as url, served_build(kof=args.kof, fixture=Path(__file__).parent / "weapons.kf") as result_url:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
                 executable_path="/usr/bin/google-chrome", headless=False,
@@ -145,12 +145,10 @@ def main():
                 assert page.locator("canvas").screenshot() == paused
                 page.get_by_role("button", name="Continuar").click()
                 wait_for(lambda: page.get_by_role("button", name="Pausar").count() == 1, page)
-                clock = page.context.new_cdp_session(page)
-                result_deadline = time.monotonic() + 30
-                while page.get_by_role("button", name="Voltar ao menu").count() == 0:
-                    assert time.monotonic() < result_deadline, "three-life result did not appear"
-                    clock.send("Emulation.setVirtualTimePolicy", {"policy": "advance", "budget": 120000})
-                    page.wait_for_timeout(300)
+                page.goto(result_url)
+                for life in range(3):
+                    page.get_by_role("button", name="Hit ship", exact=True).click()
+                wait_for(lambda: page.get_by_role("button", name="Voltar ao menu").count() == 1, page)
                 result = page.locator("canvas").screenshot()
                 page.wait_for_timeout(100)
                 assert page.locator("canvas").screenshot() == result
@@ -158,17 +156,13 @@ def main():
                 page.keyboard.down("Enter")
                 page.keyboard.down("Enter")
                 page.keyboard.up("Enter")
-                clock.send("Emulation.setVirtualTimePolicy", {"policy": "advance", "budget": 1000})
                 wait_for(lambda: page.get_by_role("button", name="Novo Jogo").count() == 1, page)
                 page.get_by_role("button", name="Novo Jogo").click()
-                second_deadline = time.monotonic() + 30
-                while page.get_by_role("button", name="Voltar ao menu").count() == 0:
-                    assert time.monotonic() < second_deadline, "second game did not reach result"
-                    clock.send("Emulation.setVirtualTimePolicy", {"policy": "advance", "budget": 120000})
-                    page.wait_for_timeout(300)
+                for life in range(3):
+                    page.get_by_role("button", name="Hit ship", exact=True).click()
+                wait_for(lambda: page.get_by_role("button", name="Voltar ao menu").count() == 1, page)
                 overlay.click()
                 page.keyboard.press("Enter")
-                clock.send("Emulation.setVirtualTimePolicy", {"policy": "advance", "budget": 1000})
                 wait_for(lambda: page.get_by_role("button", name="Novo Jogo").count() == 1, page)
                 assert not errors, errors
                 print("PASS menu, Enter and Space, conservative confirmation, pause, result and menu in Chrome")

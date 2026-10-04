@@ -3,10 +3,12 @@ package sifuture.game
 class Game {
     Screen screen = Screen.Menu
     Ship ship = Ship()
+    Background background = Background()
+    List<Item> items = listOf(Item(ItemKind.Evolution), Item(ItemKind.Life))
     Int score = 0
     Int steps = 0
     List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
-    Lasers lasers = Lasers()
+    Weapons weapons = Weapons()
     Zone activeZone = Zone.Neutral
     Bool heldLeft = false
     Bool heldRight = false
@@ -70,8 +72,10 @@ class Game {
         ship.reset()
         score = 0
         steps = 0
-        lasers.reset()
+        background.reset()
+        weapons.reset()
         for (var m in meteors) { m.reset() }
+        for (var item in items) { item.reset() }
     }
 
     confirm() {
@@ -95,42 +99,59 @@ class Game {
     step() {
         if (screen != Screen.Play) { return }
         steps = steps + 1
+        background.advance()
+        for (var item in items) { item.advance() }
         var normalBefore = ship.phase == ShipPhase.Normal
+        var livesBefore = ship.lives
         ship.advance()
+        if (ship.lives < livesBefore) { weapons.loseOnDeath() }
         if (ship.lives == 0) {
             screen = Screen.Result
             clearMovement()
             return
         }
 
-        if (normalBefore) { lasers.attemptFire(ship) }
-        lasers.advance()
+        if (normalBefore) { weapons.attemptFire(ship) }
+        weapons.advance()
 
-        var shipCanCollide = ship.phase == ShipPhase.Normal
-        var shipCollision = false
+        for (var item in items) {
+            if (item.collect(ship)) {
+                score = score + 10
+                if (item.kind == ItemKind.Life) { ship.lives = ship.lives + 1 }
+                else { weapons.evolve() }
+            }
+        }
+
+        var targets = listOf<Meteor>()
         for (var m in meteors) {
             var wasCollided = m.collided
             m.advance()
-            if (!wasCollided && !m.collided) {
-                if (shipCanCollide && m.touchesShip(ship.x, ship.y)) {
-                    if (!shipCollision) {
-                        score = score + Rules.COLLISION_SCORE
-                        ship.explode()
-                        shipCollision = true
-                    }
-                    m.collide()
+            if (!wasCollided && !m.collided) { targets.add(m) }
+        }
+        var shipCanCollide = ship.phase == ShipPhase.Normal
+        var shipCollision = false
+        for (var m in targets) {
+            if (shipCanCollide && m.touchesShip(ship.x, ship.y)) {
+                if (!shipCollision) {
+                    score = score + Rules.COLLISION_SCORE
+                    ship.explode()
+                    shipCollision = true
                 }
-                if (!m.collided) {
-                    for (var s in lasers.shots) {
-                        if (s.active && !s.impact && s.hitsMeteor(m)) {
-                            s.impactAt(m)
-                            score = score + Rules.COLLISION_SCORE
-                            m.collide()
-                        }
-                    }
-                }
+                m.collide()
             }
         }
+        if (weapons.hitLaser(targets)) { score = score + Rules.COLLISION_SCORE }
+        if (weapons.hitBlaster(targets)) { score = score + Rules.COLLISION_SCORE }
+        if (weapons.hitSpecial(targets)) { score = score + Rules.COLLISION_SCORE }
+    }
+
+    canSpecial(): Bool {
+        return screen == Screen.Play && ship.phase == ShipPhase.Normal && weapons.canSpecial()
+    }
+
+    trySpecial(): Bool {
+        if (!canSpecial()) { return false }
+        return weapons.fireSpecial(ship)
     }
 
     resultIndex(): Int {
