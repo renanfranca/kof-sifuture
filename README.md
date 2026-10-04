@@ -34,6 +34,8 @@ Durante o resultado, fundo, meteoros, itens, tiros automáticos visuais e efeito
 
 [GameJourney.kf](src/test/kof/sifuture/game/GameJourney.kf) prova as regras em JVM e JS. [browser_stage.py](tests/browser_stage.py) exercita o modelo, desenho e controles reais no Chrome em 320 e 1200 pixels, com relógio determinístico, comparação de sprites, percurso completo e redesenhos sem avanço. O registro de aceite fica em [stage-hud-result.md](.agent/validation/stage-hud-result.md). Música, Android, chefes, menus completos e reformulação dos controles seguem fora deste ciclo.
 
+A limpeza de comandos também restaura o quadro normal da nave na entrada do resultado, em pausa e na perda de foco do teclado. Os meteoros verticais reiniciam entre −153 e 0 na criação ou após impacto; após sair pelo fundo, usam a faixa histórica de −171 até 0, mantendo a espera pelo par. As regressões e o aceite visual estão em [ship-meteor-reset.md](.agent/validation/ship-meteor-reset.md).
+
 ## Coleta e evolução
 
 Há sempre um coração de evolução e um de vida em circulação. Os dois conservam os sprites originais: o coração de evolução percorre os **cinco quadros `iten`**; o coração de vida pulsa pelos **onze quadros `life`, avançando e voltando**. A animação diferencia os itens: evolução melhora os tiros; vida acrescenta uma vida, inclusive acima das três iniciais. Cada coleta concede dez pontos uma única vez e exibe três quadros de efeito antes do relançamento. A nave precisa estar no estado normal para coletar; o piscar inicial e a explosão não permitem coleta.
