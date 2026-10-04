@@ -9,14 +9,10 @@ class GameControls {
     Button overlay
     Button action
     Button special
-    Button northwest
     Button north
-    Button northeast
     Button west
     Button east
-    Button southwest
     Button south
-    Button southeast
     Column root
     Bool enterHeld = false
     Bool oneHeld = false
@@ -32,17 +28,20 @@ class GameControls {
         this.drawing = drawing
         var surface = keyboardSurface(canvas)
 
-        northwest = directionButton(Zone.NorthWest, "↖")
-        north = directionButton(Zone.North, "↑")
-        northeast = directionButton(Zone.NorthEast, "↗")
-        west = directionButton(Zone.West, "←")
-        east = directionButton(Zone.East, "→")
-        southwest = directionButton(Zone.SouthWest, "↙")
-        south = directionButton(Zone.South, "↓")
-        southeast = directionButton(Zone.SouthEast, "↘")
-        var empty = View(Style("width: 48; height: 48; padding: 0"))
-        var pad = Column(listOf(Row(listOf(northwest, north, northeast)), Row(listOf(west, empty, east)), Row(listOf(southwest, south, southeast))))
-        pad.setStyle(Style("align-items: center"))
+        north = directionButton(Direction.Up, "↑")
+        west = directionButton(Direction.Left, "←")
+        east = directionButton(Direction.Right, "→")
+        south = directionButton(Direction.Down, "↓")
+        var empty = View(Style("width: 56; height: 56; padding: 0"))
+        var top = Row(listOf(north))
+        var middle = Row(listOf(west, empty, east))
+        var bottom = Row(listOf(south))
+        var rowStyle = Style("gap: 0; padding: 0")
+        top.setStyle(rowStyle)
+        middle.setStyle(rowStyle)
+        bottom.setStyle(rowStyle)
+        var pad = Column(listOf(top, middle, bottom))
+        pad.setStyle(Style("align-items: center; gap: 0; padding: 0"))
         special = Button("Especial", () -> {})
         special.setId("game-special")
         specialAvailableStyle = Style("width: 72; height: 64; padding: 0; touch-action: none; user-select: none; opacity: 1")
@@ -103,13 +102,13 @@ class GameControls {
         return Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
     }
 
-    Button directionButton(Zone zone, String name) {
+    Button directionButton(Direction direction, String name) {
         var button = Button(name, () -> {})
-        button.setStyle(Style("width: 48; height: 48; padding: 0; touch-action: none; user-select: none"))
-        button.on("pointerdown", (e: Event) -> { game.movement(zone, true) })
-        button.on("pointerup", (e: Event) -> { game.movement(zone, false) })
-        button.on("pointercancel", (e: Event) -> { game.movement(zone, false) })
-        button.on("pointerleave", (e: Event) -> { game.movement(zone, false) })
+        button.setStyle(Style("width: 56; height: 56; padding: 0; touch-action: none; user-select: none"))
+        button.on("pointerdown", (e: Event) -> { game.movement(direction, true) })
+        button.on("pointerup", (e: Event) -> { game.movement(direction, false) })
+        button.on("pointercancel", (e: Event) -> { game.movement(direction, false) })
+        button.on("pointerleave", (e: Event) -> { game.movement(direction, false) })
         return button
     }
 
@@ -178,14 +177,10 @@ class GameControls {
     update() {
         var playing = game.screen == Screen.Play
         updateSpecial()
-        northwest.setDisabled(!playing)
         north.setDisabled(!playing)
-        northeast.setDisabled(!playing)
         west.setDisabled(!playing)
         east.setDisabled(!playing)
-        southwest.setDisabled(!playing)
         south.setDisabled(!playing)
-        southeast.setDisabled(!playing)
         if (game.screen == Screen.Menu) { action.text = "Novo Jogo" }
         if (game.screen == Screen.Play) { action.text = "Pausar" }
         if (game.screen == Screen.Pause) { action.text = "Continuar" }

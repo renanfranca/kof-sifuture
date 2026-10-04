@@ -151,19 +151,19 @@ test "vertical initial and impact resets keep reduced range while bottom exits i
     }
 }
 
-test "eight pad zones move by axis and stop on release" {
-    var zones = listOf(Zone.NorthWest, Zone.North, Zone.NorthEast, Zone.West, Zone.East, Zone.SouthWest, Zone.South, Zone.SouthEast)
-    var dx = listOf(-5, 0, 5, -5, 5, -5, 0, 5)
-    var dy = listOf(-5, -5, -5, 0, 0, 5, 5, 5)
-    for (var i = 0; i < 8; i++) {
+test "four pad arrows move by axis and stop on release" {
+    var directions = listOf(Direction.Up, Direction.Left, Direction.Right, Direction.Down)
+    var dx = listOf(0, -5, 5, 0)
+    var dy = listOf(-5, 0, 0, 5)
+    for (var i = 0; i < 4; i++) {
         var g = Game()
         g.start(100 + i)
         g.ship.x = 60
         g.ship.y = 100
-        g.movement(zones[i], true)
+        g.movement(directions[i], true)
         g.step()
         assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
-        g.movement(zones[i], false)
+        g.movement(directions[i], false)
         g.step()
         assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
     }
@@ -174,23 +174,23 @@ test "pad owns movement until held keyboard keys are released and pressed again"
     g.start(101)
     g.ship.x = 60
     g.keyboard(Direction.Right, true)
-    g.movement(Zone.West, true)
+    g.movement(Direction.Left, true)
     g.keyboard(Direction.Up, true)
-    g.movement(Zone.East, true)
+    g.movement(Direction.Right, true)
     g.step()
-    assert(g.ship.x == 55 && g.ship.y == 100)
-    g.movement(Zone.East, false)
+    assert(g.ship.x == 65 && g.ship.y == 100)
+    g.movement(Direction.Right, false)
     g.step()
-    assert(g.ship.x == 50 && g.activeZone == Zone.West)
-    g.movement(Zone.West, false)
+    assert(g.ship.x == 60 && g.padPressed())
+    g.movement(Direction.Left, false)
     g.keyboard(Direction.Right, true)
     g.keyboard(Direction.Up, true)
     g.step()
-    assert(g.ship.x == 50 && g.ship.y == 100)
+    assert(g.ship.x == 60 && g.ship.y == 100)
     g.keyboard(Direction.Right, false)
     g.keyboard(Direction.Right, true)
     g.step()
-    assert(g.ship.x == 55 && g.ship.y == 100)
+    assert(g.ship.x == 65 && g.ship.y == 100)
 }
 
 test "pause freezes ship lasers meteors and counters then resumes without movement" {
@@ -270,13 +270,13 @@ test "canvas click preserves active pad movement and rearms keyboard" {
     g.start(109)
     g.ship.x = 60
     g.keyboard(Direction.Right, true)
-    g.movement(Zone.West, true)
+    g.movement(Direction.Left, true)
 
     g.rearmKeyboard()
     g.step()
-    assert(g.activeZone == Zone.West && g.ship.x == 55)
+    assert(g.padPressed() && g.ship.x == 55)
 
-    g.movement(Zone.West, false)
+    g.movement(Direction.Left, false)
     g.keyboard(Direction.Right, true)
     g.step()
     assert(g.ship.x == 60)
@@ -307,19 +307,19 @@ test "pausing and returning from result leave no directional movement" {
     var g = Game()
     g.start(106)
     g.ship.x = 60
-    g.movement(Zone.East, true)
+    g.movement(Direction.Right, true)
     g.pause()
-    assert(g.activeZone == Zone.Neutral && !g.ship.right)
+    assert(!g.padPressed() && !g.ship.right)
     g.resume()
     g.step()
     assert(g.ship.x == 60)
     g.ship.lives = 0
     g.step()
-    assert(g.screen == Screen.Result && g.activeZone == Zone.Neutral)
+    assert(g.screen == Screen.Result && !g.padPressed())
     g.confirm()
     g.confirm()
     g.step()
-    assert(g.screen == Screen.Play && g.activeZone == Zone.Neutral && !g.ship.right)
+    assert(g.screen == Screen.Play && !g.padPressed() && !g.ship.right)
 }
 
 
@@ -1200,7 +1200,7 @@ test "result keeps scenery and pending effects moving with frozen gameplay" {
     var meteorX = g.meteors[0].x
     var itemX = g.items[1].x
     g.keyboard(Direction.Right, true)
-    g.movement(Zone.East, true)
+    g.movement(Direction.Right, true)
     assert(!g.trySpecial())
     g.step()
     assert(g.background.offset != background && g.meteors[0].x == meteorX - 1)
@@ -1823,4 +1823,194 @@ test "enemy contact frees first slot for one update without colliding with its r
     g.ship.phase = ShipPhase.Normal
     g.step()
     assert(g.ship.phase == ShipPhase.Explosion && !g.subchief.shots[0].active)
+}
+
+
+test "independent pad arrows combine axes and release only their own direction" {
+    var g = Game()
+    g.start(77)
+    g.ship.x = 60
+    g.ship.y = 100
+    for (var meteor in g.meteors) { meteor.y = 30 }
+
+    g.movement(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 100)
+    g.movement(Direction.Up, true)
+    g.step()
+    assert(g.ship.x == 70 && g.ship.y == 95, "two held arrows must combine axes")
+    g.movement(Direction.Up, false)
+    g.step()
+    assert(g.ship.x == 75 && g.ship.y == 95)
+    g.movement(Direction.Right, false)
+    g.step()
+    assert(g.ship.x == 75 && g.ship.y == 95)
+}
+
+
+test "duplicate pad events preserve opposite priority and ignore unheld releases" {
+    var g = Game()
+    g.start(77)
+    g.ship.x = 60
+    g.ship.phase = ShipPhase.Normal
+    for (var meteor in g.meteors) { meteor.y = 30 }
+
+    g.movement(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.rightFrame)
+    g.movement(Direction.Left, true)
+    g.movement(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 60 && !g.ship.rightFrame, "repeated press must not steal opposite priority")
+    g.movement(Direction.Left, false)
+    g.movement(Direction.Left, false)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.rightFrame)
+    g.movement(Direction.Right, false)
+    g.keyboard(Direction.Up, true)
+    g.movement(Direction.Up, false)
+    g.movement(Direction.Right, false)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 95, "unheld pad release must not clear keyboard movement")
+}
+
+
+test "four diagonals preserve either held axis in both press and release orders" {
+    var horizontal = listOf(Direction.Right, Direction.Left)
+    var vertical = listOf(Direction.Up, Direction.Down)
+    var dx = listOf(5, -5)
+    var dy = listOf(-5, 5)
+    for (var x = 0; x < 2; x++) {
+        for (var y = 0; y < 2; y++) {
+            for (var order = 0; order < 2; order++) {
+                for (var release = 0; release < 2; release++) {
+                    var g = Game()
+                    g.start(77)
+                    g.ship.x = 60
+                    g.ship.y = 100
+                    g.ship.phase = ShipPhase.Normal
+                    for (var meteor in g.meteors) { meteor.y = 30 }
+                    if (order == 0) { g.movement(horizontal[x], true); g.movement(vertical[y], true) }
+                    else { g.movement(vertical[y], true); g.movement(horizontal[x], true) }
+                    g.step()
+                    assert(g.ship.x == 60 + dx[x] && g.ship.y == 100 + dy[y])
+                    assert(g.ship.rightFrame == (x == 0))
+                    if (release == 0) {
+                        g.movement(horizontal[x], false)
+                        g.step()
+                        assert(g.ship.x == 60 + dx[x] && g.ship.y == 100 + 2 * dy[y])
+                        assert(!g.ship.rightFrame)
+                        g.movement(vertical[y], false)
+                    } else {
+                        g.movement(vertical[y], false)
+                        g.step()
+                        assert(g.ship.x == 60 + 2 * dx[x] && g.ship.y == 100 + dy[y])
+                        assert(g.ship.rightFrame == (x == 0))
+                        g.movement(horizontal[x], false)
+                    }
+                    var stoppedX = g.ship.x
+                    var stoppedY = g.ship.y
+                    g.step()
+                    assert(g.ship.x == stoppedX && g.ship.y == stoppedY && !g.padPressed() && !g.ship.rightFrame)
+                }
+            }
+        }
+    }
+}
+
+test "last opposite pad press wins in either axis until its own release" {
+    var first = listOf(Direction.Right, Direction.Left, Direction.Up, Direction.Down)
+    var second = listOf(Direction.Left, Direction.Right, Direction.Down, Direction.Up)
+    var dx = listOf(5, -5, 0, 0)
+    var dy = listOf(0, 0, -5, 5)
+    for (var i = 0; i < 4; i++) {
+        for (var releaseWinner = 0; releaseWinner < 2; releaseWinner++) {
+            var g = Game()
+            g.start(77)
+            g.ship.x = 60
+            g.ship.y = 100
+            g.ship.phase = ShipPhase.Normal
+            for (var meteor in g.meteors) { meteor.y = 30 }
+            g.movement(first[i], true)
+            g.step()
+            assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
+            g.movement(second[i], true)
+            g.step()
+            assert(g.ship.x == 60 && g.ship.y == 100)
+            assert(g.ship.rightFrame == (i == 1))
+            if (releaseWinner == 1) {
+                g.movement(second[i], false)
+                g.step()
+                assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
+                assert(g.ship.rightFrame == (i == 0))
+                g.movement(first[i], false)
+            } else {
+                g.movement(first[i], false)
+                g.step()
+                assert(g.ship.x == 60 - dx[i] && g.ship.y == 100 - dy[i])
+                assert(g.ship.rightFrame == (i == 1))
+                g.movement(second[i], false)
+            }
+            var stoppedX = g.ship.x
+            var stoppedY = g.ship.y
+            g.step()
+            assert(g.ship.x == stoppedX && g.ship.y == stoppedY)
+        }
+    }
+}
+
+test "pausing a diagonal clears every pad arrow and requires a new press" {
+    var g = Game()
+    g.start(77)
+    g.ship.x = 60
+    g.ship.y = 100
+    for (var meteor in g.meteors) { meteor.y = 30 }
+    g.movement(Direction.Right, true)
+    g.movement(Direction.Up, true)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 95)
+    g.pause()
+    g.movement(Direction.Left, true)
+    g.movement(Direction.Down, true)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 95 && !g.padPressed())
+    g.resume()
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 95)
+    g.movement(Direction.Right, false)
+    g.movement(Direction.Up, false)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 95)
+    g.movement(Direction.Down, true)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 100)
+}
+
+test "keyboard memory stays separate while both pad axes own movement" {
+    var g = Game()
+    g.start(77)
+    g.ship.x = 60
+    g.ship.y = 100
+    for (var meteor in g.meteors) { meteor.y = 30 }
+    g.keyboard(Direction.Left, true)
+    g.keyboard(Direction.Down, true)
+    g.movement(Direction.Right, true)
+    g.movement(Direction.Up, true)
+    g.clearKeyboard()
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 95)
+    g.movement(Direction.Up, false)
+    g.keyboard(Direction.Down, false)
+    g.keyboard(Direction.Down, true)
+    g.step()
+    assert(g.ship.x == 70 && g.ship.y == 95)
+    g.movement(Direction.Right, false)
+    g.keyboard(Direction.Left, true)
+    g.keyboard(Direction.Down, true)
+    g.step()
+    assert(g.ship.x == 70 && g.ship.y == 95)
+    g.keyboard(Direction.Left, false)
+    g.keyboard(Direction.Left, true)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 95)
 }

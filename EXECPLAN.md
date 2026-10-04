@@ -286,7 +286,7 @@ A seção deste ciclo em `.agent/validation/stage-hud-result.md` preserva o hist
 
 Head conferido `44195b03ff1f9bc3a112bb5e1608af21c76bb7f2`, PR #11. Os dez checks locais e os três checks CI selecionados passam, mas cinco cenários direcionados falham em JVM e JS contra a fonte histórica. O [aceite existente](.agent/validation/stage-hud-result.md#conferência-posterior-do-planejador--04102026) registra R1 (prêmio calculado após incremento de lifeTime), R2 (colisão dos tiros após movimento/disparo) e R3 (animação do especial não reiniciada em resistência negativa), com expectativas, resultados, classificação e esforço estimado. A conferência do planejador foi concluída; ciclos 2/3 permanecem pendentes.
 
-- [ ] Corrigir R1–R3 preservando as decisões aprovadas, incluir provas das transições na suíte versionada e repetir os checks afetados antes de fechar o aceite do ciclo. Esta revisão altera apenas registros e evidências locais.
+- [x] Corrigir R1–R3 preservando as decisões aprovadas, incluir provas das transições na suíte versionada e repetir os checks afetados antes de fechar o aceite do ciclo. Concluído na reparação abaixo e confirmado na conferência posterior do planejador.
 
 
 ### Reparação R1–R3 do ciclo atual — 04/10/2026
@@ -303,3 +303,85 @@ R1 permanece classificado como cenário não coberto; R2, requisito esquecido; R
 
 
 Fechamento da reparação: código/suíte/fixture `c9ea48bfad8d8a3420cd168a68f2219c9d058855`, 79/79 em JVM/JS e dez checks nos gates inicial/final (151,40/151,75 s). Chrome `139.0.7258.154`, 320/1200, R1–R3, HUD e sprites reais. Revisão estrutural sem refactor adicional. [CI 37223086619](https://github.com/renanfranca/kof-sifuture/actions/runs/37223086619) verde no mesmo SHA; PR #11 atualizado, sem merge. O aceite associa os critérios a SHA/comando/resultado/navegador/jobs, preservando a conferência anterior. Complemento documental no ledger `subchief-repair-acceptance`, mesmo worker/inventário: repetirá todos os gates locais/CI antes do encerramento, porque o ledger de produção foi marcado pronto antes de incorporar os links e não admite reabertura.
+
+Conferência posterior do planejador concluída no head `bef987ef297474996e1508c2e13843ff94054cd2`: R1–R3 atendem ao plano, sem novo desvio de implementação identificado. Reexecutados os dez checks e as cinco provas originais em ambos os alvos, todos com exit 0; 79/79 cenários em JVM/JS e Chrome 320/1200. [CI 37224091222](https://github.com/renanfranca/kof-sifuture/actions/runs/37224091222) confirmado no mesmo head, PR #11 aberto, Pages SKIPPED. O [aceite existente](.agent/validation/stage-hud-result.md#conferência-do-planejador-após-a-reparação--04102026) associa resultados, comandos, SHA, fontes, capturas e esforço estimado; vídeo e avaliação dos ciclos 2/3 continuam pendentes. Esta conferência altera somente registros, sem novo código ou commit.
+
+
+Merge/publicação confirmados em 04/10/2026: PR #11 integrado como `567f6d032523fe02a0c45eebdbf345f51d70b600`. [Workflow 37229615413](https://github.com/renanfranca/kof-sifuture/actions/runs/37229615413) com os cinco jobs SUCCESS, incluindo Build/Publish Pages; JVM/JS 79/79. [Site ao vivo](https://renanfranca.github.io/kof-sifuture/) conferido em Chrome `139.0.7258.154`, 320/1200, início, movimento pelos sprites e pausa/retomada, sem erros JS/HTTP. Todos os 95 arquivos servidos correspondem ao artefato publicado. Registro completo no aceite existente, preservando os deltas locais do planejador; vídeo histórico e ciclos 2/3 permanecem pendentes.
+
+
+## Ciclo aprovado: melhorar os controles no Chrome do Android — 04/10/2026
+
+### Plano aprovado
+
+## Resultado desejado
+
+Usar **quatro setas em cruz**, removendo os botões diagonais. Cada botão poderá permanecer pressionado independentemente dos demais.
+
+A decisão final desta conversa é: **entre direções opostas, vence a última pressionada**. Soltar essa direção retoma a outra ainda mantida. Direita + cima forma uma diagonal. Deslizar o dedo conserva a seta inicial até soltura ou cancelamento.
+
+## Base verificada e implementação
+
+Hoje, o modelo impede uma segunda direção. Em [Game.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/game/Game.kf:65):
+
+```kof
+if (screen != Screen.Play || zone == Zone.Neutral || activeZone != Zone.Neutral) { return }
+```
+
+`activeZone` representa somente um botão ativo. Substituir esse estado por pressões independentes permite combinar os dois eixos.
+
+A prova de planejamento compilou a fixture existente e executou touch simulado no Chrome `139.0.7258.154`: os botões → e ↑ receberam contatos distintos; as duas ordens de soltura foram conferidas. Isso demonstra a entrega dos eventos, ainda sem implementar diagonais por dois dedos.
+
+- **Modelo:** mudar a interface para `Game.movement(Direction direction, Bool pressed)`, reutilizando as quatro direções existentes. Guardar as pressões do direcional separadamente da memória do teclado e encaminhar somente transições reais à nave. Pressões repetidas e solturas duplicadas não podem alterar a prioridade.
+- **Prioridade:** reutilizar a regra atual da nave para opostos. O direcional continua prevalecendo sobre o teclado enquanto qualquer seta estiver pressionada. Soltar o último botão para o movimento; uma tecla já mantida não assume automaticamente.
+- **Interface:** quatro botões de **56 × 56 px**, cruz de **168 × 168 px**, sem espaçamento interno, com centro e cantos vazios. Conservar Especial à direita, **72 × 64 px**, centralizado verticalmente e separado por **16 px**. Usar janela de **296 px** de largura na aplicação e nas fixtures com esses controles para caber em viewport de 320 px.
+- **Gestos:** conservar os eventos atuais de pressão, soltura, cancelamento e saída do mouse. Manter o arrasto ligado ao botão inicial; a captura implícita de touch é descrita pelo [padrão W3C](https://www.w3.org/TR/pointerevents3/#implicit-pointer-capture).
+- **Documentação:** incorporar este ciclo ao `EXECPLAN.md`, preservar suas alterações pendentes e atualizar a especificação e as instruções do jogo para quatro botões com combinações.
+
+Usar os componentes Kof existentes. A orientação de estado derivado, em [duplicate-state.md](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73), é:
+
+> If a value can be derived from another, derive it (method or function).
+
+Portanto, consultar se alguma direção está pressionada em vez de manter outra variável sincronizada para representar “direcional ativo”.
+
+## Aceitação e provas planejadas
+
+As novas expectativas vêm das escolhas desta conversa. As regressões preservam os contratos existentes de teclado, pausa e Especial.
+
+Nos testes determinísticos, começar em `(60, 100)`, sem obstáculos próximos. Cada passo conserva o deslocamento atual de cinco unidades por eixo.
+
+| Critério | Ação e resultado esperado | Prova planejada |
+|---|---|---|
+| Diagonal | → por um passo: `(65,100)`; acrescentar ↑: `(70,95)`; soltar ↑: `(75,95)`; soltar →: posição estável. | Modelo JVM/JS e dois contatos reais no Chrome; repetir as quatro diagonais e inverter a ordem das pressões e solturas. |
+| Opostos | → leva a `(65,100)`; acrescentar ← leva a `(60,100)`; soltar ← retoma →. Em cenário separado, soltar → mantém ←. | Modelo e navegador, nos dois eixos e nas duas ordens. Conferir também a imagem de propulsão correspondente. |
+| Eventos simultâneos | Direções de eixos diferentes sempre combinam. Para opostos iniciados juntos, vale a última pressão entregue pelo navegador. | Conferir eventos recebidos, movimento e solturas; não exigir uma ordem física entre dedos simultâneos. |
+| Arrasto e cancelamento | Arrastar → sobre ↑ mantém direita. Soltar ou cancelar encerra aquela pressão. Soltar um botão não apaga outro ainda mantido. | Ampliar o percurso de touch existente; repetir cancelamento total e nova pressão. |
+| Diagonal + Especial | Dois dedos mantêm a diagonal; um terceiro tenta Especial uma vez. Soltar Especial conserva a diagonal; soltar uma seta conserva a outra. | Ampliar o percurso existente de armas, conferindo posição e consumo de exatamente uma carga. |
+| Pausa e teclado | Pausar limpa todas as direções; continuar exige nova pressão. Foco, Enter, tecla `1` e prioridade do direcional conservam seus contratos. | Reutilizar regressões existentes e acrescentar pausa com dois dedos mantidos. |
+| Layout e conforto | Exatamente quatro setas; dimensões previstas; controles abaixo do canvas, sem sobreposição ou rolagem horizontal em 320 px. | Medições e capturas em 320/1200 px; jogar no Chrome do Android real, incluindo o combate com subchefe. |
+
+Ampliar a observação de [browser_controls.py](/home/renanfranca/projects/kof-sifuture/tests/browser_controls.py:23) para reconhecer **posição horizontal e vertical**: hoje ela procura a nave somente em `y = 100`, o que não comprova diagonais. Conferir qual botão recebeu cada soltura simulada.
+
+## Validação e entrega
+
+Executar as suítes Kof em JVM e JS e os seis percursos existentes de navegador: jogo, controles, meteoros, armas, fase e subchefe. Acrescentar os novos casos aos percursos correspondentes, evitando duplicar cobertura.
+
+Antes da entrega, o executor deverá:
+
+- Revalidar a expectativa de cada critério contra esta conversa e os contratos citados, separadamente da qualidade das assertions.
+- Registrar comando ou procedimento, resultado observado e evidência por critério em `.agent/validation/`, com SHA testado, navegador/versão e links de CI quando disponíveis.
+- Guardar logs e capturas em `.agent/tmp/`, mantendo sua exclusão local exatamente uma vez.
+- Declarar falhas, cobertura ausente e critérios não verificados. Touch simulado não encerra o aceite de conforto no aparelho real.
+
+O multitouch deste ciclo cobre dedos em **botões distintos**. A dificuldade, velocidade e regras do combate permanecem as atuais. A imagem apresentada serve como referência de disposição; o aceite visual será feito sobre a interface implementada.
+
+### Execução e evidências
+
+- [x] Preservar os deltas documentais anteriores em commit separado (`b99cc62`); branch `android-multitouch-controls` a partir de `origin/main` `567f6d032523fe02a0c45eebdbf345f51d70b600`.
+- [x] TDD: diagonal e eventos duplicados falharam por comportamento; implementação independente, quatro setas e regressões JVM/JS. Layout falhou com largura observada 48; passou com 56 e cruz 168.
+- [x] Ampliar observação 2D, registrar alvo/identidade das solturas, testar matrizes de diagonais/opostos, eventos simultâneos e pausa.
+- [x] Fechar regressões de Especial, gate inicial e revisão estrutural; registrar SHA e dez comandos no [aceite](.agent/validation/sifuture-controls.md). Gate inicial em `45b49487f242f7addd5243c800b7e9716c7474ad`: JVM/JS 85/85, seis percursos Chrome, infraestrutura 8/8 e contrato CI, 173,54 s. Sem refactor adicional. Gate final repete os dez checks após este complemento documental; resultado e CI serão associados à entrega no ledger/PR.
+- [x] Entregar [PR #12](https://github.com/renanfranca/kof-sifuture/pull/12), sem merge. Gate final em `e358df6444e90158c96efc9e8b1f96f73682c5ca`: 10/10, 183,89 s. [CI 37237869943](https://github.com/renanfranca/kof-sifuture/actions/runs/37237869943): Resolve/JVM/JS SUCCESS, Pages SKIPPED. Este complemento documental incorpora links disponíveis e exige repetir gates locais/CI, sem mudanças de produção; resultados posteriores ficam no ledger e no PR.
+- [ ] Aceite de conforto no Android real, incluindo combate com subchefe. Touch simulado não encerra este critério.
+
+Worker `primary`: chat `01a108c9-623d-7f10-a9f5-a49eba70b808`, `gpt-6.1-sol`/`medium`; título `sifuture-controls-primary`. Implementação, validação e revisão compartilham contexto, sem independência de revisão. Dez checks locais e três checks CI confirmados; Sonar/mutação/Habit não configurados e excluídos. Plano/ledger/inventário/coletores/logs em `.agent/tmp/`, excluído localmente exatamente uma vez.

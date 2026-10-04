@@ -2,6 +2,8 @@ import argparse
 from contextlib import contextmanager
 from datetime import datetime
 import io
+import itertools
+import json
 from pathlib import Path
 import re
 import sys
@@ -13,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / ".agent/tmp/background-items-weapons"
 sys.path.insert(0, str(ROOT / "scripts"))
 from kof_project import served_build
+from browser_controls import TouchContacts
 
 
 def canvas_image(page):
@@ -54,7 +57,7 @@ def background_matches(actual, offset):
 
 
 def status(page):
-    return {key: int(value) for key, value in re.findall(r"(lives|level|charges|x|steps):(\d+)",
+    return {key: int(value) for key, value in re.findall(r"(lives|level|charges|x|y|steps):(\d+)",
                                                        page.locator("#test-status").inner_text())}
 
 
@@ -388,43 +391,56 @@ def contact(button, identity):
 
 
 def simultaneous_touch(browser, url):
-    for release_special_first in (True, False):
+    evidence = []
+    for release_order in itertools.permutations(("→", "↑", "Especial")):
         with scene(browser, url) as page:
             collect(page, 5)
-            east = contact(page.get_by_role("button", name="→", exact=True), 1)
-            special = contact(page.get_by_role("button", name="Especial", exact=True), 2)
-            session = page.context.new_cdp_session(page)
-            session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [east]})
-            advance(page, 3)
-            assert status(page)["x"] == 55
-            session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [east, special]})
-            advance(page, 3)
-            assert status(page)["x"] == 70 and status(page)["charges"] == 1
-            ended = [special] if release_special_first else [east]
-            session.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": ended})
+            page.get_by_role("button", name="Center ship", exact=True).click()
+            advance(page)
+            assert (status(page)["x"], status(page)["y"], status(page)["charges"]) == (60, 100, 2)
+            touch = TouchContacts(page)
+            touch.press("→")
+            advance(page)
+            assert (status(page)["x"], status(page)["y"]) == (65, 100)
+            touch.press("↑")
+            advance(page)
+            assert (status(page)["x"], status(page)["y"]) == (70, 95)
+            touch.press("Especial")
+            advance(page)
+            assert (status(page)["x"], status(page)["y"], status(page)["charges"]) == (75, 90, 1)
+            x, y = 75, 90
+            snapshots = []
+            for label in release_order:
+                touch.release(label)
+                advance(page)
+                x += 5 if "→" in touch.contacts else 0
+                y -= 5 if "↑" in touch.contacts else 0
+                observed = status(page)
+                assert (observed["x"], observed["y"], observed["charges"]) == (x, y, 1), (release_order, label, observed)
+                snapshots.append({"released": label, "x": x, "y": y, "charges": observed["charges"]})
             advance(page, 2)
-            expected_x = 80 if release_special_first else 70
-            assert status(page)["x"] == expected_x and status(page)["charges"] == 1, (release_special_first, expected_x, status(page))
-            session.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
-            advance(page, 2)
-            assert status(page)["x"] == expected_x and status(page)["charges"] == 1, (release_special_first, expected_x, status(page))
+            assert (status(page)["x"], status(page)["y"], status(page)["charges"]) == (x, y, 1)
+            evidence.append({"release_order": release_order, "snapshots": snapshots, "events": touch.events()})
     with scene(browser, url) as page:
         collect(page, 5)
-        east = contact(page.get_by_role("button", name="→", exact=True), 1)
-        special = contact(page.get_by_role("button", name="Especial", exact=True), 2)
-        session = page.context.new_cdp_session(page)
-        session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [east]})
-        session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [east, special]})
+        page.get_by_role("button", name="Center ship", exact=True).click()
+        touch = TouchContacts(page)
+        touch.press("→", "↑")
+        touch.press("Especial")
         advance(page, 2)
-        session.send("Input.dispatchTouchEvent", {"type": "touchCancel", "touchPoints": []})
+        assert (status(page)["x"], status(page)["y"], status(page)["charges"]) == (70, 90, 1)
+        touch.cancel()
         advance(page, 170)
-        assert status(page)["x"] == 50 and status(page)["charges"] == 1
-        special["id"] = 3
-        session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [special]})
+        assert (status(page)["x"], status(page)["y"], status(page)["charges"]) == (70, 90, 1)
+        touch.press("Especial")
         advance(page)
         assert status(page)["charges"] == 0
-        session.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
-    print("PASS two simultaneous contacts, each release order, touch cancellation and subsequent new press")
+        touch.release("Especial")
+        evidence.append({"case": "total-cancel-and-new-special", "events": touch.events()})
+    destination = ROOT / ".agent/tmp/sifuture-controls"
+    destination.mkdir(parents=True, exist_ok=True)
+    (destination / "special-touch-events.json").write_text(json.dumps(evidence, indent=2) + "\n")
+    print("PASS diagonal + third-finger special: six release orders, exact pointerup targets/ids, one charge, total cancel and new press")
 
 
 def layout_and_indicator(browser, url):

@@ -176,7 +176,7 @@ main() {
         refresh(game, drawing, controls, status)
     })
     var window = Window("SiFuture subchefe")
-    window.size(320, 900)
+    window.size(296, 900)
     window.bind(Column(listOf(controls.root, status, repaint, encounter, shoot, special, fatal, body, restart, defeat, complete, boundary30body, boundary30laser, boundary30blaster, boundary30special, boundary60body, boundary60laser, boundary60blaster, boundary60special, newShot, existingShot, reuseShot, exhausted, stopContacts)))
     window.show()
     refresh(game, drawing, controls, status)

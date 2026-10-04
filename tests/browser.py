@@ -40,7 +40,7 @@ def main():
                 startup_page.clock.pause_at(datetime(2026, 1, 1))
                 startup_page.goto(url)
                 assert startup_page.get_by_role("button", name="Novo Jogo").count() == 1
-                for label in ("↖", "↑", "↗", "←", "→", "↙", "↓", "↘"):
+                for label in ("↑", "←", "→", "↓"):
                     assert startup_page.get_by_role("button", name=label, exact=True).is_disabled()
                 startup_context.close()
                 page = browser.new_page(viewport={"width": 800, "height": 600})
@@ -58,10 +58,10 @@ def main():
                 assert page.locator("canvas").count() == 1
                 assert overlay.bounding_box()["width"] == 176
                 assert overlay.bounding_box()["height"] == 220
-                for label in ("↖", "↑", "↗", "←", "→", "↙", "↓", "↘"):
+                for label in ("↑", "←", "→", "↓"):
                     zone = page.get_by_role("button", name=label, exact=True)
-                    assert zone.bounding_box()["width"] == 48
-                    assert zone.bounding_box()["height"] == 48
+                    assert zone.bounding_box()["width"] == 56
+                    assert zone.bounding_box()["height"] == 56
                     assert zone.is_disabled()
                 page.keyboard.press("Tab")
                 assert overlay.evaluate("node => document.activeElement === node")
