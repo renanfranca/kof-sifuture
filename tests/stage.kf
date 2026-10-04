@@ -1,0 +1,132 @@
+import sifuture.GameControls
+import sifuture.GameView
+import sifuture.game.*
+import kof.ui.*
+
+main() {
+    var game = Game()
+    game.start(907)
+    game.score = 1500
+    game.ship.x = 40
+    game.ship.phase = ShipPhase.Normal
+    game.weapons.level = 3
+    game.weapons.charges = 2
+    for (var meteor in game.meteors) { meteor.x = 10000; meteor.y = 30 }
+    for (var item in game.items) { item.x = 10000 }
+    var canvas = Canvas(176, 220)
+    var drawing = GameView(canvas)
+    var controls = GameControls(game, drawing, canvas)
+    var status = Label("")
+    status.setId("stage-status")
+    var repaint = Button("Repaint", () -> { drawing.render(game) })
+    var prepareRightFinish = Button("Prepare right finish", () -> {
+        game.start(908)
+        game.ship.phase = ShipPhase.Normal
+        game.ship.x = 40
+        game.ship.y = 150
+        game.steps = 1708
+        game.score = 17
+        for (var meteor in game.meteors) { meteor.x = 10000; meteor.y = -100 }
+        for (var item in game.items) { item.x = 10000 }
+        refresh(game, drawing, controls, status)
+    })
+    var oneLife = Button("One life", () -> { game.ship.lives = 1; drawing.render(game) })
+    var twoLives = Button("Two lives", () -> { game.ship.lives = 2; drawing.render(game) })
+    var fourLives = Button("Four lives", () -> { game.ship.lives = 4; drawing.render(game) })
+    var finish = Button("Finish stage", () -> {
+        game.start(907)
+        game.weapons.level = 3
+        game.weapons.charges = 2
+        game.steps = 1709
+        game.score = 17
+        game.ship.explode()
+        game.ship.explosionSteps = 28
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var defeat = Button("Defeat", () -> {
+        game.ship.lives = 1
+        game.ship.explode()
+        game.ship.explosionSteps = 29
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var zero = Button("Zero result", () -> {
+        game.start(907)
+        game.score = 0
+        game.ship.lives = 0
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var vertical = Button("Vertical impact", () -> {
+        game.steps = 260
+        game.meteors[6].active = true
+        game.meteors[6].x = 80
+        game.meteors[6].y = 60
+        game.meteors[6].collide()
+        game.meteors[7].active = true
+        game.meteors[7].x = 120
+        game.meteors[7].y = -100
+        refresh(game, drawing, controls, status)
+    })
+    var journey = Button("Full journey", () -> {
+        game.start(907)
+        game.ship.lives = 100
+        for (var i = 0; i < 1709; i++) { game.step() }
+        refresh(game, drawing, controls, status)
+    })
+    var score1499 = Button("Result 1499", () -> {
+        game.start(907)
+        game.score = 1499
+        game.ship.lives = 0
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var score1500 = Button("Result 1500", () -> {
+        game.start(907)
+        game.score = 1500
+        game.ship.lives = 0
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var score2199 = Button("Result 2199", () -> {
+        game.start(907)
+        game.score = 2199
+        game.ship.lives = 0
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var score2200 = Button("Result 2200", () -> {
+        game.start(907)
+        game.score = 2200
+        game.ship.lives = 0
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var score3299 = Button("Result 3299", () -> {
+        game.start(907)
+        game.score = 3299
+        game.ship.lives = 0
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var score3300 = Button("Result 3300", () -> {
+        game.start(907)
+        game.score = 3300
+        game.ship.lives = 0
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var window = Window("SiFuture fase e resultado")
+    window.size(320, 850)
+    window.bind(Column(listOf(controls.root, status, repaint, prepareRightFinish, oneLife, twoLives, fourLives, finish, defeat, zero, vertical, journey, score1499, score1500, score2199, score2200, score3299, score3300)))
+    window.show()
+    refresh(game, drawing, controls, status)
+    time.interval(Rules.STEP_MS, () -> { game.step(); refresh(game, drawing, controls, status) })
+}
+
+refresh(Game game, GameView drawing, GameControls controls, Label status) {
+    drawing.render(game)
+    controls.update()
+    status.text = "steps:" + game.steps + ":position:" + game.stagePosition() + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":explosion:" + game.ship.explosionSteps + ":shipX:" + game.ship.x + ":shipY:" + game.ship.y
+}

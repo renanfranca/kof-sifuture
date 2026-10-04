@@ -48,7 +48,7 @@ def translucent_blaster_matches(actual, x, y, offset):
 
 def background_matches(actual, offset):
     sprite = Image.open(ROOT / "assets/background.png").convert("RGB")
-    for y in range(30, 45):
+    for y in range(42, 50):
         for x in range(176):
             assert actual.getpixel((x, y)) == sprite.getpixel(((x + offset) % 60, y - 30))
 
@@ -153,7 +153,7 @@ def weapon_frames(browser, url):
         translucent_blaster_matches(canvas_image(page), 80, 85, status(page)["steps"] * 5 % 60)
     with scene(browser, url) as page:
         collect(page, 5)
-        sprite_matches(canvas_image(page), "especialActivated1.png", 149, 20)
+        sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
         page.get_by_role("button", name="Especial", exact=True).click()
         page.get_by_role("button", name="Blaster scene", exact=True).click()
         advance(page, 54)
@@ -445,17 +445,17 @@ def layout_and_indicator(browser, url):
             assert abs(box["x"] - east["x"] - east["width"] - 16) < 1
             assert abs(box["y"] + 32 - (north["y"] + south["y"] + south["height"]) / 2) < 1
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-            sprite_matches(canvas_image(page), "especialActivated1.png", 149, 20)
+            sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
             page.screenshot(path=str(EVIDENCE / f"layout-{width}.png"), full_page=True)
             special.click()
             advance(page)
             assert status(page)["charges"] == 1 and special.is_disabled()
-            sprite_matches(canvas_image(page), "especialActivated1.png", 149, 20)
+            sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
             page.get_by_role("button", name="Pausar", exact=True).click()
             frozen = canvas_image(page).tobytes()
             advance(page, 20)
             assert canvas_image(page).tobytes() == frozen
-            sprite_matches(canvas_image(page), "especialActivated1.png", 149, 20)
+            sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
         with scene(browser, url, width) as page:
             collect(page, 5)
             special = page.get_by_role("button", name="Especial", exact=True)
@@ -479,10 +479,12 @@ def layout_and_indicator(browser, url):
     with scene(browser, url) as page:
         collect(page, 5)
         page.get_by_role("button", name="Move ship up", exact=True).click()
-        before = canvas_image(page).crop((0, 0, 176, 30)).tobytes()
+        before = canvas_image(page).crop((80, 0, 176, 30)).tobytes()
         page.get_by_role("button", name="Especial", exact=True).click()
         advance(page, 100)
-        assert canvas_image(page).crop((0, 0, 176, 30)).tobytes() == before
+        assert canvas_image(page).crop((80, 0, 176, 30)).tobytes() == before
+        sprite_matches(canvas_image(page), "StageMiddle.png", 80, 0)
+        sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
     print("PASS 320px/desktop layout, 72x64 button, 16px separation and retained icon during special/paused state")
 
 

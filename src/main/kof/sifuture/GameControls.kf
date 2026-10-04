@@ -120,6 +120,7 @@ class GameControls {
         }
         game.confirm()
         drawing.render(game)
+        update()
     }
 
     activateSpecial() {
@@ -150,7 +151,7 @@ class GameControls {
             if (pressed && target == "game-action") { discardEnterClick = true }
             if (freshPress && (target == "game-keyboard" || target == "game-action" || target == "game-special")) {
                 if (target == "game-special") { activateSpecial() }
-                else { game.confirm(); drawing.render(game) }
+                else { game.confirm(); drawing.render(game); update() }
             }
             if (!pressed) {
                 discardEnterClick = false
@@ -188,6 +189,9 @@ class GameControls {
         if (game.screen == Screen.Menu) { action.text = "Novo Jogo" }
         if (game.screen == Screen.Play) { action.text = "Pausar" }
         if (game.screen == Screen.Pause) { action.text = "Continuar" }
-        if (game.screen == Screen.Result) { action.text = "Voltar ao menu" }
+        if (game.screen == Screen.Result) {
+            if (game.countComplete()) { action.text = "Voltar ao menu" }
+            else { action.text = "Concluir contagem" }
+        }
     }
 }

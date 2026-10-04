@@ -1,6 +1,9 @@
 package sifuture.game
 
 class Meteor {
+    MeteorMotion motion = MeteorMotion.Horizontal
+    Bool active = true
+
     Int x = 0
     Int y = 0
     Int frame = 0
@@ -12,12 +15,32 @@ class Meteor {
     relocate() {
         Int spawnRange = Rules.METEOR_SPAWN_RANGE
         Int yRange = Rules.METEOR_Y_RANGE
-        x = Rules.WORLD_WIDTH + rng.int(spawnRange)
-        y = Rules.HEADER_HEIGHT + rng.int(yRange)
+        if (motion == MeteorMotion.Vertical) {
+            Int width = Rules.WORLD_WIDTH
+            Int verticalRange = Rules.METEOR_Y_RANGE - Rules.METEOR_HEIGHT
+            x = rng.int(width)
+            y = -rng.int(verticalRange)
+        } else {
+            x = Rules.WORLD_WIDTH + rng.int(spawnRange)
+            y = Rules.HEADER_HEIGHT + rng.int(yRange)
+        }
     }
 
     reset() {
         relocate()
+        clearAnimation()
+    }
+
+    private resetAfterBottomExit() {
+        Int width = Rules.WORLD_WIDTH
+        Int verticalRange = Rules.METEOR_Y_RANGE
+        x = rng.int(width)
+        y = -rng.int(verticalRange)
+        clearAnimation()
+    }
+
+    private clearAnimation() {
+        active = motion == MeteorMotion.Horizontal
         frame = 0
         frameDirection = 1
         frameSteps = 0
@@ -26,7 +49,11 @@ class Meteor {
     }
 
     advance() {
-        x = x - Rules.METEOR_SPEED
+        if (!active) { return }
+        if (motion == MeteorMotion.Vertical) {
+            y = y + Rules.METEOR_SPEED
+            if (y > Rules.WORLD_HEIGHT) { resetAfterBottomExit(); return }
+        } else { x = x - Rules.METEOR_SPEED }
         if (x < Rules.METEOR_LEFT_BOUND) {
             if (collided) {
                 relocate()
@@ -34,7 +61,9 @@ class Meteor {
         }
         if (collided) {
             collisionSteps = collisionSteps + 1
-            if (collisionSteps == Rules.METEOR_HIT_STEPS) { reset() }
+            var hitSteps = Rules.METEOR_HIT_STEPS
+            if (motion == MeteorMotion.Vertical) { hitSteps = 3 }
+            if (collisionSteps == hitSteps) { reset() }
         } else {
             frameSteps = frameSteps + 1
             if (frameSteps == Rules.METEOR_FRAME_STEPS) {
@@ -44,6 +73,11 @@ class Meteor {
                 if (frame == 0) { frameDirection = 1 }
             }
         }
+    }
+
+    impactFrame(): Int {
+        if (motion == MeteorMotion.Vertical) { return collisionSteps }
+        return collisionSteps / Rules.METEOR_HIT_FRAME_STEPS
     }
 
     touchesShip(Int shipX, Int shipY): Bool {

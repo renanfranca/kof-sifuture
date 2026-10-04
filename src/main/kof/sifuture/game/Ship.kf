@@ -27,6 +27,7 @@ class Ship {
     }
 
     clearInput() {
+        rightFrame = false
         left = false
         right = false
         up = false
@@ -49,7 +50,7 @@ class Ship {
             explosionSteps = explosionSteps + 1
             if (explosionSteps == Rules.SHIP_EXPLOSION_STEPS) {
                 lives = lives - 1
-                if (lives == 0) { return }
+                if (lives == 0) { phase = ShipPhase.Hidden; return }
                 phase = ShipPhase.Restart
                 restartFrame = 0
                 x = Rules.SHIP_RESPAWN_X
@@ -77,6 +78,16 @@ class Ship {
         if (x > Rules.SHIP_RIGHT_BOUND) { x = Rules.SHIP_RIGHT_BOUND }
         if (y < Rules.HEADER_HEIGHT) { y = Rules.HEADER_HEIGHT }
         if (y > Rules.SHIP_BOTTOM_BOUND) { y = Rules.SHIP_BOTTOM_BOUND }
+    }
+
+    advanceVisual() {
+        if (phase == ShipPhase.Explosion) {
+            explosionSteps = explosionSteps + 1
+            if (explosionSteps >= Rules.SHIP_EXPLOSION_STEPS) { phase = ShipPhase.Hidden }
+        } else if (phase == ShipPhase.Restart) {
+            restartFrame = restartFrame + 1
+            if (restartFrame == Rules.SHIP_RESTART_STEPS) { phase = ShipPhase.Normal }
+        }
     }
 
     explode() {

@@ -151,7 +151,7 @@ def main():
                 wait_for(lambda: page.get_by_role("button", name="Voltar ao menu").count() == 1, page)
                 result = page.locator("canvas").screenshot()
                 page.wait_for_timeout(100)
-                assert page.locator("canvas").screenshot() == result
+                assert page.locator("canvas").screenshot() != result
                 page.get_by_role("button", name="Voltar ao menu").focus()
                 page.keyboard.down("Enter")
                 page.keyboard.down("Enter")

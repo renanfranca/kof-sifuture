@@ -1,6 +1,153 @@
 package sifuture.game
 import sifuture.game.*
 
+test "finishing with right held restores normal ship while score counts and position freezes" {
+    var g = Game()
+    g.start(908)
+    g.ship.phase = ShipPhase.Normal
+    g.ship.x = 40
+    g.ship.y = 150
+    for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+    g.score = 17
+    g.steps = 1708
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.rightFrame && g.ship.x == 45)
+
+    g.step()
+    assert(g.screen == Screen.Result && !g.ship.rightFrame)
+    assert(!g.ship.right && g.ship.x == 50 && g.ship.y == 150)
+    g.keyboard(Direction.Right, false)
+    for (var i = 0; i < 4; i++) { g.step() }
+    assert(!g.ship.rightFrame && g.ship.x == 50 && g.ship.y == 150)
+    assert(g.displayedScore == 17 && g.score == 17 && g.steps == 1710)
+}
+
+test "vertical bottom exit uses full historical range and waits inactive with clean animation" {
+    var g = Game()
+    g.start(904)
+    g.steps = 260
+    g.step()
+    var first = g.meteors[6]
+    var second = g.meteors[7]
+    first.x = 80
+    first.y = 220
+    first.frame = 2
+    first.frameDirection = -1
+    first.frameSteps = 1
+    first.collide()
+    first.collisionSteps = 1
+    second.x = 120
+    second.y = -100
+    rng.seed(71)
+
+    g.step()
+    assert(first.x == 70 && first.y == -171)
+    assert(!first.active && !first.collided && first.collisionSteps == 0)
+    assert(first.frame == 0 && first.frameDirection == 1 && first.frameSteps == 0)
+    var nextDraw = rng.int(1000)
+    g.step()
+    assert(!first.active && first.y == -171 && second.active)
+    second.y = 220
+    g.step()
+    assert(!first.active && !second.active)
+    g.step()
+    assert(first.active && second.active && first.y == -170)
+
+    g.start(904)
+    g.steps = 260
+    g.step()
+    g.meteors[6].y = 220
+    g.meteors[7].y = -100
+    rng.seed(71)
+    g.step()
+    assert(g.meteors[6].x == 70 && g.meteors[6].y == -171)
+    assert(rng.int(1000) == nextDraw)
+    rng.seed(71)
+    assert(rng.int(176) == 70 && rng.int(172) == 171)
+    assert(rng.int(1000) == nextDraw)
+}
+
+test "pause and lost keyboard focus clear right image without changing opposing direction priority" {
+    for (var pause = 0; pause < 2; pause++) {
+        var g = Game()
+        g.start(909)
+        g.ship.phase = ShipPhase.Normal
+        g.ship.x = 60
+        for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+        g.keyboard(Direction.Left, true)
+        g.keyboard(Direction.Right, true)
+        g.step()
+        assert(g.ship.x == 65 && g.ship.rightFrame)
+
+        if (pause == 1) { g.pause() }
+        else { g.clearKeyboard() }
+        assert(!g.ship.rightFrame && !g.ship.left && !g.ship.right)
+        g.step()
+        assert(g.ship.x == 65 && !g.ship.rightFrame)
+        if (pause == 1) { g.resume() }
+        g.keyboard(Direction.Left, false)
+        g.keyboard(Direction.Right, false)
+        g.keyboard(Direction.Right, true)
+        g.keyboard(Direction.Left, true)
+        g.step()
+        assert(g.ship.x == 60 && !g.ship.rightFrame)
+        g.keyboard(Direction.Left, false)
+        g.step()
+        assert(g.ship.x == 65 && g.ship.rightFrame)
+    }
+}
+
+test "vertical initial and impact resets keep reduced range while bottom exits include both full endpoints" {
+    var g = Game()
+    g.start(910)
+    for (var i = 6; i < 8; i++) {
+        assert(!g.meteors[i].active && g.meteors[i].x >= 0 && g.meteors[i].x < 176)
+        assert(g.meteors[i].y >= -153 && g.meteors[i].y <= 0)
+    }
+    var m = g.meteors[6]
+    var seeds = listOf(71, 142, 276, 303)
+    var expectedX = listOf(70, 143, 8, 145)
+    var resetY = listOf(-103, -100, -153, 0)
+    var bottomY = listOf(-171, 0, -145, -84)
+    for (var i = 0; i < seeds.size; i++) {
+        rng.seed(seeds[i])
+        m.reset()
+        assert(m.x == expectedX[i] && m.y == resetY[i] && !m.active)
+        var afterReset = rng.int(1000)
+
+        m.active = true
+        m.x = 80
+        m.y = 50
+        m.frame = 2
+        m.frameDirection = -1
+        m.collide()
+        rng.seed(seeds[i])
+        for (var j = 0; j < 3; j++) { m.advance() }
+        assert(m.x == expectedX[i] && m.y == resetY[i] && !m.active)
+        assert(!m.collided && m.collisionSteps == 0)
+        assert(m.frame == 0 && m.frameDirection == 1 && m.frameSteps == 0)
+        assert(rng.int(1000) == afterReset)
+
+        m.active = true
+        m.y = 220
+        rng.seed(seeds[i])
+        m.advance()
+        assert(m.x == expectedX[i] && m.y == bottomY[i] && !m.active)
+        assert(rng.int(1000) == afterReset)
+    }
+    for (var seed = 0; seed < 500; seed++) {
+        rng.seed(seed)
+        m.reset()
+        assert(m.x >= 0 && m.x < 176 && m.y >= -153 && m.y <= 0)
+        m.active = true
+        m.y = 220
+        rng.seed(seed)
+        m.advance()
+        assert(m.x >= 0 && m.x < 176 && m.y >= -171 && m.y <= 0)
+    }
+}
+
 test "eight pad zones move by axis and stop on release" {
     var zones = listOf(Zone.NorthWest, Zone.North, Zone.NorthEast, Zone.West, Zone.East, Zone.SouthWest, Zone.South, Zone.SouthEast)
     var dx = listOf(-5, 0, 5, -5, 5, -5, 0, 5)
@@ -236,6 +383,8 @@ test "three meteor hits end the attempt and result persists" {
     assert(g.ship.lives == 0 && g.screen == Screen.Result)
     g.step()
     assert(g.screen == Screen.Result)
+    g.confirm()
+    assert(g.screen == Screen.Result && g.countComplete())
     g.confirm()
     assert(g.screen == Screen.Menu)
     g.start(3)
@@ -892,4 +1041,233 @@ test "three evolved lasers circulate together and blocked attempts still drive b
     for (var i = 0; i < 90; i++) { g.step() }
     assert(g.weapons.blaster.active && g.weapons.blaster.x == 5)
     assert(g.weapons.laserAttempts == 6)
+}
+
+
+test "stage moves on each tenth active step including restart and pause" {
+    var g = Game()
+    g.start(901)
+    assert(g.stagePosition() == 5)
+    for (var i = 0; i < 9; i++) { g.step() }
+    assert(g.stagePosition() == 5)
+    g.pause()
+    for (var i = 0; i < 20; i++) { g.step() }
+    assert(g.stagePosition() == 5 && g.steps == 9)
+    g.resume()
+    g.step()
+    assert(g.stagePosition() == 6 && g.ship.phase == ShipPhase.Restart)
+    g.ship.explode()
+    for (var i = 0; i < 10; i++) { g.step() }
+    assert(g.stagePosition() == 7 && g.ship.phase == ShipPhase.Explosion)
+    g.start(901)
+    assert(g.stagePosition() == 5 && g.steps == 0)
+}
+
+
+test "full stage passes chief milestones and ends at right edge after 1710 steps" {
+    var g = Game()
+    g.start(902)
+    g.ship.lives = 100
+    for (var i = 0; i < 1709; i++) { g.step() }
+    assert(g.screen == Screen.Play && g.stagePosition() == 175)
+    g.step()
+    assert(g.screen == Screen.Result && g.stagePosition() == 176 && g.steps == 1710)
+    var score = g.score
+    var lives = g.ship.lives
+    for (var i = 0; i < 50; i++) { g.step() }
+    assert(g.screen == Screen.Result && g.steps == 1710 && g.score == score && g.ship.lives == lives)
+}
+
+
+test "vertical pair unlocks above position thirty and falls one unit per step" {
+    var g = Game()
+    g.start(903)
+    assert(g.meteors.size == 8)
+    assert(g.meteors[0].motion == MeteorMotion.Horizontal && g.meteors[5].motion == MeteorMotion.Horizontal)
+    assert(g.meteors[6].motion == MeteorMotion.Vertical && !g.meteors[6].active && !g.meteors[7].active)
+    g.steps = 258
+    g.step()
+    assert(g.stagePosition() == 30 && !g.meteors[6].active && !g.meteors[7].active)
+    var x = g.meteors[6].x
+    var y = g.meteors[6].y
+    g.step()
+    assert(g.stagePosition() == 31 && g.meteors[6].active && g.meteors[7].active)
+    assert(g.meteors[6].x == x && g.meteors[6].y == y + 1)
+    g.pause()
+    g.step()
+    assert(g.meteors[6].y == y + 1)
+    g.resume()
+    g.step()
+    assert(g.meteors[6].y == y + 2)
+    g.start(903)
+    assert(g.meteors[6].x == x && g.meteors[6].y == y && !g.meteors[6].active)
+    assert(Meteor().motion == MeteorMotion.Horizontal)
+}
+
+
+test "vertical impact has three moving frames and pair relaunch waits for both inactive" {
+    var g = Game()
+    g.start(904)
+    g.steps = 260
+    g.step()
+    var first = g.meteors[6]
+    var second = g.meteors[7]
+    first.x = 80
+    first.y = 50
+    second.x = 120
+    second.y = -100
+    first.collide()
+    assert(first.impactFrame() == 0)
+    g.step()
+    assert(first.active && first.y == 51 && first.impactFrame() == 1)
+    g.step()
+    assert(first.active && first.y == 52 && first.impactFrame() == 2)
+    g.step()
+    assert(!first.active && second.active)
+    var waitingY = first.y
+    g.step()
+    assert(!first.active && first.y == waitingY)
+    second.y = 220
+    g.step()
+    assert(!first.active && !second.active)
+    g.step()
+    assert(first.active && second.active && first.y == waitingY + 1)
+    assert(second.x >= 0 && second.x < 176 && second.y <= 1)
+}
+
+
+test "result counts by five to exact total then confirms in two stages" {
+    var g = Game()
+    g.start(905)
+    g.score = 17
+    g.ship.lives = 0
+    g.step()
+    assert(g.screen == Screen.Result && g.displayedScore == 0 && !g.countComplete())
+    g.step()
+    assert(g.displayedScore == 5 && g.score == 17)
+    g.step()
+    g.step()
+    assert(g.displayedScore == 15 && !g.countComplete())
+    g.step()
+    assert(g.displayedScore == 17 && g.countComplete())
+    g.step()
+    assert(g.displayedScore == 17 && g.screen == Screen.Result)
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+    g.start(905)
+    g.score = 17
+    g.ship.lives = 0
+    g.step()
+    g.confirm()
+    assert(g.screen == Screen.Result && g.displayedScore == 17 && g.countComplete())
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+    g.start(905)
+    g.ship.lives = 0
+    g.step()
+    assert(g.score == 0 && g.displayedScore == 0 && g.countComplete())
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+}
+
+
+test "result keeps scenery and pending effects moving with frozen gameplay" {
+    var g = Game()
+    g.start(906)
+    g.steps = 1709
+    g.ship.explode()
+    g.ship.explosionSteps = 28
+    g.ship.lives = 4
+    g.weapons.level = 3
+    g.weapons.charges = 2
+    g.score = 37
+    g.items[1].x = g.ship.x + 10
+    g.items[1].y = g.ship.y - 16
+    g.meteors[0].x = 80
+    g.meteors[0].y = 100
+    g.meteors[0].collide()
+    g.step()
+    assert(g.screen == Screen.Result && g.ship.explosionSteps == 29)
+    var background = g.background.offset
+    var meteorX = g.meteors[0].x
+    var itemX = g.items[1].x
+    g.keyboard(Direction.Right, true)
+    g.movement(Zone.East, true)
+    assert(!g.trySpecial())
+    g.step()
+    assert(g.background.offset != background && g.meteors[0].x == meteorX - 1)
+    assert(g.items[1].x == itemX - 1 && !g.items[1].collected)
+    assert(g.ship.phase == ShipPhase.Hidden && g.ship.explosionSteps == 30)
+    for (var i = 0; i < 15; i++) { g.step() }
+    assert(g.weapons.lasers.shots[0].active)
+    assert(g.ship.lives == 4 && g.ship.x == 0 && g.steps == 1710 && g.stagePosition() == 176)
+    assert(g.score == 37 && g.displayedScore == 37 && g.weapons.level == 3 && g.weapons.charges == 2)
+    assert(g.screen == Screen.Result && g.ship.explosionSteps == 30)
+}
+
+
+test "vertical contacts preserve ship laser blaster special priority and one reward" {
+    for (var mode = 0; mode < 4; mode++) {
+        var g = Game()
+        g.start(908)
+        g.steps = 260
+        g.ship.phase = ShipPhase.Normal
+        for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+        g.weapons.lasers.shots[0].fire(0, 100)
+        g.weapons.blaster.fire(g.ship)
+        for (var i = 0; i < 4; i++) { g.weapons.evolve() }
+        assert(g.trySpecial())
+        g.weapons.beams[1].x = 0
+        if (mode > 0) { g.ship.y = 200 }
+        if (mode > 1) { g.weapons.lasers.shots[0].active = false }
+        if (mode > 2) { g.weapons.blaster.active = false }
+        g.meteors[6].active = true
+        g.meteors[6].x = 36
+        g.meteors[6].y = 107
+        g.step()
+        assert(g.score == 5 && g.meteors[6].collided)
+        if (mode == 0) { assert(g.ship.phase == ShipPhase.Explosion && !g.weapons.lasers.shots[0].impact) }
+        if (mode == 1) { assert(g.weapons.lasers.shots[0].impact && g.weapons.blaster.lives == 2) }
+        if (mode == 2) { assert(g.weapons.blaster.lives == 1 && g.weapons.beams[1].lives == 10) }
+        if (mode == 3) { assert(g.weapons.beams[1].lives == 9) }
+        for (var i = 0; i < 3; i++) { g.step() }
+        assert(g.score == 5 && !g.meteors[6].active)
+    }
+}
+
+test "same seed replays the entire stage including vertical relaunch and result" {
+    var g = Game()
+    g.start(909)
+    g.ship.lives = 100
+    for (var i = 0; i < 1710; i++) { g.step() }
+    var positionsX = listOf<Int>()
+    var positionsY = listOf<Int>()
+    for (var m in g.meteors) { positionsX.add(m.x); positionsY.add(m.y) }
+    var itemX = g.items[0].x
+    var score = g.score
+    var lives = g.ship.lives
+    g.start(909)
+    g.ship.lives = 100
+    for (var i = 0; i < 1710; i++) { g.step() }
+    assert(g.screen == Screen.Result && g.displayedScore == 0 && g.steps == 1710)
+    for (var i = 0; i < 8; i++) { assert(g.meteors[i].x == positionsX[i] && g.meteors[i].y == positionsY[i]) }
+    assert(g.items[0].x == itemX && g.score == score && g.ship.lives == lives)
+}
+
+test "defeat ends the explosion and visual result never consumes another life or weapon" {
+    var g = Game()
+    g.start(910)
+    g.ship.lives = 1
+    g.ship.explode()
+    g.ship.explosionSteps = 29
+    g.weapons.level = 3
+    g.weapons.charges = 1
+    g.score = 5
+    g.step()
+    assert(g.screen == Screen.Result && g.ship.phase == ShipPhase.Hidden && g.ship.explosionSteps == 30)
+    assert(g.ship.lives == 0 && g.weapons.charges == 0 && g.weapons.level == 3)
+    var steps = g.steps
+    for (var i = 0; i < 100; i++) { g.step() }
+    assert(g.ship.lives == 0 && g.ship.explosionSteps == 30 && g.steps == steps && g.score == 5)
+    assert(g.weapons.level == 3 && g.displayedScore == 5 && g.screen == Screen.Result)
 }

@@ -1,12 +1,40 @@
-# SiFuture em Kof: fundo, coleta e armamento
+# SiFuture em Kof: fase, HUD e resultado
 
-Este recorte executa **menu → Novo Jogo → partida → Pausar/Continuar → resultado após três vidas → menu** no navegador. É parte da [especificação do port](.agent/specifications/port-sifuture-to-kof.md), sem representar a versão completa. O mundo lógico mede 176 × 220; cada atualização avança 30 ms. Clique na área desenhada ou use Tab até **Ativar teclado do jogo** obter foco. As setas movem apenas com esse botão em foco. Um clique na área rearma as setas: se a soltura de uma seta ocorreu fora dos controles, a próxima pressão pode mover imediatamente; o clique sozinho não move. Retornar por Tab conserva a memória das setas e pode exigir uma soltura observada antes da próxima pressão. Enter aciona uma vez por pressão quando o foco está na área ou no botão principal; uma nova ação exige que a soltura de Enter seja observada nos controles. Soltar Enter fora e clicar na área não libera esse bloqueio. Clique e Espaço no botão principal continuam funcionando, inclusive enquanto Enter está pressionado. O botão transparente sobre o canvas não executa uma ação ao receber clique. Uma borda azul indica o foco. Perder o foco limpa o movimento do teclado sem pausar automaticamente.
+Este recorte executa **menu → Novo Jogo → partida → Pausar/Continuar → resultado por fim da fase ou última vida → menu** no navegador. É parte da [especificação do port](.agent/specifications/port-sifuture-to-kof.md), sem representar a versão completa. O mundo lógico mede 176 × 220; cada atualização avança 30 ms. Clique na área desenhada ou use Tab até **Ativar teclado do jogo** obter foco. As setas movem apenas com esse botão em foco. Um clique na área rearma as setas: se a soltura de uma seta ocorreu fora dos controles, a próxima pressão pode mover imediatamente; o clique sozinho não move. Retornar por Tab conserva a memória das setas e pode exigir uma soltura observada antes da próxima pressão. Enter aciona uma vez por pressão quando o foco está na área ou no botão principal; uma nova ação exige que a soltura de Enter seja observada nos controles. Soltar Enter fora e clicar na área não libera esse bloqueio. Clique e Espaço no botão principal continuam funcionando, inclusive enquanto Enter está pressionado. O botão transparente sobre o canvas não executa uma ação ao receber clique. Uma borda azul indica o foco. Perder o foco limpa o movimento do teclado sem pausar automaticamente.
 
 O direcional abaixo do jogo tem oito botões de 48 × 48 pixels. Pressione um para mover, solte ou saia dele com o mouse para parar. Diagonais combinam os dois eixos. Arrastar o dedo mantém a direção original até a soltura ou cancelamento; deslizar não troca de direção neste ciclo. Enquanto o direcional está pressionado, ele tem prioridade sobre as setas. Depois de soltá-lo, uma seta já mantida não assume o movimento sozinha. Setas pressionadas em outros controles são acompanhadas, mas não movem a nave ao retornar ao canvas por Tab; uma soltura observada libera a próxima pressão. Se essa soltura ocorrer fora da árvore de controles, o retorno por Tab conserva o bloqueio até uma soltura observada. Um clique no canvas libera apenas as setas, sem mover a nave por si só. O direcional fica desabilitado fora da partida. A pausa congela a simulação, inclusive tiros, meteoros e contadores; **Continuar** conserva a partida e requer nova pressão para mover. Este recorte implementa a [issue #3](https://github.com/renanfranca/kof-sifuture/issues/3); as necessidades restantes estão relacionadas à [issue #4](https://github.com/renanfranca/kof-sifuture/issues/4).
 
 - **Direita, soltura fora e retorno por clique:** o clique no canvas não move; a primeira nova pressão de Direita move.
 - **Direita, soltura fora e retorno por Tab:** a primeira pressão pode continuar bloqueada; solte Direita dentro dos controles e pressione novamente para mover.
 - **Enter, soltura fora e retorno por clique:** o clique no canvas conserva o bloqueio de Enter; solte Enter dentro dos controles e pressione novamente para confirmar.
+
+## Fase e resultado
+
+A fase vai da posição 5 à 176 em **1.710 passos de 30 ms: 51,3 segundos ativos**. A miniatura avança a cada dez passos, inclusive durante explosão e reinício da nave. A pausa congela o relógio; redesenhar apenas consulta o modelo. Este ciclo atravessa os pontos dos chefes sem combate.
+
+A posição é derivada em [Game.kf](src/main/kof/sifuture/game/Game.kf):
+
+```kof
+var position = 5 + steps / 10
+if (position > Rules.WORLD_WIDTH) { return Rules.WORLD_WIDTH }
+return position
+```
+
+A divisão inteira só muda o resultado a cada dez passos. Não há outro relógio da fase para sincronizar. O [training de estado duplicado](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73) orienta:
+
+> If a value can be derived from another, derive it (method or function).
+
+Os seis meteoros horizontais mantêm seus índices. Dois verticais entram quando a posição ultrapassa 30, descem uma unidade por passo e mostram três quadros de impacto, um passo por quadro. O par relança quando ambos ficam inativos. As colisões preservam nave → laser → blaster → especial, com prêmio único por meteoro. Os dois corações continuam circulando desde o início; vidas podem ultrapassar três.
+
+O HUD usa os sprites históricos sem transformação: trilha, miniatura conforme uma, duas ou três vidas ou mais, escore à direita, contador de vidas abaixo e indicador de especial em `(50, 21)`. Os indicadores são desenhados depois das entidades para ficarem visíveis sobre os feixes. O mundo continua 176 × 220 e a nave conserva o limite superior `y = 30`.
+
+Ao concluir a fase ou perder a última vida, o escore definitivo fica preservado e a contagem exibida começa em zero. Cada passo acrescenta cinco pontos, limitado ao total exato. A avaliação só aparece ao terminar, nas faixas `<1500`, `1500–2199`, `2200–3299` e `≥3300`. **Concluir contagem** ou Enter mostra o total imediatamente; uma nova confirmação em **Voltar ao menu** retorna ao menu. Escore zero já começa concluído. Segurar Enter não confirma duas vezes.
+
+Durante o resultado, fundo, meteoros, itens, tiros automáticos visuais e efeitos continuam. Colisões, coleta e comandos da nave ficam encerrados; vidas, nível, cargas e posição da fase permanecem estáveis. A explosão pendente termina sem nova perda de vida e fica oculta, sem tentar desenhar um quadro de índice 10. Escore e avaliação ficam centralizados sobre a cena.
+
+[GameJourney.kf](src/test/kof/sifuture/game/GameJourney.kf) prova as regras em JVM e JS. [browser_stage.py](tests/browser_stage.py) exercita o modelo, desenho e controles reais no Chrome em 320 e 1200 pixels, com relógio determinístico, comparação de sprites, percurso completo e redesenhos sem avanço. O registro de aceite fica em [stage-hud-result.md](.agent/validation/stage-hud-result.md). Música, Android, chefes, menus completos e reformulação dos controles seguem fora deste ciclo.
+
+A limpeza de comandos também restaura o quadro normal da nave na entrada do resultado, em pausa e na perda de foco do teclado. Os meteoros verticais reiniciam entre −153 e 0 na criação ou após impacto; após sair pelo fundo, usam a faixa histórica de −171 até 0, mantendo a espera pelo par. As regressões e o aceite visual estão em [ship-meteor-reset.md](.agent/validation/ship-meteor-reset.md).
 
 ## Coleta e evolução
 
@@ -113,6 +141,7 @@ python3 tests/browser.py
 python3 tests/browser_controls.py
 python3 tests/browser_meteor.py
 python3 tests/browser_weapons.py
+python3 tests/browser_stage.py
 ```
 
 O primeiro teste abre a aplicação normal e verifica o menu antes do primeiro ciclo, Enter/Espaço, confirmação conservadora e pausa congelada. Para derrota, resultado persistente, retorno ao menu e nova partida, usa a fixture Kof com o mesmo modelo, desenho e controles, provocando três colisões determinísticas. A coleta de vida e a evolução tornam a espera por uma derrota espontânea inadequada como critério de teste. O segundo compila a fixture [`tests/controls.kf`](tests/controls.kf) com o modelo, o desenho e os controles reais. Cada cenário abre um contexto novo no Chrome e avança o relógio em ciclos de 30 ms para verificar por pixels movimento, propulsão, foco, retorno por clique ou Tab, direcional com mouse e touch. O terceiro compila [`tests/meteor-motion.kf`](tests/meteor-motion.kf) com o pacote `sifuture.game` real e usa cliques para avançar exatamente um passo de cada vez no Chrome; verifica posição e quadro do meteoro atingido. Python também prepara build e suítes; Playwright e Pillow são usados apenas nos testes de navegador. A automação pode ser validada com `python3 -m unittest discover -s tests -p 'test_kof_project.py'`. A aplicação e as fixtures visuais são escritas em Kof. O JavaScript e o CSS da saída são gerados por Kof.

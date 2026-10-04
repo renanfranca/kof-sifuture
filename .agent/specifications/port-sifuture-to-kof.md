@@ -1,6 +1,6 @@
 # Port SiFuture to Kof
 
-- **Status:** Approved specification; browser gameplay, manual controls/pause, background, items and weapon evolution slices implemented. Full v1 remains open.
+- **Status:** Approved specification; browser gameplay, manual controls/pause, background, items, weapon evolution, complete boss-free stage, sprite HUD and moving result slices implemented. Full v1 remains open.
 - **Source:** The SiFuture port handoff and the approved proposal in the Codex task.
 - **Port repository:** `/home/renanfranca/projects/kof-sifuture`.
 - **Historical game:** `/home/renanfranca/projects/sifuture`.
@@ -29,6 +29,20 @@ This cycle adds the following scoped requirements without closing the complete v
 - Preserve assets and NOTICE. Explicitly correct the historical special loader to the existing `e0`–`e8`, using color groups 0–2, 3–5 and 6–8; do not reproduce missing `especial*.png` paths or out-of-bounds group indexes.
 
 Accept with seeded behavioral rules on JVM and JS, existing browser journeys and the integrated deterministic sprite/control journey, including repeated keydown, rejected attempts, touch cancellation and separate releases during simultaneous movement/special. Record reviewed narrow/desktop screenshots, tested SHA, environment, commands, results and persistent CI links in `.agent/validation/`; keep generated evidence in ignored `.agent/tmp/`. Bosses, music, Android and complete controls reformulation remain later cycles.
+
+### Approved browser cycle: complete stage, historical HUD and result
+
+This cycle overrides the earlier slice's static result and immediate exit behavior. It does not close full v1 acceptance.
+
+- Stage position MUST derive from `Game.steps`: start at 5, add one every ten 30 ms active steps, clamp at 176. Explosion/restart MUST continue progression; pause freezes it; rendering MUST NOT advance it. Without boss fights, completion is exactly 1710 active steps (51.3 seconds).
+- Preserve the six horizontal meteors at indexes 0–5 and `Meteor()` as horizontal. Add two vertical meteors at indexes 6–7, initially inactive; unlock above position 30. They MUST move down one unit per step, use seeded offscreen positions, display three impact frames for one step each and deactivate on exit or completed impact. Relaunch the pair only when both are inactive. Preserve ship → laser → blaster → special collision priority and one reward per meteor.
+- Keep both hearts circulating from game start, their existing animations, relaunch, one-time collection, weapon progression and lives above three. Cross both chief milestones without combat or interruption; end at position 176 or loss of the last life.
+- Copy `StageBeginer.png`, `StageMiddle.png`, `1lives.png`–`3lives.png`, `0.png`–`9.png`, `x.png`, `score.png` and `score1.png` byte-for-byte; preserve NOTICE. Repeat the historical track, move the life-dependent miniature, right-align score and place life count below. Special indicator MUST be at `(50, 21)`. Draw HUD after entities; retain world 176 × 220 and ship minimum y = 30. Center final score and evaluation over the moving scene.
+- Use one result entry preserving final score and starting `displayedScore` at zero. Increment by five per step and clamp to the exact score. Derive `countComplete()` from displayed and final score. Show evaluation only after completion, preserving all four ranges and exact boundaries 1500, 2200 and 3300.
+- Result MUST keep background, meteors, items, visual automatic fire and pending effects animating. Disable collisions, collection, ship commands and life/weapon changes; freeze stage progression. Finish pending explosion/restart without another loss; hide a finished explosion and never access nonexistent frame 10.
+- Enter or **Concluir contagem** MUST complete an unfinished count; a subsequent confirmation on **Voltar ao menu** MUST return to menu. Zero score is already complete. Preserve held-key and native-click deduplication. Result remains until confirmation.
+
+Acceptance MUST cover JVM/JS rules, the four existing browser journeys and a new deterministic stage/result journey in Chrome at widths 320 and 1200, including pause/restart, vertical motion/impact/relaunch/collisions, seeded replay, defeat/completion, zero/non-multiple-of-five totals, evaluation boundaries, two confirmations, stable gameplay during moving result and render-only redraws. Record commit, commands, results, browser/version, visual review and workflow links in `.agent/validation/`; generated artifacts stay in `.agent/tmp/`. Historical source and assets support composition; the unavailable video is not visual acceptance evidence. Music, Android, both chiefs, complete menus and controls redesign remain later cycles.
 
 Port the Java ME game SiFuture to Kof while preserving its rules and recognizable presentation. The graphical v1 MUST run in a browser through KofJS and on Android through KofJS in a WebView. A successful Android build alone is insufficient: the game MUST also run in an emulator or on a device. JVM and Native are portability research targets with their actual limitations recorded; graphical UI on those targets is not a v1 acceptance requirement. KofScript is outside this port.
 
