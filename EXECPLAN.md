@@ -297,6 +297,9 @@ Plano aprovado em `.agent/tmp/subchief-repair.md`; execução `subchief-repair-p
 - [x] Separar avanço normal, explosão e tiros; contatos precedem avanço/disparo e meteoros. Golpe fatal mantém posição, relógio e quadro zero, com prêmio único. `advance()` compõe as partes no resultado e na transição de derrota.
 - [x] Reiniciar `deathSteps` após cada dano com resistência não positiva; conservar valores negativos, marcadores e cores. Sem nova reaplicação, limpar após seis passos.
 - [x] Ampliar os exemplos por corpo/laser/blaster/especial, não fatal, novo/existente/reutilizado e retomada da animação. Suíte de 79 casos verde em JVM/JS durante implementação.
-- [ ] Confirmar desenho/modelo em Chrome 320/1200, dez checks pelo executor, revisão estrutural, evidências por SHA/CI no aceite e entrega no PR existente.
+- [x] Confirmar desenho/modelo em Chrome 320/1200, dez checks pelo executor, revisão estrutural, evidências por SHA/CI no aceite e entrega no PR existente.
 
 R1 permanece classificado como cenário não coberto; R2, requisito esquecido; R3, expectativa incorreta. São reparos do ciclo atual. Ciclos 2/3 e vídeo histórico continuam pendentes. Registrar preparação, conferência e correção separadamente no aceite; número de testes e gates verdes não demonstram redução do retrabalho.
+
+
+Fechamento da reparação: código/suíte/fixture `c9ea48bfad8d8a3420cd168a68f2219c9d058855`, 79/79 em JVM/JS e dez checks nos gates inicial/final (151,40/151,75 s). Chrome `139.0.7258.154`, 320/1200, R1–R3, HUD e sprites reais. Revisão estrutural sem refactor adicional. [CI 37223086619](https://github.com/renanfranca/kof-sifuture/actions/runs/37223086619) verde no mesmo SHA; PR #11 atualizado, sem merge. O aceite associa os critérios a SHA/comando/resultado/navegador/jobs, preservando a conferência anterior. Complemento documental no ledger `subchief-repair-acceptance`, mesmo worker/inventário: repetirá todos os gates locais/CI antes do encerramento, porque o ledger de produção foi marcado pronto antes de incorporar os links e não admite reabertura.

@@ -432,3 +432,58 @@ Percurso preliminar `python3 tests/browser_subchief.py`: Chrome `139.0.7258.154`
 Esforço adicional estimado nesta reparação: preparação/retrieval e registro inicial, cerca de 5–7 min; conferência da fonte e das expectativas de movimento/desenho, 3–5 min; correção de código, testes e fixture, cerca de 8–12 min. O primeiro checkpoint de navegador detectou uma máscara de oclusão insuficiente para `laser03.png` (5×25); a máscara passou a usar seus limites reais, sem alterar produção. Esses valores são estimativas de trabalho, separadas das durações automatizadas dos gates.
 
 Classificação preservada: R1, cenário não coberto; R2, requisito esquecido; R3, expectativa incorreta. Os três achados surgiram depois da entrega original e exigiram correção posterior; neste reparo as provas versionadas anteciparam o diagnóstico antes da mudança de produção. Ainda não há comparação controlada que demonstre redução de retrabalho. Ciclos 2/3 permanecem pendentes; vídeo histórico segue como lacuna. Sonar, mutação e Habit excluídos por ausência de configuração, sem alegação de aprovação.
+
+
+#### Fechamento por commit e comandos — reparação R1–R3
+
+Todas as linhas da matriz de reparação acima correspondem ao SHA de código/suíte/fixture `c9ea48bfad8d8a3420cd168a68f2219c9d058855`. Os dez comandos abaixo foram executados no mesmo SHA, em JVM/JS e Chrome `139.0.7258.154` nas larguras 320/1200. Pelo executor determinístico: gate inicial 151,40 s e repetição final 151,75 s, dez selecionados/executados, zero bloqueados e todas as coletas completas. São execuções reais, não somente compilação.
+
+| Comando | Resultado no SHA acima |
+|---|---|
+| `python3 scripts/kof_project.py test --target jvm` | `0 failed of 79 tests`; `1 passed, 0 failed` |
+| `python3 scripts/kof_project.py test --target js` | `0 failed of 79 tests`; `1 passed, 0 failed` |
+| `python3 tests/browser.py` | Menu, confirmação, pausa, resultado e menu |
+| `python3 tests/browser_controls.py` | Teclado isolado, foco, pointer e toque |
+| `python3 tests/browser_meteor.py` | Movimento, três quadros de impacto, relançamento |
+| `python3 tests/browser_weapons.py` | Fundo/coleta/evolução/especial, solturas, multitouch, repetição e HUD |
+| `python3 tests/browser_stage.py` | HUD/fase/resultado, verticais e nave, 320/1200 |
+| `python3 tests/browser_subchief.py` | Oito fatais por largura; três cenários de tiros; reaplicação/limpeza; sprites, pausa/repaint, invulnerabilidade, derrota/nova partida, 320/1200 |
+| `python3 -m unittest discover -s tests -p 'test_kof_project.py'` | `Ran 8 tests`, `OK`; PARSE esperado da entrada deliberadamente inválida |
+| `PATH=/tmp/kof-ci-tools:$PATH bash tests/ci-contract.sh` | Exit 0; resolução, integridade, publicação e exclusão de artefatos inválidos |
+
+O [CI do mesmo SHA, run 37223086619](https://github.com/renanfranca/kof-sifuture/actions/runs/37223086619) concluiu com sucesso:
+
+- [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37223086619/job/111497172478) — SUCCESS.
+- [Kof tests (jvm)](https://github.com/renanfranca/kof-sifuture/actions/runs/37223086619/job/111497528174) — SUCCESS.
+- [Kof tests (js)](https://github.com/renanfranca/kof-sifuture/actions/runs/37223086619/job/111497527420) — SUCCESS.
+
+Os dois alvos CI também executaram 79 casos. Build/Publish Pages foram SKIPPED, sem publicação inferida. Matriz, SHA, comandos, resultados, navegador e links dos jobs ficam juntos neste registro versionado. Este complemento só atualiza documentação; código/suíte/fixture permanecem exatamente os do SHA acima.
+
+Em [Game.kf](../../src/main/kof/sifuture/game/Game.kf#L172), os contatos precedem o avanço:
+
+```kof
+for (var shot in subchief.shots) {
+    if (shot.touchesShip(ship)) { ship.explode(); shot.active = false; break }
+}
+if (chiefPhaseBeforeContacts == SubchiefPhase.Explosion) { subchief.advanceExplosion() }
+subchief.advanceNormal()
+subchief.advanceShots()
+```
+
+A fase anterior decide se a explosão pode avançar: a recém-iniciada permanece no zero. O avanço normal consulta a fase atual, portanto o fatal impede movimento, relógio e disparo. Os tiros restantes se movem uma vez depois da colisão; os novos aguardam o próximo passo. Em [SpecialBeam.kf](../../src/main/kof/sifuture/game/SpecialBeam.kf#L63):
+
+```kof
+if (lives <= 0) { deathSteps = 0 }
+```
+
+O teste inclui zero e negativos; cada reaplicação reinicia a contagem. Sem outro dano, o avanço alcança seis e o reset remove feixe/marcador. O estado usa a classe mutável com campos explícitos já existente, segundo a orientação consultada localmente em `kof/training/idioms/classes.md`; as execuções nos alvos demonstram o comportamento atual.
+
+Revisão estrutural no SHA acima, no mesmo contexto da implementação: nenhum defeito ou risco material que justificasse refactor. Ordem temporal é o protocolo aprovado, a fase anterior é um snapshot local ao passo, não há nova duplicação de estado persistente e as partes do avanço são todas usadas em produção. Capturas inspecionadas: prêmio 600 em 320, prêmio 300 em 1200, tiro novo em 320, feixe no sétimo passo em 320, limpeza e quadro 9 em 1200. Comparações automatizadas de pixels cobriram as duas larguras. Assets `subchief.png`/`laser0.png` permanecem idênticos à fonte; exclude local contém `/.agent/tmp/` uma vez.
+
+Evidências locais opcionais: `.agent/tmp/subchief-repair.{initial,final}-summary.json`, `.agent/tmp/subchief-repair.ci.log`, `.agent/tmp/subchief-repair.structural-review.md` e `.agent/tmp/subchief-browser/`. Essenciais e links persistentes estão neste documento, sem depender desses arquivos.
+
+Esforço de fechamento/conferência estimado: 3–5 min para interpretar gates, revisar estrutura/capturas e vincular CI; complemento documental 2–3 min, além dos gates repetidos. O executor marcou o checkpoint pronto antes do complemento; sua máquina de estados não admite reabrir essa fase. O registro terminal foi preservado e o complemento segue em `.agent/tmp/subchief-repair-acceptance.workflow.json`, com o mesmo worker/inventário e repetição completa dos gates. A recuperação não altera produção nem fabrica aprovação.
+
+R1 cenário não coberto, R2 requisito esquecido e R3 expectativa incorreta foram reparados no ciclo atual. Não houve achado adicional de produção após a correção. Tempo automatizado é separado das estimativas de esforço. O sinal de benefício é antecipar desvios/reduzir correção posterior; este ciclo ainda não oferece comparação controlada. Ciclos 2/3, execução Java ME histórica e vídeo permanecem pendentes; os três desvios originais foram encontrados depois da entrega anterior.
+
+A primeira mensagem do complemento excedeu 100 caracteres por linha e o executor recusou o commit antes de Git. A validação iniciada após essa recusa foi cancelada e excluída dos gates; a sequência passou a abortar em falhas antes de iniciar o executor. Mensagem refluída e nova tentativa identificada, sem amend/rebase. Esforço de recuperação estimado em 1–2 min, além da repetição dos gates.
