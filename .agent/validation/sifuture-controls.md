@@ -97,3 +97,18 @@ Revisão no mesmo contexto da implementação, protegida pelas suítes e pelo ch
 Nenhuma falha persistente observada. As únicas falhas intencionais deste ciclo foram os REDs descritos e fixtures negativas de infraestrutura. As quatro diagonais e opostos foram comprovados por execução nos dois alvos e Chrome; compilação isolada não é usada como prova de runtime. Os JSON de eventos e capturas em `.agent/tmp/sifuture-controls/` são suporte opcional; o resumo de critérios permanece compreensível sem eles. O exclude local contém `/.agent/tmp/` exatamente uma vez.
 
 Aceite de conforto e combate no Chrome de Android físico **continua pendente**. Não foram testados dedos múltiplos no mesmo botão, versão atual do Chrome Android, WebView/APK, navegador móvel de outro fornecedor, música ou chefe final. Essas ausências não são passes nem mudanças de escopo. A velocidade, dificuldade e regras de combate permanecem as anteriores.
+
+
+### Gate final e primeira execução de CI
+
+Gate final concluído sobre `e358df6444e90158c96efc9e8b1f96f73682c5ca`: 10/10 checks exit 0, 0 bloqueados, 183,89 s; JVM/JS 85/85, seis percursos Chrome, infraestrutura 8/8 e contrato CI. Todos os critérios automatizados continuam atendidos; Android físico continua pendente.
+
+[PR #12](https://github.com/renanfranca/kof-sifuture/pull/12) aberto, sem merge. [Workflow 37237869943](https://github.com/renanfranca/kof-sifuture/actions/runs/37237869943) concluído com SUCCESS no head acima, testando a revisão de merge do evento conforme o workflow.
+
+- [Publish current main](https://github.com/renanfranca/kof-sifuture/actions/runs/37237869943/job/111540997947): SKIPPED.
+- [Build complete Pages site](https://github.com/renanfranca/kof-sifuture/actions/runs/37237869943/job/111540997294): SKIPPED.
+- [Kof tests (jvm)](https://github.com/renanfranca/kof-sifuture/actions/runs/37237869943/job/111540917743): SUCCESS.
+- [Kof tests (js)](https://github.com/renanfranca/kof-sifuture/actions/runs/37237869943/job/111540917670): SUCCESS.
+- [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37237869943/job/111540503588): SUCCESS.
+
+As duas suítes CI registraram `0 failed of 85 tests`; Resolve verified Kof validou a distribuição oficial. Build/Publish Pages foram SKIPPED, portanto o PR não publicou o jogo. Este complemento incorpora links disponíveis após o primeiro push; os gates locais serão repetidos sobre o commit documental, com fonte de produção inalterada desde `45b49487f242f7addd5243c800b7e9716c7474ad`. O PR/ledger recebem os resultados finais posteriores sem substituir esta evidência histórica.
