@@ -17,6 +17,24 @@ prepareEncounter(Game game) {
     for (var item in game.items) { item.x = 10000 }
 }
 
+prepareBoundary(Game game, Int lifetime, Int weapon) {
+    prepareEncounter(game)
+    game.subchief.lives = 1
+    game.subchief.lifeTime = lifetime
+    game.subchief.normalSteps = 35
+    game.ship.y = 100
+    if (weapon == 0) { game.ship.x = 100 }
+    if (weapon == 1) {
+        game.weapons.lasers.shots[0].fire(0, 100)
+        game.weapons.lasers.shots[0].x = 86
+    }
+    if (weapon == 2) { game.weapons.blaster.fire(game.ship); game.weapons.blaster.x = 60 }
+    if (weapon == 3) {
+        game.ship.y = 200
+        for (var beam in game.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 }
+    }
+}
+
 main() {
     var game = Game()
     game.start(920)
@@ -81,9 +99,85 @@ main() {
         for (var i = 0; i < 10000 && game.screen == Screen.Play; i++) { game.step() }
         refresh(game, drawing, controls, status)
     })
+    var boundary30body = Button("Boundary 30 body", () -> {
+        prepareBoundary(game, 30, 0)
+        refresh(game, drawing, controls, status)
+    })
+    var boundary30laser = Button("Boundary 30 laser", () -> {
+        prepareBoundary(game, 30, 1)
+        refresh(game, drawing, controls, status)
+    })
+    var boundary30blaster = Button("Boundary 30 blaster", () -> {
+        prepareBoundary(game, 30, 2)
+        refresh(game, drawing, controls, status)
+    })
+    var boundary30special = Button("Boundary 30 special", () -> {
+        prepareBoundary(game, 30, 3)
+        refresh(game, drawing, controls, status)
+    })
+    var boundary60body = Button("Boundary 60 body", () -> {
+        prepareBoundary(game, 60, 0)
+        refresh(game, drawing, controls, status)
+    })
+    var boundary60laser = Button("Boundary 60 laser", () -> {
+        prepareBoundary(game, 60, 1)
+        refresh(game, drawing, controls, status)
+    })
+    var boundary60blaster = Button("Boundary 60 blaster", () -> {
+        prepareBoundary(game, 60, 2)
+        refresh(game, drawing, controls, status)
+    })
+    var boundary60special = Button("Boundary 60 special", () -> {
+        prepareBoundary(game, 60, 3)
+        refresh(game, drawing, controls, status)
+    })
+    var newShot = Button("New shot boundary", () -> {
+        prepareEncounter(game)
+        game.ship.x = 40
+        game.ship.y = 100
+        game.subchief.x = 101
+        game.subchief.endX = 101
+        game.subchief.normalSteps = 11
+        refresh(game, drawing, controls, status)
+    })
+    var existingShot = Button("Existing shot boundary", () -> {
+        prepareEncounter(game)
+        game.ship.y = 100
+        game.subchief.shots[0].active = true
+        game.subchief.shots[0].x = 51
+        game.subchief.shots[0].y = 113
+        refresh(game, drawing, controls, status)
+    })
+    var reuseShot = Button("Reuse shot slot", () -> {
+        prepareEncounter(game)
+        game.ship.x = 40
+        game.ship.y = 100
+        game.subchief.x = 101
+        game.subchief.endX = 101
+        game.subchief.normalSteps = 11
+        for (var shot in game.subchief.shots) { shot.active = true; shot.y = 113 }
+        game.subchief.shots[0].x = 40
+        game.subchief.shots[1].x = 150
+        game.subchief.shots[2].x = 160
+        refresh(game, drawing, controls, status)
+    })
+    var exhausted = Button("Exhausted special", () -> {
+        prepareEncounter(game)
+        game.subchief.endX = 120
+        for (var beam in game.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 + beam.color * 10 }
+        game.weapons.beams[0].lives = 1
+        refresh(game, drawing, controls, status)
+    })
+    var stopContacts = Button("Stop special contacts", () -> {
+        game.subchief.x = 1000
+        game.subchief.endX = 1000
+        game.weapons.beams[1].active = false
+        game.weapons.beams[2].active = false
+        refresh(game, drawing, controls, status)
+    })
     var window = Window("SiFuture subchefe")
     window.size(320, 900)
-    window.bind(Column(listOf(controls.root, status, repaint, encounter, shoot, special, fatal, body, restart, defeat, complete)))
+    window.bind(Column(listOf(controls.root, status, repaint, encounter, shoot, special, fatal, body, restart, defeat, complete, boundary30body, boundary30laser, boundary30blaster, boundary30special, boundary60body, boundary60laser, boundary60blaster, boundary60special, newShot, existingShot, reuseShot, exhausted, stopContacts)))
     window.show()
     refresh(game, drawing, controls, status)
     time.interval(Rules.STEP_MS, () -> { game.step(); refresh(game, drawing, controls, status) })
@@ -102,7 +196,9 @@ refresh(Game game, GameView drawing, GameControls controls, Label status) {
     if (game.ship.phase == ShipPhase.Normal) { shipNormal = 1 }
     if (game.ship.phase == ShipPhase.Explosion) { shipExplosion = 1 }
     if (game.screen == Screen.Result) { result = 1 }
+    var orangeActive = 0
+    if (game.weapons.beams[0].active) { orangeActive = 1 }
     var shots = 0
     for (var shot in game.subchief.shots) { if (shot.active) { shots = shots + 1 } }
-    status.text = "steps:" + game.steps + ":position:" + game.stagePosition() + ":normal:" + normal + ":explosion:" + explosion + ":x:" + game.subchief.x + ":y:" + game.subchief.y + ":hp:" + game.subchief.lives + ":lifetime:" + game.subchief.lifeTime + ":clock:" + game.subchief.normalSteps + ":frame:" + game.subchief.explosionSteps / 3 + ":explosionX:" + game.subchief.explosionX + ":shots:" + shots + ":shotX:" + game.subchief.shots[0].x + ":shotY:" + game.subchief.shots[0].y + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":shipNormal:" + shipNormal + ":shipExplosion:" + shipExplosion + ":result:" + result + ":charges:" + game.weapons.charges + ":blueLives:" + game.weapons.beams[1].lives + ":blueX:" + game.weapons.beams[1].x
+    status.text = "steps:" + game.steps + ":position:" + game.stagePosition() + ":normal:" + normal + ":explosion:" + explosion + ":x:" + game.subchief.x + ":y:" + game.subchief.y + ":hp:" + game.subchief.lives + ":lifetime:" + game.subchief.lifeTime + ":clock:" + game.subchief.normalSteps + ":frame:" + game.subchief.explosionSteps / 3 + ":explosionX:" + game.subchief.explosionX + ":shots:" + shots + ":shotX:" + game.subchief.shots[0].x + ":shotY:" + game.subchief.shots[0].y + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":shipNormal:" + shipNormal + ":shipExplosion:" + shipExplosion + ":result:" + result + ":charges:" + game.weapons.charges + ":blueLives:" + game.weapons.beams[1].lives + ":blueX:" + game.weapons.beams[1].x + ":orangeActive:" + orangeActive + ":orangeLives:" + game.weapons.beams[0].lives + ":orangeDeath:" + game.weapons.beams[0].deathSteps + ":orangeMarker:" + game.weapons.beams[0].contactSteps + ":orangeX:" + game.weapons.beams[0].x + ":darkX:" + game.weapons.beams[2].x + ":shot1X:" + game.subchief.shots[1].x + ":shot2X:" + game.subchief.shots[2].x
 }

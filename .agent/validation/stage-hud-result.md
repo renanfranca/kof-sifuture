@@ -290,9 +290,145 @@ Evidências locais opcionais: `.agent/tmp/subchief-browser/` (capturas), `.agent
 | Executor: leitura imediata do Label da fixture após concluir contagem | Expectativa incorreta | O Label atualiza no relógio da fixture; avançar um passo antes da leitura. Cerca de 1 min. |
 | Executor na revisão: prova isolada das armas não demonstrava fatal simultâneo; capacidade cheia não verificava preservação do primeiro slot | Cenário não coberto | Acrescentar precedência com resistências 1–5 e posição do primeiro tiro; código passou sem alteração. Cerca de 2 min de teste/conferência, mais um gate completo de aproximadamente 2 min. |
 | Executor: corpo do commit de documentação excedeu 100 caracteres e sequência tentou validar antes do commit | Cenário não coberto na execução do fluxo | Commit recusado antes de Git; validação prematura cancelada e não aceita. Mensagem refluída, sequência passou a abortar em falhas, nova tentativa e gate completo após commit real. Cerca de 2 min. |
-| Planejador, depois da entrega | Pendente de conferência pelo chat planejador | Não houve conferência posterior nesta execução; nenhum resultado é inferido. |
+| Planejador, depois da entrega: prêmio no passo de incremento de lifeTime (R1) | Cenário não coberto | Reproduzido em JVM/JS: 300 em vez de 600, e 150 em vez de 300. Conferência/reprodução estimada em 2–3 min; correção pendente. |
+| Planejador: colisão dos tiros antes/depois de seu avanço (R2) | Requisito esquecido | Ordem temporal histórica não preservada: tiro novo e tiro ainda fora da nave explodem no mesmo passo. Conferência/reprodução estimada em 2–3 min; correção pendente. |
+| Planejador: reaplicação em feixe esgotado não reinicia sua animação (R3) | Expectativa incorreta | O teste existente aceita término antecipado em relação ao original. Conferência/reprodução estimada em 2–3 min; correção de produção e expectativa pendente. |
 | Ciclos 2 e 3 | Ainda não executados | Registrar aqui achados e esforços quando esses ciclos ocorrerem; sem avaliações antecipadas. |
 
 Preparação adicional de matriz/retrieval: aproximadamente 6–8 min; conferência das fontes e composição visual: 4–6 min; registro de aceite/revisão: 5–7 min; correções de expectativa: aproximadamente 4 min. Estimativas de esforço do executor, não medições de uma comparação controlada. Execução automatizada do primeiro gate mediu 130,92 s; não se confunde duração do comando com esforço humano/agente.
 
 Sinal observado neste ciclo: a revisão detectou uma lacuna antes da entrega e a fechou sem mudar produção. Ainda não há medida de redução de correção posterior: falta a revisão do planejador e os dois próximos ciclos. O total de testes e a ausência de falhas nos gates, isoladamente, não demonstram benefício.
+
+### Conferência posterior do planejador — 04/10/2026
+
+Revisão comparada ao plano aprovado no SHA `44195b03ff1f9bc3a112bb5e1608af21c76bb7f2`, branch `subchief-combat`, [PR #11](https://github.com/renanfranca/kof-sifuture/pull/11). O delta de `6c79a06` para esse head contém somente documentação. Fontes históricas consultadas no SHA `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`; consulta estática ao JAR, sem executá-lo. Kof instalado `0.5.0-beta`; checkout consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`, sem atribuir esse SHA à distribuição instalada.
+
+**Resultado: o ciclo ainda não atende integralmente à preservação histórica aprovada.** Os critérios de recompensa, colisão temporal e esgotamento do especial têm desvios reproduzidos abaixo. As afirmações anteriores de ausência de lacuna descrevem a revisão do executor; esta conferência posterior acrescenta os contrapontos.
+
+Os dez comandos da tabela deste ciclo foram reexecutados no head acima, todos com exit 0: 73/73 regras em JVM e JS, seis percursos Chrome, oito testes Python e contrato CI. O Chrome `139.0.7258.154` repetiu o percurso do subchefe em 320/1200 pixels; a sequência completa terminou em 4228 passos, score 350 e posição 176 em ambas as larguras. Capturas de combate em 320, especial/HUD em 1200 e explosão/quadro 9 em 320 foram inspecionadas. Os dois assets continuam byte a byte iguais à fonte e `/.agent/tmp/` aparece exatamente uma vez no exclude local.
+
+O [run 37217086848](https://github.com/renanfranca/kof-sifuture/actions/runs/37217086848) confirmou `Resolve verified Kof`, `Kof tests (jvm)` e `Kof tests (js)` com SUCCESS no mesmo head. Os jobs Pages foram SKIPPED; não se infere publicação. Vídeo histórico continua como lacuna de evidência.
+
+#### R1 — prêmio reduzido quando o golpe fatal coincide com o incremento do relógio
+
+Em [Game.kf](../../src/main/kof/sifuture/game/Game.kf#L141), `subchief.advance()` ocorre antes do bloco de colisões/recompensa. Em [Subchief.kf](../../src/main/kof/sifuture/game/Subchief.kf#L93):
+
+```kof
+if (normalSteps == 36) { lifeTime = lifeTime + 1; normalSteps = 0 }
+```
+
+No histórico, a recompensa do golpe aparece em `GameCanvas.java:217–221`, antes de `subchiefUpdate` em `:245`. Trechos separados, na ordem em que aparecem:
+
+```java
+this.stagecount.score += this.stagecount.subChief.reward();
+```
+
+```java
+this.stagecount.subchiefUpdate(g);
+```
+
+O golpe muda o subchefe para explosão, portanto `Subchief.fire()` deixa de incrementar o contador nesse passo. Com lifeTime 30/60 e relógio normal 35, o port incrementa para 31/61 antes de avaliar a morte e entrega o prêmio menor. A prova existente fixa lifeTime, mas não exercita simultaneamente a fronteira do relógio.
+
+#### R2 — tiro recém-criado ou ainda fora da nave causa colisão um passo antes
+
+No histórico `GameCanvas.java:241–245`, o contato do tiro é verificado antes de mover/disparar o subchefe. Trechos separados:
+
+```java
+this.stagecount.subChief.laserCollision(airship);
+```
+
+```java
+this.stagecount.subchiefUpdate(g);
+```
+
+O port faz o avanço em `Game.kf:141` e só verifica tiros em [Game.kf](../../src/main/kof/sifuture/game/Game.kf#L183):
+
+```kof
+for (var shot in subchief.shots) {
+    if (shot.touchesShip(ship)) { ship.explode(); shot.active = false; break }
+}
+```
+
+Exemplos: subchefe em x101/y100, relógio 11 e nave em x40/y100 produzem um tiro em x90 que já explode a nave no mesmo passo. Um tiro existente em x51/y113, fora da nave x0–50, avança a x47 e também explode nesse passo. O original só testa essas posições na chamada seguinte. Preservar a ordem entre famílias de armas não preserva, por si só, a ordem entre contato e movimento/disparo.
+
+#### R3 — reaplicação não reinicia a animação de um feixe esgotado
+
+Em `AirShipEspecialShoot.java:223–238`, conferido também com `javap -classpath /home/renanfranca/projects/sifuture/deployed/Sifuture.jar -c -p AirShipEspecialShoot`:
+
+```java
+public void changeToDead() {
+    this.state = DEAD;
+    this.especialTime = 0;
+    this.especialDraw = 0;
+}
+```
+
+```java
+if (this.lives <= 0) {
+    changeToDead();
+}
+```
+
+Cada reaplicação com resistência zero ou negativa reinicia a animação. Em [SpecialBeam.kf](../../src/main/kof/sifuture/game/SpecialBeam.kf#L63), o port reinicia apenas ao alcançar exatamente zero:
+
+```kof
+if (lives == 0) { deathSteps = 0 }
+```
+
+Com resistência inicial 1, os contatos sucessivos deixam o laranja em 0, -1 e -2. O contador de morte continua, em vez de reiniciar; no sétimo passo o feixe já está inativo, enquanto o histórico ainda o manteria animando e marcado. [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1628) aceita exatamente esse término antecipado. A consequência inclui remover cedo o marcador que participa de reaplicações posteriores.
+
+#### Provas direcionadas e lacunas restantes
+
+Foram criados somente artefatos locais de diagnóstico com a implementação real copiada pelo helper existente. Comandos executados: `python3 .agent/tmp/planner-subchief-review/run_audit.py --target jvm` e `--target js`. Ambos retornam exit 1: quatro casos em `SubchiefAudit.kf` e um em `SpecialDeathAudit.kf` falham contra as expectativas históricas. Saída essencial, igual nos dois alvos:
+
+```text
+lifetime30 score=300 lifetimeAfter=31
+lifetime60 score=150 lifetimeAfter=61
+newShot shipNormal=false shotActive=false
+movingShot shipNormal=false shotX=47
+4 failed of 4 tests
+afterThirdContact lives=-2 deathSteps=2
+afterSevenSteps active=false frame=0
+1 failed of 1 tests
+```
+
+Os exemplos acima foram executados em JVM e JS; não são resultados somente de compilação. Os arquivos/logs em `.agent/tmp/planner-subchief-review/` são apoio opcional: configuração, expectativas e resultados essenciais estão neste registro. Código da aplicação e suíte versionada permaneceram intactos nesta conferência.
+
+Estimativa de esforço adicional do planejador: aproximadamente 10–15 min para fontes, cinco cenários direcionados, conferência dos checks e registro; sem cronômetro de esforço. Tempo futuro de correção ainda não observado. Os três desvios foram encontrados após a entrega, apesar dos gates existentes verdes. Este ciclo ainda não demonstra redução de trabalho posterior; corrigir R1–R3, ampliar as provas de transição e medir a correção, mantendo ciclos 2/3 pendentes.
+
+
+### Reparação das divergências R1–R3 — 04/10/2026
+
+Esta seção complementa a conferência posterior sem apagar os registros anteriores. Branch `subchief-combat`, PR #11 existente; base da reparação `44195b03ff1f9bc3a112bb5e1608af21c76bb7f2`. Execução `subchief-repair-primary`, `gpt-6.1-sol`/`medium`, implementação, validação e revisão no mesmo contexto. Ledger original preservado. Fontes históricas: `GameCanvas.java:213–245`, `Subchief.java:157–164,204–206,297–309,367–373`, `AirShipEspecialShoot.java:223–238,445–510`. Consulta estática, sem executar o jogo Java ME nem acessar o vídeo.
+
+As cinco provas foram incorporadas a `GameJourney.kf`, pelo caminho público `Game.step()`, antes de modificar produção. `python3 scripts/kof_project.py test --target jvm` e `--target js` retornaram exit 1 com os mesmos cinco casos falhos em 77 testes:
+
+```text
+lifetime30 score=300 lifetimeAfter=31
+lifetime60 score=150 lifetimeAfter=61
+newShot shipNormal=false shotActive=false
+movingShot shipNormal=false shotX=47
+FAIL marked exhausted special beam still reapplies when next color enters contact: each nonpositive hit restarts the historical death animation
+5 failed of 77 tests
+```
+
+Os testes não dependem da existência dos novos métodos internos de avanço. A expectativa anterior de término no sétimo passo foi substituída pelo reinício a cada dano não positivo. Após a correção, os dois alvos executaram 79 casos com `0 failed of 79 tests`. Logs locais opcionais: `.agent/tmp/subchief-repair.red-{jvm,js}.log` e `.agent/tmp/subchief-repair.green-{jvm,js}.log`.
+
+| Critério | Exemplo reproduzível e expectativa histórica | Evidência executada |
+|---|---|---|
+| R1: relógio/prêmio, quatro famílias | `normalSteps=35`, `lifeTime=30/60`, posição 120/100 e fatal por corpo/laser/blaster/especial: score 600/300, vida/relógio/posição sem avanço, nenhum disparo; prêmio único e quadro zero | Dois testes de fronteira, quatro armas por teste em JVM/JS; oito cenas Chrome por largura, estado real, sprite e dígitos do HUD |
+| R1: não fatal | Mesma fronteira e quatro famílias: score zero, relógio 0, `lifeTime+1`, posição 121/101 e tiro x110 | Teste `nonfatal contacts still move fire and increment the lifetime clock at thirty and sixty`, JVM/JS |
+| R2: tiro novo | Subchefe 101/100, relógio 11, nave 40/100: primeiro passo tiro x90 e nave normal; seguinte explode e remove tiro | Teste `new enemy shot cannot collide before its historical first update`, JVM/JS; Chrome, sprite real e pausa/repaint entre contatos |
+| R2: existente/reutilização | Tiro 51/113, nave x0: primeiro x47 sem colisão, seguinte explosão. Slot 0 liberado por contato retorna com tiro x90; slots 1/2 avançam uma vez para 146/156, sem segunda colisão | Dois testes em JVM/JS, incluindo reutilização; três cenas Chrome por largura |
+| R3: reaplicação | Laranja 1→0→−1→−2, `deathSteps=0` após cada dano; ativo/marcado no passo 7 (`deathSteps=4`); contatos nos passos 8/9 reiniciam em −3/−4 | Teste `marked exhausted special beam still reapplies when next color enters contact`, JVM/JS; Chrome, sprites e1/e2 e valores reais |
+| R3: seis passos sem novo dano | Após o último dano, mover o subchefe para fora e retirar os outros feixes da fixture: ativo até passo 5, desaparece no sexto e marcador zero | Mesmo teste em JVM/JS, bloqueando novos contatos pela fase; Chrome com posição fora, desenho real até passo 5 e remoção visual no sexto |
+| Explosão, trilha, pausa e reinício | Fatal em x120 começa quadro 0; 30 passos/10 quadros, deslocamentos 0/1/4/7/10/16/22/31/40/55, fim x65; trilha 89, retoma depois; pausa congela; reinício não recebe dano | Testes existentes reconciliados com posição anterior ao movimento; Chrome compara todos os dez sprites, pausa/repaint, invulnerabilidade |
+| Derrota/resultado e nova partida | Animação permanece sem contato/prêmio; score17/vidas0 e trilha89; nova partida limpa fases, tiros, relógios e score | Teste existente JVM/JS e percurso Chrome de derrota/reinício |
+
+A mudança da posição inicial da explosão de 121 para 120 decorre do golpe antes do movimento, não altera os deslocamentos aceitos. As coordenadas dos testes de borda do laser foram deslocadas um pixel para medir a mesma geometria contra a posição anterior do subchefe; `laser.x=120` agora registra a posição de contato, enquanto o não fatal ainda move o subchefe a121 depois. A nave, armas e meteoros conservam seus próprios contratos de atualização e a prioridade dos contatos.
+
+Percurso preliminar `python3 tests/browser_subchief.py`: Chrome `139.0.7258.154`, larguras 320/1200; oito fatais, três cenários de tiro, reaplicação/limpeza e desenho dos dez quadros. A jornada completa com seed902 terminou em 4515 passos, score350 e posição176 nos dois tamanhos (antes, 4228 passos): a ordem corrigida muda os contatos do encontro e sua duração, mantendo o fim da trilha e o resultado observados. Capturas e logs ficam em `.agent/tmp/subchief-browser/` e `.agent/tmp/subchief-repair.browser-checkpoint2.log`; os gates completos em commits identificados serão registrados abaixo.
+
+Esforço adicional estimado nesta reparação: preparação/retrieval e registro inicial, cerca de 5–7 min; conferência da fonte e das expectativas de movimento/desenho, 3–5 min; correção de código, testes e fixture, cerca de 8–12 min. O primeiro checkpoint de navegador detectou uma máscara de oclusão insuficiente para `laser03.png` (5×25); a máscara passou a usar seus limites reais, sem alterar produção. Esses valores são estimativas de trabalho, separadas das durações automatizadas dos gates.
+
+Classificação preservada: R1, cenário não coberto; R2, requisito esquecido; R3, expectativa incorreta. Os três achados surgiram depois da entrega original e exigiram correção posterior; neste reparo as provas versionadas anteciparam o diagnóstico antes da mudança de produção. Ainda não há comparação controlada que demonstre redução de retrabalho. Ciclos 2/3 permanecem pendentes; vídeo histórico segue como lacuna. Sonar, mutação e Habit excluídos por ausência de configuração, sem alegação de aprovação.

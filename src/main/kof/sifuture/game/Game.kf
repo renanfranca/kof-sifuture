@@ -138,7 +138,6 @@ class Game {
                 stageSteps = stageSteps + 10
             }
         }
-        subchief.advance()
         background.advance()
         for (var item in items) { item.advance() }
         var normalBefore = ship.phase == ShipPhase.Normal
@@ -146,6 +145,7 @@ class Game {
         ship.advance()
         if (ship.lives < livesBefore) { weapons.loseOnDeath() }
         if (ship.lives == 0) {
+            subchief.advance()
             finish()
             return
         }
@@ -161,6 +161,22 @@ class Game {
             }
         }
 
+        var chiefPhaseBeforeContacts = subchief.phase
+        if (subchief.touchesShip(ship)) {
+            ship.explode()
+            subchief.damage(1)
+        }
+        weapons.hitSubchiefLaser(subchief)
+        weapons.hitSubchiefBlaster(subchief)
+        weapons.hitSubchiefSpecial(subchief)
+        if (chiefPhaseBeforeContacts == SubchiefPhase.Normal && subchief.phase == SubchiefPhase.Explosion) { score = score + subchief.reward() }
+        for (var shot in subchief.shots) {
+            if (shot.touchesShip(ship)) { ship.explode(); shot.active = false; break }
+        }
+        if (chiefPhaseBeforeContacts == SubchiefPhase.Explosion) { subchief.advanceExplosion() }
+        subchief.advanceNormal()
+        subchief.advanceShots()
+
         if (subchief.phase == SubchiefPhase.Inactive && stagePosition() > 30 && !meteors[6].active && !meteors[7].active) {
             meteors[6].active = true
             meteors[7].active = true
@@ -170,18 +186,6 @@ class Game {
             var wasCollided = m.collided
             m.advance()
             if (m.active && !wasCollided && !m.collided) { targets.add(m) }
-        }
-        var chiefNormal = subchief.phase == SubchiefPhase.Normal
-        if (subchief.touchesShip(ship)) {
-            ship.explode()
-            subchief.damage(1)
-        }
-        weapons.hitSubchiefLaser(subchief)
-        weapons.hitSubchiefBlaster(subchief)
-        weapons.hitSubchiefSpecial(subchief)
-        if (chiefNormal && subchief.phase == SubchiefPhase.Explosion) { score = score + subchief.reward() }
-        for (var shot in subchief.shots) {
-            if (shot.touchesShip(ship)) { ship.explode(); shot.active = false; break }
         }
         var shipCanCollide = ship.phase == ShipPhase.Normal
         var shipCollision = false

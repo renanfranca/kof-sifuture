@@ -281,3 +281,22 @@ Avaliar antecipação dos achados e redução da correção posterior. Quantidad
 - Entrega: repetir os dez checks no commit final de documentação, abrir PR pronto para revisão e acompanhar Resolve verified Kof e Kof tests (jvm/js). Os SHAs finais e links específicos ficarão no PR/ledger. Não realizar merge.
 
 A seção deste ciclo em `.agent/validation/stage-hud-result.md` preserva o histórico e associa cada critério à origem, exemplos executados, SHA e evidência persistente. A avaliação de três ciclos começa aqui; conferência posterior do planejador e ciclos 2/3 permanecem pendentes. Vídeo histórico não foi acessado.
+
+### Conferência posterior do planejador — 04/10/2026
+
+Head conferido `44195b03ff1f9bc3a112bb5e1608af21c76bb7f2`, PR #11. Os dez checks locais e os três checks CI selecionados passam, mas cinco cenários direcionados falham em JVM e JS contra a fonte histórica. O [aceite existente](.agent/validation/stage-hud-result.md#conferência-posterior-do-planejador--04102026) registra R1 (prêmio calculado após incremento de lifeTime), R2 (colisão dos tiros após movimento/disparo) e R3 (animação do especial não reiniciada em resistência negativa), com expectativas, resultados, classificação e esforço estimado. A conferência do planejador foi concluída; ciclos 2/3 permanecem pendentes.
+
+- [ ] Corrigir R1–R3 preservando as decisões aprovadas, incluir provas das transições na suíte versionada e repetir os checks afetados antes de fechar o aceite do ciclo. Esta revisão altera apenas registros e evidências locais.
+
+
+### Reparação R1–R3 do ciclo atual — 04/10/2026
+
+Plano aprovado em `.agent/tmp/subchief-repair.md`; execução `subchief-repair-primary`, modelo/esforço efetivos `gpt-6.1-sol`/`medium`, todos os papéis no mesmo chat. Base imutável `44195b03ff1f9bc3a112bb5e1608af21c76bb7f2`; branch `subchief-combat`, PR #11 existente. O ledger original foi preservado e os dois deltas locais da conferência foram incorporados sem apagar seus registros.
+
+- [x] Incorporar as cinco provas à suíte existente e observar cinco falhas em 77 testes em JVM/JS antes de alterar produção; corrigir a expectativa histórica do feixe esgotado.
+- [x] Separar avanço normal, explosão e tiros; contatos precedem avanço/disparo e meteoros. Golpe fatal mantém posição, relógio e quadro zero, com prêmio único. `advance()` compõe as partes no resultado e na transição de derrota.
+- [x] Reiniciar `deathSteps` após cada dano com resistência não positiva; conservar valores negativos, marcadores e cores. Sem nova reaplicação, limpar após seis passos.
+- [x] Ampliar os exemplos por corpo/laser/blaster/especial, não fatal, novo/existente/reutilizado e retomada da animação. Suíte de 79 casos verde em JVM/JS durante implementação.
+- [ ] Confirmar desenho/modelo em Chrome 320/1200, dez checks pelo executor, revisão estrutural, evidências por SHA/CI no aceite e entrega no PR existente.
+
+R1 permanece classificado como cenário não coberto; R2, requisito esquecido; R3, expectativa incorreta. São reparos do ciclo atual. Ciclos 2/3 e vídeo histórico continuam pendentes. Registrar preparação, conferência e correção separadamente no aceite; número de testes e gates verdes não demonstram redução do retrabalho.

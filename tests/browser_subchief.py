@@ -97,10 +97,10 @@ def journey(page, width):
     for frame, offset in enumerate(offsets):
         if frame:
             advance(page, 3)
-        assert state(page)["frame"] == frame and state(page)["explosionX"] == 121 - offset
+        assert state(page)["frame"] == frame and state(page)["explosionX"] == 120 - offset
         assert state(page)["position"] == 89 and state(page)["score"] == 600
-        occluded = ((121, 100, 161, 130),) if frame == 0 else ()
-        sprite(page, f"explosion{frame}.png", 121 - offset, 100, occluded=occluded)
+        occluded = ((125, 100, 130, 125),) if frame == 0 else ()
+        sprite(page, f"explosion{frame}.png", 120 - offset, 100, occluded=occluded)
         redraws(page)
         if frame == 4:
             freeze(page)
@@ -135,6 +135,87 @@ def journey(page, width):
     button(page, "Voltar ao menu")
 
 
+def repair_journey(page, width):
+    for lifetime, reward in ((30, 600), (60, 300)):
+        for weapon in ("body", "laser", "blaster", "special"):
+            button(page, f"Boundary {lifetime} {weapon}")
+            advance(page)
+            observed = state(page)
+            assert observed["score"] == reward and observed["lifetime"] == lifetime
+            assert observed["clock"] == 35 and observed["x"] == 120 and observed["frame"] == 0
+            assert observed["explosionX"] == 120 and observed["shots"] == 0
+            if weapon == "body":
+                sprite(page, "explosion0.png", 100, 100)
+            if weapon == "laser":
+                sprite(page, "explosion0.png", 120, 100, occluded=((125, 100, 130, 125),))
+            if weapon == "blaster":
+                sprite(page, "explosion0.png", 120, 100)
+            if weapon == "special":
+                sprite(page, "e6.png", 5, 100)
+            for digit, x in zip(str(reward), (128, 144, 160)):
+                sprite(page, f"{digit}.png", x, 0)
+            page.locator("canvas").screenshot(path=str(EVIDENCE / f"r1-{lifetime}-{weapon}-{width}.png"))
+            redraws(page)
+            freeze(page)
+            advance(page)
+            assert state(page)["score"] == reward and state(page)["frame"] == 0
+
+    button(page, "New shot boundary")
+    advance(page)
+    assert state(page)["shipNormal"] == 1 and state(page)["shotX"] == 90 and state(page)["shots"] == 1
+    sprite(page, "laser0.png", 90, 113, occluded=((101, 100, 129, 126),))
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"r2-new-shot-{width}.png"))
+    redraws(page)
+    freeze(page)
+    advance(page)
+    assert state(page)["shipExplosion"] == 1 and state(page)["shots"] == 0
+    sprite(page, "explosion0.png", 40, 100)
+
+    button(page, "Existing shot boundary")
+    advance(page)
+    assert state(page)["shipNormal"] == 1 and state(page)["shotX"] == 47 and state(page)["shots"] == 1
+    sprite(page, "laser0.png", 47, 113, occluded=((0, 100, 50, 133),))
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"r2-existing-shot-{width}.png"))
+    advance(page)
+    assert state(page)["shipExplosion"] == 1 and state(page)["shots"] == 0
+    sprite(page, "explosion0.png", 0, 100)
+
+    button(page, "Reuse shot slot")
+    advance(page)
+    observed = state(page)
+    assert observed["shipExplosion"] == 1 and observed["shots"] == 3 and observed["shotX"] == 90
+    assert observed["shot1X"] == 146 and observed["shot2X"] == 156
+    sprite(page, "laser0.png", 90, 113, occluded=((101, 100, 129, 126),))
+
+    button(page, "Exhausted special")
+    for lives in (0, -1, -2):
+        advance(page)
+        assert state(page)["orangeLives"] == lives and state(page)["orangeDeath"] == 0
+    advance(page, 4)
+    observed = state(page)
+    assert observed["orangeActive"] == 1 and observed["orangeDeath"] == 4 and observed["orangeMarker"] == 6
+    sprite(page, "e2.png", 5, 100, occluded=((observed["blueX"], 110, observed["blueX"] + 319, 142),
+                                             (observed["darkX"], 120, observed["darkX"] + 319, 152)))
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"r3-seventh-step-{width}.png"))
+    freeze(page)
+    redraws(page)
+    advance(page)
+    assert state(page)["orangeLives"] == -3 and state(page)["orangeDeath"] == 0
+    advance(page)
+    assert state(page)["orangeLives"] == -4 and state(page)["orangeDeath"] == 0
+    button(page, "Stop special contacts")
+    for step in range(1, 6):
+        advance(page)
+        assert state(page)["orangeActive"] == 1 and state(page)["orangeDeath"] == step
+        sprite(page, "e1.png" if step < 3 else "e2.png", 5, 100)
+    before = bitmap(page).crop((5, 100, 176, 132)).tobytes()
+    advance(page)
+    assert state(page)["orangeActive"] == 0 and state(page)["orangeMarker"] == 0
+    assert bitmap(page).crop((5, 100, 176, 132)).tobytes() != before
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"r3-six-steps-after-last-hit-{width}.png"))
+    print(f"PASS R1 eight fatal boundaries; R2 new/existing/reused shots; R3 reapplication and six-step cleanup at {width}px")
+
+
 def main():
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     with served_build(fixture=ROOT / "tests/subchief.kf") as url, served_build() as app_url:
@@ -150,6 +231,7 @@ def main():
                     page.clock.pause_at(datetime(2026, 1, 1))
                     page.goto(url)
                     journey(page, width)
+                    repair_journey(page, width)
                     assert not errors, errors
                     page.close()
                     app = browser.new_page(viewport={"width": width, "height": 1000})
