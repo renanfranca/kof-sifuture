@@ -286,7 +286,7 @@ A seção deste ciclo em `.agent/validation/stage-hud-result.md` preserva o hist
 
 Head conferido `44195b03ff1f9bc3a112bb5e1608af21c76bb7f2`, PR #11. Os dez checks locais e os três checks CI selecionados passam, mas cinco cenários direcionados falham em JVM e JS contra a fonte histórica. O [aceite existente](.agent/validation/stage-hud-result.md#conferência-posterior-do-planejador--04102026) registra R1 (prêmio calculado após incremento de lifeTime), R2 (colisão dos tiros após movimento/disparo) e R3 (animação do especial não reiniciada em resistência negativa), com expectativas, resultados, classificação e esforço estimado. A conferência do planejador foi concluída; ciclos 2/3 permanecem pendentes.
 
-- [ ] Corrigir R1–R3 preservando as decisões aprovadas, incluir provas das transições na suíte versionada e repetir os checks afetados antes de fechar o aceite do ciclo. Esta revisão altera apenas registros e evidências locais.
+- [x] Corrigir R1–R3 preservando as decisões aprovadas, incluir provas das transições na suíte versionada e repetir os checks afetados antes de fechar o aceite do ciclo. Concluído na reparação abaixo e confirmado na conferência posterior do planejador.
 
 
 ### Reparação R1–R3 do ciclo atual — 04/10/2026
@@ -303,3 +303,8 @@ R1 permanece classificado como cenário não coberto; R2, requisito esquecido; R
 
 
 Fechamento da reparação: código/suíte/fixture `c9ea48bfad8d8a3420cd168a68f2219c9d058855`, 79/79 em JVM/JS e dez checks nos gates inicial/final (151,40/151,75 s). Chrome `139.0.7258.154`, 320/1200, R1–R3, HUD e sprites reais. Revisão estrutural sem refactor adicional. [CI 37223086619](https://github.com/renanfranca/kof-sifuture/actions/runs/37223086619) verde no mesmo SHA; PR #11 atualizado, sem merge. O aceite associa os critérios a SHA/comando/resultado/navegador/jobs, preservando a conferência anterior. Complemento documental no ledger `subchief-repair-acceptance`, mesmo worker/inventário: repetirá todos os gates locais/CI antes do encerramento, porque o ledger de produção foi marcado pronto antes de incorporar os links e não admite reabertura.
+
+Conferência posterior do planejador concluída no head `bef987ef297474996e1508c2e13843ff94054cd2`: R1–R3 atendem ao plano, sem novo desvio de implementação identificado. Reexecutados os dez checks e as cinco provas originais em ambos os alvos, todos com exit 0; 79/79 cenários em JVM/JS e Chrome 320/1200. [CI 37224091222](https://github.com/renanfranca/kof-sifuture/actions/runs/37224091222) confirmado no mesmo head, PR #11 aberto, Pages SKIPPED. O [aceite existente](.agent/validation/stage-hud-result.md#conferência-do-planejador-após-a-reparação--04102026) associa resultados, comandos, SHA, fontes, capturas e esforço estimado; vídeo e avaliação dos ciclos 2/3 continuam pendentes. Esta conferência altera somente registros, sem novo código ou commit.
+
+
+Merge/publicação confirmados em 04/10/2026: PR #11 integrado como `567f6d032523fe02a0c45eebdbf345f51d70b600`. [Workflow 37229615413](https://github.com/renanfranca/kof-sifuture/actions/runs/37229615413) com os cinco jobs SUCCESS, incluindo Build/Publish Pages; JVM/JS 79/79. [Site ao vivo](https://renanfranca.github.io/kof-sifuture/) conferido em Chrome `139.0.7258.154`, 320/1200, início, movimento pelos sprites e pausa/retomada, sem erros JS/HTTP. Todos os 95 arquivos servidos correspondem ao artefato publicado. Registro completo no aceite existente, preservando os deltas locais do planejador; vídeo histórico e ciclos 2/3 permanecem pendentes.

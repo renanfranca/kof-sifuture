@@ -487,3 +487,72 @@ Esforço de fechamento/conferência estimado: 3–5 min para interpretar gates, 
 R1 cenário não coberto, R2 requisito esquecido e R3 expectativa incorreta foram reparados no ciclo atual. Não houve achado adicional de produção após a correção. Tempo automatizado é separado das estimativas de esforço. O sinal de benefício é antecipar desvios/reduzir correção posterior; este ciclo ainda não oferece comparação controlada. Ciclos 2/3, execução Java ME histórica e vídeo permanecem pendentes; os três desvios originais foram encontrados depois da entrega anterior.
 
 A primeira mensagem do complemento excedeu 100 caracteres por linha e o executor recusou o commit antes de Git. A validação iniciada após essa recusa foi cancelada e excluída dos gates; a sequência passou a abortar em falhas antes de iniciar o executor. Mensagem refluída e nova tentativa identificada, sem amend/rebase. Esforço de recuperação estimado em 1–2 min, além da repetição dos gates.
+
+#### Conferência do planejador após a reparação — 04/10/2026
+
+**Resultado: R1–R3 atendem ao planejamento aprovado; nenhum novo desvio de implementação encontrado nesta conferência.** Head testado `bef987ef297474996e1508c2e13843ff94054cd2`, branch `subchief-combat`, [PR #11](https://github.com/renanfranca/kof-sifuture/pull/11) aberto no mesmo SHA. O delta desde `c9ea48bfad8d8a3420cd168a68f2219c9d058855` contém somente `EXECPLAN.md` e este aceite; código, suíte e fixture são os mesmos da reparação.
+
+A matriz de reparação acima foi reconferida com o plano, implementação e fontes originais no SHA `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`: `GameCanvas.java:208–245` resolve contatos/prêmios antes de atualizar o subchefe; `Subchief.java:157–164,297–307` define os limites do prêmio e restringe o relógio ao estado normal; `AirShipEspecialShoot.java:223–238` reinicia os contadores após cada dano com resistência não positiva. A consulta foi estática; não se executou o jogo Java ME. Kof instalado `0.5.0-beta`; checkout consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`, sem atribuir esse SHA à distribuição instalada.
+
+Os dez comandos da tabela de fechamento foram reexecutados no head acima, todos com exit 0: 79/79 cenários em cada alvo, seis percursos Chrome, oito testes de infraestrutura e contrato CI. Os dois comandos adicionais `python3 .agent/tmp/planner-subchief-review/run_audit.py --target jvm` e `--target js` também retornaram exit 0, repetindo as mesmas cinco provas que falhavam na primeira entrega. Saída essencial, igual nos dois alvos:
+
+```text
+lifetime30 score=600 lifetimeAfter=30
+lifetime60 score=300 lifetimeAfter=60
+newShot shipNormal=true shotActive=true
+movingShot shipNormal=true shotX=47
+0 failed of 4 tests
+afterThirdContact lives=-2 deathSteps=0
+afterSevenSteps active=true frame=2
+0 failed of 1 tests
+```
+
+O fatal conserva prêmio e relógio nas duas fronteiras. O primeiro passo dos tiros deixa a nave normal, e o feixe esgotado reinicia a animação após reaplicações, permanecendo ativo no sétimo passo. A suíte versionada também demonstra o contato dos tiros no passo seguinte, as quatro famílias de golpes fatais e não fatais, reutilização do slot, novos reinícios da animação e limpeza seis passos após o último dano. Não depende apenas da contagem de testes.
+
+O percurso `python3 tests/browser_subchief.py`, em Chrome `139.0.7258.154`, repetiu as duas larguras 320/1200 com modelo, desenho e controles reais:
+
+```text
+PASS R1 eight fatal boundaries; R2 new/existing/reused shots; R3 reapplication and six-step cleanup at 320px
+PASS R1 eight fatal boundaries; R2 new/existing/reused shots; R3 reapplication and six-step cleanup at 1200px
+PASS midpoint combat, three shots, invulnerability, real special controls, ten explosion sprites, resumed track, defeat and new game
+```
+
+A jornada com seed902 voltou a terminar em 4515 passos, score350 e posição176 nas duas larguras. Capturas do fatal/600 em 320, tiro novo em 320, feixe no sétimo passo em 1200 e limpeza em 1200 foram inspecionadas; comparações automatizadas de sprites cobriram ambas as larguras. Assets `subchief.png` e `laser0.png` continuam byte a byte iguais ao original, NOTICE não mudou, e o exclude local contém `/.agent/tmp/` exatamente uma vez.
+
+O [CI 37224091222](https://github.com/renanfranca/kof-sifuture/actions/runs/37224091222) confirmou o mesmo head testado:
+
+- [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37224091222/job/111500056720): SUCCESS.
+- [Kof tests (jvm)](https://github.com/renanfranca/kof-sifuture/actions/runs/37224091222/job/111500420620): SUCCESS, `0 failed of 79 tests`.
+- [Kof tests (js)](https://github.com/renanfranca/kof-sifuture/actions/runs/37224091222/job/111500420634): SUCCESS, `0 failed of 79 tests`.
+
+Build/Publish Pages foram SKIPPED; não se infere publicação. Logs locais opcionais e resumo estão em `.agent/tmp/planner-subchief-repair-review/`. Os doze comandos, executados com até quatro processos simultâneos, consumiram 52,09 s de tempo automatizado; essa duração não mede esforço de preparação/conferência.
+
+Esforço adicional estimado do planejador: 5–8 min para comparar plano/fontes/código, interpretar provas/gates, inspecionar capturas e registrar resultados. Nenhuma correção adicional de produção foi necessária. R1 continua classificado como cenário não coberto, R2 como requisito esquecido e R3 como expectativa incorreta, todos encontrados depois da entrega original e agora fechados. A ausência de novos achados neste reparo não demonstra, isoladamente, benefício; ciclos 2/3 e medição de redução de correção posterior continuam pendentes. Vídeo histórico permanece como lacuna de evidência visual.
+
+Esta conferência modifica somente os registros versionados; o SHA testado acima identifica a implementação, sem atribuir validação a um futuro commit documental.
+
+
+### Merge e confirmação do GitHub Pages — 04/10/2026
+
+[PR #11](https://github.com/renanfranca/kof-sifuture/pull/11) integrado em `main` em 04/10/2026 às 19:47:28 UTC, SHA `567f6d032523fe02a0c45eebdbf345f51d70b600`. Merge realizado com `gh pr merge 11 --merge --match-head-commit bef987ef297474996e1508c2e13843ff94054cd2`, após confirmar os checks do head. `gh pr view 11 --json state,mergedAt,mergeCommit,url` retornou `MERGED`; a referência remota de `main` foi conferida no mesmo SHA após a publicação.
+
+[Workflow 37229615413](https://github.com/renanfranca/kof-sifuture/actions/runs/37229615413), disparado pelo merge, concluiu os cinco jobs com SUCCESS no mesmo SHA:
+
+- [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37229615413/job/111516332456) — SUCCESS.
+- [Kof tests (jvm)](https://github.com/renanfranca/kof-sifuture/actions/runs/37229615413/job/111516767176) — SUCCESS.
+- [Kof tests (js)](https://github.com/renanfranca/kof-sifuture/actions/runs/37229615413/job/111516767189) — SUCCESS.
+- [Build complete Pages site](https://github.com/renanfranca/kof-sifuture/actions/runs/37229615413/job/111516842216) — SUCCESS.
+- [Publish current main](https://github.com/renanfranca/kof-sifuture/actions/runs/37229615413/job/111516914816) — SUCCESS.
+
+Os alvos JVM e JS executaram, cada um, `0 failed of 79 tests`. A publicação utilizou `pages-37229615413-1`. Com `gh run download 37229615413 --name pages-37229615413-1 --dir .agent/tmp/subchief-repair-pages`, o artefato foi recuperado; `python3 .agent/tmp/subchief-repair-pages/check_published.py` comparou SHA-256 de todos os 95 arquivos do artefato com respostas HTTP 200 de [Pages ao vivo](https://renanfranca.github.io/kof-sifuture/). Comparação integral, incluindo HTML, módulos JS e assets; todos iguais byte a byte ao build publicado. Trecho de execução:
+
+```text
+PASS all live site files match the exact deployed Pages artifact: 95 files
+PASS Chrome 139.0.7258.154 live Pages at 320/1200: start, keyboard, pause/resume, no JS or HTTP errors
+```
+
+No Chrome `139.0.7258.154`, em 320/1200, a página real carregou com HTTP 200, iniciou por Novo Jogo, exibiu o Canvas de 176 pixels e o jogo em movimento. A entrada ArrowRight por dois passos foi verificada pelos pixels da nave: Middle.png em x0/y100, Middle2.png em x10/y100 enquanto pressionada, Middle.png em x10/y100 após soltura. Pausa manteve o desenho idêntico por dez passos; Continuar retomou o jogo. Nenhum erro JavaScript ou resposta HTTP de erro nos dois percursos. Capturas das duas larguras foram inspecionadas.
+
+A conferência ao vivo prova distribuição, carregamento, movimento da nave e pausa; não repete o encontro completo/R1–R3 no site remoto. Os 95 arquivos iguais vinculam a publicação ao build do SHA testado, enquanto as provas comportamentais detalhadas do encontro continuam registradas nas seções anteriores. Vídeo histórico e ciclos 2/3 permanecem pendentes.
+
+Evidências locais opcionais em `.agent/tmp/subchief-repair-pages/`: `workflow-status.json`, `workflow.log`, `artifacts.json`, `artifact.tar`, `published-checksums.json`, `acceptance.json`, `acceptance.log` e `live-{320,1200}.png`. Resultado essencial e links persistentes constam acima. A confirmação foi acrescentada preservando as alterações locais da conferência do planejador; nenhum registro anterior foi removido.
