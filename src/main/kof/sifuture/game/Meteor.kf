@@ -28,6 +28,18 @@ class Meteor {
 
     reset() {
         relocate()
+        clearAnimation()
+    }
+
+    private resetAfterBottomExit() {
+        Int width = Rules.WORLD_WIDTH
+        Int verticalRange = Rules.METEOR_Y_RANGE
+        x = rng.int(width)
+        y = -rng.int(verticalRange)
+        clearAnimation()
+    }
+
+    private clearAnimation() {
         active = motion == MeteorMotion.Horizontal
         frame = 0
         frameDirection = 1
@@ -40,7 +52,7 @@ class Meteor {
         if (!active) { return }
         if (motion == MeteorMotion.Vertical) {
             y = y + Rules.METEOR_SPEED
-            if (y > Rules.WORLD_HEIGHT) { reset(); return }
+            if (y > Rules.WORLD_HEIGHT) { resetAfterBottomExit(); return }
         } else { x = x - Rules.METEOR_SPEED }
         if (x < Rules.METEOR_LEFT_BOUND) {
             if (collided) {

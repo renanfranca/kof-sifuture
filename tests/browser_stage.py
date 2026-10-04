@@ -86,6 +86,44 @@ def hud_and_pause(page, width):
     page.locator("canvas").screenshot(path=str(EVIDENCE / f"hud-{width}.png"))
 
 
+def right_input_clearing(page, width):
+    for action in ("Pausar", "Repaint"):
+        page.get_by_role("button", name="Prepare right finish", exact=True).click()
+        page.get_by_role("button", name="Ativar teclado do jogo").click()
+        page.keyboard.down("ArrowRight")
+        advance(page)
+        sprite(page, "Middle2.png", 45, 150)
+        page.get_by_role("button", name=action, exact=True).click()
+        sprite(page, "Middle.png", 45, 150)
+        page.keyboard.up("ArrowRight")
+        advance(page)
+        assert state(page)["shipX"] == 45
+        sprite(page, "Middle.png", 45, 150)
+        page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-cleared-{action}-{width}.png"))
+
+
+def right_held_result(page, width):
+    page.get_by_role("button", name="Prepare right finish", exact=True).click()
+    page.get_by_role("button", name="Ativar teclado do jogo").click()
+    page.keyboard.down("ArrowRight")
+    advance(page)
+    assert state(page)["shipX"] == 45
+    sprite(page, "Middle2.png", 45, 150)
+    advance(page)
+    assert page.get_by_role("button", name="Concluir contagem", exact=True).count() == 1
+    assert state(page)["shipX"] == 50 and state(page)["shipY"] == 150
+    sprite(page, "Middle.png", 50, 150)
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-result-entry-{width}.png"))
+    page.keyboard.up("ArrowRight")
+    for expected in (5, 10, 15, 17):
+        advance(page)
+        assert state(page)["displayed"] == expected
+        assert state(page)["shipX"] == 50 and state(page)["shipY"] == 150
+        sprite(page, "Middle.png", 50, 150)
+    assert state(page)["steps"] == 1710 and state(page)["score"] == 17
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-result-release-{width}.png"))
+
+
 def moving_result(page, width):
     page.get_by_role("button", name="Finish stage", exact=True).click()
     assert page.get_by_role("button", name="Concluir contagem", exact=True).count() == 1
@@ -216,7 +254,7 @@ def main():
                                         args=["--no-sandbox", "--headless=new"])
             try:
                 for width in (320, 1200):
-                    for journey in (hud_and_pause, moving_result):
+                    for journey in (hud_and_pause, moving_result, right_held_result, right_input_clearing):
                         page = open_scene(browser, url, width)
                         errors = []
                         page.on("pageerror", lambda error: errors.append(str(error)))
@@ -238,6 +276,8 @@ def main():
                     page.screenshot(path=str(EVIDENCE / f"app-{width}.png"))
                     page.close()
                 print("PASS stage HUD, vertical impacts, full journey, moving result, exact count, boundaries and two confirmations")
+                print("PASS held right restores Middle.png on result entry and release, frozen ship and exact score at both widths")
+                print("PASS pause and lost canvas focus immediately restore Middle.png at both widths")
                 print("PASS Chrome", browser.version, "at 320 and 1200 pixels; repaint does not advance simulation")
             finally:
                 browser.close()

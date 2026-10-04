@@ -27,6 +27,7 @@ class Ship {
     }
 
     clearInput() {
+        rightFrame = false
         left = false
         right = false
         up = false

@@ -19,6 +19,17 @@ main() {
     var status = Label("")
     status.setId("stage-status")
     var repaint = Button("Repaint", () -> { drawing.render(game) })
+    var prepareRightFinish = Button("Prepare right finish", () -> {
+        game.start(908)
+        game.ship.phase = ShipPhase.Normal
+        game.ship.x = 40
+        game.ship.y = 150
+        game.steps = 1708
+        game.score = 17
+        for (var meteor in game.meteors) { meteor.x = 10000; meteor.y = -100 }
+        for (var item in game.items) { item.x = 10000 }
+        refresh(game, drawing, controls, status)
+    })
     var oneLife = Button("One life", () -> { game.ship.lives = 1; drawing.render(game) })
     var twoLives = Button("Two lives", () -> { game.ship.lives = 2; drawing.render(game) })
     var fourLives = Button("Four lives", () -> { game.ship.lives = 4; drawing.render(game) })
@@ -108,7 +119,7 @@ main() {
     })
     var window = Window("SiFuture fase e resultado")
     window.size(320, 850)
-    window.bind(Column(listOf(controls.root, status, repaint, oneLife, twoLives, fourLives, finish, defeat, zero, vertical, journey, score1499, score1500, score2199, score2200, score3299, score3300)))
+    window.bind(Column(listOf(controls.root, status, repaint, prepareRightFinish, oneLife, twoLives, fourLives, finish, defeat, zero, vertical, journey, score1499, score1500, score2199, score2200, score3299, score3300)))
     window.show()
     refresh(game, drawing, controls, status)
     time.interval(Rules.STEP_MS, () -> { game.step(); refresh(game, drawing, controls, status) })
@@ -117,5 +128,5 @@ main() {
 refresh(Game game, GameView drawing, GameControls controls, Label status) {
     drawing.render(game)
     controls.update()
-    status.text = "steps:" + game.steps + ":position:" + game.stagePosition() + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":explosion:" + game.ship.explosionSteps
+    status.text = "steps:" + game.steps + ":position:" + game.stagePosition() + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":explosion:" + game.ship.explosionSteps + ":shipX:" + game.ship.x + ":shipY:" + game.ship.y
 }
