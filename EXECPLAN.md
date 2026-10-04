@@ -380,7 +380,7 @@ O multitouch deste ciclo cobre dedos em **botões distintos**. A dificuldade, ve
 - [x] Preservar os deltas documentais anteriores em commit separado (`b99cc62`); branch `android-multitouch-controls` a partir de `origin/main` `567f6d032523fe02a0c45eebdbf345f51d70b600`.
 - [x] TDD: diagonal e eventos duplicados falharam por comportamento; implementação independente, quatro setas e regressões JVM/JS. Layout falhou com largura observada 48; passou com 56 e cruz 168.
 - [x] Ampliar observação 2D, registrar alvo/identidade das solturas, testar matrizes de diagonais/opostos, eventos simultâneos e pausa.
-- [ ] Fechar regressões de Especial, gates inicial/final e revisão estrutural, registrar SHA e comandos no [aceite](.agent/validation/sifuture-controls.md).
+- [x] Fechar regressões de Especial, gate inicial e revisão estrutural; registrar SHA e dez comandos no [aceite](.agent/validation/sifuture-controls.md). Gate inicial em `45b49487f242f7addd5243c800b7e9716c7474ad`: JVM/JS 85/85, seis percursos Chrome, infraestrutura 8/8 e contrato CI, 173,54 s. Sem refactor adicional. Gate final repete os dez checks após este complemento documental; resultado e CI serão associados à entrega no ledger/PR.
 - [ ] Entregar PR e acompanhar CI; não realizar merge.
 - [ ] Aceite de conforto no Android real, incluindo combate com subchefe. Touch simulado não encerra este critério.
 

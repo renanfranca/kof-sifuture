@@ -60,4 +60,40 @@ Fontes de regressão existentes foram adaptadas só onde o contrato aprovado mud
 
 ## Gates e entrega
 
-Gates inicial/final sobre commits, revisão estrutural e CI ainda pendentes nesta versão do registro. Inventário confirmado: duas suítes Kof, seis percursos Chrome, unittest Python e contrato CI local; CI Resolve verified Kof/JVM/JS. Sonar, mutation testing e Habit não configurados, portanto excluídos, sem atribuir resultado passed. Android físico permanece pendente mesmo após todos os gates automáticos.
+Gate inicial concluído no SHA `45b49487f242f7addd5243c800b7e9716c7474ad`, checkout limpo, 10/10 selecionados/executados, 0 bloqueados, duração 173,54 s. A revisão estrutural terminou sem refactor adicional. O gate final repetirá todos os dez comandos sobre o commit documental antes da criação do PR; seu SHA/resultado e os links de CI serão preservados no ledger e na descrição do PR. Inventário confirmado: duas suítes Kof, seis percursos Chrome, unittest Python e contrato CI local; CI Resolve verified Kof/JVM/JS. Sonar, mutation testing e Habit não configurados, portanto excluídos, sem atribuir resultado passed. Android físico permanece pendente mesmo após todos os gates automáticos.
+
+
+### Comandos do gate inicial (todos exit 0)
+
+| Comando | Resultado |
+|---|---|
+| `python3 scripts/kof_project.py test --target jvm` | 85 testes, 0 falhas |
+| `python3 scripts/kof_project.py test --target js` | 85 testes, 0 falhas |
+| `python3 tests/browser.py` | Percurso/contrato PASS |
+| `python3 tests/browser_controls.py` | Percurso/contrato PASS |
+| `python3 tests/browser_meteor.py` | Percurso/contrato PASS |
+| `python3 tests/browser_weapons.py` | Percurso/contrato PASS |
+| `python3 tests/browser_stage.py` | Percurso/contrato PASS |
+| `python3 tests/browser_subchief.py` | Percurso/contrato PASS |
+| `python3 -m unittest discover -s tests -p 'test_kof_project.py'` | 8 testes OK; erros de parser são previstos pelo teste de fonte inválida |
+| `PATH=/tmp/kof-ci-tools:$PATH bash tests/ci-contract.sh` | Percurso/contrato PASS |
+
+Trechos do executor e dos percursos:
+
+```text
+0 failed of 85 tests
+Ran 8 tests in 13.703s
+OK
+PASS midpoint combat, three shots, invulnerability, real special controls, ten explosion sprites, resumed track, defeat and new game
+PASS Chrome 139.0.7258.154 at 320 and 1200 pixels; pause and repaint preserve simulation
+```
+
+O [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml) tem Resolve verified Kof e Kof tests (jvm/js) selecionados. Build/Publish Pages dependem de push em main, portanto não constituem aceite deste PR e nenhuma publicação é alegada. Links específicos de execução só existirão após o push/PR e serão associados à entrega.
+
+### Revisão estrutural e limites
+
+Revisão no mesmo contexto da implementação, protegida pelas suítes e pelo checkpoint no navegador. Classificação **No action** para os pontos revisados: a ordenação de pressões é o protocolo aprovado; deduplicação antecede efeitos e a limpeza inicial ocorre somente na primeira pressão. Pad, memória de teclado e entrada efetiva da nave têm lifecycles distintos; não há novo flag ativo derivado. Game continua fora da camada DOM; Direction elimina a conversão de zonas. Ship conserva prioridade e imagem, sem regra de combate transferida aos controles. Capturas de direção nas lambdas são fixas por botão; runtime/browser demonstram despacho real. Styles e geometria permanecem na montagem; os testes observam comportamento, pixels/eventos e dimensões, sem adicionar seams de produção apenas para testes. Os quatro ramos para cada dispositivo mantêm leitura e escrita locais; abstrair agora aumentaria escopo sem risco demonstrado. Sem defeito ou risco estrutural acionável encontrado no delta/contratos adjacentes; nenhuma revisão independente foi realizada.
+
+Nenhuma falha persistente observada. As únicas falhas intencionais deste ciclo foram os REDs descritos e fixtures negativas de infraestrutura. As quatro diagonais e opostos foram comprovados por execução nos dois alvos e Chrome; compilação isolada não é usada como prova de runtime. Os JSON de eventos e capturas em `.agent/tmp/sifuture-controls/` são suporte opcional; o resumo de critérios permanece compreensível sem eles. O exclude local contém `/.agent/tmp/` exatamente uma vez.
+
+Aceite de conforto e combate no Chrome de Android físico **continua pendente**. Não foram testados dedos múltiplos no mesmo botão, versão atual do Chrome Android, WebView/APK, navegador móvel de outro fornecedor, música ou chefe final. Essas ausências não são passes nem mudanças de escopo. A velocidade, dificuldade e regras de combate permanecem as anteriores.
