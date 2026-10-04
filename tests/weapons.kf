@@ -65,16 +65,17 @@ main() {
         drawing.render(game)
         controls.update()
     })
+    var centerShip = Button("Center ship", () -> { game.ship.x = 60; game.ship.y = 100; drawing.render(game) })
     var window = Window("SiFuture armamento")
-    window.size(320, 700)
-    window.bind(Column(listOf(controls.root, status, evolution, life, repaint, normal, restarting, moveShipUp, moveShip, blasterScene, blasterHit, specialHit, orangeHit, darkHit, hitShip)))
+    window.size(296, 700)
+    window.bind(Column(listOf(controls.root, status, evolution, life, repaint, normal, restarting, moveShipUp, moveShip, blasterScene, blasterHit, specialHit, orangeHit, darkHit, hitShip, centerShip)))
     window.show()
     drawing.render(game)
     time.interval(Rules.STEP_MS, () -> {
         game.step()
         drawing.render(game)
         controls.update()
-        status.text = "lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":x:" + game.ship.x + ":steps:" + game.steps
+        status.text = "lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":x:" + game.ship.x + ":y:" + game.ship.y + ":steps:" + game.steps
     })
 }
 

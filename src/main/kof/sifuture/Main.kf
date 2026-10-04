@@ -9,7 +9,7 @@ main() {
     var drawing = GameView(canvas)
     var controls = GameControls(game, drawing, canvas)
     var window = Window("SiFuture em Kof")
-    window.size(320, 510)
+    window.size(296, 510)
     window.bind(controls.root)
     window.show()
     drawing.render(game)

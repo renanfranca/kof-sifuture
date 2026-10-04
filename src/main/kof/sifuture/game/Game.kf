@@ -12,7 +12,10 @@ class Game {
     Subchief subchief = Subchief()
     List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
     Weapons weapons = Weapons()
-    Zone activeZone = Zone.Neutral
+    Bool padLeft = false
+    Bool padRight = false
+    Bool padUp = false
+    Bool padDown = false
     Bool heldLeft = false
     Bool heldRight = false
     Bool heldUp = false
@@ -26,12 +29,15 @@ class Game {
     }
 
     clearMovement() {
-        activeZone = Zone.Neutral
+        padLeft = false
+        padRight = false
+        padUp = false
+        padDown = false
         ship.clearInput()
     }
 
     clearKeyboard() {
-        if (activeZone == Zone.Neutral) { ship.clearInput() }
+        if (!padPressed()) { ship.clearInput() }
     }
 
     rearmKeyboard() {
@@ -39,7 +45,7 @@ class Game {
         heldRight = false
         heldUp = false
         heldDown = false
-        if (activeZone == Zone.Neutral) { ship.clearInput() }
+        if (!padPressed()) { ship.clearInput() }
     }
 
     keyboard(Direction direction, Bool pressed) {
@@ -57,22 +63,26 @@ class Game {
         if (direction == Direction.Right) { heldRight = pressed }
         if (direction == Direction.Up) { heldUp = pressed }
         if (direction == Direction.Down) { heldDown = pressed }
-        if (screen == Screen.Play && activeZone == Zone.Neutral && movementAllowed) { ship.direction(direction, pressed) }
+        if (screen == Screen.Play && !padPressed() && movementAllowed) { ship.direction(direction, pressed) }
     }
 
-    movement(Zone zone, Bool pressed) {
-        if (pressed) {
-            if (screen != Screen.Play || zone == Zone.Neutral || activeZone != Zone.Neutral) { return }
-            activeZone = zone
-            ship.clearInput()
-            ship.direction(Direction.Left, zone == Zone.NorthWest || zone == Zone.West || zone == Zone.SouthWest)
-            ship.direction(Direction.Right, zone == Zone.NorthEast || zone == Zone.East || zone == Zone.SouthEast)
-            ship.direction(Direction.Up, zone == Zone.NorthWest || zone == Zone.North || zone == Zone.NorthEast)
-            ship.direction(Direction.Down, zone == Zone.SouthWest || zone == Zone.South || zone == Zone.SouthEast)
-        } else if (activeZone == zone) {
-            activeZone = Zone.Neutral
-            ship.clearInput()
-        }
+    padPressed(): Bool {
+        return padLeft || padRight || padUp || padDown
+    }
+
+    movement(Direction direction, Bool pressed) {
+        var held = false
+        if (direction == Direction.Left) { held = padLeft }
+        if (direction == Direction.Right) { held = padRight }
+        if (direction == Direction.Up) { held = padUp }
+        if (direction == Direction.Down) { held = padDown }
+        if (held == pressed || (pressed && screen != Screen.Play)) { return }
+        if (pressed && !padPressed()) { ship.clearInput() }
+        if (direction == Direction.Left) { padLeft = pressed }
+        if (direction == Direction.Right) { padRight = pressed }
+        if (direction == Direction.Up) { padUp = pressed }
+        if (direction == Direction.Down) { padDown = pressed }
+        ship.direction(direction, pressed)
     }
 
     start(Int seed) {

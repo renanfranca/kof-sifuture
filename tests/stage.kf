@@ -122,7 +122,7 @@ main() {
         refresh(game, drawing, controls, status)
     })
     var window = Window("SiFuture fase e resultado")
-    window.size(320, 850)
+    window.size(296, 850)
     window.bind(Column(listOf(controls.root, status, repaint, prepareRightFinish, oneLife, twoLives, fourLives, finish, defeat, zero, vertical, journey, score1499, score1500, score2199, score2200, score3299, score3300)))
     window.show()
     refresh(game, drawing, controls, status)
