@@ -20,7 +20,7 @@ if (position > Rules.WORLD_WIDTH) { return Rules.WORLD_WIDTH }
 return position
 ```
 
-A divisão inteira só muda o resultado a cada dez passos. Não há outro relógio da fase para sincronizar. O [training de estado duplicado](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:59) orienta:
+A divisão inteira só muda o resultado a cada dez passos. Não há outro relógio da fase para sincronizar. O [training de estado duplicado](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73) orienta:
 
 > If a value can be derived from another, derive it (method or function).
 

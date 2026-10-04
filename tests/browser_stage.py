@@ -1,5 +1,3 @@
-"""Exercise historical HUD sprites and the moving stage/result in Chrome."""
-
 from datetime import datetime
 import io
 import re
