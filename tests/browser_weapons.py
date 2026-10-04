@@ -186,6 +186,74 @@ def weapon_frames(browser, url):
 
 def keyboard_edges(browser, url):
     with scene(browser, url) as page:
+        collect(page, 5)
+        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay.focus()
+        page.keyboard.down("ArrowRight")
+        page.keyboard.down("1")
+        advance(page, 2)
+        assert status(page)["x"] == 50 and status(page)["charges"] == 1
+        assert overlay.evaluate("button => button === document.activeElement")
+        page.keyboard.up("1")
+        page.keyboard.up("ArrowRight")
+    for key in ("1", "Enter", "Space"):
+        with scene(browser, url) as page:
+            collect(page, 5)
+            special = page.get_by_role("button", name="Especial", exact=True)
+            page.get_by_role("button", name="→", exact=True).focus()
+            page.keyboard.down(key)
+            advance(page)
+            assert status(page)["charges"] == 2, key
+            special.focus()
+            page.keyboard.down(key)
+            advance(page)
+            assert status(page)["charges"] == 2, key
+            page.keyboard.up(key)
+            page.keyboard.down(key)
+            advance(page)
+            assert status(page)["charges"] == 1, key
+            page.keyboard.up(key)
+    for key in ("1", "Enter", "Space"):
+        with scene(browser, url) as page:
+            collect(page, 5)
+            special = page.get_by_role("button", name="Especial", exact=True)
+            special.focus()
+            page.keyboard.down(key)
+            advance(page)
+            assert status(page)["charges"] == 1
+            assert special.evaluate("button => button === document.activeElement"), key
+            assert special.is_enabled(), key
+            assert special.evaluate("button => getComputedStyle(button).opacity") == "0.5", key
+
+            page.keyboard.up(key)
+            assert special.is_disabled(), key
+            advance(page, 170)
+            assert special.is_enabled(), key
+            assert special.evaluate("button => getComputedStyle(button).opacity") == "1", key
+            special.focus()
+            page.keyboard.down(key)
+            advance(page)
+            assert status(page)["charges"] == 0, key
+            page.keyboard.up(key)
+    for destination in ("Ativar teclado do jogo", "→"):
+        with scene(browser, url) as page:
+            collect(page, 5)
+            special = page.get_by_role("button", name="Especial", exact=True)
+            special.focus()
+            page.keyboard.down("Space")
+            advance(page)
+            assert status(page)["charges"] == 1
+
+            page.get_by_role("button", name=destination, exact=True).focus()
+            assert special.is_disabled()
+            page.keyboard.up("Space")
+            advance(page, 170)
+            special.focus()
+            page.keyboard.down("Space")
+            advance(page)
+            assert status(page)["charges"] == 0, destination
+            page.keyboard.up("Space")
+    with scene(browser, url) as page:
         collect(page, 6)
         overlay = page.get_by_role("button", name="Ativar teclado do jogo")
         overlay.focus()
@@ -232,14 +300,16 @@ def keyboard_edges(browser, url):
         advance(page)
         assert status(page)["charges"] == 0
         page.keyboard.up("1")
-    for key in ("Enter", "Space"):
+    for key in ("1", "Enter", "Space"):
         with scene(browser, url) as page:
             collect(page, 5)
             special = page.get_by_role("button", name="Especial", exact=True)
             special.focus()
             page.keyboard.down(key)
             advance(page, 170)
-            special.focus()
+            assert special.evaluate("button => button === document.activeElement"), key
+            assert special.is_enabled(), key
+            assert special.evaluate("button => getComputedStyle(button).opacity") == "1", key
             page.keyboard.down(key)
             advance(page)
             assert status(page)["charges"] == 1
@@ -248,6 +318,67 @@ def keyboard_edges(browser, url):
             advance(page)
             assert status(page)["charges"] == 0
             page.keyboard.up(key)
+    for release_order in (("1", "Enter", "Space"), ("Space", "1", "Enter"), ("Enter", "Space", "1")):
+        with scene(browser, url) as page:
+            collect(page, 5)
+            special = page.get_by_role("button", name="Especial", exact=True)
+            special.focus()
+            for key in ("1", "Enter", "Space"):
+                page.keyboard.down(key)
+            advance(page)
+            assert status(page)["charges"] == 1
+            for key in release_order[:-1]:
+                page.keyboard.up(key)
+                assert special.is_enabled(), release_order
+                assert special.evaluate("button => button === document.activeElement"), release_order
+            page.keyboard.up(release_order[-1])
+            assert special.is_disabled(), release_order
+            advance(page, 170)
+            assert status(page)["charges"] == 1, release_order
+            special.focus()
+            page.keyboard.down(release_order[-1])
+            advance(page)
+            assert status(page)["charges"] == 0, release_order
+            page.keyboard.up(release_order[-1])
+    with scene(browser, url) as page:
+        collect(page, 5)
+        special = page.get_by_role("button", name="Especial", exact=True)
+        special.focus()
+        page.keyboard.down("1")
+        page.keyboard.down("Enter")
+        page.keyboard.up("1")
+        advance(page, 170)
+        assert status(page)["charges"] == 1
+        assert special.evaluate("button => button === document.activeElement")
+        page.keyboard.down("Enter")
+        advance(page)
+        assert status(page)["charges"] == 1
+        page.keyboard.up("Enter")
+        page.keyboard.down("Enter")
+        advance(page)
+        assert status(page)["charges"] == 0
+        page.keyboard.up("Enter")
+    for key in ("1", "Enter", "Space"):
+        with scene(browser, url) as page:
+            collect(page, 5)
+            special = page.get_by_role("button", name="Especial", exact=True)
+            special.focus()
+            page.keyboard.down(key)
+            advance(page)
+            page.get_by_role("button", name="Repaint", exact=True).focus()
+            assert special.is_disabled(), key
+            page.keyboard.up(key)
+            advance(page, 170)
+            special.focus()
+            page.keyboard.down(key)
+            advance(page)
+            assert status(page)["charges"] == 1, key
+            page.keyboard.up(key)
+            page.keyboard.down(key)
+            advance(page)
+            assert status(page)["charges"] == 0, key
+            page.keyboard.up(key)
+    print("PASS special focus retained until last release, cross-control keyup, simultaneous keys and outside-release lock")
     print("PASS key 1 and button keyboard repeat suppression, no queued attempts and native click deduplication")
 
 
@@ -298,6 +429,8 @@ def simultaneous_touch(browser, url):
 
 def layout_and_indicator(browser, url):
     EVIDENCE.mkdir(parents=True, exist_ok=True)
+    release_evidence = ROOT / ".agent/tmp/special-key-release"
+    release_evidence.mkdir(parents=True, exist_ok=True)
     for width in (320, 1200):
         with scene(browser, url, width) as page:
             special = page.get_by_role("button", name="Especial", exact=True)
@@ -323,6 +456,26 @@ def layout_and_indicator(browser, url):
             advance(page, 20)
             assert canvas_image(page).tobytes() == frozen
             sprite_matches(canvas_image(page), "especialActivated1.png", 149, 20)
+        with scene(browser, url, width) as page:
+            collect(page, 5)
+            special = page.get_by_role("button", name="Especial", exact=True)
+            special.focus()
+            box = special.bounding_box()
+            page.keyboard.down("1")
+            advance(page)
+            assert special.is_enabled()
+            assert special.bounding_box() == box
+            assert special.evaluate("button => getComputedStyle(button).opacity") == "0.5"
+            page.screenshot(path=str(release_evidence / f"held-{width}.png"), full_page=True)
+            page.keyboard.up("1")
+            assert special.is_disabled()
+            assert special.bounding_box() == box
+            page.screenshot(path=str(release_evidence / f"released-{width}.png"), full_page=True)
+            advance(page, 170)
+            assert special.is_enabled()
+            assert special.bounding_box() == box
+            assert special.evaluate("button => getComputedStyle(button).opacity") == "1"
+            page.screenshot(path=str(release_evidence / f"available-{width}.png"), full_page=True)
     with scene(browser, url) as page:
         collect(page, 5)
         page.get_by_role("button", name="Move ship up", exact=True).click()

@@ -23,6 +23,9 @@ class GameControls {
     Bool spaceHeld = false
     Bool specialPointerHeld = false
     Bool discardEnterClick = false
+    private Bool specialFocused = false
+    private Style specialAvailableStyle
+    private Style specialUnavailableStyle
 
     public constructor(Game game, GameView drawing, Canvas canvas) {
         this.game = game
@@ -42,7 +45,13 @@ class GameControls {
         pad.setStyle(Style("align-items: center"))
         special = Button("Especial", () -> {})
         special.setId("game-special")
-        special.setStyle(Style("width: 72; height: 64; padding: 0; touch-action: none; user-select: none"))
+        specialAvailableStyle = Style("width: 72; height: 64; padding: 0; touch-action: none; user-select: none; opacity: 1")
+        specialUnavailableStyle = Style("width: 72; height: 64; padding: 0; touch-action: none; user-select: none; opacity: 0.5")
+        special.on("focus", (e: Event) -> { this.specialFocused = true })
+        special.on("blur", (e: Event) -> {
+            this.specialFocused = false
+            this.updateSpecial()
+        })
         special.on("pointerdown", (e: Event) -> {
             if (!this.specialPointerHeld) {
                 this.specialPointerHeld = true
@@ -121,26 +130,31 @@ class GameControls {
 
     keyChanged(String key, String target, Bool pressed) {
         if (key == "1") {
-            if (pressed && !oneHeld && (target == "game-keyboard" || target == "game-special")) { activateSpecial() }
+            var freshPress = pressed && !oneHeld
             oneHeld = pressed
+            if (freshPress && (target == "game-keyboard" || target == "game-special")) { activateSpecial() }
+            if (!pressed) { updateSpecial() }
             return
         }
-        if (key == " " && target == "game-special") {
-            if (pressed && !spaceHeld) { activateSpecial() }
+        if (key == " ") {
+            var freshPress = pressed && !spaceHeld
             spaceHeld = pressed
+            if (freshPress && target == "game-special") { activateSpecial() }
+            if (!pressed) { updateSpecial() }
+            if (pressed && target == "game-action") { discardEnterClick = false }
             return
         }
-        if (key == " " && pressed && target == "game-action") { discardEnterClick = false }
         if (key == "Enter") {
+            var freshPress = pressed && !enterHeld
+            enterHeld = pressed
             if (pressed && target == "game-action") { discardEnterClick = true }
-            if (pressed && !enterHeld && (target == "game-keyboard" || target == "game-action" || target == "game-special")) {
-                enterHeld = true
+            if (freshPress && (target == "game-keyboard" || target == "game-action" || target == "game-special")) {
                 if (target == "game-special") { activateSpecial() }
                 else { game.confirm(); drawing.render(game) }
             }
             if (!pressed) {
-                enterHeld = false
                 discardEnterClick = false
+                updateSpecial()
             }
             return
         }
@@ -152,9 +166,17 @@ class GameControls {
         drawing.render(game)
     }
 
+    private updateSpecial() {
+        var available = game.canSpecial()
+        var preserveFocus = specialFocused && (oneHeld || enterHeld || spaceHeld)
+        if (available) { special.setStyle(specialAvailableStyle) }
+        else { special.setStyle(specialUnavailableStyle) }
+        special.setDisabled(!available && !preserveFocus)
+    }
+
     update() {
         var playing = game.screen == Screen.Play
-        special.setDisabled(!game.canSpecial())
+        updateSpecial()
         northwest.setDisabled(!playing)
         north.setDisabled(!playing)
         northeast.setDisabled(!playing)
