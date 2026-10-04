@@ -25,6 +25,7 @@ main() {
         game.ship.x = 40
         game.ship.y = 150
         game.steps = 1708
+        game.stageSteps = 1708
         game.score = 17
         for (var meteor in game.meteors) { meteor.x = 10000; meteor.y = -100 }
         for (var item in game.items) { item.x = 10000 }
@@ -38,6 +39,7 @@ main() {
         game.weapons.level = 3
         game.weapons.charges = 2
         game.steps = 1709
+        game.stageSteps = 1709
         game.score = 17
         game.ship.explode()
         game.ship.explosionSteps = 28
@@ -60,6 +62,7 @@ main() {
     })
     var vertical = Button("Vertical impact", () -> {
         game.steps = 260
+        game.stageSteps = 260
         game.meteors[6].active = true
         game.meteors[6].x = 80
         game.meteors[6].y = 60
@@ -72,7 +75,8 @@ main() {
     var journey = Button("Full journey", () -> {
         game.start(907)
         game.ship.lives = 100
-        for (var i = 0; i < 1709; i++) { game.step() }
+        for (var i = 0; i < 10000 && game.stagePosition() < 175; i++) { game.step() }
+        for (var i = 0; i < 9; i++) { game.step() }
         refresh(game, drawing, controls, status)
     })
     var score1499 = Button("Result 1499", () -> {

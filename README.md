@@ -10,29 +10,31 @@ O direcional abaixo do jogo tem oito botões de 48 × 48 pixels. Pressione um pa
 
 ## Fase e resultado
 
-A fase vai da posição 5 à 176 em **1.710 passos de 30 ms: 51,3 segundos ativos**. A miniatura avança a cada dez passos, inclusive durante explosão e reinício da nave. A pausa congela o relógio; redesenhar apenas consulta o modelo. Este ciclo atravessa os pontos dos chefes sem combate.
+A fase vai da posição 5 à 176, com entrada do subchefe em 88. A entrada avança o marcador para 89; combate e explosão suspendem a trilha. Depois, a miniatura retoma um avanço a cada dez passos. Portanto, a duração depende do combate. A pausa congela todos os relógios e redesenhar apenas consulta o modelo. O chefe final continua pendente.
 
 A posição é derivada em [Game.kf](src/main/kof/sifuture/game/Game.kf):
 
 ```kof
-var position = 5 + steps / 10
+var position = 5 + stageSteps / 10
 if (position > Rules.WORLD_WIDTH) { return Rules.WORLD_WIDTH }
 return position
 ```
 
-A divisão inteira só muda o resultado a cada dez passos. Não há outro relógio da fase para sincronizar. O [training de estado duplicado](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73) orienta:
+`steps` conta atualizações da partida; `stageSteps` conta o avanço da trilha e o incremento histórico da entrada. Durante combate e explosão, apenas o primeiro continua. A consulta evita guardar outra cópia da posição. O [training de estado duplicado](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73) orienta:
 
 > If a value can be derived from another, derive it (method or function).
 
-Os seis meteoros horizontais mantêm seus índices. Dois verticais entram quando a posição ultrapassa 30, descem uma unidade por passo e mostram três quadros de impacto, um passo por quadro. O par relança quando ambos ficam inativos. As colisões preservam nave → laser → blaster → especial, com prêmio único por meteoro. Os dois corações continuam circulando desde o início; vidas podem ultrapassar três.
+O subchefe tem resistência 30, deslocamento de uma unidade por eixo e três tiros próprios, com tentativa a cada 12 passos normais. Laser retira uma unidade; blaster aplica sua resistência restante. O especial conserva os marcadores históricos de seis passos, incluindo reaplicação quando outro feixe inicia contato. Contato corporal explode uma nave normal; durante reinício invulnerável, não altera nenhuma das duas entidades, exceção explícita ao original. O golpe fatal dá 600, 300 ou 150 pontos conforme `lifeTime` ≤30, ≤60 ou >60; esse contador avança a cada 36 passos normais, sem representar segundos. Os dez quadros de explosão duram três passos cada. Os itens recorrentes continuam sem duplicação ou reposicionamento por prêmio.
+
+Os seis meteoros horizontais mantêm seus índices. Dois verticais entram quando a posição ultrapassa 30, descem uma unidade por passo e mostram três quadros de impacto, um passo por quadro. O par relança quando ambos ficam inativos e o subchefe está inativo; os já lançados terminam seu percurso durante o combate. As colisões preservam nave → laser → blaster → especial, com prêmio único por meteoro. Os dois corações continuam circulando desde o início; vidas podem ultrapassar três.
 
 O HUD usa os sprites históricos sem transformação: trilha, miniatura conforme uma, duas ou três vidas ou mais, escore à direita, contador de vidas abaixo e indicador de especial em `(50, 21)`. Os indicadores são desenhados depois das entidades para ficarem visíveis sobre os feixes. O mundo continua 176 × 220 e a nave conserva o limite superior `y = 30`.
 
 Ao concluir a fase ou perder a última vida, o escore definitivo fica preservado e a contagem exibida começa em zero. Cada passo acrescenta cinco pontos, limitado ao total exato. A avaliação só aparece ao terminar, nas faixas `<1500`, `1500–2199`, `2200–3299` e `≥3300`. **Concluir contagem** ou Enter mostra o total imediatamente; uma nova confirmação em **Voltar ao menu** retorna ao menu. Escore zero já começa concluído. Segurar Enter não confirma duas vezes.
 
-Durante o resultado, fundo, meteoros, itens, tiros automáticos visuais e efeitos continuam. Colisões, coleta e comandos da nave ficam encerrados; vidas, nível, cargas e posição da fase permanecem estáveis. A explosão pendente termina sem nova perda de vida e fica oculta, sem tentar desenhar um quadro de índice 10. Escore e avaliação ficam centralizados sobre a cena.
+Durante o resultado, fundo, meteoros, itens, subchefe, tiros automáticos visuais e efeitos continuam. Colisões, coleta e comandos da nave ficam encerrados; vidas, nível, cargas e posição da fase permanecem estáveis. A explosão pendente termina sem nova perda de vida e fica oculta, sem tentar desenhar um quadro de índice 10. Escore e avaliação ficam centralizados sobre a cena.
 
-[GameJourney.kf](src/test/kof/sifuture/game/GameJourney.kf) prova as regras em JVM e JS. [browser_stage.py](tests/browser_stage.py) exercita o modelo, desenho e controles reais no Chrome em 320 e 1200 pixels, com relógio determinístico, comparação de sprites, percurso completo e redesenhos sem avanço. O registro de aceite fica em [stage-hud-result.md](.agent/validation/stage-hud-result.md). Música, Android, chefes, menus completos e reformulação dos controles seguem fora deste ciclo.
+[GameJourney.kf](src/test/kof/sifuture/game/GameJourney.kf) prova as regras em JVM e JS. [browser_stage.py](tests/browser_stage.py) exercita o modelo, desenho e controles reais no Chrome em 320 e 1200 pixels, com relógio determinístico, comparação de sprites, percurso completo e redesenhos sem avanço. [browser_subchief.py](tests/browser_subchief.py) verifica encontro, tiros, especial, explosão, pausa, retomada e nova partida com os mesmos componentes reais em 320/1200 pixels. O registro de aceite fica em [stage-hud-result.md](.agent/validation/stage-hud-result.md). Música, Android, chefe final, menus completos e reformulação dos controles seguem fora deste ciclo.
 
 A limpeza de comandos também restaura o quadro normal da nave na entrada do resultado, em pausa e na perda de foco do teclado. Os meteoros verticais reiniciam entre −153 e 0 na criação ou após impacto; após sair pelo fundo, usam a faixa histórica de −171 até 0, mantendo a espera pelo par. As regressões e o aceite visual estão em [ship-meteor-reset.md](.agent/validation/ship-meteor-reset.md).
 

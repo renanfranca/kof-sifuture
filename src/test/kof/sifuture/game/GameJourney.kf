@@ -10,6 +10,7 @@ test "finishing with right held restores normal ship while score counts and posi
     for (var m in g.meteors) { m.x = 10000; m.y = -100 }
     g.score = 17
     g.steps = 1708
+    g.stageSteps = 1708
     g.keyboard(Direction.Right, true)
     g.step()
     assert(g.ship.rightFrame && g.ship.x == 45)
@@ -27,6 +28,7 @@ test "vertical bottom exit uses full historical range and waits inactive with cl
     var g = Game()
     g.start(904)
     g.steps = 260
+    g.stageSteps = 260
     g.step()
     var first = g.meteors[6]
     var second = g.meteors[7]
@@ -56,6 +58,7 @@ test "vertical bottom exit uses full historical range and waits inactive with cl
 
     g.start(904)
     g.steps = 260
+    g.stageSteps = 260
     g.step()
     g.meteors[6].y = 220
     g.meteors[7].y = -100
@@ -1064,18 +1067,20 @@ test "stage moves on each tenth active step including restart and pause" {
 }
 
 
-test "full stage passes chief milestones and ends at right edge after 1710 steps" {
+test "full stage completes after combat explosion and resumed track without second encounter" {
     var g = Game()
     g.start(902)
     g.ship.lives = 100
-    for (var i = 0; i < 1709; i++) { g.step() }
-    assert(g.screen == Screen.Play && g.stagePosition() == 175)
-    g.step()
-    assert(g.screen == Screen.Result && g.stagePosition() == 176 && g.steps == 1710)
+    for (var i = 0; i < 1710; i++) { g.step() }
+    assert(g.screen == Screen.Play && g.stagePosition() == 89)
+    for (var i = 0; i < 10000 && g.screen == Screen.Play; i++) { g.step() }
+    assert(g.screen == Screen.Result && g.stagePosition() == 176 && g.steps > 1710)
+    assert(g.subchief.phase == SubchiefPhase.Inactive)
     var score = g.score
     var lives = g.ship.lives
+    var steps = g.steps
     for (var i = 0; i < 50; i++) { g.step() }
-    assert(g.screen == Screen.Result && g.steps == 1710 && g.score == score && g.ship.lives == lives)
+    assert(g.steps == steps && g.score == score && g.ship.lives == lives)
 }
 
 
@@ -1086,6 +1091,7 @@ test "vertical pair unlocks above position thirty and falls one unit per step" {
     assert(g.meteors[0].motion == MeteorMotion.Horizontal && g.meteors[5].motion == MeteorMotion.Horizontal)
     assert(g.meteors[6].motion == MeteorMotion.Vertical && !g.meteors[6].active && !g.meteors[7].active)
     g.steps = 258
+    g.stageSteps = 258
     g.step()
     assert(g.stagePosition() == 30 && !g.meteors[6].active && !g.meteors[7].active)
     var x = g.meteors[6].x
@@ -1109,6 +1115,7 @@ test "vertical impact has three moving frames and pair relaunch waits for both i
     var g = Game()
     g.start(904)
     g.steps = 260
+    g.stageSteps = 260
     g.step()
     var first = g.meteors[6]
     var second = g.meteors[7]
@@ -1175,6 +1182,7 @@ test "result keeps scenery and pending effects moving with frozen gameplay" {
     var g = Game()
     g.start(906)
     g.steps = 1709
+    g.stageSteps = 1709
     g.ship.explode()
     g.ship.explosionSteps = 28
     g.ship.lives = 4
@@ -1211,6 +1219,7 @@ test "vertical contacts preserve ship laser blaster special priority and one rew
         var g = Game()
         g.start(908)
         g.steps = 260
+        g.stageSteps = 260
         g.ship.phase = ShipPhase.Normal
         for (var m in g.meteors) { m.x = 10000; m.y = -100 }
         g.weapons.lasers.shots[0].fire(0, 100)
@@ -1239,7 +1248,9 @@ test "same seed replays the entire stage including vertical relaunch and result"
     var g = Game()
     g.start(909)
     g.ship.lives = 100
-    for (var i = 0; i < 1710; i++) { g.step() }
+    for (var i = 0; i < 10000 && g.screen == Screen.Play; i++) { g.step() }
+    var steps = g.steps
+    assert(g.screen == Screen.Result && g.stagePosition() == 176)
     var positionsX = listOf<Int>()
     var positionsY = listOf<Int>()
     for (var m in g.meteors) { positionsX.add(m.x); positionsY.add(m.y) }
@@ -1248,8 +1259,8 @@ test "same seed replays the entire stage including vertical relaunch and result"
     var lives = g.ship.lives
     g.start(909)
     g.ship.lives = 100
-    for (var i = 0; i < 1710; i++) { g.step() }
-    assert(g.screen == Screen.Result && g.displayedScore == 0 && g.steps == 1710)
+    for (var i = 0; i < steps; i++) { g.step() }
+    assert(g.screen == Screen.Result && g.displayedScore == 0 && g.steps == steps)
     for (var i = 0; i < 8; i++) { assert(g.meteors[i].x == positionsX[i] && g.meteors[i].y == positionsY[i]) }
     assert(g.items[0].x == itemX && g.score == score && g.ship.lives == lives)
 }
@@ -1270,4 +1281,546 @@ test "defeat ends the explosion and visual result never consumes another life or
     for (var i = 0; i < 100; i++) { g.step() }
     assert(g.ship.lives == 0 && g.ship.explosionSteps == 30 && g.steps == steps && g.score == 5)
     assert(g.weapons.level == 3 && g.displayedScore == 5 && g.screen == Screen.Result)
+}
+
+
+test "midpoint enters once and freezes track while match and scenery continue" {
+    var g = Game()
+    g.start(920)
+    g.ship.lives = 100
+    for (var i = 0; i < 829; i++) { g.step() }
+    assert(g.stagePosition() == 87 && g.subchief.phase == SubchiefPhase.Inactive)
+
+    g.step()
+    assert(g.stagePosition() == 89 && g.subchief.phase == SubchiefPhase.Normal)
+    var background = g.background.offset
+    var itemX = g.items[0].x
+    for (var i = 0; i < 10; i++) { g.step() }
+    assert(g.stagePosition() == 89 && g.steps == 840)
+    assert(g.background.offset != background && g.items[0].x == itemX - 10)
+    g.pause()
+    g.step()
+    assert(g.steps == 840 && g.stagePosition() == 89)
+}
+
+
+test "subchief seeded destinations movement and three shot slots use normal step clocks" {
+    var g = Game()
+    g.start(921)
+    var chief = g.subchief
+    assert(chief.x >= 220 && chief.x <= 419 && chief.y >= 30 && chief.y <= 193)
+    assert(chief.endX >= 88 && chief.endX <= 147 && chief.endY >= 30 && chief.endY <= 193)
+    var x = chief.x
+    var y = chief.y
+    var endX = chief.endX
+    var endY = chief.endY
+    g.start(921)
+    assert(chief.x == x && chief.y == y && chief.endX == endX && chief.endY == endY)
+    g.stageSteps = 829
+    g.ship.lives = 100
+    g.step()
+    assert(chief.x == x - 1 && chief.lifeTime == 0 && chief.normalSteps == 1)
+    for (var i = 0; i < 10; i++) { g.step() }
+    assert(!chief.shots[0].active)
+    g.step()
+    assert(chief.shots[0].active && !chief.shots[1].active)
+    assert(chief.shots[0].x == chief.x - 7 - 4 && chief.shots[0].y == chief.y + 13)
+    for (var i = 0; i < 12; i++) { g.step() }
+    assert(chief.shots[1].active && !chief.shots[2].active)
+    for (var i = 0; i < 12; i++) { g.step() }
+    assert(chief.shots[2].active && chief.lifeTime == 1 && chief.normalSteps == 0)
+    var shotX = chief.shots[2].x
+    var firstShotX = chief.shots[0].x
+    for (var i = 0; i < 12; i++) { g.step() }
+    assert(chief.shots[2].x == shotX - 48 && chief.shots.size == 3)
+    assert(chief.shots[0].x == firstShotX - 48)
+    chief.shots[0].active = false
+    for (var i = 0; i < 12; i++) { g.step() }
+    assert(chief.shots[0].active && chief.shots[0].x == chief.x - 11)
+    g.pause()
+    var normalSteps = chief.normalSteps
+    var shotPosition = chief.shots[0].x
+    g.step()
+    assert(chief.normalSteps == normalSteps && chief.shots[0].x == shotPosition)
+    g.start(921)
+    assert(chief.phase == SubchiefPhase.Inactive && chief.lifeTime == 0 && chief.normalSteps == 0)
+    for (var shot in chief.shots) { assert(!shot.active) }
+}
+
+prepareSubchief(Game g) {
+    g.start(922)
+    g.stageSteps = 840
+    g.subchief.phase = SubchiefPhase.Normal
+    g.subchief.x = 120
+    g.subchief.y = 100
+    g.subchief.endX = 147
+    g.subchief.endY = 100
+    g.ship.phase = ShipPhase.Normal
+    for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+    for (var item in g.items) { item.x = 10000 }
+}
+
+test "subchief laser and body damage precede meteor weapons and restart is invulnerable" {
+    var g = Game()
+    prepareSubchief(g)
+    var laser = g.weapons.lasers.shots[0]
+    laser.fire(0, 100)
+    laser.x = 86
+    g.meteors[0].x = 122
+    g.meteors[0].y = 100
+
+    g.step()
+    assert(g.subchief.lives == 29 && laser.impact && laser.x == 120 && laser.y == 100)
+    assert(!g.meteors[0].collided && g.score == 0)
+    g.step()
+    assert(g.subchief.lives == 29 && !laser.active)
+
+    prepareSubchief(g)
+    g.ship.x = 100
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && g.subchief.lives == 29)
+    g.step()
+    assert(g.subchief.lives == 29 && g.ship.explosionSteps == 1)
+
+    prepareSubchief(g)
+    g.ship.x = 100
+    g.ship.phase = ShipPhase.Restart
+    g.step()
+    assert(g.ship.phase == ShipPhase.Restart && g.subchief.lives == 30)
+}
+
+test "subchief blaster spends remaining resistance before meteor contacts" {
+    var g = Game()
+    for (var remaining = 1; remaining <= 2; remaining++) {
+        prepareSubchief(g)
+        g.weapons.blaster.fire(g.ship)
+        g.weapons.blaster.x = 60
+        g.weapons.blaster.lives = remaining
+        g.meteors[0].x = 125
+        g.meteors[0].y = 100
+
+        g.step()
+        assert(g.subchief.lives == 30 - remaining && g.weapons.blaster.lives == 0)
+        assert(g.weapons.blaster.active && !g.meteors[0].collided && g.score == 0)
+        g.step()
+        assert(g.subchief.lives == 30 - remaining)
+    }
+}
+
+test "special subchief markers reapply in color order and expire after six steps" {
+    var g = Game()
+    prepareSubchief(g)
+    for (var beam in g.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 }
+
+    g.step()
+    assert(g.subchief.lives == 29 && g.weapons.beams[0].lives == 9)
+    assert(g.weapons.beams[1].lives == 10 && g.weapons.beams[2].lives == 10)
+    g.step()
+    assert(g.subchief.lives == 27 && g.weapons.beams[0].lives == 8 && g.weapons.beams[1].lives == 9)
+    g.step()
+    assert(g.subchief.lives == 24 && g.weapons.beams[0].lives == 7 && g.weapons.beams[1].lives == 8 && g.weapons.beams[2].lives == 9)
+    for (var i = 0; i < 3; i++) { g.step() }
+    assert(g.subchief.lives == 24)
+    g.step()
+    assert(g.subchief.lives == 21 && g.weapons.beams[0].lives == 6)
+
+    prepareSubchief(g)
+    var beam = g.weapons.beams[0]
+    beam.active = true
+    beam.x = 0
+    beam.y = 100
+    beam.lives = 1
+    g.step()
+    assert(g.subchief.lives == 29 && beam.lives == 0 && beam.active)
+    for (var i = 0; i < 5; i++) { g.step() }
+    assert(beam.active && g.subchief.lives == 29)
+    g.step()
+    assert(!beam.active && beam.contactSteps == 0 && g.subchief.lives == 29)
+
+    prepareSubchief(g)
+    beam.active = true
+    beam.x = 176
+    beam.y = 100
+    beam.contactSteps = 5
+    g.step()
+    assert(!beam.active && beam.contactSteps == 0 && g.subchief.lives == 30)
+}
+
+test "fatal subchief hit rewards once at lifetime boundaries and leaves recurring items in place" {
+    var g = Game()
+    var lifetimes = listOf(30, 31, 60, 61)
+    var rewards = listOf(600, 300, 300, 150)
+    for (var i = 0; i < 4; i++) {
+        for (var weapon = 0; weapon < 4; weapon++) {
+            prepareSubchief(g)
+            g.subchief.lifeTime = lifetimes[i]
+            g.subchief.lives = 1
+            if (weapon == 0) { g.ship.x = 100 }
+            if (weapon == 1) {
+                g.weapons.lasers.shots[0].fire(0, 100)
+                g.weapons.lasers.shots[0].x = 86
+            }
+            if (weapon == 2) { g.weapons.blaster.fire(g.ship); g.weapons.blaster.x = 60 }
+            if (weapon == 3) {
+                for (var beam in g.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 }
+                g.weapons.beams[1].contactSteps = 5
+            }
+
+            g.step()
+            assert(g.subchief.phase == SubchiefPhase.Explosion && g.score == rewards[i])
+            assert(g.items.size == 2 && g.items[0].x == 9999 && g.items[1].x == 9999)
+            assert(g.weapons.level == 0 && g.weapons.charges == 0 && g.ship.lives == 3)
+            if (weapon == 3) { assert(g.weapons.beams[0].lives == 9 && g.weapons.beams[1].lives == 9) }
+            for (var step = 0; step < 29; step++) { g.step() }
+            assert(g.score == rewards[i] && g.stagePosition() == 89 && g.subchief.phase == SubchiefPhase.Explosion)
+            g.step()
+            assert(g.score == rewards[i] && g.subchief.phase == SubchiefPhase.Inactive)
+            for (var step = 0; step < 20; step++) { g.step() }
+            assert(g.stagePosition() == 91 && g.subchief.phase == SubchiefPhase.Inactive && g.score == rewards[i])
+        }
+    }
+}
+
+test "enemy shot historical corner geometry explodes normal ship and ignores restart" {
+    var g = Game()
+    prepareSubchief(g)
+    g.subchief.x = 400
+    g.subchief.endX = 400
+    var shot = g.subchief.shots[0]
+    shot.active = true
+    shot.x = 24
+    shot.y = 100
+
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && !shot.active && g.subchief.lives == 30 && g.score == 0)
+    prepareSubchief(g)
+    g.ship.phase = ShipPhase.Restart
+    shot.active = true
+    shot.x = 24
+    shot.y = 100
+    g.step()
+    assert(g.ship.phase == ShipPhase.Restart && shot.active && shot.x == 20)
+    prepareSubchief(g)
+    shot.active = true
+    shot.x = -1
+    shot.y = 100
+    g.step()
+    assert(g.ship.phase == ShipPhase.Normal && shot.active && shot.x == -5)
+    shot.x = -28
+    g.step()
+    assert(!shot.active)
+}
+
+test "subchief explosion freezes track for thirty steps with historical displacement and pause" {
+    var g = Game()
+    prepareSubchief(g)
+    g.subchief.lives = 1
+    g.weapons.lasers.shots[0].fire(0, 100)
+    g.weapons.lasers.shots[0].x = 86
+    g.meteors[6].active = true
+    g.meteors[6].x = 10
+    g.meteors[6].y = 219
+    g.meteors[7].active = true
+    g.meteors[7].x = 10
+    g.meteors[7].y = 219
+    g.step()
+    assert(g.subchief.explosionSteps == 0 && g.subchief.explosionX == 120)
+    g.step()
+    assert(!g.meteors[6].active && !g.meteors[7].active)
+    g.step()
+    assert(g.subchief.explosionSteps == 2 && g.subchief.explosionX == 120 && !g.meteors[6].active)
+    g.step()
+    assert(g.subchief.explosionSteps == 3 && g.subchief.explosionX == 119)
+    g.pause()
+    var shotX = g.subchief.shots[0].x
+    for (var i = 0; i < 12; i++) { g.step() }
+    assert(g.subchief.explosionSteps == 3 && g.subchief.explosionX == 119 && g.stagePosition() == 89)
+    assert(g.subchief.shots[0].x == shotX && g.subchief.lifeTime == 0)
+    g.resume()
+    var offsets = listOf(1, 4, 7, 10, 16, 22, 31, 40)
+    for (var frame = 1; frame < 9; frame++) {
+        if (frame > 1) { for (var i = 0; i < 3; i++) { g.step() } }
+        assert(g.subchief.explosionSteps == frame * 3 && g.subchief.explosionX == 120 - offsets[frame - 1])
+    }
+    for (var i = 0; i < 3; i++) { g.step() }
+    assert(g.subchief.explosionSteps == 27 && g.subchief.explosionX == 65)
+    for (var i = 0; i < 3; i++) { g.step() }
+    assert(g.subchief.phase == SubchiefPhase.Inactive && g.stagePosition() == 89)
+    assert(g.meteors[6].active && g.meteors[7].active)
+    for (var i = 0; i < 10; i++) { g.step() }
+    assert(g.stagePosition() == 90 && g.score == 600)
+}
+
+test "defeat during subchief encounter animates without contacts rewards or life changes and restart clears it" {
+    var g = Game()
+    prepareSubchief(g)
+    g.subchief.lives = 1
+    g.ship.lives = 1
+    g.ship.explode()
+    g.ship.explosionSteps = 29
+    g.weapons.level = 3
+    g.weapons.charges = 1
+    g.score = 17
+    g.step()
+    assert(g.screen == Screen.Result && g.ship.lives == 0 && g.score == 17)
+    var x = g.subchief.x
+    var steps = g.steps
+    for (var i = 0; i < 20; i++) { g.step() }
+    assert(g.subchief.x != x && g.subchief.shots[0].active)
+    assert(g.subchief.lives == 1 && g.score == 17 && g.ship.lives == 0 && g.stagePosition() == 89)
+    assert(g.steps == steps && g.weapons.level == 3 && g.weapons.charges == 0 && g.displayedScore == 17)
+
+    g.subchief.damage(1)
+    var explosionX = g.subchief.explosionX
+    for (var i = 0; i < 6; i++) { g.step() }
+    assert(g.subchief.explosionSteps == 6 && g.subchief.explosionX < explosionX)
+    assert(g.score == 17 && g.ship.lives == 0 && g.stagePosition() == 89)
+    g.start(922)
+    assert(g.subchief.phase == SubchiefPhase.Inactive && g.subchief.lives == 30 && g.subchief.lifeTime == 0)
+    assert(g.subchief.explosionSteps == 0 && g.stagePosition() == 5 && g.steps == 0)
+    for (var shot in g.subchief.shots) { assert(!shot.active) }
+    assert(g.score == 0 && g.ship.lives == 3 && g.weapons.level == 0)
+}
+
+test "subchief corner geometry retains inclusive edges and rejects mere rectangle overlap" {
+    var g = Game()
+    var laserX = listOf(84, 85, 113, 114)
+    var expected = listOf(30, 29, 29, 30)
+    for (var i = 0; i < 4; i++) {
+        prepareSubchief(g)
+        g.weapons.lasers.shots[0].active = true
+        g.weapons.lasers.shots[0].x = laserX[i]
+        g.weapons.lasers.shots[0].y = 100
+        g.step()
+        assert(g.subchief.lives == expected[i])
+    }
+    prepareSubchief(g)
+    g.weapons.blaster.fire(g.ship)
+    g.weapons.blaster.x = 60
+    g.weapons.blaster.y = 102
+    g.step()
+    assert(g.subchief.lives == 30 && g.weapons.blaster.lives == 2)
+    prepareSubchief(g)
+    g.ship.x = 100
+    g.subchief.y = 80
+    g.subchief.endY = 80
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && g.subchief.lives == 29)
+    prepareSubchief(g)
+    g.ship.x = 100
+    g.subchief.x = 80
+    g.subchief.endX = 80
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && g.subchief.lives == 29)
+}
+
+test "marked exhausted special beam still reapplies when next color enters contact" {
+    var g = Game()
+    prepareSubchief(g)
+    for (var beam in g.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 }
+    g.weapons.beams[0].lives = 1
+    g.step()
+    assert(g.subchief.lives == 29 && g.weapons.beams[0].lives == 0)
+    g.step()
+    assert(g.subchief.lives == 27 && g.weapons.beams[0].lives == -1 && g.weapons.beams[1].lives == 9)
+    g.step()
+    assert(g.subchief.lives == 24 && g.weapons.beams[0].lives == -2 && g.weapons.beams[2].lives == 9)
+    assert(g.weapons.beams[0].deathSteps == 0, "each nonpositive hit restarts the historical death animation")
+    for (var i = 0; i < 4; i++) { g.step() }
+    assert(g.weapons.beams[0].active && g.weapons.beams[0].contactSteps == 6 && g.weapons.beams[0].deathSteps == 4)
+    g.step()
+    assert(g.weapons.beams[0].lives == -3 && g.weapons.beams[0].deathSteps == 0)
+    g.step()
+    assert(g.weapons.beams[0].lives == -4 && g.weapons.beams[0].deathSteps == 0)
+    g.subchief.phase = SubchiefPhase.Explosion
+    for (var i = 0; i < 5; i++) { g.step() }
+    assert(g.weapons.beams[0].active && g.weapons.beams[0].deathSteps == 5 && g.weapons.beams[0].contactSteps == 6)
+    g.step()
+    assert(!g.weapons.beams[0].active && g.weapons.beams[0].contactSteps == 0)
+}
+
+test "subchief moves one unit on both axes and arrival selects reproducible new destination" {
+    var g = Game()
+    prepareSubchief(g)
+    g.subchief.x = 100
+    g.subchief.y = 80
+    g.subchief.endX = 101
+    g.subchief.endY = 81
+    rng.seed(71)
+    g.step()
+    assert(g.subchief.x == 101 && g.subchief.y == 81)
+    var destinationX = g.subchief.endX
+    var destinationY = g.subchief.endY
+    assert(destinationX >= 88 && destinationX <= 147 && destinationY >= 30 && destinationY <= 193)
+    prepareSubchief(g)
+    g.subchief.x = 100
+    g.subchief.y = 80
+    g.subchief.endX = 101
+    g.subchief.endY = 81
+    rng.seed(71)
+    g.step()
+    assert(g.subchief.endX == destinationX && g.subchief.endY == destinationY)
+}
+
+
+test "simultaneous fatal contacts preserve ship laser blaster special precedence" {
+    var g = Game()
+    for (var resistance = 1; resistance <= 5; resistance++) {
+        prepareSubchief(g)
+        g.subchief.lives = resistance
+        g.ship.x = 100
+        g.weapons.lasers.shots[0].active = true
+        g.weapons.lasers.shots[0].x = 86
+        g.weapons.lasers.shots[0].y = 100
+        g.weapons.blaster.active = true
+        g.weapons.blaster.x = 60
+        g.weapons.blaster.y = 100
+        for (var beam in g.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 }
+
+        g.step()
+        assert(g.ship.phase == ShipPhase.Explosion && g.subchief.phase == SubchiefPhase.Explosion)
+        assert(g.score == 600)
+        if (resistance == 1) { assert(!g.weapons.lasers.shots[0].impact) }
+        else { assert(g.weapons.lasers.shots[0].impact) }
+        if (resistance <= 2) { assert(g.weapons.blaster.lives == 2) }
+        else { assert(g.weapons.blaster.lives == 0) }
+        if (resistance <= 4) { assert(g.weapons.beams[0].lives == 10) }
+        else { assert(g.weapons.beams[0].lives == 9) }
+    }
+}
+
+prepareAudit(Game g) {
+    g.start(922)
+    g.stageSteps = 840
+    g.subchief.phase = SubchiefPhase.Normal
+    g.subchief.x = 120
+    g.subchief.y = 100
+    g.subchief.endX = 120
+    g.subchief.endY = 100
+    g.ship.phase = ShipPhase.Normal
+    g.ship.y = 100
+    for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+    for (var item in g.items) { item.x = 10000 }
+}
+
+prepareFatalContact(Game g, Int weapon) {
+    if (weapon == 0) { g.ship.x = 100 }
+    if (weapon == 1) {
+        g.weapons.lasers.shots[0].fire(0, 100)
+        g.weapons.lasers.shots[0].x = 86
+    }
+    if (weapon == 2) { g.weapons.blaster.fire(g.ship); g.weapons.blaster.x = 60 }
+    if (weapon == 3) {
+        for (var beam in g.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 }
+    }
+}
+
+test "fatal contact at historical lifetime thirty keeps six hundred reward before movement or fire" {
+    var g = Game()
+    for (var weapon = 0; weapon < 4; weapon++) {
+        prepareAudit(g)
+        g.subchief.endX = 147
+        g.subchief.endY = 110
+        g.subchief.lives = 1
+        g.subchief.lifeTime = 30
+        g.subchief.normalSteps = 35
+        prepareFatalContact(g, weapon)
+
+        g.step()
+
+        assert(g.score == 600 && g.subchief.lifeTime == 30 && g.subchief.normalSteps == 35)
+        assert(g.subchief.x == 120 && g.subchief.y == 100 && g.subchief.explosionSteps == 0)
+        for (var shot in g.subchief.shots) { assert(!shot.active) }
+        g.step()
+        assert(g.score == 600 && g.subchief.explosionSteps == 1)
+    }
+}
+
+test "fatal contact at historical lifetime sixty keeps three hundred reward before movement or fire" {
+    var g = Game()
+    for (var weapon = 0; weapon < 4; weapon++) {
+        prepareAudit(g)
+        g.subchief.endX = 147
+        g.subchief.endY = 110
+        g.subchief.lives = 1
+        g.subchief.lifeTime = 60
+        g.subchief.normalSteps = 35
+        prepareFatalContact(g, weapon)
+
+        g.step()
+
+        assert(g.score == 300 && g.subchief.lifeTime == 60 && g.subchief.normalSteps == 35)
+        assert(g.subchief.x == 120 && g.subchief.y == 100 && g.subchief.explosionSteps == 0)
+        for (var shot in g.subchief.shots) { assert(!shot.active) }
+    }
+}
+
+test "new enemy shot cannot collide before its historical first update" {
+    var g = Game()
+    prepareAudit(g)
+    g.ship.x = 40
+    g.subchief.x = 101
+    g.subchief.endX = 101
+    g.subchief.normalSteps = 11
+    g.step()
+    println("newShot shipNormal=" + (g.ship.phase == ShipPhase.Normal) + " shotActive=" + g.subchief.shots[0].active)
+    assert(g.ship.phase == ShipPhase.Normal && g.subchief.shots[0].active && g.subchief.shots[0].x == 90, "historical enemy collisions precede fire and projectile movement")
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && !g.subchief.shots[0].active)
+}
+
+test "existing enemy shot outside ship cannot hit until next historical step" {
+    var g = Game()
+    prepareAudit(g)
+    g.subchief.shots[0].active = true
+    g.subchief.shots[0].x = 51
+    g.subchief.shots[0].y = 113
+    g.step()
+    println("movingShot shipNormal=" + (g.ship.phase == ShipPhase.Normal) + " shotX=" + g.subchief.shots[0].x)
+    assert(g.ship.phase == ShipPhase.Normal && g.subchief.shots[0].active && g.subchief.shots[0].x == 47, "historical enemy collisions use the pre-movement shot position")
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && !g.subchief.shots[0].active)
+}
+
+test "nonfatal contacts still move fire and increment the lifetime clock at thirty and sixty" {
+    var g = Game()
+    for (var lifetime in listOf(30, 60)) {
+        for (var weapon = 0; weapon < 4; weapon++) {
+            prepareAudit(g)
+            g.subchief.endX = 147
+            g.subchief.endY = 110
+            g.subchief.lifeTime = lifetime
+            g.subchief.normalSteps = 35
+            prepareFatalContact(g, weapon)
+
+            g.step()
+
+            assert(g.score == 0 && g.subchief.phase == SubchiefPhase.Normal && g.subchief.lives < 30)
+            assert(g.subchief.lifeTime == lifetime + 1 && g.subchief.normalSteps == 0)
+            assert(g.subchief.x == 121 && g.subchief.y == 101)
+            assert(g.subchief.shots[0].active && g.subchief.shots[0].x == 110)
+        }
+    }
+}
+
+test "enemy contact frees first slot for one update without colliding with its replacement" {
+    var g = Game()
+    prepareAudit(g)
+    g.ship.x = 40
+    g.subchief.x = 101
+    g.subchief.endX = 101
+    g.subchief.normalSteps = 11
+    for (var shot in g.subchief.shots) { shot.active = true; shot.y = 113 }
+    g.subchief.shots[0].x = 40
+    g.subchief.shots[1].x = 150
+    g.subchief.shots[2].x = 160
+
+    g.step()
+
+    assert(g.ship.phase == ShipPhase.Explosion && g.ship.explosionSteps == 0)
+    assert(g.subchief.shots[0].active && g.subchief.shots[0].x == 90)
+    assert(g.subchief.shots[1].x == 146 && g.subchief.shots[2].x == 156)
+    g.ship.phase = ShipPhase.Normal
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && !g.subchief.shots[0].active)
 }

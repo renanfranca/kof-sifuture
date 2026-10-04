@@ -8,6 +8,8 @@ class Game {
     Int displayedScore = 0
     Int score = 0
     Int steps = 0
+    Int stageSteps = 0
+    Subchief subchief = Subchief()
     List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
     Weapons weapons = Weapons()
     Zone activeZone = Zone.Neutral
@@ -81,10 +83,12 @@ class Game {
         score = 0
         displayedScore = 0
         steps = 0
+        stageSteps = 0
         background.reset()
         weapons.reset()
         for (var m in meteors) { m.reset() }
         for (var item in items) { item.reset() }
+        subchief.reset()
     }
 
     confirm() {
@@ -110,12 +114,13 @@ class Game {
 
     step() {
         if (screen == Screen.Result) {
+            subchief.advance()
             background.advance()
             for (var item in items) { item.advance() }
             ship.advanceVisual()
             if (ship.phase == ShipPhase.Normal || ship.phase == ShipPhase.Hidden) { weapons.attemptFire(ship) }
             weapons.advance()
-            if (stagePosition() > 30 && !meteors[6].active && !meteors[7].active) {
+            if (subchief.phase == SubchiefPhase.Inactive && stagePosition() > 30 && !meteors[6].active && !meteors[7].active) {
                 meteors[6].active = true
                 meteors[7].active = true
             }
@@ -126,6 +131,13 @@ class Game {
         }
         if (screen != Screen.Play) { return }
         steps = steps + 1
+        if (subchief.phase == SubchiefPhase.Inactive) {
+            stageSteps = stageSteps + 1
+            if (stagePosition() == 88) {
+                subchief.phase = SubchiefPhase.Normal
+                stageSteps = stageSteps + 10
+            }
+        }
         background.advance()
         for (var item in items) { item.advance() }
         var normalBefore = ship.phase == ShipPhase.Normal
@@ -133,6 +145,7 @@ class Game {
         ship.advance()
         if (ship.lives < livesBefore) { weapons.loseOnDeath() }
         if (ship.lives == 0) {
+            subchief.advance()
             finish()
             return
         }
@@ -148,7 +161,23 @@ class Game {
             }
         }
 
-        if (stagePosition() > 30 && !meteors[6].active && !meteors[7].active) {
+        var chiefPhaseBeforeContacts = subchief.phase
+        if (subchief.touchesShip(ship)) {
+            ship.explode()
+            subchief.damage(1)
+        }
+        weapons.hitSubchiefLaser(subchief)
+        weapons.hitSubchiefBlaster(subchief)
+        weapons.hitSubchiefSpecial(subchief)
+        if (chiefPhaseBeforeContacts == SubchiefPhase.Normal && subchief.phase == SubchiefPhase.Explosion) { score = score + subchief.reward() }
+        for (var shot in subchief.shots) {
+            if (shot.touchesShip(ship)) { ship.explode(); shot.active = false; break }
+        }
+        if (chiefPhaseBeforeContacts == SubchiefPhase.Explosion) { subchief.advanceExplosion() }
+        subchief.advanceNormal()
+        subchief.advanceShots()
+
+        if (subchief.phase == SubchiefPhase.Inactive && stagePosition() > 30 && !meteors[6].active && !meteors[7].active) {
             meteors[6].active = true
             meteors[7].active = true
         }
@@ -194,7 +223,7 @@ class Game {
     countComplete(): Bool { return displayedScore == score }
 
     stagePosition(): Int {
-        var position = 5 + steps / 10
+        var position = 5 + stageSteps / 10
         if (position > Rules.WORLD_WIDTH) { return Rules.WORLD_WIDTH }
         return position
     }

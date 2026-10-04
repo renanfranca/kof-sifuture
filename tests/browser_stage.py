@@ -208,13 +208,14 @@ def vertical_and_full_journey(page):
     offset = state(page)["steps"] * 5 % 60
     assert actual.getpixel((85, 65)) == background.getpixel(((85 + offset) % 60, 35))
     page.get_by_role("button", name="Full journey", exact=True).click()
-    assert state(page)["steps"] == 1709 and state(page)["position"] == 175
+    assert state(page)["steps"] > 1709 and state(page)["position"] == 175
+    match_steps = state(page)["steps"]
     assert page.get_by_role("button", name="Pausar", exact=True).count() == 1
     advance(page)
-    assert state(page)["steps"] == 1710 and state(page)["position"] == 176
+    assert state(page)["steps"] == match_steps + 1 and state(page)["position"] == 176
     score = state(page)["score"]
     advance(page, 100)
-    assert state(page)["steps"] == 1710 and state(page)["score"] == score
+    assert state(page)["steps"] == match_steps + 1 and state(page)["score"] == score
     if page.get_by_role("button", name="Concluir contagem", exact=True).count():
         page.get_by_role("button", name="Concluir contagem", exact=True).click()
     assert page.get_by_role("button", name="Voltar ao menu", exact=True).count() == 1
