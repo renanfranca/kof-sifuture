@@ -273,7 +273,11 @@ Avaliar antecipação dos achados e redução da correção posterior. Quantidad
 ### Execução
 
 - [x] Inventário/distribuição confirmados, título verificado e ledger v6 criado.
-- [x] Entidade, progressão e TDD: 72 cenários executados em JVM e JS.
+- [x] Entidade, progressão e TDD: 73 cenários executados em JVM e JS.
 - [x] Geometria histórica, prioridade, marcadores do especial e prêmio único.
 - [x] Desenho/transições; checkpoints Chrome de controles, armas, fase e subchefe aprovados. Os seis percursos serão executados pelos gates formais.
-- [ ] Aceite por critério, revisão estrutural, gates finais e CI.
+- [x] Aceite por critério e revisão estrutural; lacuna de precedência/capacidade encontrada antes da entrega e fechada em testes.
+- [x] Checkpoints `5864df41438affb45b6fabd5ad3276fbc2a21549` e `6c79a062b1b23765935a22aea539a3968e48cee8`; dez checks locais aprovados em ambos, 72 e 73 cenários respectivamente.
+- Entrega: repetir os dez checks no commit final de documentação, abrir PR pronto para revisão e acompanhar Resolve verified Kof e Kof tests (jvm/js). Os SHAs finais e links específicos ficarão no PR/ledger. Não realizar merge.
+
+A seção deste ciclo em `.agent/validation/stage-hud-result.md` preserva o histórico e associa cada critério à origem, exemplos executados, SHA e evidência persistente. A avaliação de três ciclos começa aqui; conferência posterior do planejador e ciclos 2/3 permanecem pendentes. Vídeo histórico não foi acessado.

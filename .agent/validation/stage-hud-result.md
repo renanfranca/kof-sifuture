@@ -107,3 +107,192 @@ A revisão estrutural cobriu os contratos alterados e seus colaboradores, sem de
 O vídeo histórico não foi aberto; não há aceite visual baseado nele. Fonte e dimensões dos assets sustentam a composição. Não foram aceitos Android, música, chefes, menus completos, controles reformulados, dispositivos físicos ou fullscreen/reescalonamento/centralização global da janela; a composição atual de 176 × 220 foi preservada.
 
 Evidências opcionais: `.agent/tmp/stage-browser/` (capturas); `.agent/tmp/stage-assets.json` (checksums); `.agent/tmp/stage-constructor-gap.md` (observação de construtores); `.agent/tmp/stage-hud-result.structural-review.md` (revisão); `.agent/tmp/stage-hud-result.initial-summary.json` e `.agent/tmp/validation/20261004T113102-0zb8jl0t/` (executor). Este registro contém os resultados essenciais sem exigir esses arquivos locais. O CI selecionado é Resolve verified Kof e Kof tests (jvm/js); resultados finais e links específicos da entrega ficam no PR/ledger, sem autorizar merge.
+
+## Combate com o subchefe — ciclo 1 de 3 (04/10/2026)
+
+Esta seção acrescenta o ciclo e preserva os registros anteriores. Os contratos anteriores de passagem sem combate e fim em 1710 passos descrevem a base histórica; o contrato vigente está na [especificação](../specifications/port-sifuture-to-kof.md#approved-browser-cycle-subchief-combat-04102026) e no [EXECPLAN](../../EXECPLAN.md#combate-com-o-subchefe--ciclo-aprovado-de-04102026).
+
+Revisão de código e testes: `6c79a062b1b23765935a22aea539a3968e48cee8`, branch `subchief-combat`, base `95895ee23ac470b798f958994c1514c0f2632ce0`. Produção foi registrada em `5864df41438affb45b6fabd5ad3276fbc2a21549`; o segundo commit reforça somente testes. O commit deste aceite altera documentação. O inventário será repetido no head final e seu SHA/links específicos ficarão no PR e ledger, sem tratar evidência de outro head como final. Referências persistentes: [workflow da branch](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml?query=branch%3Asubchief-combat) e [PRs da branch](https://github.com/renanfranca/kof-sifuture/pulls?q=is%3Apr+head%3Asubchief-combat).
+
+### Ambiente e execução
+
+Linux x86_64; Python, Playwright, Pillow; Chrome `139.0.7258.154`; Kof `0.5.0-beta` em `/home/renanfranca/.local/bin/kof`, JVM embarcada Eclipse Adoptium `25.0.4.1`. Fontes Kof consultadas em `317d9f6b1c3e27032cc955a05f859f6c627d9338`; esse SHA não é atribuído à distribuição instalada, que não o informa. Identidade do JAR: SHA-256 `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`.
+
+Worker `primary`, chat `01a1079d-8a58-7f73-a732-acce78ff1b98`, título `sifuture-subchief-primary`, `gpt-6.1-sol`/`medium`. Implementação, validação e revisão compartilham contexto; revisão não independente. Sonar, Habit e runner de mutação excluídos por ausência de configuração, sem alegação de aprovação. CI selecionado: Resolve verified Kof e Kof tests (jvm/js). Pages continua após merge.
+
+| Comando local | Resultado na revisão de código/testes indicada acima |
+| --- | --- |
+| `python3 scripts/kof_project.py test --target jvm` | 73/73 cenários; 1 arquivo aprovado |
+| `python3 scripts/kof_project.py test --target js` | 73/73 cenários; 1 arquivo aprovado |
+| `python3 tests/browser.py` | menu, Enter/Espaço, pausa, resultado e retorno aprovados |
+| `python3 tests/browser_controls.py` | teclado, foco, pointer e toque aprovados |
+| `python3 tests/browser_meteor.py` | movimento, três impactos e relançamento aprovados |
+| `python3 tests/browser_weapons.py` | coleta, evolução, especial, solturas, multitouch, pausa e camadas aprovados |
+| `python3 tests/browser_stage.py` | fase com combate, verticais, HUD, resultado e duas confirmações aprovados em 320/1200 |
+| `python3 tests/browser_subchief.py` | entrada, combate, tiros, especial real, dez quadros, pausa, retomada, derrota e nova partida aprovados em 320/1200 |
+| `python3 -m unittest discover -s tests -p 'test_kof_project.py'` | 8 casos, `OK`; diagnósticos PARSE pertencem ao teste de build deliberadamente inválido |
+| `PATH=/tmp/kof-ci-tools:$PATH bash tests/ci-contract.sh` | resolução, integridade, comandos dos jobs, empacotamento e publicação aprovados |
+
+Executor `implement-approved-plan/scripts/run_validation.py`: dez selecionados, dez executados, zero bloqueados, todas as coleções completas. O primeiro gate em `5864df4` aprovou 72 cenários e todos os dez checks; a revisão encontrou uma lacuna de cobertura, reforçada no segundo commit, antes de repetir o gate completo com 73 cenários.
+
+Saída de ambos os comandos Kof (JVM e JS):
+
+```text
+0 failed of 73 tests
+1 passed, 0 failed
+```
+
+`73` conta os cenários; `1 passed` conta o arquivo da suíte. Ambos executaram o comportamento, sem confundir compilação com prova de execução.
+
+### Matriz de critérios, origem e evidência
+
+Todos os critérios abaixo usam o SHA de código/testes e os comandos acima. Interações visuais usam Chrome `139.0.7258.154` nas larguras 320 e 1200. A coluna de evidência identifica testes/interações persistentes; os trechos seguintes mostram os resultados esperados realmente verificados. Os exemplos do agente são testes executados, separados das citações históricas.
+
+| Critério | Exemplo e resultado observado | Origem da expectativa | Evidência demonstrada e lacuna |
+| --- | --- | --- | --- |
+| Entrada e trilha | Passo 829: posição 87, inativo. Passo 830: ativo, posição 89. Combate e 30 passos de explosão mantêm 89; dez passos posteriores levam a 90; encontro não retorna. | `StageCount.java:209–215` e `:276–287`; plano aprovado. | `midpoint enters once…`, `subchief explosion freezes…`, `full stage completes…`; browser observa entrada/retomada. Sem lacuna de regra identificada. |
+| Movimento e tiros | Semente repetida reproduz início/destinos; um passo muda os dois eixos em uma unidade. Tentativas 12/24/36 ocupam os três slots; a 48 não sobrescreve o primeiro. Ao liberar o primeiro, a próxima tentativa o reutiliza. Tiros movem quatro unidades. | `Subchief.java:115–130`, `:172–199`, `:298–307`, `:355–362`; `SubchiefShoot.java:60–78`; dimensões 28×26 e 30×4. | `subchief seeded destinations…`, `subchief moves one unit…`; browser compara nave e tiro e observa 1/2/3 slots. Sem lacuna de regra identificada. |
+| Dano e invulnerabilidade | Laser 30→29; blaster intacto 30→28/lives 0, parcial 30→29. Contato normal explode nave/retira 1; reinício muda nenhum dos dois. Bordas inclusivas, contato por pontos e golpe simultâneo conservam nave→laser→blaster→especial antes das armas contra meteoros. | `AirShip.java:335–348`, `ShootLaser.java:172–209`, `ShootBlaster.java:163–197`, `GameCanvas.java:208–241`; invulnerabilidade é exceção explicitamente aprovada. | `subchief laser and body…`, `subchief blaster spends…`, `subchief corner geometry…`, `simultaneous fatal contacts…`, `enemy shot historical…`; browser corpo/reinício. Não se usa mera sobreposição de retângulos como oráculo. |
+| Especial histórico | Primeiros três contatos: 30→29→27→24. Feixes marcados reaplicam quando outra cor entra; intervalo seis; offscreen limpa marcador. Feixe esgotado ainda marcado reaplica enquanto ativo; fatal encerra dano ao subchefe mas consome todos os marcados. | `AirShipEspecialShoot.java:244–252`, `:308–345`; `AirShipAllShoots.java:331–377`; `AirShip.java:594–602`. | `special subchief markers…`, `marked exhausted special beam…`, `fatal subchief hit…`; browser dispara tecla 1 repetida pelo controle real, compara HUD e pausa. Sem lacuna de regra identificada. |
+| Recompensa | lifeTime 30/31/60/61: 600/300/300/150, por corpo/laser/blaster/especial. Quadros e golpes posteriores não repetem prêmio. Permanecem dois itens, avançando de x10000 para 9999, sem reposicionamento ou benefício imediato. | `Subchief.java:157–165`, `:298–307`; `GameCanvas.java:209–237`; `ItemArray.java:62–82` e `Item.java:129–136`. | `fatal subchief hit rewards once…` (quatro fronteiras × quatro armas); browser prêmio 600 estável durante toda explosão. lifeTime conta blocos de 36 passos normais, não segundos. |
+| Transições | Pausa congela combate, projéteis, especial e explosão; continuar retoma. Derrota mantém movimento/tiros e explosão sem dano, pontos ou novas perdas. Nova partida retorna a posição 5, resistência 30, relógios zero e projéteis inativos. | Plano aprovado; contrato de resultado já aceito; históricos de restart em `Subchief.java:115–130`. | `defeat during subchief encounter…`, `enemy shot historical…`, `subchief explosion freezes…`; browser controles Pausar/Continuar, derrota, menu e Novo Jogo. Sem lacuna de regra identificada. |
+| Apresentação | Dois assets idênticos à fonte; dez sprites de explosão em três passos/quadro, offsets 0/1/4/7/10/16/22/31/40/55 no início dos quadros; HUD sobreposto ao especial. Três redesenhos preservam bitmap e todo estado observado. | `Subchief.java:235–288`; `sifuture/res`; HUD aceito; `GameView.render` somente leitura. | `browser_subchief.py`: pixels, capturas e controles reais em 320/1200; capturas inspecionadas pelo agente. Vídeo histórico indisponível: não há fidelidade visual demonstrada por vídeo. |
+
+### Trechos que sustentam o aceite
+
+Entrada, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1287), executada nos dois alvos:
+
+```kof
+    assert(g.stagePosition() == 87 && g.subchief.phase == SubchiefPhase.Inactive)
+
+    g.step()
+    assert(g.stagePosition() == 89 && g.subchief.phase == SubchiefPhase.Normal)
+```
+
+O contador de passos da partida e o da trilha têm ritmos diferentes durante o encontro. [Game.stagePosition](../../src/main/kof/sifuture/game/Game.kf#L221) deriva a posição de `stageSteps`, evitando guardar outra posição sincronizada. O [training de estado duplicado](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/anti-patterns/duplicate-state.md#L73) orienta:
+
+> If a value can be derived from another, derive it (method or function).
+
+Capacidade cheia, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1332):
+
+```kof
+    var shotX = chief.shots[2].x
+    var firstShotX = chief.shots[0].x
+    for (var i = 0; i < 12; i++) { g.step() }
+    assert(chief.shots[2].x == shotX - 48 && chief.shots.size == 3)
+    assert(chief.shots[0].x == firstShotX - 48)
+```
+
+O primeiro e o terceiro tiros conservam o avanço de 12×4; uma tentativa com capacidade cheia não substitui nenhum deles. O cenário libera o primeiro slot e comprova sua reutilização. O teste de chegada também observa ambos os eixos e a reprodução do novo destino.
+
+Dano e invulnerabilidade, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1363), com omissão explícita das preparações intermediárias:
+
+```kof
+    assert(g.subchief.lives == 29 && laser.impact && laser.x == 121 && laser.y == 100)
+    assert(!g.meteors[0].collided && g.score == 0)
+```
+
+```kof
+    assert(g.ship.phase == ShipPhase.Restart && g.subchief.lives == 30)
+```
+
+O primeiro trecho mostra o laser consumido pelo subchefe antes de reclamar o meteoro. O segundo demonstra a exceção aprovada: contato corporal no reinício não explode a nave nem retira resistência do subchefe. O novo teste simultâneo observa quais armas permanecem intactas quando uma família anterior produz o golpe fatal.
+
+Especial, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1410):
+
+```kof
+    assert(g.subchief.lives == 29 && g.weapons.beams[0].lives == 9)
+    assert(g.weapons.beams[1].lives == 10 && g.weapons.beams[2].lives == 10)
+    g.step()
+    assert(g.subchief.lives == 27 && g.weapons.beams[0].lives == 8 && g.weapons.beams[1].lives == 9)
+    g.step()
+    assert(g.subchief.lives == 24 && g.weapons.beams[0].lives == 7 && g.weapons.beams[1].lives == 8 && g.weapons.beams[2].lives == 9)
+```
+
+O dano 1/2/3 preserva a busca por uma nova cor seguida do consumo de todos os marcadores. A expiração impede reaplicação sem nova entrada, e o cenário separado de esgotamento verifica que resistência zero não apaga antecipadamente o marcador histórico.
+
+Recompensa, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1449):
+
+```kof
+    var lifetimes = listOf(30, 31, 60, 61)
+    var rewards = listOf(600, 300, 300, 150)
+```
+
+O teste aplica o golpe fatal com cada família e percorre os quadros seguintes, verificando estabilidade dos pontos e dos dois itens. A fórmula histórica em `/home/renanfranca/projects/sifuture/src/Subchief.java:157` é:
+
+```java
+if(this.lifeTime <= 30) {
+    return VALUE*2;
+}
+if(this.lifeTime <= 60) {
+    return VALUE;
+}
+return VALUE/2;
+```
+
+`VALUE = 300`; comparações inclusivas explicam por que 30 ainda vale 600 e 60 ainda vale 300.
+
+Transições, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1554):
+
+```kof
+    assert(g.subchief.lives == 1 && g.score == 17 && g.ship.lives == 0 && g.stagePosition() == 89)
+    assert(g.steps == steps && g.weapons.level == 3 && g.weapons.charges == 0 && g.displayedScore == 17)
+```
+
+O cenário observa que a cena se move durante resultado, enquanto estes valores permanecem estáveis. A perda de carga ocorreu na morte antes da entrada do resultado; não se repete durante a animação. A nova partida limpa encontro, tiros e relógios.
+
+Apresentação e percurso, saída de `python3 tests/browser_subchief.py`:
+
+```text
+PASS full seeded encounter journey at 320px: 4228 steps, score 350, position 176
+PASS full seeded encounter journey at 1200px: 4228 steps, score 350, position 176
+PASS midpoint combat, three shots, invulnerability, real special controls, ten explosion sprites, resumed track, defeat and new game
+PASS Chrome 139.0.7258.154 at 320 and 1200 pixels; pause and repaint preserve simulation
+```
+
+4228 é o resultado observado da semente 902, não um novo prazo fixo. A fixture usa Game/GameView/GameControls reais e relógio controlado; a aplicação normal também foi montada e capturada em ambas as larguras. Não se atribui esse resultado a dispositivos físicos.
+
+O [idioma de classes](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/idioms/classes.md#L35) orienta:
+
+> for **mutable state** use explicit fields + `constructor(...)`.
+
+O [Learn Kof, capítulo 07](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/07-classes-and-objects.md#L65) reforça:
+
+> To **mutate**, use explicit public fields:
+
+Subchief e seus tiros usam essa forma: os campos são alterados pela simulação; GameView apenas os consulta. A [composição de imagens no training de UI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/idioms/ui.md) usa:
+
+```kof
+c.drawImage(logo, 5, 5)
+```
+
+O desenho reaproveita Image/Canvas existentes, sem código host escrito à mão. O Learn Kof UI distingue execução de regra em JVM/JS de desenho efetivo no navegador; o percurso Chrome fornece a prova visual no alvo JS.
+
+### Revisão e limites
+
+Revisão estrutural sobre o código alterado e os colaboradores adjacentes: estado temporal pertence às entidades; prioridade/prêmio pertencem a Game/Weapons; não há campos UI no domínio nem contador duplicado de disponibilidade. Marcadores do especial são estado de protocolo histórico, não cache derivável. O snapshot local `chiefNormal` detecta a transição fatal e protege prêmio único. A ordem de desenho/colisão está coberta por comportamento, sem testes para impor organização interna.
+
+Oportunidades de manutenção: centralizar dimensões/cadências numéricas e extrair o bloco de encontro em Game poderia reduzir repetição; classificados como oportunidades, sem defeito demonstrado e sem refactor de produção neste ciclo. A lacuna de precedência simultânea/capacidade cheia foi encaminhada ao Implementer e corrigida nos testes, repetindo os gates.
+
+Os assets novos foram comparados byte a byte com a fonte: `subchief.png`, SHA-256 `3829891b36a1af47da09297bd4547d29d7708a5b43dca18c5f361aab432ed8d2`; `laser0.png`, SHA-256 `737b3c56bac52c595a60d640bd36ff1cc62c75bacdf597a89ab50b03e08bcace`. NOTICE permanece igual. Dez explosões existentes reutilizadas.
+
+Fonte histórica foi conferida estaticamente; o JAR histórico não foi executado. Vídeo não acessado: fidelidade visual baseada nele permanece aberta. Chefe final, música, Android, menus completos e controles reformulados seguem pendentes. Capturas 320/1200 verificam a composição existente; não fecham a reformulação global de layout.
+
+Evidências locais opcionais: `.agent/tmp/subchief-browser/` (capturas), `.agent/tmp/subchief-assets.json` (hashes), `.agent/tmp/subchief-combat.initial-summary.json` (primeiro gate), `.agent/tmp/subchief-combat.coverage-summary.json` (gate repetido), `.agent/tmp/subchief-combat.final-summary.json` (head final), `.agent/tmp/subchief-combat.structural-review.md` e `.agent/tmp/validation/` (logs/entradas). Resultados essenciais estão registrados aqui; links finais de CI ficam no PR/ledger.
+
+### Avaliação prospectiva em três ciclos
+
+| Momento/achado | Classificação | Correção/antecipação e esforço aproximado |
+| --- | --- | --- |
+| Executor, antes da entrega: expectativa do tiro em y+9, em vez de y+13 | Expectativa incorreta | Dimensões/fórmula histórica conferidas antes de finalizar movimento; corrigido no teste. Cerca de 1 min. |
+| Executor: borda direita inclusiva do laser tratada como exclusão | Expectativa incorreta | Caso limite corrigido com a expressão histórica e deslocamento do passo. Cerca de 1 min. |
+| Executor: espera de 20 passos para feixe atingir subchefe móvel | Expectativa incorreta | O destino avançava enquanto o feixe entrava; aguardar 36 passos demonstrou contato. Cerca de 1 min. |
+| Executor: leitura imediata do Label da fixture após concluir contagem | Expectativa incorreta | O Label atualiza no relógio da fixture; avançar um passo antes da leitura. Cerca de 1 min. |
+| Executor na revisão: prova isolada das armas não demonstrava fatal simultâneo; capacidade cheia não verificava preservação do primeiro slot | Cenário não coberto | Acrescentar precedência com resistências 1–5 e posição do primeiro tiro; código passou sem alteração. Cerca de 2 min de teste/conferência, mais um gate completo de aproximadamente 2 min. |
+| Executor: corpo do commit de documentação excedeu 100 caracteres e sequência tentou validar antes do commit | Cenário não coberto na execução do fluxo | Commit recusado antes de Git; validação prematura cancelada e não aceita. Mensagem refluída, sequência passou a abortar em falhas, nova tentativa e gate completo após commit real. Cerca de 2 min. |
+| Planejador, depois da entrega | Pendente de conferência pelo chat planejador | Não houve conferência posterior nesta execução; nenhum resultado é inferido. |
+| Ciclos 2 e 3 | Ainda não executados | Registrar aqui achados e esforços quando esses ciclos ocorrerem; sem avaliações antecipadas. |
+
+Preparação adicional de matriz/retrieval: aproximadamente 6–8 min; conferência das fontes e composição visual: 4–6 min; registro de aceite/revisão: 5–7 min; correções de expectativa: aproximadamente 4 min. Estimativas de esforço do executor, não medições de uma comparação controlada. Execução automatizada do primeiro gate mediu 130,92 s; não se confunde duração do comando com esforço humano/agente.
+
+Sinal observado neste ciclo: a revisão detectou uma lacuna antes da entrega e a fechou sem mudar produção. Ainda não há medida de redução de correção posterior: falta a revisão do planejador e os dois próximos ciclos. O total de testes e a ausência de falhas nos gates, isoladamente, não demonstram benefício.
