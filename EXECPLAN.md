@@ -132,3 +132,22 @@ Diagnóstico de validação inicial: a mensagem de checkpoint excedeu o limite d
 Checkpoint real validado em 03/10/2026: `ab72af72471236fb336270a3b6ec8d7812dab6c4`, oito comandos aprovados pelo executor, 47/47 em JVM e JS, quatro percursos de Chrome, oito testes Python e contrato CI. Inspeção visual e revisão estrutural registradas em `.agent/validation/background-items-weapons.md`; nenhum refactor de produção necessário. A documentação do registro é o único delta posterior ao checkpoint.
 
 Entrega registrada: revisão final local `69301d86d915ecc2ce15f1e30a02566fa71ba7d9`, oito comandos aprovados em 65,94 s; PR #9 e CI verde. O complemento de documentação com links repete os gates locais e CI antes de encerrar; não muda produção. Nenhum merge ou publicação foi realizado.
+
+
+## Fase completa, HUD histórico e encerramento — ciclo aprovado de 04/10/2026
+
+Base imutável: `aea3b44ae5097ef9cadd9130cfede72022a2d055`, `main`. Branch: `stage-hud-result`. Plano aprovado preservado em `.agent/tmp/stage-hud-result.md`; ledger v6 e inventário confirmado no mesmo diretório. Worker `primary`, chat `01a10698-3ee0-75b3-841c-791dcf9d1e7a`, título `stage-result-primary`, `gpt-6.1-sol`/`medium`, concentra os sete papéis. Validação e revisão compartilham contexto; Sonar, Habit e mutação estão excluídos por ausência de configuração.
+
+- [x] Progressão derivada de `steps`: posição 5–176, 1710 passos, pausa e avanço durante explosão/reinício; percurso sem chefes.
+- [x] Dois verticais nos índices 6–7, desbloqueio acima de 30, movimento, impactos de três passos, desativação, relançamento do par, colisões e reprodução por semente.
+- [x] Resultado com entrada única, contagem limitada ao total exato, cenário animado e gameplay congelado; explosão concluída oculta e confirmação em duas etapas.
+- [x] Dezoito assets históricos copiados byte a byte, HUD completo e resultado centralizado, NOTICE preservado.
+- [x] TDD e checkpoints: 56 cenários verdes em JVM/JS; percursos de menu, controles, meteoros, armas e fase/resultado exercitados no Chrome. O novo percurso compara sprites nas larguras 320/1200 e cobre as seis fronteiras de avaliação.
+- [ ] Checkpoint versionado, validação inicial pelo executor, revisão estrutural e validação final sobre commits identificados.
+- [ ] PR pronto para revisão e CI terminal, sem merge ou exclusão da branch.
+
+Inventário local confirmado: `python3 scripts/kof_project.py test --target jvm`; idem `js`; `python3 tests/browser.py`; `python3 tests/browser_controls.py`; `python3 tests/browser_meteor.py`; `python3 tests/browser_weapons.py`; `python3 tests/browser_stage.py`; `python3 -m unittest discover -s tests -p 'test_kof_project.py'`; `PATH=/tmp/kof-ci-tools:$PATH bash tests/ci-contract.sh`. CI: Resolve verified Kof e Kof tests (jvm/js). Executor e coletores preservam logs em `.agent/tmp/validation/`.
+
+A declaração de dois construtores de `Meteor` divergiu entre JVM e JS: o emissor JS consultado escolhe apenas o construtor de maior aridade. O parâmetro default de construtor também foi rejeitado com `SEM023` nesta instalação. A implementação preserva `Meteor()` e configura os campos públicos dos dois verticais no construtor de `Game`, mantendo o estado mutável idiomático. Os 56 cenários foram executados nos dois alvos após essa decisão; não se estabelece uma regra geral de ausência de sobrecarga em Kof. Dossiê e logs locais ficam em `.agent/tmp/`.
+
+O vídeo histórico não foi acessível. A composição foi comparada com fonte e dimensões dos assets; as capturas do Chrome foram inspecionadas. Música, Android, chefes e menus completos continuam fora deste ciclo.

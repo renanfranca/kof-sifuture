@@ -21,6 +21,13 @@ class GameView {
     List<Image> blasters
     List<Image> specialFrames
     Image laserImpact
+    Image stageStart
+    Image stageTrack
+    List<Image> lifeShips
+    List<Image> digits
+    Image scoreLabel
+    Image finalScoreLabel
+    Image timesLabel
     Image result0
     Image result1
     Image result2
@@ -44,6 +51,13 @@ class GameView {
         blasters = listOf(Image("assets/ylwBlaster00.png"), Image("assets/ylwBlaster01.png"), Image("assets/ylwBlaster02.png"), Image("assets/ylwBlaster03.png"), Image("assets/ylwBlaster04.png"), Image("assets/ylwBlaster05.png"), Image("assets/ylwBlaster06.png"), Image("assets/ylwBlaster07.png"), Image("assets/ylwBlaster08.png"))
         specialFrames = listOf(Image("assets/e0.png"), Image("assets/e1.png"), Image("assets/e2.png"), Image("assets/e3.png"), Image("assets/e4.png"), Image("assets/e5.png"), Image("assets/e6.png"), Image("assets/e7.png"), Image("assets/e8.png"))
         laserImpact = Image("assets/laser03.png")
+        stageStart = Image("assets/StageBeginer.png")
+        stageTrack = Image("assets/StageMiddle.png")
+        lifeShips = listOf(Image("assets/1lives.png"), Image("assets/2lives.png"), Image("assets/3lives.png"))
+        digits = listOf(Image("assets/0.png"), Image("assets/1.png"), Image("assets/2.png"), Image("assets/3.png"), Image("assets/4.png"), Image("assets/5.png"), Image("assets/6.png"), Image("assets/7.png"), Image("assets/8.png"), Image("assets/9.png"))
+        scoreLabel = Image("assets/score.png")
+        finalScoreLabel = Image("assets/score1.png")
+        timesLabel = Image("assets/x.png")
         result0 = Image("assets/result0.png")
         result1 = Image("assets/result1.png")
         result2 = Image("assets/result2.png")
@@ -59,15 +73,6 @@ class GameView {
             canvas.fillText("Novo Jogo", 56, 174)
             return
         }
-        if (game.screen == Screen.Result) {
-            canvas.fillText("PONTOS: " + game.score, 40, 86)
-            if (game.resultIndex() == 0) { canvas.drawImage(result0, 31, 108) }
-            if (game.resultIndex() == 1) { canvas.drawImage(result1, 31, 108) }
-            if (game.resultIndex() == 2) { canvas.drawImage(result2, 31, 108) }
-            if (game.resultIndex() == 3) { canvas.drawImage(result3, 31, 108) }
-            canvas.fillText("Voltar ao menu", 42, 160)
-            return
-        }
         for (var y = Rules.HEADER_HEIGHT; y < Rules.WORLD_HEIGHT; y = y + 60) {
             for (var x = -game.background.offset; x < Rules.WORLD_WIDTH; x = x + 60) {
                 canvas.drawImage(background, x, y)
@@ -79,8 +84,10 @@ class GameView {
             else { canvas.drawImage(lifeItems[item.frame], item.x, item.y) }
         }
         for (var m in game.meteors) {
-            if (m.collided) { canvas.drawImage(meteorHits[m.collisionSteps / Rules.METEOR_HIT_FRAME_STEPS], m.x, m.y) }
-            else { canvas.drawImage(meteors[m.frame], m.x, m.y) }
+            if (m.active) {
+                if (m.collided) { canvas.drawImage(meteorHits[m.impactFrame()], m.x, m.y) }
+                else { canvas.drawImage(meteors[m.frame], m.x, m.y) }
+            }
         }
         for (var s in game.weapons.lasers.shots) {
             if (s.active && s.impact) { canvas.drawImage(laserImpact, s.x + 5, s.y) }
@@ -101,15 +108,60 @@ class GameView {
         for (var beam in game.weapons.beams) {
             if (beam.active) { canvas.drawImage(specialFrames[beam.color * 3 + beam.spriteFrame()], beam.x, beam.y) }
         }
-        if (game.ship.phase == ShipPhase.Explosion) { canvas.drawImage(explosions[game.ship.explosionSteps / Rules.SHIP_EXPLOSION_FRAME_STEPS], game.ship.x, game.ship.y) }
+        if (game.ship.phase == ShipPhase.Explosion && game.ship.explosionSteps < Rules.SHIP_EXPLOSION_STEPS) { canvas.drawImage(explosions[game.ship.explosionSteps / Rules.SHIP_EXPLOSION_FRAME_STEPS], game.ship.x, game.ship.y) }
         if (game.ship.phase == ShipPhase.Normal || (game.ship.phase == ShipPhase.Restart && (game.ship.restartFrame / Rules.SHIP_RESTART_BLINK_STEPS) % 2 == 0)) {
             if (game.ship.phase == ShipPhase.Normal && game.ship.rightFrame) {
                 canvas.drawImage(shipRight, game.ship.x, game.ship.y)
             } else { canvas.drawImage(ship, game.ship.x, game.ship.y) }
         }
-        canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.HEADER_HEIGHT)
-        canvas.fillText("PONTOS " + game.score + "   VIDAS " + game.ship.lives, 4, 18)
-        if (game.weapons.charges > 0) { canvas.drawImage(specialIcon, 149, 20) }
+        drawHud(game)
+        if (game.screen == Screen.Result) { drawResult(game) }
         if (game.screen == Screen.Pause) { canvas.fillText("PAUSADO", 60, 100) }
+    }
+
+    private drawHud(Game game) {
+        canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.HEADER_HEIGHT)
+        for (var x = 8; x < Rules.WORLD_WIDTH; x = x + 18) { canvas.drawImage(stageTrack, x, 0) }
+        var lifeFrame = 2
+        if (game.ship.lives == 1) { lifeFrame = 0 }
+        if (game.ship.lives == 2) { lifeFrame = 1 }
+        canvas.drawImage(lifeShips[lifeFrame], game.stagePosition(), 9)
+        canvas.drawImage(stageStart, 0, 0)
+        var scoreX = Rules.WORLD_WIDTH - numberWidth(game.score)
+        drawNumber(game.score, scoreX, 0)
+        canvas.drawImage(scoreLabel, scoreX - 24, 7)
+        canvas.drawImage(lifeShips[1], 146, 21)
+        canvas.drawImage(timesLabel, 140, 21)
+        drawNumber(game.ship.lives, 142 - numberWidth(game.ship.lives), 21)
+        if (game.weapons.charges > 0) { canvas.drawImage(specialIcon, 50, 21) }
+    }
+
+    private drawResult(Game game) {
+        var scoreX = (Rules.WORLD_WIDTH - 53 - numberWidth(game.displayedScore)) / 2
+        canvas.drawImage(finalScoreLabel, scoreX, 86)
+        drawNumber(game.displayedScore, scoreX + 53, 86)
+        if (!game.countComplete()) { return }
+        if (game.resultIndex() == 0) { canvas.drawImage(result0, 31, 113) }
+        if (game.resultIndex() == 1) { canvas.drawImage(result1, 22, 113) }
+        if (game.resultIndex() == 2) { canvas.drawImage(result2, 54, 113) }
+        if (game.resultIndex() == 3) { canvas.drawImage(result3, 26, 113) }
+    }
+
+    private numberWidth(Int value): Int {
+        var width = 16
+        var remaining = value / 10
+        while (remaining > 0) { width = width + 16; remaining = remaining / 10 }
+        return width
+    }
+
+    private drawNumber(Int value, Int x, Int y) {
+        var divisor = 1
+        while (value / divisor >= 10) { divisor = divisor * 10 }
+        var digitX = x
+        while (divisor > 0) {
+            canvas.drawImage(digits[(value / divisor) % 10], digitX, y)
+            digitX = digitX + 16
+            divisor = divisor / 10
+        }
     }
 }
