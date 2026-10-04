@@ -86,6 +86,48 @@ class Weapons {
         return false
     }
 
+    hitSubchiefLaser(Subchief chief): Bool {
+        if (chief.phase != SubchiefPhase.Normal) { return false }
+        for (var shot in lasers.shots) {
+            if (shot.active && !shot.impact && shot.x + Rules.LASER_WIDTH >= chief.x &&
+                shot.x + Rules.LASER_WIDTH <= chief.x + 28 &&
+                ((shot.y >= chief.y && shot.y <= chief.y + 26) ||
+                 (shot.y + Rules.LASER_HEIGHT >= chief.y && shot.y + Rules.LASER_HEIGHT <= chief.y + 26))) {
+                shot.x = chief.x
+                shot.y = chief.y
+                shot.impact = true
+                return chief.damage(1)
+            }
+        }
+        return false
+    }
+
+    hitSubchiefBlaster(Subchief chief): Bool {
+        if (chief.phase != SubchiefPhase.Normal || !blaster.active || blaster.lives <= 0) { return false }
+        if (chief.x >= blaster.x && chief.x <= blaster.x + 68 &&
+            ((chief.y >= blaster.y && chief.y <= blaster.y + 21) ||
+             (chief.y + 26 >= blaster.y && chief.y + 26 <= blaster.y + 21))) {
+            var damage = blaster.lives
+            blaster.lives = 0
+            return chief.damage(damage)
+        }
+        return false
+    }
+
+    hitSubchiefSpecial(Subchief chief): Bool {
+        var contact = false
+        for (var beam in beams) {
+            if (beam.beginsSubchiefContact(chief)) { contact = true; break }
+        }
+        if (!contact) { return false }
+        var fatal = false
+        for (var beam in beams) {
+            if (beam.contactSteps > 0 && !fatal) { fatal = chief.damage(1) }
+        }
+        for (var beam in beams) { if (beam.contactSteps > 0) { beam.hit() } }
+        return fatal
+    }
+
     canSpecial(): Bool {
         if (charges == 0) { return false }
         for (var beam in beams) { if (beam.active) { return false } }

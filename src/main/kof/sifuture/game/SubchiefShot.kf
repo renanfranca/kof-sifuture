@@ -1,0 +1,28 @@
+package sifuture.game
+
+class SubchiefShot {
+    Int x = 0
+    Int y = 0
+    Bool active = false
+
+    public constructor() { }
+
+    fire(Int chiefX, Int chiefY) {
+        active = true
+        x = chiefX - 7
+        y = chiefY + 13
+    }
+
+    touchesShip(Ship ship): Bool {
+        return active && ship.phase == ShipPhase.Normal && x >= ship.x &&
+            x <= ship.x + Rules.SHIP_WIDTH &&
+            ((y >= ship.y && y <= ship.y + Rules.SHIP_HEIGHT) ||
+             (y + 4 >= ship.y && y + 4 <= ship.y + Rules.SHIP_HEIGHT))
+    }
+
+    advance() {
+        if (!active) { return }
+        x = x - 4
+        if (x < -30) { active = false }
+    }
+}

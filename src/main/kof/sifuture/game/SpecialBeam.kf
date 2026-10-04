@@ -7,6 +7,7 @@ class SpecialBeam {
     Int lives = 10
     Int hitSteps = 0
     Int deathSteps = 0
+    Int contactSteps = 0
     Bool active = false
 
     public constructor(Int color) { this.color = color }
@@ -16,6 +17,7 @@ class SpecialBeam {
         lives = 10
         hitSteps = 0
         deathSteps = 0
+        contactSteps = 0
     }
 
     fire(Ship ship) {
@@ -33,6 +35,7 @@ class SpecialBeam {
             deathSteps = deathSteps + 1
             if (deathSteps == 6) { reset() }
         } else {
+            if (contactSteps > 0) { contactSteps = contactSteps - 1 }
             if (color == 1) { x = x + 6 }
             else { x = x + 5 }
             if (hitSteps > 0) { hitSteps = hitSteps - 1 }
@@ -44,6 +47,17 @@ class SpecialBeam {
         return active && lives > 0 && m.x >= x && m.x <= x + 319 &&
             ((m.y >= y && m.y <= y + 32) ||
              (m.y + Rules.METEOR_HEIGHT >= y && m.y + Rules.METEOR_HEIGHT <= y + 32))
+    }
+
+    beginsSubchiefContact(Subchief chief): Bool {
+        if (!active || contactSteps > 0 || chief.phase != SubchiefPhase.Normal) { return false }
+        if (chief.x >= x && chief.x <= x + 319 &&
+            ((chief.y >= y && chief.y <= y + 32) ||
+             (chief.y + 26 >= y && chief.y + 26 <= y + 32))) {
+            contactSteps = 6
+            return true
+        }
+        return false
     }
 
     hit() {

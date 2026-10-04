@@ -153,3 +153,127 @@ A declaração de dois construtores de `Meteor` divergiu entre JVM e JS: o emiss
 O vídeo histórico não foi acessível. A composição foi comparada com fonte e dimensões dos assets; as capturas do Chrome foram inspecionadas. Música, Android, chefes e menus completos continuam fora deste ciclo.
 
 Fechamento do checkpoint: `.agent/validation/stage-hud-result.md` registra comandos, 56/56 em JVM e JS, cinco percursos Chrome, oito testes Python, contrato CI e aceite visual em Chrome 139.0.7258.154 nas larguras 320/1200. O registro e este fechamento são o único delta posterior ao código validado.
+
+
+## Combate com o subchefe — ciclo aprovado de 04/10/2026
+
+Base imutável `95895ee23ac470b798f958994c1514c0f2632ce0`; branch `subchief-combat`; worker primary, chat `01a1079d-8a58-7f73-a732-acce78ff1b98`, título `sifuture-subchief-primary`, `gpt-6.1-sol`/`medium`. Implementação, validação e revisão compartilham contexto. Inventário confirmado: dez checks locais (JVM/JS, seis percursos Chrome, infraestrutura Python e contrato CI), Resolve verified Kof e Kof tests (jvm/js). Sonar/Habit/mutação excluídos por ausência de configuração.
+
+O contrato vigente separa passos da partida e da trilha; o histórico de 1710 passos e passagem sem combate acima permanece como registro do ciclo anterior.
+
+## Purpose and success
+
+Adicionar o subchefe ao percurso atual: entrada na metade da fase → combate → recompensa → explosão → retomada da trilha → resultado.
+
+Atualizar a especificação, o `EXECPLAN.md` e o aceite existente, preservando seus registros anteriores. Cada critério terá exemplos concretos, origem da expectativa, evidência demonstrada e eventuais lacunas.
+
+## Context and limits
+
+A base revisada é `95895ee23ac470b798f958994c1514c0f2632ce0`. Nesta sessão, os testes atuais passaram em JVM e JS:
+
+```text
+0 failed of 60 tests
+1 passed, 0 failed
+```
+
+O percurso existente de fase/resultado também passou:
+
+```text
+PASS Chrome 139.0.7258.154 at 320 and 1200 pixels; repaint does not advance simulation
+```
+
+Esses resultados comprovam a base atual. O subchefe ainda não foi implementado.
+
+A entrada histórica avança o marcador uma posição, em [StageCount.java](/home/renanfranca/projects/sifuture/src/StageCount.java:209):
+
+```java
+if (this.x == SUB_CHIEF_TIME) {
+    this.subChief.activate();
+    this.x ++;
+}
+```
+
+Como `SUB_CHIEF_TIME` é metade da largura 176, a entrada ocorre em 88 e o marcador passa para 89. Durante combate e explosão, o histórico suspende o avanço normal da trilha. Portanto, o término fixo em 1710 passos deixa de ser o contrato deste ciclo.
+
+Decisões confirmadas:
+
+- Preservar a interação histórica do especial, incluindo reaplicação de dano de feixes ainda marcados quando outro inicia contato.
+- Ignorar contato corporal durante o reinício invulnerável da nave. Registrar isso como exceção explícita ao original.
+- Incluir somente o subchefe. Chefe final, música, Android, menus completos e reformulação dos controles continuam pendentes.
+
+## Milestones
+
+1. **Reconciliar os documentos existentes.** Acrescentar o ciclo à [especificação](.agent/specifications/port-sifuture-to-kof.md) e ao [EXECPLAN.md](EXECPLAN.md), substituindo apenas os contratos afetados: passagem sem combate pela metade da fase e duração fixa. Registrar a exceção de invulnerabilidade e os exemplos de aceite abaixo.
+
+2. **Implementar entidade e progressão.** Criar uma entidade `Subchief` com estados inativo, normal e explosão, e três projéteis próprios. Separar o contador de passos da partida do avanço da trilha; manter `Game.stagePosition()` como consulta derivada. Ativar uma única vez por partida em 88, avançar para 89 e suspender a trilha até terminar a explosão. Meteoros horizontais e itens continuam; verticais já ativos terminam seu percurso, mas o par não relança enquanto o subchefe estiver ativo.
+
+   Usar classes com campos mutáveis para posição, resistência e animação. O [idioma de classes]( /home/renanfranca/projects/kof/training/idioms/classes.md:35) orienta:
+
+   > for **mutable state** use explicit fields + `constructor(...)`.
+
+   O [Learn Kof]( /home/renanfranca/projects/kof/learn/07-classes-and-objects.md:65) reforça:
+
+   > To **mutate**, use explicit public fields:
+
+   Essa forma permite que a entidade avance seu estado e que o desenho apenas o consulte.
+
+3. **Implementar movimento, ataques e recompensa históricos.** Adotar resistência 30; posição inicial x entre 220 e 419; y entre 30 e 193; destinos x entre 88 e 147; deslocamento de uma unidade por eixo. Tentar disparar a cada 12 passos normais, usando o primeiro dos três espaços livres; tiros avançam quatro unidades à esquerda.
+
+   Preservar geometria e ordem das colisões conferidas no original: nave → laser → blaster → especial, antes das colisões dessas armas com meteoros. Laser e contato normal retiram uma unidade; blaster aplica sua resistência restante e a esgota. Reproduzir os marcadores históricos do especial, com intervalo de seis passos e prioridade das cores.
+
+   A recompensa usa o contador histórico de [Subchief.java](/home/renanfranca/projects/sifuture/src/Subchief.java:157):
+
+   ```java
+   if(this.lifeTime <= 30) {
+       return VALUE*2;
+   }
+   if(this.lifeTime <= 60) {
+       return VALUE;
+   }
+   return VALUE/2;
+   ```
+
+   Aplicar 600, 300 ou 150 pontos uma única vez no golpe fatal. `lifeTime` avança a cada 36 passos normais; não interpretá-lo como segundos. Manter os dois itens recorrentes: o pedido histórico de lançamento não duplica nem reposiciona um item já ativo.
+
+4. **Integrar desenho e transições.** Copiar `subchief.png` e `laser0.png` sem transformação, preservar NOTICE e reutilizar os dez sprites de explosão. Conservar os três passos por quadro e o deslocamento histórico da explosão. `GameView.render()` continua sem avançar estado. Pausa congela todos os relógios; nova partida reinicia o encontro. Na derrota do jogador, a cena continua animada, com colisões, recompensas e alterações de vidas desativadas.
+
+## Progress
+
+Exploração, conferência estática do original e baseline executável concluídos. Fonte e bytecode consultados concordam nas regras examinadas; o JAR histórico não foi executado.
+
+Nenhuma fonte ou documento versionado foi alterado neste planejamento.
+
+## Validation
+
+Acrescentar ao [aceite de fase existente](.agent/validation/stage-hud-result.md) uma seção deste ciclo com a seguinte matriz:
+
+| Critério | Exemplo concreto e resultado esperado |
+| --- | --- |
+| Entrada e trilha | Antes de 88, subchefe inativo; ao alcançar 88, ativa e marcador passa para 89. Combate e explosão mantêm 89; depois a trilha retoma, sem segundo encontro. |
+| Movimento e tiros | Semente repetida reproduz posições e destinos. Tentativas nos passos 12/24/36 ocupam espaços livres; capacidade cheia impede tiro adicional. |
+| Dano e invulnerabilidade | Laser: 30 → 29. Blaster intacto: 30 → 28 e resistência esgotada. Contato normal explode a nave; contato durante reinício não altera nenhum dos dois. |
+| Especial histórico | Primeiro contato retira uma unidade. Outro feixe entrando enquanto o anterior permanece marcado reaplica os danos previstos pelo original; conferir também expiração, esgotamento e golpe fatal. |
+| Recompensa | Contadores 30/31/60/61 produzem 600/300/300/150. Golpes posteriores e quadros da explosão não repetem pontos ou benefícios. |
+| Transições | Pausar durante combate, tiros e explosão congela estado; continuar retoma. Derrota durante o encontro inicia resultado sem novo dano; nova partida limpa encontro e projéteis. |
+| Apresentação | Conferir sprites, tiros, explosão, HUD sobreposto e redesenhos sem avanço, em Chrome nas larguras 320 e 1200. |
+
+Executar testes comportamentais em JVM e JS, os cinco percursos de navegador existentes e um novo percurso determinístico do subchefe com modelo, desenho e controles reais. Atualizar os cenários que pressupõem passagem sem combate ou término em 1710 passos. Reexecutar os checks existentes de infraestrutura e CI antes da entrega.
+
+Para cada critério, registrar teste/interação, resultado observado, SHA testado, comando, navegador e evidência persistente. Evidências geradas ficam em `.agent/tmp/`. Comparação com o vídeo histórico depende de acesso; sua ausência deve permanecer como lacuna, sem declarar fidelidade visual comprovada por ele.
+
+Durante **três ciclos, incluindo este**, registrar brevemente no aceite:
+
+- Divergências encontradas pelo executor antes da entrega.
+- Divergências encontradas pelo chat planejador depois.
+- Classificação: requisito esquecido, cenário não coberto, expectativa incorreta ou mudança de escopo.
+- Esforço adicional aproximado de preparação, conferência e correção.
+
+Avaliar antecipação dos achados e redução da correção posterior. Quantidade de testes e ausência de achados, isoladamente, não serão tratadas como demonstração de benefício.
+
+### Execução
+
+- [x] Inventário/distribuição confirmados, título verificado e ledger v6 criado.
+- [x] Entidade, progressão e TDD: 72 cenários executados em JVM e JS.
+- [x] Geometria histórica, prioridade, marcadores do especial e prêmio único.
+- [x] Desenho/transições; checkpoints Chrome de controles, armas, fase e subchefe aprovados. Os seis percursos serão executados pelos gates formais.
+- [ ] Aceite por critério, revisão estrutural, gates finais e CI.

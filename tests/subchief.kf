@@ -1,0 +1,108 @@
+import sifuture.GameControls
+import sifuture.GameView
+import sifuture.game.*
+import kof.ui.*
+
+prepareEncounter(Game game) {
+    game.start(922)
+    game.stageSteps = 840
+    game.subchief.phase = SubchiefPhase.Normal
+    game.subchief.x = 120
+    game.subchief.y = 100
+    game.subchief.endX = 147
+    game.subchief.endY = 100
+    game.ship.phase = ShipPhase.Normal
+    game.ship.y = 200
+    for (var meteor in game.meteors) { meteor.x = 10000; meteor.y = -100 }
+    for (var item in game.items) { item.x = 10000 }
+}
+
+main() {
+    var game = Game()
+    game.start(920)
+    game.ship.lives = 100
+    for (var i = 0; i < 829; i++) { game.step() }
+    var canvas = Canvas(176, 220)
+    var drawing = GameView(canvas)
+    var controls = GameControls(game, drawing, canvas)
+    var status = Label("")
+    status.setId("subchief-status")
+    var repaint = Button("Repaint", () -> { drawing.render(game) })
+    var encounter = Button("Encounter", () -> {
+        prepareEncounter(game)
+        refresh(game, drawing, controls, status)
+    })
+    var shoot = Button("Shots", () -> {
+        prepareEncounter(game)
+        game.subchief.x = 165
+        game.subchief.endX = 165
+        game.subchief.normalSteps = 11
+        refresh(game, drawing, controls, status)
+    })
+    var special = Button("Prepare special", () -> {
+        prepareEncounter(game)
+        game.ship.y = 106
+        game.weapons.level = 3
+        game.weapons.charges = 2
+        refresh(game, drawing, controls, status)
+    })
+    var fatal = Button("Fatal laser", () -> {
+        prepareEncounter(game)
+        game.subchief.lives = 1
+        game.weapons.lasers.shots[0].fire(0, 100)
+        game.weapons.lasers.shots[0].x = 86
+        refresh(game, drawing, controls, status)
+    })
+    var body = Button("Body contact", () -> {
+        prepareEncounter(game)
+        game.ship.x = 100
+        game.ship.y = 100
+        refresh(game, drawing, controls, status)
+    })
+    var restart = Button("Invulnerable contact", () -> {
+        prepareEncounter(game)
+        game.ship.x = 100
+        game.ship.y = 100
+        game.ship.phase = ShipPhase.Restart
+        refresh(game, drawing, controls, status)
+    })
+    var defeat = Button("Defeat encounter", () -> {
+        prepareEncounter(game)
+        game.subchief.lives = 1
+        game.ship.lives = 1
+        game.ship.explode()
+        game.ship.explosionSteps = 29
+        game.score = 17
+        refresh(game, drawing, controls, status)
+    })
+    var complete = Button("Complete journey", () -> {
+        game.start(902)
+        game.ship.lives = 100
+        for (var i = 0; i < 10000 && game.screen == Screen.Play; i++) { game.step() }
+        refresh(game, drawing, controls, status)
+    })
+    var window = Window("SiFuture subchefe")
+    window.size(320, 900)
+    window.bind(Column(listOf(controls.root, status, repaint, encounter, shoot, special, fatal, body, restart, defeat, complete)))
+    window.show()
+    refresh(game, drawing, controls, status)
+    time.interval(Rules.STEP_MS, () -> { game.step(); refresh(game, drawing, controls, status) })
+}
+
+refresh(Game game, GameView drawing, GameControls controls, Label status) {
+    drawing.render(game)
+    controls.update()
+    var normal = 0
+    var explosion = 0
+    var shipNormal = 0
+    var shipExplosion = 0
+    var result = 0
+    if (game.subchief.phase == SubchiefPhase.Normal) { normal = 1 }
+    if (game.subchief.phase == SubchiefPhase.Explosion) { explosion = 1 }
+    if (game.ship.phase == ShipPhase.Normal) { shipNormal = 1 }
+    if (game.ship.phase == ShipPhase.Explosion) { shipExplosion = 1 }
+    if (game.screen == Screen.Result) { result = 1 }
+    var shots = 0
+    for (var shot in game.subchief.shots) { if (shot.active) { shots = shots + 1 } }
+    status.text = "steps:" + game.steps + ":position:" + game.stagePosition() + ":normal:" + normal + ":explosion:" + explosion + ":x:" + game.subchief.x + ":y:" + game.subchief.y + ":hp:" + game.subchief.lives + ":lifetime:" + game.subchief.lifeTime + ":clock:" + game.subchief.normalSteps + ":frame:" + game.subchief.explosionSteps / 3 + ":explosionX:" + game.subchief.explosionX + ":shots:" + shots + ":shotX:" + game.subchief.shots[0].x + ":shotY:" + game.subchief.shots[0].y + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":shipNormal:" + shipNormal + ":shipExplosion:" + shipExplosion + ":result:" + result + ":charges:" + game.weapons.charges + ":blueLives:" + game.weapons.beams[1].lives + ":blueX:" + game.weapons.beams[1].x
+}
