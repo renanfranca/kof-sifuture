@@ -556,3 +556,110 @@ No Chrome `139.0.7258.154`, em 320/1200, a página real carregou com HTTP 200, i
 A conferência ao vivo prova distribuição, carregamento, movimento da nave e pausa; não repete o encontro completo/R1–R3 no site remoto. Os 95 arquivos iguais vinculam a publicação ao build do SHA testado, enquanto as provas comportamentais detalhadas do encontro continuam registradas nas seções anteriores. Vídeo histórico e ciclos 2/3 permanecem pendentes.
 
 Evidências locais opcionais em `.agent/tmp/subchief-repair-pages/`: `workflow-status.json`, `workflow.log`, `artifacts.json`, `artifact.tar`, `published-checksums.json`, `acceptance.json`, `acceptance.log` e `live-{320,1200}.png`. Resultado essencial e links persistentes constam acima. A confirmação foi acrescentada preservando as alterações locais da conferência do planejador; nenhum registro anterior foi removido.
+
+
+## Interromper disparos após a última vida — 05/10/2026
+
+Commit de código, suíte e fixture testado: `ee6d7209755f1d352cf71299942e54bbefb54b7b`.
+Base aprovada: `b84398c70e26cce63618586447c35f71d6800466`. Kof `0.5.0-beta` do PATH.
+
+A derrota deixa de criar projéteis quando as vidas chegam a zero. A conclusão da fase
+com vidas restantes conserva o disparo visual. Em [Game.kf](../../src/main/kof/sifuture/game/Game.kf#L130):
+
+```kof
+ship.advanceVisual()
+if (ship.lives > 0 && (ship.phase == ShipPhase.Normal || ship.phase == ShipPhase.Hidden)) { weapons.attemptFire(ship) }
+weapons.advance()
+```
+
+A conjunção exige vidas positivas e uma das duas fases permitidas. Ela restringe a
+criação em `attemptFire`; `advance` permanece fora da condição e conclui tiros e efeitos
+ativos. A permissão usa as próprias vidas, conforme
+[duplicate-state.md](../../../kof/training/anti-patterns/duplicate-state.md#rule):
+
+> If a value can be derived from another, derive it (method or function).
+> Do not store projections.
+
+Não há flag adicional a sincronizar. O idioma de condição vem de
+`kof/training/idioms/control-flow.md`; a referência `docs/language-reference/expressions.md`
+§5 documenta `&&`/`||`, e `learn/05-control-flow.md` explica condicionais. A implementação
+`ExpressionLowerer.java` e `BackendParityTest.parityShortCircuitAndOr` foram consultadas
+no checkout Kof; as execuções abaixo demonstram o comportamento desta construção em JVM/JS.
+
+Antes da correção, o teste ampliado falhou por assertion nos dois alvos, com a produção
+original e apenas a regressão adicionada. Comandos `python3 scripts/kof_project.py test
+--target jvm` e `--target js`:
+
+```text
+FAIL defeat ends explosion without new projectiles or another loss at every weapon level: assertion failed
+1 failed of 85 tests
+```
+
+Após a correção, [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1278)
+verifica os critérios separadamente por `Game.step()`:
+
+| Critério | Evidência e resultado no commit testado |
+|---|---|
+| Nenhum novo disparo | Uma vida, explosão 29, armas inicialmente inativas, cadência 12; níveis 0–3, incluindo nível 2 com seis tentativas. Todos os lasers, blaster e feixes inativos na entrada e antes/depois de cada um dos 100 passos. Score 5, vidas 0 e relógio da partida preservados. |
+| Tiros existentes concluem | Três lasers, blaster e três feixes permanecem ativos na entrada; primeiro passo do resultado move lasers/blaster/feixes externos +5 e feixe central +6. Todos terminam até 170 passos e permanecem inativos nos 52 seguintes, verificados em cada passo. |
+| Efeitos concluem | Impacto de laser ativo na entrada e inativo após 1 passo. Blaster esgotado com quadros intermediários ativo até o passo 3, inativo no 4. Feixe esgotado com quadros 1/2 ativo até o passo 5, inativo no 6. |
+| Conclusão da fase preservada | Teste existente conserva vidas, cargas, evolução, escore, cenário e disparos visuais com a nave oculta. Chrome confirma laser/blaster ativos após a conclusão. |
+| Reinício | Jornada existente retorna ao menu, inicia partida e restaura três vidas/escore zero. Piscar de 45 passos, nenhum laser nos 12 seguintes e laser no 13º; confirmado também no Chrome. |
+
+Gate inicial, com coleta completa e exit 0 para os dez comandos:
+
+| Comando | Resultado |
+|---|---|
+| `python3 scripts/kof_project.py test --target jvm` | `0 failed of 87 tests`; `1 passed, 0 failed` |
+| `python3 scripts/kof_project.py test --target js` | `0 failed of 87 tests`; `1 passed, 0 failed` |
+| `python3 tests/browser_stage.py` | Fase/HUD/resultado, disparos, efeitos, contagem, retorno/reinício; Chrome 139.0.7258.154, 320/1200 |
+| `python3 tests/browser_weapons.py` | Evolução, especial, teclado, solturas, seis ordens de multitouch, HUD |
+| `python3 tests/browser_subchief.py` | Combate, tiros existentes/novos, especiais, explosão, pausa, derrota/reinício; 4515 passos, score 350, posição 176 em 320/1200 |
+| `python3 tests/browser.py` | Menu, Enter/Espaço, confirmação, pausa, resultado e retorno |
+| `python3 tests/browser_controls.py` | Teclado, foco, pointer, toque simultâneo, drag e cancelamento |
+| `python3 tests/browser_meteor.py` | Movimento, três quadros de impacto e relançamento |
+| `python3 -m unittest discover -s tests -p 'test_kof_project.py'` | `Ran 8 tests`; `OK`; PARSE pertence à entrada deliberadamente inválida |
+| `PATH=/tmp/kof-ci-tools:$PATH bash tests/ci-contract.sh` | Resolução/integridade, workflow e publicação sob lock; exit 0 |
+
+O primeiro gate executou 10 checks em 172,25 s: nove passaram, e o contrato CI parou
+com exit 127 por `yq` fora do PATH. O `yq v4.54.1` já existente em `/tmp/kof-ci-tools`
+foi disponibilizado por PATH; o executor repetiu apenas esse check, que passou em 17,45 s
+no mesmo SHA. Nenhuma instalação ou alteração de produção foi necessária. O gate final
+repetirá os dez comandos com esse PATH.
+
+Trecho de `python3 tests/browser_stage.py`:
+
+```text
+PASS defeat projectiles finish without respawn, effects finish at 1/4/6 steps, and restart restores fire
+PASS Chrome 139.0.7258.154 at 320 and 1200 pixels; repaint does not advance simulation
+```
+
+A fixture [stage.kf](../../tests/stage.kf) usa modelo/desenho/controles reais. Os disparos
+já lançados são posicionados em faixas visíveis apenas na fixture; a suíte do modelo
+conserva as coordenadas originais de lançamento. Pixels de lasers/blaster/três feixes
+são comparados na entrada e após movimento. Os efeitos são comparados em todos os
+quadros; `ylwBlaster07.png` é semitransparente, comparado por composição sobre o fundo
+real com tolerância de um valor por canal para arredondamento. A atividade de todos os
+slots complementa as capturas e impede considerar uma comparação sem amostras como prova.
+
+As primeiras tentativas de ampliar o percurso expuseram label atualizada apenas no tick,
+sobreposição do texto de resultado e ausência de pixels opacos no último quadro do blaster.
+O teste passou após esperar o tick, reposicionar efeitos e verificar composição alfa;
+essas tentativas foram preservadas nos logs locais. Foram inspecionadas capturas de entrada
+dos disparos (320), blaster semitransparente (1200), efeitos terminados (320) e disparos
+terminados (1200). Esta aceitação é automatizada em Chrome de desktop nas duas larguras;
+não equivale a uma interação manual em Android.
+
+Revisão estrutural no mesmo contexto da implementação: sem defeito ou risco material que
+justificasse refactor. Não há nova API, tipo ou estado persistente; autorização e avanço
+continuam com responsabilidades distintas. Assertions conferidas por critério. Sonar,
+mutation runner e Habit excluídos por ausência de configuração, sem alegar execução verde.
+
+Nenhum critério deste ajuste ficou sem prova local. Gate final e links de PR/CI ainda
+não estavam disponíveis neste complemento; serão associados ao SHA final no ledger e
+na descrição do PR, preservando este registro do commit de código testado. Lacunas gerais
+do port, incluindo vídeo histórico e aceitação Android, permanecem fora deste ajuste.
+Evidências locais opcionais: `.agent/tmp/sifuture-defeat.{red-jvm,red-js}.log`,
+`.agent/tmp/sifuture-defeat.{initial-summary,initial-ci-recheck}.json`,
+`.agent/tmp/sifuture-defeat.structural-review.md`, `.agent/tmp/stage-browser/` e
+`.agent/tmp/validation/`. Os resultados essenciais estão acima, sem depender desses arquivos.

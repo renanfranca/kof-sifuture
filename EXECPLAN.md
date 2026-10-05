@@ -453,4 +453,6 @@ Na execução:
 - [x] Regressão antes da correção: JVM/JS, `1 failed of 85 tests`, somente ausência de novos projéteis na derrota.
 - [x] Restringir a tentativa de disparo a vidas positivas no resultado; preservar `weapons.advance()`.
 - [x] Provas pelo `Game.step()`: quatro níveis, nível 2 com seis tentativas, tiros ativos na entrada, movimento, término em 170 passos, ausência nos 52 seguintes; efeitos em 1/4/6 passos; conclusão com vidas e reinício na cadência. JVM/JS: 87/87.
-- [ ] Fechar provas Chrome 320/1200, gates inicial/final, revisão estrutural e entrega com CI.
+- [x] Provas Chrome 139.0.7258.154, 320/1200: tiros/efeitos, ausência de reaparecimento, resultado com vidas, contagem e reinício. Gate inicial no código `ee6d7209755f1d352cf71299942e54bbefb54b7b`: dez checks aprovados, contrato CI repetido com `yq` preexistente no PATH. Revisão estrutural no mesmo contexto sem refactor adicional. Registro por critério em [stage-hud-result.md](.agent/validation/stage-hud-result.md#interromper-disparos-após-a-última-vida--05102026).
+
+Gate final e entrega com CI serão registrados no ledger e na descrição do PR quando ocorrerem; este complemento documental precede esses gates.
