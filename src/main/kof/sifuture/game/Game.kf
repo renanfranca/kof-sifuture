@@ -128,7 +128,7 @@ class Game {
             background.advance()
             for (var item in items) { item.advance() }
             ship.advanceVisual()
-            if (ship.phase == ShipPhase.Normal || ship.phase == ShipPhase.Hidden) { weapons.attemptFire(ship) }
+            if (ship.lives > 0 && (ship.phase == ShipPhase.Normal || ship.phase == ShipPhase.Hidden)) { weapons.attemptFire(ship) }
             weapons.advance()
             if (subchief.phase == SubchiefPhase.Inactive && stagePosition() > 30 && !meteors[6].active && !meteors[7].active) {
                 meteors[6].active = true

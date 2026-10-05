@@ -392,6 +392,16 @@ test "three meteor hits end the attempt and result persists" {
     assert(g.screen == Screen.Menu)
     g.start(3)
     assert(g.ship.lives == 3 && g.score == 0 && g.steps == 0)
+    for (var meteor in g.meteors) { meteor.x = 10000; meteor.y = -100 }
+    for (var item in g.items) { item.x = 10000 }
+    for (var i = 0; i < 45; i++) { g.step() }
+    assert(g.ship.phase == ShipPhase.Normal && !g.weapons.lasers.shots[0].active)
+    for (var i = 0; i < 12; i++) {
+        g.step()
+        assert(!g.weapons.lasers.shots[0].active)
+    }
+    g.step()
+    assert(g.weapons.lasers.shots[0].active && g.weapons.fireSteps == 0)
 }
 
 test "all result boundaries select a message" {
@@ -1265,22 +1275,117 @@ test "same seed replays the entire stage including vertical relaunch and result"
     assert(g.items[0].x == itemX && g.score == score && g.ship.lives == lives)
 }
 
-test "defeat ends the explosion and visual result never consumes another life or weapon" {
+test "defeat ends explosion without new projectiles or another loss at every weapon level" {
+    for (var level = 0; level < 4; level++) {
+        var g = Game()
+        g.start(910)
+        g.ship.lives = 1
+        g.ship.explode()
+        g.ship.explosionSteps = 29
+        g.weapons.level = level
+        g.weapons.charges = 1
+        g.weapons.fireSteps = 12
+        g.weapons.laserAttempts = 6
+        g.score = 5
+
+        g.step()
+        assert(g.screen == Screen.Result && g.ship.phase == ShipPhase.Hidden && g.ship.explosionSteps == 30)
+        assert(g.ship.lives == 0 && g.weapons.charges == 0 && g.weapons.level == level)
+        var steps = g.steps
+        for (var i = 0; i < 100; i++) {
+            for (var shot in g.weapons.lasers.shots) { assert(!shot.active) }
+            assert(!g.weapons.blaster.active)
+            for (var beam in g.weapons.beams) { assert(!beam.active) }
+            g.step()
+            for (var shot in g.weapons.lasers.shots) { assert(!shot.active) }
+            assert(!g.weapons.blaster.active)
+            for (var beam in g.weapons.beams) { assert(!beam.active) }
+        }
+        assert(g.ship.lives == 0 && g.ship.explosionSteps == 30 && g.steps == steps && g.score == 5)
+        assert(g.weapons.level == level && g.displayedScore == 5 && g.screen == Screen.Result)
+    }
+}
+
+
+test "projectiles launched before defeat keep moving until all finish and stay absent" {
     var g = Game()
-    g.start(910)
+    g.start(911)
+    g.ship.phase = ShipPhase.Normal
+    g.weapons.level = 3
+    g.weapons.charges = 2
+    g.weapons.fireSteps = 12
+    g.weapons.laserAttempts = 6
+    for (var shot in g.weapons.lasers.shots) { shot.fire(g.ship.x, g.ship.y) }
+    g.weapons.blaster.fire(g.ship)
+    assert(g.trySpecial())
     g.ship.lives = 1
     g.ship.explode()
     g.ship.explosionSteps = 29
+    var laserX = g.weapons.lasers.shots[0].x
+    var blasterX = g.weapons.blaster.x
+    var upperX = g.weapons.beams[0].x
+    var middleX = g.weapons.beams[1].x
+    var lowerX = g.weapons.beams[2].x
+
+    g.step()
+    assert(g.screen == Screen.Result && g.ship.lives == 0)
+    for (var shot in g.weapons.lasers.shots) { assert(shot.active && shot.x == laserX) }
+    assert(g.weapons.blaster.active && g.weapons.blaster.x == blasterX)
+    for (var beam in g.weapons.beams) { assert(beam.active) }
+    assert(g.weapons.beams[0].x == upperX && g.weapons.beams[1].x == middleX && g.weapons.beams[2].x == lowerX)
+    g.step()
+    for (var shot in g.weapons.lasers.shots) { assert(shot.active && shot.x == laserX + 5) }
+    assert(g.weapons.blaster.active && g.weapons.blaster.x == blasterX + 5)
+    assert(g.weapons.beams[0].x == upperX + 5 && g.weapons.beams[1].x == middleX + 6 && g.weapons.beams[2].x == lowerX + 5)
+    for (var i = 1; i < 170; i++) { g.step() }
+    for (var i = 0; i < 52; i++) {
+        for (var shot in g.weapons.lasers.shots) { assert(!shot.active) }
+        assert(!g.weapons.blaster.active)
+        for (var beam in g.weapons.beams) { assert(!beam.active) }
+        g.step()
+        for (var shot in g.weapons.lasers.shots) { assert(!shot.active) }
+        assert(!g.weapons.blaster.active)
+        for (var beam in g.weapons.beams) { assert(!beam.active) }
+    }
+}
+
+
+test "laser blaster and special impacts finish after one four and six result steps" {
+    var g = Game()
+    g.start(912)
     g.weapons.level = 3
     g.weapons.charges = 1
-    g.score = 5
+    g.weapons.fireSteps = 12
+    var shot = g.weapons.lasers.shots[0]
+    shot.fire(g.ship.x, g.ship.y)
+    shot.impactAt(g.meteors[0])
+    var blaster = g.weapons.blaster
+    blaster.fire(g.ship)
+    blaster.hit()
+    blaster.hit()
+    var beam = g.weapons.beams[1]
+    beam.fire(g.ship)
+    for (var i = 0; i < 10; i++) { beam.hit() }
+    g.ship.lives = 1
+    g.ship.explode()
+    g.ship.explosionSteps = 29
+
     g.step()
-    assert(g.screen == Screen.Result && g.ship.phase == ShipPhase.Hidden && g.ship.explosionSteps == 30)
-    assert(g.ship.lives == 0 && g.weapons.charges == 0 && g.weapons.level == 3)
-    var steps = g.steps
-    for (var i = 0; i < 100; i++) { g.step() }
-    assert(g.ship.lives == 0 && g.ship.explosionSteps == 30 && g.steps == steps && g.score == 5)
-    assert(g.weapons.level == 3 && g.displayedScore == 5 && g.screen == Screen.Result)
+    assert(g.screen == Screen.Result && g.ship.lives == 0)
+    assert(shot.active && shot.impact)
+    assert(blaster.active && blaster.lives == 0 && blaster.impactSteps == 0)
+    assert(beam.active && beam.lives == 0 && beam.deathSteps == 0 && beam.spriteFrame() == 1)
+    for (var step = 1; step <= 6; step++) {
+        g.step()
+        assert(!shot.active && !shot.impact)
+        if (step < 4) { assert(blaster.active && blaster.impactSteps == step) }
+        else { assert(!blaster.active) }
+        if (step < 6) {
+            assert(beam.active && beam.deathSteps == step)
+            if (step < 3) { assert(beam.spriteFrame() == 1) }
+            else { assert(beam.spriteFrame() == 2) }
+        } else { assert(!beam.active) }
+    }
 }
 
 

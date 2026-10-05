@@ -53,6 +53,38 @@ main() {
         game.step()
         refresh(game, drawing, controls, status)
     })
+    var defeatFlight = Button("Defeat flight", () -> {
+        prepareDefeat(game)
+        for (var shot in game.weapons.lasers.shots) { shot.fire(0, 132) }
+        game.weapons.blaster.fire(game.ship)
+        game.weapons.blaster.y = 65
+        game.weapons.charges = 2
+        game.weapons.fireSpecial(game.ship)
+        for (var beam in game.weapons.beams) { beam.x = 0 }
+        game.weapons.beams[0].y = 40
+        game.weapons.beams[1].y = 160
+        game.weapons.beams[2].y = 190
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
+    var defeatEffects = Button("Defeat effects", () -> {
+        prepareDefeat(game)
+        game.meteors[0].x = 20
+        game.meteors[0].y = 140
+        game.weapons.lasers.shots[0].fire(0, 132)
+        game.weapons.lasers.shots[0].impactAt(game.meteors[0])
+        game.weapons.blaster.fire(game.ship)
+        game.weapons.blaster.y = 180
+        game.weapons.blaster.hit()
+        game.weapons.blaster.hit()
+        var beam = game.weapons.beams[1]
+        beam.fire(game.ship)
+        beam.x = 0
+        beam.y = 40
+        for (var i = 0; i < 10; i++) { beam.hit() }
+        game.step()
+        refresh(game, drawing, controls, status)
+    })
     var zero = Button("Zero result", () -> {
         game.start(907)
         game.score = 0
@@ -123,7 +155,7 @@ main() {
     })
     var window = Window("SiFuture fase e resultado")
     window.size(296, 850)
-    window.bind(Column(listOf(controls.root, status, repaint, prepareRightFinish, oneLife, twoLives, fourLives, finish, defeat, zero, vertical, journey, score1499, score1500, score2199, score2200, score3299, score3300)))
+    window.bind(Column(listOf(controls.root, status, repaint, prepareRightFinish, oneLife, twoLives, fourLives, finish, defeat, defeatFlight, defeatEffects, zero, vertical, journey, score1499, score1500, score2199, score2200, score3299, score3300)))
     window.show()
     refresh(game, drawing, controls, status)
     time.interval(Rules.STEP_MS, () -> { game.step(); refresh(game, drawing, controls, status) })
@@ -132,5 +164,26 @@ main() {
 refresh(Game game, GameView drawing, GameControls controls, Label status) {
     drawing.render(game)
     controls.update()
-    status.text = "steps:" + game.steps + ":position:" + game.stagePosition() + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":explosion:" + game.ship.explosionSteps + ":shipX:" + game.ship.x + ":shipY:" + game.ship.y
+    var lasers = 0
+    for (var shot in game.weapons.lasers.shots) { if (shot.active) { lasers = lasers + 1 } }
+    var blaster = 0
+    if (game.weapons.blaster.active) { blaster = 1 }
+    var beams = 0
+    for (var beam in game.weapons.beams) { if (beam.active) { beams = beams + 1 } }
+    status.text = "background:" + game.background.offset + ":lasers:" + lasers + ":blaster:" + blaster + ":beams:" + beams + ":steps:" + game.steps + ":position:" + game.stagePosition() + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":explosion:" + game.ship.explosionSteps + ":shipX:" + game.ship.x + ":shipY:" + game.ship.y
+}
+
+prepareDefeat(Game game) {
+    game.start(910)
+    game.ship.y = 130
+    game.ship.lives = 1
+    game.ship.explode()
+    game.ship.explosionSteps = 29
+    game.score = 17
+    game.weapons.level = 3
+    game.weapons.charges = 1
+    game.weapons.fireSteps = 12
+    game.weapons.laserAttempts = 6
+    for (var meteor in game.meteors) { meteor.active = false; meteor.x = 10000; meteor.y = -100 }
+    for (var item in game.items) { item.x = 10000 }
 }
