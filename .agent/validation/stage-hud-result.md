@@ -625,7 +625,9 @@ O primeiro gate executou 10 checks em 172,25 s: nove passaram, e o contrato CI p
 com exit 127 por `yq` fora do PATH. O `yq v4.54.1` já existente em `/tmp/kof-ci-tools`
 foi disponibilizado por PATH; o executor repetiu apenas esse check, que passou em 17,45 s
 no mesmo SHA. Nenhuma instalação ou alteração de produção foi necessária. O gate final
-repetirá os dez comandos com esse PATH.
+no SHA `68f760b145c1153f55af0a13b967e3b67410101d` repetiu os dez comandos com esse PATH:
+10/10 aprovados em 181,74 s, zero bloqueados e todas as coletas completas. JVM/JS 87/87;
+seis percursos Chrome, oito testes Python e contrato CI com exit 0.
 
 Trecho de `python3 tests/browser_stage.py`:
 
@@ -655,11 +657,31 @@ justificasse refactor. Não há nova API, tipo ou estado persistente; autorizaç
 continuam com responsabilidades distintas. Assertions conferidas por critério. Sonar,
 mutation runner e Habit excluídos por ausência de configuração, sem alegar execução verde.
 
-Nenhum critério deste ajuste ficou sem prova local. Gate final e links de PR/CI ainda
-não estavam disponíveis neste complemento; serão associados ao SHA final no ledger e
-na descrição do PR, preservando este registro do commit de código testado. Lacunas gerais
-do port, incluindo vídeo histórico e aceitação Android, permanecem fora deste ajuste.
+O [PR #13](https://github.com/renanfranca/kof-sifuture/pull/13) está aberto. O
+[CI 37357041630](https://github.com/renanfranca/kof-sifuture/actions/runs/37357041630)
+concluiu com sucesso no mesmo SHA `68f760b145c1153f55af0a13b967e3b67410101d` do gate final:
+
+| Check CI | Resultado e link persistente |
+|---|---|
+| Resolve verified Kof | [SUCCESS](https://github.com/renanfranca/kof-sifuture/actions/runs/37357041630/job/111921974128) |
+| Kof tests (jvm) | [SUCCESS, 87/87](https://github.com/renanfranca/kof-sifuture/actions/runs/37357041630/job/111922707741) |
+| Kof tests (js) | [SUCCESS, 87/87](https://github.com/renanfranca/kof-sifuture/actions/runs/37357041630/job/111922707767) |
+
+Trecho dos logs de `Run complete Kof suite`, igual em JVM/JS:
+
+```text
+0 failed of 87 tests
+1 passed, 0 failed
+```
+
+Build/Publish Pages foram SKIPPED, conforme o workflow para PR; não houve publicação.
+Este complemento só incorpora evidência disponível, sem alterar produção, suíte ou fixture.
+Ele repetirá os gates locais/CI antes da entrega; os resultados do novo head documental
+ficarão no ledger e na descrição do PR. Nenhum critério deste ajuste ficou sem prova.
+Lacunas gerais do port, incluindo vídeo histórico e aceitação Android, permanecem fora
+deste ajuste.
 Evidências locais opcionais: `.agent/tmp/sifuture-defeat.{red-jvm,red-js}.log`,
 `.agent/tmp/sifuture-defeat.{initial-summary,initial-ci-recheck}.json`,
-`.agent/tmp/sifuture-defeat.structural-review.md`, `.agent/tmp/stage-browser/` e
+`.agent/tmp/sifuture-defeat.structural-review.md`, `.agent/tmp/sifuture-defeat.ci-first.log`,
+`.agent/tmp/sifuture-defeat.final-summary.json`, `.agent/tmp/stage-browser/` e
 `.agent/tmp/validation/`. Os resultados essenciais estão acima, sem depender desses arquivos.

@@ -455,4 +455,6 @@ Na execução:
 - [x] Provas pelo `Game.step()`: quatro níveis, nível 2 com seis tentativas, tiros ativos na entrada, movimento, término em 170 passos, ausência nos 52 seguintes; efeitos em 1/4/6 passos; conclusão com vidas e reinício na cadência. JVM/JS: 87/87.
 - [x] Provas Chrome 139.0.7258.154, 320/1200: tiros/efeitos, ausência de reaparecimento, resultado com vidas, contagem e reinício. Gate inicial no código `ee6d7209755f1d352cf71299942e54bbefb54b7b`: dez checks aprovados, contrato CI repetido com `yq` preexistente no PATH. Revisão estrutural no mesmo contexto sem refactor adicional. Registro por critério em [stage-hud-result.md](.agent/validation/stage-hud-result.md#interromper-disparos-após-a-última-vida--05102026).
 
-Gate final e entrega com CI serão registrados no ledger e na descrição do PR quando ocorrerem; este complemento documental precede esses gates.
+- [x] Gate final em `68f760b145c1153f55af0a13b967e3b67410101d`: 10/10 checks, 181,74 s, sem bloqueios. [PR #13](https://github.com/renanfranca/kof-sifuture/pull/13) aberto; [CI 37357041630](https://github.com/renanfranca/kof-sifuture/actions/runs/37357041630) no mesmo SHA com Resolve/JVM/JS SUCCESS e 87/87 em cada alvo. Pages SKIPPED. Nenhum critério do ajuste sem prova.
+
+Este complemento incorpora links disponíveis e repete os gates da skill antes da entrega; o código permanece em `ee6d720`. Resultados do head documental seguinte serão associados no ledger e no PR. Sem merge ou limpeza do trabalho não mesclado.
