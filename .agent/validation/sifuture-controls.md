@@ -112,3 +112,64 @@ Gate final concluído sobre `e358df6444e90158c96efc9e8b1f96f73682c5ca`: 10/10 ch
 - [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37237869943/job/111540503588): SUCCESS.
 
 As duas suítes CI registraram `0 failed of 85 tests`; Resolve verified Kof validou a distribuição oficial. Build/Publish Pages foram SKIPPED, portanto o PR não publicou o jogo. Este complemento incorpora links disponíveis após o primeiro push; os gates locais serão repetidos sobre o commit documental, com fonte de produção inalterada desde `45b49487f242f7addd5243c800b7e9716c7474ad`. O PR/ledger recebem os resultados finais posteriores sem substituir esta evidência histórica.
+
+### Conferência do planejador após implementação — 04/10/2026
+
+Revisão solicitada pelo usuário contra o plano aprovado nesta conversa, sobre `f106bb46e15c743529d95cb46f65c2a13af7f993`. Checkout inicialmente limpo. Expectativas conferidas separadamente das assertions: a decisão final usa última pressão entre opostos, substituindo a ideia inicial de cancelamento. Comparação com `b99cc62` confirmou que Ship, Rules, Subchief e Weapons não receberam alterações; velocidade e combate foram preservados. Não foi encontrada divergência de implementação com o plano. Esta conferência modifica somente este registro, sem alterar produção ou testes.
+
+Reexecutados os oito comandos previstos pelo plano, todos com exit 0: `python3 scripts/kof_project.py test --target jvm` e `--target js` (85/85 em cada alvo), `python3 tests/browser.py`, `python3 tests/browser_controls.py`, `python3 tests/browser_meteor.py`, `python3 tests/browser_weapons.py`, `python3 tests/browser_stage.py` e `python3 tests/browser_subchief.py`. Os checks de infraestrutura não foram repetidos nesta revisão, pois não houve mudança nessa camada; os gates anteriores permanecem registrados acima. Ambiente: Kof `0.5.0-beta` do PATH, JVM embarcada Eclipse Adoptium `25.0.4.1`, Chrome `139.0.7258.154`, Linux, Playwright/Pillow. Logs desta conferência em `.agent/tmp/controls-plan-review-20261004T222231Z/`, como suporte opcional.
+
+| Critério do plano | Evidência reobtida |
+|---|---|
+| Pressões independentes e diagonais | Teste com sequência `(60,100) → (65,100) → (70,95) → (75,95) → estável` aprovado em JVM/JS; 16 jornadas Chrome cobrem quatro diagonais e ambas as ordens de pressão/soltura, observando x/y e propulsão. |
+| Última pressão entre opostos | Testes JVM/JS e oito jornadas Chrome nos dois eixos; soltura do vencedor retoma o outro, e soltura do perdedor conserva o vencedor. Duplicatas não roubam prioridade nem apagam movimento de teclado. |
+| Eventos simultâneos | Quatro casos Chrome usam a ordem de pointerdown efetivamente observada, sem impor ordem física; solturas conferem botão e pointerId do contato iniciado. |
+| Arrasto e cancelamento | Arrasto mantém seta inicial; soltura seletiva preserva outro eixo; cancelamento total permite nova pressão. Prova adicional no Chrome cancelou separadamente ↑ e → enquanto a outra seta permanecia mantida, inclusive verificando a soltura posterior duplicada. Essa prova adicional usa pointercancel sintético sobre o botão com outro touch CDP ativo; não demonstra a política de cancelamento de um aparelho físico. |
+| Diagonal e Especial | Seis permutações de soltura dos três contatos, uma única carga consumida, cancelamento total e nova pressão aprovados; eventos/identidades e posição/cargas conferidos. |
+| Pausa e teclado | Pausa com dois dedos limpa ambos os eixos; continuar e soltar os contatos antigos não reiniciam movimento. Nova pressão funciona. Regressões de foco, click/Tab, Enter, 1 e Espaço passaram. |
+| Geometria e apresentação | Capturas 320/1200 inspecionadas; medições e hit testing confirmam quatro botões 56×56, cruz 168×168, centro/cantos vazios, Especial 72×64 com gap 16 e centro vertical, canvas acima e ausência de scroll horizontal. Aplicação e fixtures com controles usam largura 296. |
+| Preservação do jogo | Percursos de menu, meteoros, armas, fase e subchefe aprovados; percurso completo do encontro nas duas larguras termina em 4515 passos, escore 350 e posição 176. |
+| Conforto no Chrome do Android real | **PENDENTE**, inclusive combate com subchefe. Os testes desktop com touch simulado e a prova sintética não satisfazem este critério. |
+
+Trechos reobtidos dos comandos de suítes e controles:
+
+```text
+0 failed of 85 tests
+PASS four touch diagonals in both press/release orders: 16 journeys with x/y, propulsion and exact pointerup target/id
+PASS last opposite touch wins in both axes and orders: 8 journeys with resumed/retained movement and propulsion
+PASS captured drag retains its initial arrow, selective release preserves other axis, total cancel permits new press
+```
+
+Em `python3 tests/browser_weapons.py`:
+
+```text
+PASS diagonal + third-finger special: six release orders, exact pointerup targets/ids, one charge, total cancel and new press
+```
+
+Confirmado por `gh pr view --json number,url,state,headRefOid,baseRefName,statusCheckRollup` e `gh run view 37238676684 --json conclusion,headSha,event,url,jobs`: [PR #12](https://github.com/renanfranca/kof-sifuture/pull/12) aberto no SHA revisado; [CI 37238676684](https://github.com/renanfranca/kof-sifuture/actions/runs/37238676684) SUCCESS no mesmo head. Resolve verified Kof e testes JVM/JS SUCCESS; logs das duas suítes contêm `0 failed of 85 tests`. Build/Publish Pages SKIPPED. Esta conferência não faz merge nem publica os controles. O exclude local contém `/.agent/tmp/` exatamente uma vez e não há arquivos dessa pasta rastreados pelo Git.
+
+
+### Merge e publicação acompanhados — 04/10/2026
+
+Após autorização explícita do usuário, o [PR #12](https://github.com/renanfranca/kof-sifuture/pull/12) foi integrado por merge em `main`, no SHA `b9ab8dc0116dfc153766073d62aa008b477ae92d`. O comando `gh pr merge 12 --merge --match-head-commit f106bb46e15c743529d95cb46f65c2a13af7f993` vinculou a integração ao head previamente validado. A conferência pendente do planejador acima foi preservada, sem commit adicional.
+
+A [execução de publicação 37241163525](https://github.com/renanfranca/kof-sifuture/actions/runs/37241163525), acionada pelo push de `main`, concluiu SUCCESS sobre esse SHA. Acompanhamento: `gh run watch 37241163525 --interval 20 --exit-status`; estado e logs: `gh run view 37241163525 --json status,conclusion,headSha,event,url,jobs` e `gh run view 37241163525 --log`.
+
+- [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37241163525/job/111550004256): SUCCESS.
+- [Kof tests (jvm)](https://github.com/renanfranca/kof-sifuture/actions/runs/37241163525/job/111550440483): SUCCESS.
+- [Kof tests (js)](https://github.com/renanfranca/kof-sifuture/actions/runs/37241163525/job/111550440548): SUCCESS.
+- [Build complete Pages site](https://github.com/renanfranca/kof-sifuture/actions/runs/37241163525/job/111550596230): SUCCESS.
+- [Publish current main](https://github.com/renanfranca/kof-sifuture/actions/runs/37241163525/job/111550670039): SUCCESS.
+
+Os logs das duas suítes registraram `0 failed of 85 tests`. O artefato exato foi baixado com `gh run download 37241163525 --name pages-37241163525-1 --dir .agent/tmp/sifuture-controls-pages`. O procedimento local `python3 .agent/tmp/sifuture-controls-pages/check_published.py` comparou SHA-256 de todos os arquivos do artefato com as respostas HTTP 200 do [site publicado](https://renanfranca.github.io/kof-sifuture/), usando o SHA do merge na consulta e desabilitando cache na requisição. Resultado: 95/95 arquivos idênticos.
+
+No Chrome `139.0.7258.154`, o mesmo procedimento abriu o site real em 320 e 1200 px, iniciou Novo Jogo e comprovou por pixels da nave: teclado `(0,100) → (10,100)`; direita `(15,100)`, adição de cima `(20,95)`, soltura de cima `(25,95)` e soltura de direita estável; direita `(30,95)`, adição de esquerda `(25,95)`, soltura de esquerda retomando direita `(30,95)` e soltura final estável. As solturas também conferiram alvo e pointerId. Medições confirmaram quatro setas 56×56 em cruz, Especial 72×64 com gap 16 e centro vertical, canvas acima, ausência de diagonais dedicadas e de rolagem horizontal. Pausa congelou o canvas e continuar retomou o jogo. Nenhum erro JavaScript ou resposta HTTP de erro foi observado.
+
+```text
+PASS all live site files match the exact deployed Pages artifact: 95 files
+PASS Chrome 139.0.7258.154 live Pages at 320/1200: start, keyboard, four-arrow layout, multitouch diagonal/opposites, pause/resume, no JS or HTTP errors
+```
+
+Logs, script, inventário SHA-256, eventos de touch e capturas estão em `.agent/tmp/sifuture-controls-pages/`, apenas como suporte local opcional. Esta prova sobre o site publicado continua usando touch simulado; conforto e combate com subchefe no Android físico permanecem **PENDENTES**.
+
+A ancestralidade da branch foi conferida com `git merge-base --is-ancestor android-multitouch-controls main`. Depois da verificação do Pages, `git push origin --delete android-multitouch-controls` e `git branch -d android-multitouch-controls` removeram somente a branch integrada, remota e local. O checkout foi restabelecido em `main`; `HEAD` e `origin/main` coincidem no SHA do merge. Este registro mantém sua alteração pendente anterior e o complemento de publicação, sem novo commit.
