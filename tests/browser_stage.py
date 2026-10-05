@@ -18,9 +18,10 @@ def bitmap(page):
     return Image.open(io.BytesIO(page.locator("canvas").screenshot())).convert("RGB")
 
 
-def sprite(page, name, x, y, *, occluded=()):
+def sprite(page, name, x, y, *, occluded=(), background_offset=None):
     actual = bitmap(page)
     expected = Image.open(ASSETS / name).convert("RGBA")
+    background = Image.open(ASSETS / "background.png").convert("RGB") if background_offset is not None else None
     samples = 0
     for py in range(expected.height):
         for px in range(expected.width):
@@ -28,9 +29,18 @@ def sprite(page, name, x, y, *, occluded=()):
             if any(left <= x + px < right and top <= y + py < bottom
                    for left, top, right, bottom in occluded):
                 continue
-            if rgba[3] != 255 or not (0 <= x + px < 176 and 0 <= y + py < 220):
+            if not (0 <= x + px < 176 and 0 <= y + py < 220):
                 continue
-            assert actual.getpixel((x + px, y + py)) == rgba[:3], (name, x + px, y + py)
+            if rgba[3] == 255:
+                assert actual.getpixel((x + px, y + py)) == rgba[:3], (name, x + px, y + py)
+            elif rgba[3] > 0 and background is not None:
+                base = background.getpixel(((x + px + background_offset) % 60, (y + py - 30) % 60))
+                blended = tuple(round((front * rgba[3] + back * (255 - rgba[3])) / 255)
+                                for front, back in zip(rgba[:3], base))
+                observed = actual.getpixel((x + px, y + py))
+                assert all(abs(a - b) <= 1 for a, b in zip(observed, blended)), (name, x + px, y + py)
+            else:
+                continue
             samples += 1
     assert samples > 0, name
 
@@ -152,6 +162,7 @@ def moving_result(page, width):
     sprite(page, "result0.png", 31, 113)
     advance(page, 20)
     final = state(page)
+    assert final["lasers"] > 0 and final["blaster"] == 1
     assert final["score"] == 17 and final["displayed"] == 17 and final["steps"] == 1710
     assert final["lives"] == initial["lives"] and final["charges"] == 2 and final["level"] == 3
     assert final["position"] == 176 and final["explosion"] == 30
@@ -224,7 +235,10 @@ def vertical_and_full_journey(page):
 def defeat(page):
     page.get_by_role("button", name="Defeat", exact=True).click()
     assert state(page)["lives"] == 0 and state(page)["explosion"] == 30
-    advance(page, 100)
+    for _ in range(100):
+        advance(page)
+        current = state(page)
+        assert (current["lasers"], current["blaster"], current["beams"]) == (0, 0, 0)
     assert state(page)["lives"] == 0 and state(page)["explosion"] == 30
     assert state(page)["steps"] == 2 and state(page)["score"] == 1500
     assert state(page)["displayed"] == 500
@@ -232,6 +246,63 @@ def defeat(page):
     assert page.get_by_role("button", name="Voltar ao menu", exact=True).count() == 1
     page.get_by_role("button", name="Voltar ao menu", exact=True).click()
     assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
+
+
+def defeat_projectiles(page, width):
+    page.get_by_role("button", name="Defeat flight", exact=True).click()
+    entry = state(page)
+    assert (entry["lives"], entry["lasers"], entry["blaster"], entry["beams"]) == (0, 3, 1, 3)
+    overlay = ((0, 86, 176, 135),)
+    for name, x, y in (("laser00.png", 15, 140), ("ylwBlaster00.png", 0, 65),
+                       ("e0.png", 0, 40), ("e3.png", 0, 160), ("e6.png", 0, 190)):
+        sprite(page, name, x, y, occluded=overlay)
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-flight-entry-{width}.png"))
+    advance(page)
+    for name, x, y in (("laser00.png", 20, 140), ("ylwBlaster00.png", 5, 65),
+                       ("e0.png", 5, 40), ("e3.png", 6, 160), ("e6.png", 5, 190)):
+        sprite(page, name, x, y, occluded=overlay)
+    advance(page, 169)
+    for _ in range(52):
+        current = state(page)
+        assert (current["lasers"], current["blaster"], current["beams"]) == (0, 0, 0)
+        assert current["score"] == current["displayed"] == 17 and current["steps"] == entry["steps"]
+        advance(page)
+    current = state(page)
+    assert (current["lasers"], current["blaster"], current["beams"]) == (0, 0, 0)
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-flight-finished-{width}.png"))
+    page.get_by_role("button", name="Voltar ao menu", exact=True).click()
+    page.get_by_role("button", name="Novo Jogo", exact=True).click()
+    advance(page)
+    assert state(page)["lives"] == 3 and state(page)["score"] == 0
+    advance(page, 56)
+    assert state(page)["lasers"] == 0
+    advance(page)
+    assert state(page)["lasers"] == 1
+
+
+def defeat_effects(page, width):
+    page.get_by_role("button", name="Defeat effects", exact=True).click()
+    assert (state(page)["lasers"], state(page)["blaster"], state(page)["beams"]) == (1, 1, 1)
+    sprite(page, "laser03.png", 25, 140)
+    sprite(page, "ylwBlaster04.png", 0, 180)
+    sprite(page, "e4.png", 0, 40)
+    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-effects-entry-{width}.png"))
+    for step in range(1, 7):
+        advance(page)
+        current = state(page)
+        assert current["lasers"] == 0
+        assert current["blaster"] == (1 if step < 4 else 0)
+        assert current["beams"] == (1 if step < 6 else 0)
+        if step < 4:
+            sprite(page, f"ylwBlaster0{4 + step}.png", (2, 4, 7)[step - 1], 166 if step == 1 else 165,
+                   background_offset=current["background"])
+        if step < 6:
+            sprite(page, "e4.png" if step < 3 else "e5.png", 0, 40)
+        page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-effects-{step}-{width}.png"))
+    for _ in range(52):
+        advance(page)
+        current = state(page)
+        assert (current["lasers"], current["blaster"], current["beams"]) == (0, 0, 0)
 
 
 def boundaries(page):
@@ -255,7 +326,7 @@ def main():
                                         args=["--no-sandbox", "--headless=new"])
             try:
                 for width in (320, 1200):
-                    for journey in (hud_and_pause, moving_result, right_held_result, right_input_clearing):
+                    for journey in (hud_and_pause, moving_result, right_held_result, right_input_clearing, defeat_projectiles, defeat_effects):
                         page = open_scene(browser, url, width)
                         errors = []
                         page.on("pageerror", lambda error: errors.append(str(error)))
@@ -279,6 +350,7 @@ def main():
                 print("PASS stage HUD, vertical impacts, full journey, moving result, exact count, boundaries and two confirmations")
                 print("PASS held right restores Middle.png on result entry and release, frozen ship and exact score at both widths")
                 print("PASS pause and lost canvas focus immediately restore Middle.png at both widths")
+                print("PASS defeat projectiles finish without respawn, effects finish at 1/4/6 steps, and restart restores fire")
                 print("PASS Chrome", browser.version, "at 320 and 1200 pixels; repaint does not advance simulation")
             finally:
                 browser.close()

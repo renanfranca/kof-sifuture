@@ -385,3 +385,72 @@ O multitouch deste ciclo cobre dedos em **botões distintos**. A dificuldade, ve
 - [ ] Aceite de conforto no Android real, incluindo combate com subchefe. Touch simulado não encerra este critério.
 
 Worker `primary`: chat `01a108c9-623d-7f10-a9f5-a49eba70b808`, `gpt-6.1-sol`/`medium`; título `sifuture-controls-primary`. Implementação, validação e revisão compartilham contexto, sem independência de revisão. Dez checks locais e três checks CI confirmados; Sonar/mutação/Habit não configurados e excluídos. Plano/ledger/inventário/coletores/logs em `.agent/tmp/`, excluído localmente exatamente uma vez.
+
+
+# Interromper novos disparos após a última vida
+
+## Comportamento definido
+
+Conforme seus esclarecimentos: ao chegar a zero vidas, a nave deixa de criar disparos. Lasers, blaster e especial já lançados continuam até terminar seu movimento ou efeito. O resultado de fase concluída com vidas restantes conserva o comportamento atual.
+
+A causa está em [Game.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/game/Game.kf:130):
+
+```kof
+ship.advanceVisual()
+if (ship.phase == ShipPhase.Normal || ship.phase == ShipPhase.Hidden) { weapons.attemptFire(ship) }
+weapons.advance()
+```
+
+A condição permite disparar com a nave oculta. `attemptFire` cria projéteis; `advance` movimenta os existentes. A correção deve restringir a primeira operação e preservar a segunda.
+
+## Implementação
+
+- No ramo de resultado de `Game.step()`, acrescentar `ship.lives > 0` à condição atual de `weapons.attemptFire(ship)`.
+- Manter `weapons.advance()` em cada passo do resultado para concluir projéteis e efeitos existentes.
+- Preservar disparos durante a partida, perda de evolução na morte, animação do cenário, tiros do subchefe e contagem do escore.
+- Atualizar README e especificação do port para distinguir derrota de conclusão da fase. Incorporar estes critérios ao plano existente.
+- Manter APIs e tipos atuais. A permissão depende diretamente das vidas, seguindo o [training de estado duplicado](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73):
+
+  > If a value can be derived from another, derive it (method or function).
+
+## Aceitação e provas planejadas
+
+As expectativas de derrota vêm dos seus esclarecimentos; a preservação da conclusão da fase foi confirmada por você.
+
+| Critério | Cenário e resultado esperado | Verificação |
+|---|---|---|
+| Nenhum novo disparo | Uma vida, explosão no passo 29, armas inativas e cadência no passo 12. Após a vida chegar a zero, nenhum projétil surge em 100 passos, nos níveis 0–3; incluir nível 2 com seis tentativas de laser. | Ampliar o teste existente de derrota e verificar todos os projéteis após cada passo. |
+| Tiros lançados terminam | Entrar na derrota com lasers, blaster e três feixes ativos. Permanecem ativos na entrada, avançam normalmente e ficam inativos até 170 passos; permanecem inativos nos 52 seguintes. | Cenário pela entrada estável `Game.step()`, observando posições e atividade. |
+| Efeitos terminam | Entrar com impacto de laser, blaster esgotado e feixe esgotado. Seus efeitos concluem respectivamente após 1, 4 e 6 passos do resultado. | Verificar presença na entrada, quadros intermediários e desativação no término. |
+| Compatibilidade e reinício | Concluir fase com vidas restantes mantém disparos visuais; depois da derrota, voltar ao menu e iniciar nova partida restaura tiros na cadência normal. | Reutilizar o teste de resultado existente e ampliar a jornada de reinício. |
+
+Estender a fixture e o percurso de navegador de fase/resultado existentes. Em Chrome nas larguras 320 e 1200, observar sprites lançados, conclusão dos efeitos e ausência de reaparecimento durante o resultado. Conferir também escore preservado, contagem e retorno ao menu.
+
+## Validação e evidências
+
+Base inspecionada: `b84398c70e26cce63618586447c35f71d6800466`. Durante o planejamento, os comandos abaixo passaram em ambos os alvos:
+
+```bash
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+```
+
+```text
+0 failed of 85 tests
+```
+
+Esse resultado descreve a suíte atual; a observação de novos projéteis após a derrota ainda precisa ser acrescentada.
+
+Na execução:
+
+- Demonstrar a falha da regressão antes da correção; depois executar JVM, JS e os percursos de navegador de fase, armas e subchefe.
+- Conferir separadamente a expectativa de cada critério e se suas assertions realmente a demonstram.
+- Complementar o registro existente de fase/resultado em `.agent/validation/` com SHA testado, comandos, resultados por critério, navegador/versão e links de workflow quando disponíveis. Guardar logs e capturas em `.agent/tmp/`.
+- Registrar qualquer falha ou critério não verificado antes da entrega.
+
+### Execução — 05/10/2026
+
+- [x] Regressão antes da correção: JVM/JS, `1 failed of 85 tests`, somente ausência de novos projéteis na derrota.
+- [x] Restringir a tentativa de disparo a vidas positivas no resultado; preservar `weapons.advance()`.
+- [x] Provas pelo `Game.step()`: quatro níveis, nível 2 com seis tentativas, tiros ativos na entrada, movimento, término em 170 passos, ausência nos 52 seguintes; efeitos em 1/4/6 passos; conclusão com vidas e reinício na cadência. JVM/JS: 87/87.
+- [ ] Fechar provas Chrome 320/1200, gates inicial/final, revisão estrutural e entrega com CI.
