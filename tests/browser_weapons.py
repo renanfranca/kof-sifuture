@@ -396,6 +396,7 @@ def simultaneous_touch(browser, url):
         with scene(browser, url) as page:
             collect(page, 5)
             page.get_by_role("button", name="Center ship", exact=True).click()
+            page.locator("canvas").scroll_into_view_if_needed()
             advance(page)
             assert (status(page)["x"], status(page)["y"], status(page)["charges"]) == (60, 100, 2)
             touch = TouchContacts(page)
@@ -424,6 +425,7 @@ def simultaneous_touch(browser, url):
     with scene(browser, url) as page:
         collect(page, 5)
         page.get_by_role("button", name="Center ship", exact=True).click()
+        page.locator("canvas").scroll_into_view_if_needed()
         touch = TouchContacts(page)
         touch.press("→", "↑")
         touch.press("Especial")
@@ -443,6 +445,55 @@ def simultaneous_touch(browser, url):
     print("PASS diagonal + third-finger special: six release orders, exact pointerup targets/ids, one charge, total cancel and new press")
 
 
+def special_presentation(special):
+    return special.evaluate("""button => {
+        const range = document.createRange();
+        range.selectNodeContents(button);
+        const text = range.getBoundingClientRect();
+        const box = button.getBoundingClientRect();
+        return {box: {x: box.x, y: box.y, width: box.width, height: box.height},
+                writing_mode: getComputedStyle(button).writingMode,
+                text: button.textContent, id: button.id,
+                text_box: {x: text.x, y: text.y, width: text.width, height: text.height}};
+    }""")
+
+
+def special_touch_extent(browser, url):
+    evidence = []
+    for width in (320, 1200):
+        for region, offset in (("top", 8), ("middle", 110), ("bottom", 212)):
+            with scene(browser, url, width) as page:
+                collect(page, 5)
+                page.locator("canvas").scroll_into_view_if_needed()
+                special = page.get_by_role("button", name="Especial", exact=True)
+                presentation = special_presentation(special)
+                canvas = page.locator("canvas").bounding_box()
+                point = {"x": canvas["x"] + 176 + 16 + 28, "y": canvas["y"] + offset}
+                assert status(page)["charges"] == 2 and special.is_enabled()
+                assert page.evaluate("p => document.elementFromPoint(p.x, p.y).id", point) == "game-special"
+
+                touch = TouchContacts(page)
+                touch.press_at({"Especial": (point["x"], point["y"])})
+                advance(page)
+                assert status(page)["charges"] == 1 and special.is_disabled()
+                assert special_presentation(special) == presentation
+                advance(page, 3)
+                assert status(page)["charges"] == 1
+                touch.release("Especial")
+                advance(page)
+                assert status(page)["charges"] == 1
+                page.get_by_role("button", name="Move ship down", exact=True).click()
+                advance(page, 49)
+                sprite_matches(canvas_image(page), "e3.png", 5, 94)
+                assert status(page)["charges"] == 1
+                evidence.append({"viewport": width, "region": region, "point": point,
+                                 "charges_before": 2, "charges_after": status(page)["charges"],
+                                 "presentation": presentation, "events": touch.events()})
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    (EVIDENCE / "vertical-touch-extent.json").write_text(json.dumps(evidence, indent=2) + "\n")
+    print("PASS special touch at top/middle/bottom in 320/1200: actual game-special target, active beams, charges 2 -> 1, held/released without repeat")
+
+
 def layout_and_indicator(browser, url):
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     release_evidence = ROOT / ".agent/tmp/special-key-release"
@@ -451,23 +502,38 @@ def layout_and_indicator(browser, url):
         with scene(browser, url, width) as page:
             special = page.get_by_role("button", name="Especial", exact=True)
             assert special.is_disabled()
+            presentation = special_presentation(special)
+            box = presentation["box"]
             collect(page, 5)
             assert special.is_enabled()
-            box = special.bounding_box()
-            north = page.get_by_role("button", name="↑", exact=True).bounding_box()
-            south = page.get_by_role("button", name="↓", exact=True).bounding_box()
-            east = page.get_by_role("button", name="→", exact=True).bounding_box()
-            assert (box["width"], box["height"]) == (72, 64)
-            assert abs(box["x"] - east["x"] - east["width"] - 16) < 1
-            assert abs(box["y"] + 32 - (north["y"] + south["y"] + south["height"]) / 2) < 1
+            assert special_presentation(special) == presentation
+            page.locator("#game-keyboard").focus()
+            for label in ("↑", "←", "→", "↓", "Especial", "Pausar"):
+                page.keyboard.press("Tab")
+                assert page.get_by_role("button", name=label, exact=True).evaluate("node => node === document.activeElement"), label
+            canvas = page.locator("canvas").bounding_box()
+            assert (box["width"], box["height"]) == (56, 220)
+            assert presentation["writing_mode"] == "vertical-rl"
+            assert presentation["text"] == "Especial" and presentation["id"] == "game-special"
+            text = presentation["text_box"]
+            assert text["height"] > text["width"] > 0
+            for axis, size in (("x", "width"), ("y", "height")):
+                assert box[axis] <= text[axis] and text[axis] + text[size] <= box[axis] + box[size]
+                assert abs(text[axis] + text[size] / 2 - box[axis] - box[size] / 2) <= 1
+            (EVIDENCE / f"vertical-presentation-{width}.json").write_text(json.dumps(presentation, indent=2) + "\n")
+            assert abs(box["x"] - canvas["x"] - canvas["width"] - 16) <= 1
+            assert abs(box["y"] - canvas["y"]) <= 1
+            assert abs(box["y"] + box["height"] - canvas["y"] - canvas["height"]) <= 1
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
             page.screenshot(path=str(EVIDENCE / f"layout-{width}.png"), full_page=True)
             special.click()
             advance(page)
             assert status(page)["charges"] == 1 and special.is_disabled()
+            assert special_presentation(special) == presentation
             sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
             page.get_by_role("button", name="Pausar", exact=True).click()
+            assert special_presentation(special) == presentation
             frozen = canvas_image(page).tobytes()
             advance(page, 20)
             assert canvas_image(page).tobytes() == frozen
@@ -476,20 +542,21 @@ def layout_and_indicator(browser, url):
             collect(page, 5)
             special = page.get_by_role("button", name="Especial", exact=True)
             special.focus()
-            box = special.bounding_box()
+            presentation = special_presentation(special)
+            box = presentation["box"]
             page.keyboard.down("1")
             advance(page)
             assert special.is_enabled()
-            assert special.bounding_box() == box
+            assert special_presentation(special) == presentation
             assert special.evaluate("button => getComputedStyle(button).opacity") == "0.5"
             page.screenshot(path=str(release_evidence / f"held-{width}.png"), full_page=True)
             page.keyboard.up("1")
             assert special.is_disabled()
-            assert special.bounding_box() == box
+            assert special_presentation(special) == presentation
             page.screenshot(path=str(release_evidence / f"released-{width}.png"), full_page=True)
             advance(page, 170)
             assert special.is_enabled()
-            assert special.bounding_box() == box
+            assert special_presentation(special) == presentation
             assert special.evaluate("button => getComputedStyle(button).opacity") == "1"
             page.screenshot(path=str(release_evidence / f"available-{width}.png"), full_page=True)
     with scene(browser, url) as page:
@@ -501,7 +568,7 @@ def layout_and_indicator(browser, url):
         assert canvas_image(page).crop((80, 0, 176, 30)).tobytes() == before
         sprite_matches(canvas_image(page), "StageMiddle.png", 80, 0)
         sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
-    print("PASS 320px/desktop layout, 72x64 button, 16px separation and retained icon during special/paused state")
+    print("PASS 320/1200: special centered beside canvas, 56x220 vertical text, 16px gap; position retained through availability, firing, held key, release and pause")
 
 
 def main():
@@ -518,6 +585,7 @@ def main():
                 keyboard_edges(browser, url)
                 simultaneous_touch(browser, url)
                 layout_and_indicator(browser, url)
+                special_touch_extent(browser, url)
             finally:
                 browser.close()
     with served_build(kof=args.kof) as url:

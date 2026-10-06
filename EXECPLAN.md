@@ -334,7 +334,7 @@ A prova de planejamento compilou a fixture existente e executou touch simulado n
 
 - **Modelo:** mudar a interface para `Game.movement(Direction direction, Bool pressed)`, reutilizando as quatro direções existentes. Guardar as pressões do direcional separadamente da memória do teclado e encaminhar somente transições reais à nave. Pressões repetidas e solturas duplicadas não podem alterar a prioridade.
 - **Prioridade:** reutilizar a regra atual da nave para opostos. O direcional continua prevalecendo sobre o teclado enquanto qualquer seta estiver pressionada. Soltar o último botão para o movimento; uma tecla já mantida não assume automaticamente.
-- **Interface:** quatro botões de **56 × 56 px**, cruz de **168 × 168 px**, sem espaçamento interno, com centro e cantos vazios. Conservar Especial à direita, **72 × 64 px**, centralizado verticalmente e separado por **16 px**. Usar janela de **296 px** de largura na aplicação e nas fixtures com esses controles para caber em viewport de 320 px.
+- **Interface:** quatro botões de **56 × 56 px**, cruz de **168 × 168 px**, sem espaçamento interno, com centro e cantos vazios. Disposição histórica deste ciclo: Especial à direita do direcional, **72 × 64 px**, centralizado verticalmente e separado por **16 px**; essa posição foi substituída explicitamente pelo ciclo de alinhamento com o canvas abaixo. Usar janela de **296 px** de largura na aplicação e nas fixtures com esses controles para caber em viewport de 320 px.
 - **Gestos:** conservar os eventos atuais de pressão, soltura, cancelamento e saída do mouse. Manter o arrasto ligado ao botão inicial; a captura implícita de touch é descrita pelo [padrão W3C](https://www.w3.org/TR/pointerevents3/#implicit-pointer-capture).
 - **Documentação:** incorporar este ciclo ao `EXECPLAN.md`, preservar suas alterações pendentes e atualizar a especificação e as instruções do jogo para quatro botões com combinações.
 
@@ -574,3 +574,53 @@ Execução confirmada em `sifuture-boss-primary`, worker `primary`, `gpt-6.1-sol
 Releitura complementar antes da entrega: quinta tentativa desliga o gatilho especial histórico. Assertion vermelha em JVM e correção do ramo `else`; gates iniciais/finais repetidos no novo SHA antes do PR.
 
 Conferência posterior do planejador no head `b1989d082952aad16eef9e336a649630d1dbd482`: nenhum desvio funcional do ciclo aprovado identificado. Reexecutados os onze comandos, todos com exit 0; 103/103 em JVM/JS e sete jornadas Chrome. Três provas complementares de capacidade inicial, gatilho desligado e absorção protegendo nave normal passaram nos dois alvos; recomenda-se incorporá-las à suíte permanente. [CI 37484705995](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995) confirmado no mesmo head do PR #14, Pages SKIPPED. O [aceite existente](.agent/validation/stage-hud-result.md#conferência-do-planejador-após-a-implementação--06102026) registra comparação por critério, comandos, SHA, fontes, capturas, qualidade da cobertura e limites. Esta conferência altera somente registros, sem novo código ou commit; vídeo histórico e Android permanecem pendentes.
+
+
+## Alinhar as setas com o jogo e reposicionar o Especial — 06/10/2026
+
+### Purpose and success
+
+↑ e ↓ compartilham o centro horizontal do canvas; Especial fica 16 px à direita dele e centralizado somente nos seus 220 px de altura. Este ciclo substitui explicitamente Especial ao lado do direcional; registros anteriores permanecem históricos.
+
+### Context and limits
+
+Branch `controls-alignment`, base fixa `origin/main` `42d76fe443edf0dbbb3857cea47824fce7ad59e4`, em checkout separado. Worker `primary`, chat `01a11249-dd7e-7530-b57c-32308372ff83`, `gpt-6.1-sol`/`medium`, título `controls-alignment-primary`. Implementação, validação e revisão compartilham contexto. Sonar, mutação e Habit não configurados e excluídos; CI Resolve/JVM/JS selecionado. Pages depende de push em main, fora do gate do PR.
+
+### Milestones
+
+1. Compor `Column(surface, pad)` à esquerda e uma coluna de altura 220 para o Especial à direita, dentro de `Row`. Usar widgets e `Style` Kof, sem alterar eventos, IDs, ordem de foco, regras ou interfaces públicas.
+2. Preservar canvas 176×220, setas 56×56, cruz 168×168, Especial 72×64, gap 16 e janela 296. Fixar conjunto 264 e impedir quebra. Centro/cantos da cruz vazios; nenhuma sobreposição, corte ou scroll horizontal.
+3. Ampliar percursos existentes: touch no eixo do canvas, alvo real ↑, (60,100)→(60,95) em um passo, continuidade enquanto mantido e parada ao soltar. Medir centros com tolerância 1 px em 320/1200; verificar posição do Especial em todas as disponibilidades e ordem de Tab.
+4. Reutilizar diagonais, solturas independentes, Especial simultâneo, teclado e pausa. Conferir expectativas e assertions separadamente; inspecionar capturas. Atualizar especificação, README e aceite de controles sem apagar evidências anteriores.
+
+### Validation
+
+`python3 tests/browser_controls.py`; `python3 tests/browser_weapons.py`; `python3 scripts/kof_project.py test --target jvm`; idem `js`; `python3 tests/browser.py`; `python3 tests/browser_meteor.py`; `python3 tests/browser_stage.py`; `python3 tests/browser_subchief.py`; `python3 tests/browser_boss.py`; `python3 -m unittest discover -s tests -p 'test_kof_project.py'`; `PATH="/home/renanfranca/projects/kof-sifuture/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh` (yq preexistente).
+
+Registrar SHA testado, comandos, resultado por critério, Chrome/versão e links persistentes de workflow no [aceite existente](.agent/validation/sifuture-controls.md). Logs, JSON de medidas e capturas ficam em `.agent/tmp/`. Touch simulado comprova as jornadas automatizadas; conforto no celular físico permanece pendente.
+
+### Progress
+
+- [x] Regressão de toque no eixo demonstrada antes da correção; composição Kof implementada.
+- [x] Gate inicial em `fced14f80d3590736b7a586a2a14871f8a495e1d`: 11/11 checks exit 0; JVM/JS 103/103; revisão estrutural sem refactor. Critérios, medidas, auditorias e comandos no aceite existente.
+Gate de entrega: repetir os onze checks sobre o complemento documental; resultados do head final e links de PR/CI serão associados ao ledger e ao PR.
+- [ ] Conforto no Android físico.
+
+Conferência posterior do planejamento no head `2d4e1e867aae2dd26963bc165eafcde78d3f6ab5`: nenhum desvio funcional identificado; os nove comandos do plano foram reexecutados com exit 0 (103/103 em JVM e JS, sete percursos Chrome). Geometria apresentou diferença 0 px nos centros e gap 16 em 320/1200; toque no eixo do canvas moveu e parou na soltura. Gate final do executor 11/11 conferido e [CI 37509126926](https://github.com/renanfranca/kof-sifuture/actions/runs/37509126926) confirmado no mesmo head do [PR #17](https://github.com/renanfranca/kof-sifuture/pull/17), Pages SKIPPED. O aceite existente registra critérios, comandos, capturas, qualidade da cobertura e limites. Apenas registros foram complementados, sem alteração de produção ou commit; conforto no Android físico permanece pendente.
+
+
+## Ciclo aprovado: Especial vertical na altura inteira do canvas — 06/10/2026
+
+Partir de `controls-alignment`, preservando os aceites anteriores como históricos. Substituir neste ciclo o Especial 72 × 64 pelo retângulo 56 × 220, coluna de 56 e conjunto de 248 pixels; manter canvas 176 × 220, cruz 168 × 168, setas 56, gap 16 e janela 296 sem quebra. Aplicar `writing-mode: vertical-rl` nos dois estilos declarativos de Kof, preservando nome “Especial”, IDs, foco, eventos e regras.
+
+- [x] Expectativa de layout atualizada antes da produção; controles e armas falharam no tamanho anterior.
+- [x] Alteração mínima nos estilos e largura da composição.
+- [x] Percursos integrados: texto inteiro/centralizado, topo/meio/base com duas cargas → uma, estados e regressões.
+- [x] Gate inicial em `38fa85903db8b0c648d778a6557ebb99b0c0ed2b`: onze checks exit 0; JVM/JS 103 cada, sete percursos Chrome e infraestrutura aprovados.
+- [x] Auditorias separadas de expectativas/assertions; revisão estrutural No action e capturas 320/1200 revisadas.
+- [x] SHA inicial, comandos, navegador, resultados por critério e links persistentes de CI no aceite existente.
+- [ ] Conforto no Android físico (permanece fora do aceite simulado).
+
+Execução por `primary`, neste chat, com papéis e leases serializados. Validação e revisão compartilham o contexto da implementação. Sonar, Habit e mutation testing permanecem excluídos por ausência de configuração. Plano literal, ledger e evidências locais: `.agent/tmp/special-vertical.*`.
+
+Gate de entrega deste ciclo: repetir todos os onze checks no complemento documental; o ledger e a descrição do PR #17 registrarão o head final, resultado do gate e execução específica de CI antes da entrega.
