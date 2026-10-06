@@ -268,3 +268,41 @@ Revisão estrutural: **No action**, sem refactor adicional. Novos contêineres s
 Este complemento documental será comprometido antes do gate final, que repete os mesmos onze comandos. Resultado/head final e links específicos de entrega serão associados ao ledger e ao PR após esse gate. O [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml) seleciona Resolve verified Kof e Kof tests (jvm/js); sua execução ainda não existe neste momento. Build/Publish Pages são condicionais a push em main e ficam SKIPPED no PR. Sonar, Habit e mutation testing não configurados e excluídos; não há score de mutação ou pass dessas ferramentas.
 
 Não há falha persistente dos critérios automatizados. Plano, ledger, inventário, configuração e logs permanecem em `.agent/tmp/`, excluído localmente exatamente uma vez. Conforto no Android físico permanece pendente, sem declarar aceite de APK/WebView ou v1 completa.
+
+
+### Conferência do planejamento após implementação — 06/10/2026
+
+Conferido o head `2d4e1e867aae2dd26963bc165eafcde78d3f6ab5` da branch `controls-alignment`, [PR #17](https://github.com/renanfranca/kof-sifuture/pull/17), contra o plano aprovado desta conversa. Nenhum desvio funcional identificado. A main local ainda contém o layout anterior; esta conferência foi executada no worktree da implementação. Código e testes coincidem com o primeiro commit funcional; o head acrescenta documentação. Revisão de expectativas e revisão da força das assertions foram realizadas separadamente.
+
+Reexecutados os nove comandos previstos pelo plano, todos com exit 0, usando Kof do PATH `0.5.0-beta` e Chrome `139.0.7258.154` no Linux:
+
+| Comandos | Resultado observado |
+|---|---|
+| `python3 scripts/kof_project.py test --target jvm` e `--target js` | 103 testes por alvo, zero falhas. |
+| `python3 tests/browser_controls.py` | Toque no eixo do canvas, geometria 320/1200, diagonais, opostos, arrasto, cancelamento, foco, teclado e pausa passaram. |
+| `python3 tests/browser_weapons.py` | Especial simultâneo, uma carga por pressão, bloqueios de teclado, foco por Tab e posição em todas as disponibilidades passaram. |
+| `python3 tests/browser.py`, `python3 tests/browser_meteor.py`, `python3 tests/browser_stage.py`, `python3 tests/browser_subchief.py`, `python3 tests/browser_boss.py` | Cinco percursos de regressão passaram. |
+
+A expectativa principal vem do pedido aprovado: ↑/↓ no eixo do canvas e Especial à direita, sem exigir que o canvas sozinho fique no centro da tela. A especificação do ciclo, `port-sifuture-to-kof.md:25`, registra os mesmos resultados. As provas observam elementos distintos, coordenadas de entrada e pixels da nave; não deduzem a posição do botão a partir do estilo de produção.
+
+| Critério do plano | Prova inspecionada e resultado desta conferência |
+|---|---|
+| Alinhamento | `cross_layout` em `browser_controls.py:516`: centros x canvas/↑/↓ iguais a 116/116/116 em 320 e 120/120/120 em 1200; diferença 0 px. |
+| Toque intuitivo | `touch_on_canvas_axis` em `browser_controls.py:387`: x vem do canvas, hit target é ↑, pressão real leva (60,100)→(60,95)→(60,90); após soltura, dois passos permanecem em (60,90). A soltura também verifica alvo e pointerId. |
+| Especial | `layout_and_indicator` em `browser_weapons.py:448`: 72×64, gap 16 e diferença vertical 0 px; bounding box preservado ao habilitar, disparar, pausar, manter/soltar tecla e recuperar disponibilidade. |
+| Espaço disponível | Cruz 168×168 com setas 56×56; canvas 176×220; largura conjunta 264; centro/cantos vazios, cruz abaixo do jogo, elementos dentro do viewport e ausência de scroll horizontal. Capturas 320/1200 revisadas. |
+| Regressões e interfaces | Diff de produção restrito à montagem de contêineres; callbacks, IDs e interfaces preservados. As matrizes existentes e a sequência por Tab `overlay, ↑, ←, →, ↓, Especial, Pausar` passaram. |
+
+Trechos efetivos dos comandos de controles e armas:
+
+```text
+PASS touch on canvas axis at 320/1200: (60,100) -> (60,95), held -> (60,90), release stops
+PASS 320/1200: up/down aligned with 176x220 canvas; empty 168x168 cross; 72x64 special centered on canvas, 16px gap, 264px total, no horizontal scroll
+PASS 320/1200: special centered beside canvas, 72x64, 16px gap; position retained through availability, firing, held key, release and pause
+```
+
+O novo teste distingue o defeito anterior: calcula x pelo canvas, em vez de localizar o centro da seta, e mede o movimento durante a pressão e depois da soltura. A fixture inicia a nave normal em (60,100), afastada dos meteoros; nenhuma colisão impede a consequência esperada. Inspecionadas as capturas recém-geradas `cross-320.png`/`cross-1200.png` e a captura existente da aplicação em 320, correspondente ao mesmo código funcional. A composição usa `Column`/`Row` e `Style`, conforme Learn Kof 35 e o training de UI já citados acima.
+
+O gate final do executor foi também conferido em seu resumo local: 11/11 comandos, todos exit 0, coleta completa, no mesmo head. Os dois checks de infraestrutura não foram repetidos nesta revisão porque essa camada não mudou. Confirmado o [CI 37509126926](https://github.com/renanfranca/kof-sifuture/actions/runs/37509126926) no head exato: Resolve verified Kof, JVM e JS concluíram SUCCESS; Build/Publish Pages ficaram SKIPPED, conforme a condição de execução em main. Não há aceite do site publicado neste ciclo de revisão.
+
+Logs e resultados desta conferência estão em `.agent/tmp/controls-plan-review-20261006T185501Z/`, como suporte opcional; o conteúdo essencial consta neste registro. A exclusão local `/.agent/tmp/` foi conferida exatamente uma vez. Permanecem pendentes conforto no Android físico e os requisitos gerais de v1; os cenários automatizados solicitados estão verificados. Esta conferência altera somente os registros, sem modificar código, criar commit ou integrar o PR.
