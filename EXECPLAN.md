@@ -616,9 +616,11 @@ Partir de `controls-alignment`, preservando os aceites anteriores como históric
 - [x] Expectativa de layout atualizada antes da produção; controles e armas falharam no tamanho anterior.
 - [x] Alteração mínima nos estilos e largura da composição.
 - [x] Percursos integrados: texto inteiro/centralizado, topo/meio/base com duas cargas → uma, estados e regressões.
-- [ ] Gates inicial/final: JVM/JS, sete percursos Chrome e dois checks de infraestrutura.
-- [ ] Auditorias separadas de expectativas/assertions; revisão estrutural e capturas 320/1200.
-- [ ] Registrar SHA, comandos, navegador, resultados por critério e CI no aceite existente.
+- [x] Gate inicial em `38fa85903db8b0c648d778a6557ebb99b0c0ed2b`: onze checks exit 0; JVM/JS 103 cada, sete percursos Chrome e infraestrutura aprovados.
+- [x] Auditorias separadas de expectativas/assertions; revisão estrutural No action e capturas 320/1200 revisadas.
+- [x] SHA inicial, comandos, navegador, resultados por critério e links persistentes de CI no aceite existente.
 - [ ] Conforto no Android físico (permanece fora do aceite simulado).
 
 Execução por `primary`, neste chat, com papéis e leases serializados. Validação e revisão compartilham o contexto da implementação. Sonar, Habit e mutation testing permanecem excluídos por ausência de configuração. Plano literal, ledger e evidências locais: `.agent/tmp/special-vertical.*`.
+
+Gate de entrega deste ciclo: repetir todos os onze checks no complemento documental; o ledger e a descrição do PR #17 registrarão o head final, resultado do gate e execução específica de CI antes da entrega.

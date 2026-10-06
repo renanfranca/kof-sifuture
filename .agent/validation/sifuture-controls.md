@@ -306,3 +306,57 @@ O novo teste distingue o defeito anterior: calcula x pelo canvas, em vez de loca
 O gate final do executor foi também conferido em seu resumo local: 11/11 comandos, todos exit 0, coleta completa, no mesmo head. Os dois checks de infraestrutura não foram repetidos nesta revisão porque essa camada não mudou. Confirmado o [CI 37509126926](https://github.com/renanfranca/kof-sifuture/actions/runs/37509126926) no head exato: Resolve verified Kof, JVM e JS concluíram SUCCESS; Build/Publish Pages ficaram SKIPPED, conforme a condição de execução em main. Não há aceite do site publicado neste ciclo de revisão.
 
 Logs e resultados desta conferência estão em `.agent/tmp/controls-plan-review-20261006T185501Z/`, como suporte opcional; o conteúdo essencial consta neste registro. A exclusão local `/.agent/tmp/` foi conferida exatamente uma vez. Permanecem pendentes conforto no Android físico e os requisitos gerais de v1; os cenários automatizados solicitados estão verificados. Esta conferência altera somente os registros, sem modificar código, criar commit ou integrar o PR.
+
+
+### Especial vertical na altura inteira do jogo — 06/10/2026
+
+Ciclo integrado testado no SHA `38fa85903db8b0c648d778a6557ebb99b0c0ed2b`, branch `controls-alignment`, sobre base imutável `48ddaa948a58543c9764710fbdb5e606ca178042`. Os aceites anteriores descrevem seus próprios SHAs e foram conservados. Este ciclo substitui Especial 72 × 64 e conjunto 264 por Especial 56 × 220 e conjunto 248, conforme a especificação atualizada. Nenhuma API, callback, ID ou regra de movimento/disparo mudou.
+
+Ambiente: Linux, Kof do PATH `0.5.0-beta`, Chrome `139.0.7258.154`. O gate inicial executou os onze checks, todos com exit 0, coleta completa, sem bloqueios, em 235,55 s. JVM e JS tiveram 103 testes cada, zero falhas. Python executou oito testes, OK; os diagnósticos PARSE pertencem ao teste intencional de compilação inválida (`test_real_compile_failure_does_not_publish`).
+
+Comandos executados:
+
+```bash
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 tests/browser.py
+python3 tests/browser_controls.py
+python3 tests/browser_meteor.py
+python3 tests/browser_weapons.py
+python3 tests/browser_stage.py
+python3 tests/browser_subchief.py
+python3 tests/browser_boss.py
+python3 -m unittest discover -s tests -p 'test_kof_project.py'
+PATH="/home/renanfranca/projects/kof-sifuture/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh
+```
+
+| Critério | Resultado integrado |
+|---|---|
+| Layout 320/1200 | Canvas 176 × 220; Especial 56 × 220, gap 16, diferenças de topo/base 0 px; conjunto 248, cruz abaixo do canvas, sem sobreposição, corte ou scroll horizontal. |
+| Setas | ↑/↓ e canvas têm centro x 124 em 320 e 128 em 1200; diferença 0 px. Setas 56 × 56, cruz 168 × 168, centro/cantos vazios preservados. |
+| Texto/acessibilidade | `writing_mode` observado `vertical-rl`, texto inteiro “Especial”, ID `game-special`; localização por papel de botão e nome exato “Especial” continua válida. Retângulo do texto 15 × 49,140625, contido no botão e com diferença de centros 0 px nos dois eixos. Capturas integradas revisadas nas duas larguras. |
+| Área de toque | Seis partidas separadas, duas cargas iniciais: topo/meio/base em 320 e 1200 atingem `game-special`; `pointerdown`/`pointerup` preservam alvo e identidade; cada caso termina com uma carga. Manter/soltar não repete; sprite `e3.png` confirma o feixe ativo. |
+| Disponibilidade | Retângulo do botão, orientação, texto e retângulo do texto idênticos sem carga, disponível, disparado, pausado, com tecla mantida, após soltura e ao recuperar disponibilidade. Exceção de foco/opacity 0.5 durante tecla mantida preservada. |
+| Regressões | Toque no eixo do canvas (60,100)→(60,95)→(60,90), seguido de estabilidade na soltura. Diagonais, opostos, arrasto/cancelamento, solturas independentes, seis ordens de soltura de Especial simultâneo, teclado e pausa passaram. Ordem de Tab continua ↑, ←, →, ↓, Especial, Pausar após o overlay. |
+
+Medidas efetivas `(x,y,w,h)`: em 320, canvas `(36,57,176,220)` e Especial `(228,57,56,220)`; em 1200, canvas `(40,63,176,220)` e Especial `(232,63,56,220)`. Toques em 320: `(256,65)`, `(256,167)`, `(256,269)`; em 1200: `(260,71)`, `(260,173)`, `(260,275)`. Cada caso observou cargas `2 → 1`.
+
+Trechos efetivos de `python3 tests/browser_controls.py` e `python3 tests/browser_weapons.py` no gate inicial:
+
+```text
+PASS 320/1200: up/down aligned with 176x220 canvas; empty 168x168 cross; 56x220 vertical special aligned with canvas, 16px gap, 248px total, no horizontal scroll
+PASS 320/1200: special centered beside canvas, 56x220 vertical text, 16px gap; position retained through availability, firing, held key, release and pause
+PASS special touch at top/middle/bottom in 320/1200: actual game-special target, active beams, charges 2 -> 1, held/released without repeat
+```
+
+Auditoria das expectativas: dimensões, orientação, gap e pontos de toque vêm do plano aprovado, independentemente dos estilos de produção. Alinhamento das setas, foco, pausa, regras e duas cargas preparadas vêm dos contratos anteriores. A nova orientação afeta o texto, mantendo o retângulo inteiro como área de toque. A especificação marca explicitamente os requisitos 72 × 64/264 como históricos e superseded.
+
+Auditoria das assertions: tamanho antigo falhou antes da alteração de produção nos dois percursos. Geometria mede canvas e botão distintos; toques são calculados a partir do canvas e constantes do contrato, não do centro do botão. `elementFromPoint` confirma o alvo antes de eventos CDP reais; as provas conferem consumo exato, não repetição, soltura e pixels do feixe. A palavra é observada por Range do DOM, com contenção e centro testados; snapshots de apresentação conferem os estados sem exigir opacidade constante. A nave encobriu parte do feixe na primeira tentativa de assertion de pixels; a preparação existente “Move ship down” foi usada após concluir o toque para retirar essa sobreposição, sem reduzir a tolerância do teste. Os percursos completos de controles e armas passaram após essa correção de observação.
+
+Revisão estrutural com `refactor-design`: **No action**. Alteração de produção limitada a quatro literais `Style`; não acrescenta estado, política de domínio, acoplamento temporal ou interfaces. Os dois estilos são montados uma vez e selecionados pela disponibilidade existente; as provas observam comportamento pelo navegador. Extração adicional não oferece benefício proporcional. Implementação, validação e revisão compartilham este chat; não constituem revisão independente.
+
+Kof consultado: `training/idioms/ui.md:405` — “the compiler owns the parse (D-UI-STYLE/UI007)”; Learn Kof 35:176 descreve validação do `Style` literal e inteiros em px. `KofStyleParser.java:73` inclui `writing-mode` entre as propriedades; a compilação e a execução JS integradas demonstram sua aplicação neste checkout, além da prova isolada anterior.
+
+O complemento documental será comprometido antes do gate final, que repete os mesmos onze checks. Resultados do head final serão associados ao ledger e à descrição do [PR #17](https://github.com/renanfranca/kof-sifuture/pull/17). Links persistentes: [checks atuais do PR](https://github.com/renanfranca/kof-sifuture/pull/17/checks) e [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml). Resolve verified Kof e Kof tests (jvm/js) são selecionados no CI; Build/Publish Pages só executam em push na main. Sonar, Habit e mutation testing não configurados e excluídos, sem alegar pass dessas ferramentas.
+
+Evidências locais opcionais: `.agent/tmp/validation/20261006T193226-8moxx5m5/`, `.agent/tmp/special-vertical.*`, `.agent/tmp/sifuture-controls/`, `.agent/tmp/background-items-weapons/` e `.agent/tmp/special-key-release/`. Capturas `application-320.png`, `application-1200.png`, layouts e estados revisados; conteúdo essencial acima dispensa esses arquivos. Exclusão local `/.agent/tmp/` conferida exatamente uma vez. Conforto no celular físico permanece pendente até verificação real; este ciclo não encerra o aceite Android/v1.
