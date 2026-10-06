@@ -546,8 +546,8 @@ O ciclo conserva o mundo 176 × 220, passos de 30 ms, controles atuais e resulta
 
 - [x] Conferir especificação, implementação, testes e reparos anteriores.
 - [x] Confirmar recorte, invulnerabilidade e explosão de 28 passos.
-- [ ] Implementar e verificar os critérios abaixo.
-- [ ] Registrar evidências por critério e entregar para revisão.
+- [x] Implementar e verificar os critérios abaixo. Gate inicial completo no SHA `2a594f863aca62b824fea25fb83ffd37140bb292`: 11/11 comandos com exit 0, JVM/JS 103 testes cada e sete percursos Chrome.
+- [x] Registrar evidências por critério no aceite existente; revisão estrutural concluída sem refactor. Entrega e CI serão registrados no mesmo aceite e no ledger após os gates finais.
 
 ## Validation
 

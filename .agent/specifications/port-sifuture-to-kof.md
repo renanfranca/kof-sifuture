@@ -1,6 +1,6 @@
 # Port SiFuture to Kof
 
-- **Status:** Approved specification; browser gameplay, manual controls/pause, background, items, weapon evolution, historically accepted boss-free stage, sprite HUD, moving result and subchief combat slices implemented. Full v1 remains open.
+- **Status:** Approved specification; browser gameplay, manual controls/pause, background, items, weapon evolution, historically accepted boss-free stage, sprite HUD, moving result, subchief and final boss combat slices implemented. Full v1 remains open.
 - **Source:** The SiFuture port handoff and the approved proposal in the Codex task.
 - **Port repository:** `/home/renanfranca/projects/kof-sifuture`.
 - **Historical game:** `/home/renanfranca/projects/sifuture`.

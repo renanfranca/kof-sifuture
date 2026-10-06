@@ -723,3 +723,21 @@ Provas de desenvolvimento no delta sobre a base: `python3 scripts/kof_project.py
 Validação completa do commit, revisão estrutural e CI ainda serão registrados abaixo. Sonar, Habit e mutação ficam excluídos por ausência de configuração; não foram aprovados artificialmente. Touch do percurso é simulado no Chrome; Android real permanece pendente. Comparação visual com o vídeo histórico, música, menus completos e apresentação integral continuam pendentes. Este aceite não encerra a v1.
 
 Gate inicial no commit `980d0fdf91535e83e7702a28f8855bc5d66e9919`: 11 checks executados, dez aprovados e um bloqueado. JVM/JS: 103 testes cada; seis percursos Chrome, oito testes Python e contrato CI saíram com exit 0. `browser_stage.py` falhou em sua fixture Full journey, ainda limitada a 100 vidas/10000 passos antes do término do novo boss. A correção amplia o orçamento da fixture para 1000/30000 e conserva as assertions de 175→176/resultado; nenhuma regra foi alterada. Evidência local opcional: `.agent/tmp/validation/20261006T142614-82n7i_ha/summary.json`.
+
+Gate inicial corrigido no SHA `2a594f863aca62b824fea25fb83ffd37140bb292`: os onze comandos selecionados terminaram com exit 0 em 212,32 s; zero bloqueados, coleta completa. JVM/JS 103/103, sete percursos Chrome nas duas larguras, oito testes Python e contrato CI. Os diagnósticos de compilação inválida no teste Python são casos negativos esperados; o resultado é `Ran 8 tests` / `OK`. Evidência local opcional: `.agent/tmp/validation/20261006T143118-dp26zyle/summary.json`.
+
+Trecho de cada comando de regras (`--target jvm` e `--target js`):
+
+```text
+0 failed of 103 tests
+1 passed, 0 failed
+```
+
+Trecho de `python3 tests/browser_boss.py`:
+
+```text
+PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at 320px; 15272 steps, score 825
+PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at 1200px; 15272 steps, score 825
+```
+
+Revisão estrutural no SHA acima, compartilhando contexto: sem defeito ou risco material que justificasse refactor. O snapshot local de fase anterior explicita a ordem fatal/explosão; contadores pertencem ao ciclo das entidades e resetam; desenho não muta modelo; armamento e projéteis têm responsabilidades próprias. Repetir dimensões históricas fixas nas geometrias é oportunidade futura de manutenção, protegida pelos casos exatos de borda; não há troca de asset neste ciclo. Revisão local opcional: `.agent/tmp/sifuture-boss.structural-review.md`.
