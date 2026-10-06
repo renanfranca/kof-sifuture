@@ -747,3 +747,12 @@ A releitura adicional de `BosStage1AllShoots.java:218–224` antes da entrega en
 Outra conferência encontrou o primeiro quadro do especial encurtado pelo incremento no nascimento. O contrato exige seis quadros por três passos; `BosStage1Shoot2.java:141–156` desenha o quadro atual antes de incrementar seu contador. A prova pela entrada real de disparo passou a observar cada um dos 18 passos, com quadro esperado `passo / 3`, posição imóvel e movimento somente no passo seguinte ao quadro 6. Essa assertion falhou em JVM antes do reparo (`1 failed of 103 tests`). O avanço distingue especial já ativo do recém-lançado usando snapshot local, preservando avanço de tiros normais e prioridade de contatos. Chrome compara os sprites em todos os 18 passos. O gate `f3f2531` executou 11/11 comandos com exit 0, mas foi bloqueado pela lacuna de assertion; nenhum gate antigo é tratado como prova atual. Evidência local opcional: `.agent/tmp/boss-special-birth-red-jvm.log`.
 
 Checkpoint após o reparo de nascimento: JVM/JS `0 failed of 103 tests`, `1 passed, 0 failed`; `browser_boss.py` exit 0 em 320/1200. Replay seed 909 do modelo corrigido: 14234 passos, score 820 nas duas larguras (substitui os 15272/825 observados antes do reparo). A igualdade entre duas partidas completas permanece verificada; não se trata de valor histórico fixado arbitrariamente. Capturas regeneradas no mesmo diretório opcional.
+
+Gate inicial atual no SHA `052fc67b375bb6c9520bc6449397ccb5a24bb577`: onze comandos completos com exit 0 em 218,14 s, zero bloqueados. JVM/JS 103 testes cada; sete percursos Chrome, oito testes Python e contrato CI. Revisão complementar no mesmo SHA: o snapshot `existingSpecial` é local ao passo, passa explicitamente para o avanço e não retém estado redundante entre chamadas; conserva slots já ativos e a duração inicial. Sem refactor adicional. Evidência local opcional: `.agent/tmp/validation/20261006T144534-yx8t8boz/summary.json`.
+
+Trecho atual de `python3 tests/browser_boss.py`:
+
+```text
+PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at 320px; 14234 steps, score 820
+PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at 1200px; 14234 steps, score 820
+```
