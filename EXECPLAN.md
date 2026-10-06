@@ -602,5 +602,6 @@ Registrar SHA testado, comandos, resultado por critério, Chrome/versão e links
 ### Progress
 
 - [x] Regressão de toque no eixo demonstrada antes da correção; composição Kof implementada.
-- [ ] Gates completos sobre commits, revisão estrutural e entrega/CI.
+- [x] Gate inicial em `fced14f80d3590736b7a586a2a14871f8a495e1d`: 11/11 checks exit 0; JVM/JS 103/103; revisão estrutural sem refactor. Critérios, medidas, auditorias e comandos no aceite existente.
+Gate de entrega: repetir os onze checks sobre o complemento documental; resultados do head final e links de PR/CI serão associados ao ledger e ao PR.
 - [ ] Conforto no Android físico.

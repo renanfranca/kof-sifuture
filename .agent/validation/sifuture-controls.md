@@ -173,3 +173,98 @@ PASS Chrome 139.0.7258.154 live Pages at 320/1200: start, keyboard, four-arrow l
 Logs, script, inventário SHA-256, eventos de touch e capturas estão em `.agent/tmp/sifuture-controls-pages/`, apenas como suporte local opcional. Esta prova sobre o site publicado continua usando touch simulado; conforto e combate com subchefe no Android físico permanecem **PENDENTES**.
 
 A ancestralidade da branch foi conferida com `git merge-base --is-ancestor android-multitouch-controls main`. Depois da verificação do Pages, `git push origin --delete android-multitouch-controls` e `git branch -d android-multitouch-controls` removeram somente a branch integrada, remota e local. O checkout foi restabelecido em `main`; `HEAD` e `origin/main` coincidem no SHA do merge. Este registro mantém sua alteração pendente anterior e o complemento de publicação, sem novo commit.
+
+
+## Alinhamento com o canvas e Especial — 06/10/2026
+
+### Escopo, revisão testada e ambiente
+
+Plano aprovado nesta conversa, incorporado à especificação e ao EXECPLAN. Este ciclo substitui explicitamente a posição anterior de Especial ao lado do direcional; todas as seções anteriores permanecem evidências históricas das revisões que testaram.
+
+Código e provas testados no SHA **`fced14f80d3590736b7a586a2a14871f8a495e1d`**, branch `controls-alignment`, base fixa `42d76fe443edf0dbbb3857cea47824fce7ad59e4`, checkout separado. Worker `primary`, chat `01a11249-dd7e-7530-b57c-32308372ff83`, `gpt-6.1-sol`/`medium`, título `controls-alignment-primary`. Implementação, validação e revisão compartilham contexto; nenhuma revisão independente é alegada.
+
+Chrome **139.0.7258.154**, Linux, Python 3, Playwright/Pillow; viewports 320/1200 e touch via CDP. Kof instalado do PATH `0.5.0-beta`, Eclipse Adoptium `25.0.4.1`, JAR SHA-256 `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`. O pacote local não informa commit; não lhe atribuir o SHA `317d9f6b1c3e27032cc955a05f859f6c627d9338` do checkout Kof consultado. O `yq` preexistente em `/home/renanfranca/projects/kof-sifuture/.agent/tmp/tools` foi usado no contrato CI, sem instalação de ferramenta.
+
+### Expectativas e conceito conferidos
+
+A escolha aprovada centraliza ↑/↓ no canvas, não no conjunto inteiro. Especial usa somente a altura 220 do canvas, não os 396 pixels de canvas/cruz. Gap horizontal mede a borda do canvas, pois a cruz é oito pixels mais estreita. Velocidade continua cinco unidades por passo: de (60,100), Up mantido alcança (60,95), depois (60,90); soltar interrompe.
+
+A composição em [GameControls.kf](../../src/main/kof/sifuture/GameControls.kf:63) expressa essa regra:
+
+```kof
+var gameColumn = Column(listOf(surface, pad))
+gameColumn.setStyle(Style("width: 176; align-items: center; padding: 0"))
+var specialColumn = Column(listOf(special))
+specialColumn.setStyle(Style("width: 72; height: 220; justify-content: center; padding: 0"))
+var movementControls = Row(listOf(gameColumn, specialColumn))
+movementControls.setStyle(Style("width: 264; flex-wrap: nowrap; align-self: center; align-items: flex-start; gap: 16; padding: 0"))
+```
+
+`Column` empilha canvas/cruz; `Row` dispõe as duas colunas horizontalmente. A coluna de altura 220 define a referência vertical do Especial, e largura 264/nowrap impede quebra responsiva. [Learn Kof 35](/home/renanfranca/projects/kof/learn/35-kof-ui.md:162) apresenta `Column`/`Row`; [training UI](/home/renanfranca/projects/kof/training/idioms/ui.md:405) registra “the compiler owns the parse (D-UI-STYLE/UI007)”. O parser `KofStyleParser.java:65–88` admite os estilos usados, e o runtime `JsRuntimeUiWidgets.java:246,297` monta os filhos na ordem dada. Não há JavaScript/CSS de aplicação escrito à mão nem alteração de saída gerada. A execução real em KofJS/Chrome, não apenas a compilação, provou a geometria e entrada.
+
+### Resultado por critério no gate inicial
+
+| Critério | Procedimento/assertions | Observação em 320/1200 |
+|---|---|---|
+| Alinhamento | `cross_layout`, bounding boxes independentes, centros de ↑ e ↓ comparados ao canvas com tolerância ≤1 px | Diferença **0 px** nas duas larguras. Canvas 176×220; setas 56×56. |
+| Toque intuitivo | `touch_on_canvas_axis`, x calculado só do canvas, hit target ↑, CDP, pixels da nave e identidade de soltura | (60,100)→(60,95) em um passo; mantido→(60,90); após soltar, dois passos estáveis. |
+| Especial | `layout_and_indicator`, gap/centro contra canvas; bounding box completo desde indisponível até habilitado/disparo/pausa e na retenção/soltura/reativação de tecla | 72×64; gap **16 px**; diferença de centros verticais **0 px**; posição inalterada. |
+| Espaço | Dimensões/topologia da cruz, hit testing em centro/cantos, bounds de canvas/botões, largura total e scroll; capturas | Cruz 168×168 abaixo do canvas, vazios sem botão; conjunto 264; sem quebra, sobreposição, corte ou scroll horizontal. |
+| Regressões | Matrizes existentes de 16 diagonais e 8 opostos, soltura/cancelamento/arrasto, ordem entregue, seis permutações de três contatos, teclado/pausa | Todos passaram; uma carga por Especial. Foco por Tab manteve `overlay, ↑, ←, →, ↓, Especial, Pausar`. |
+| Conforto físico | Jogar no Chrome de Android real | **PENDENTE**; touch simulado não encerra esse aceite. |
+
+Medidas observadas pela fixture de controles:
+
+| Viewport | Canvas `(x,y,w,h)` | Centro x canvas/↑/↓ | Especial `(x,y,w,h)` | Centro y canvas/Especial |
+|---|---|---|---|---|
+| 320 | `(28,57,176,220)` | `116 / 116 / 116` | `(220,135,72,64)` | `167 / 167` |
+| 1200 | `(32,63,176,220)` | `120 / 120 / 120` | `(224,141,72,64)` | `173 / 173` |
+
+Inspecionadas capturas `cross-320/1200`, `application-320` e `layout-1200`: disposição correta na fixture e na aplicação real. Capturas/JSON opcionais em `.agent/tmp/sifuture-controls/` e `.agent/tmp/background-items-weapons/`; não são necessários para entender este resumo.
+
+### Qualidade das assertions e TDD
+
+Conferência da força das assertions realizada separadamente das expectativas acima, no mesmo contexto. O teste novo calcula o ponto de toque no canvas, não no centro do botão; verifica o alvo antes da entrada real, depois encontra a nave pelos pixels do sprite e verifica pointerId/alvo da soltura. As expectativas de posição são explícitas. Geometria lê elementos distintos e mantém dimensões exatas; todos os estados do Especial comparam o bounding box completo. Tab observa `document.activeElement`. As regressões existentes continuam sem enfraquecer seus resultados para acomodar o layout.
+
+RED anterior à implementação, `python3 tests/browser_controls.py`:
+
+```text
+AssertionError: (320, (160.0, 313.0), '↑←→↓')
+```
+
+O ponto atingia o contêiner da cruz, não ↑. Na composição intermediária, o teste também detectou Especial quebrado para baixo: canvas `(72,57,176,220)`, Especial `(124,547,72,64)`. `Row` fixo de 264 sem quebra corrigiu essa geometria. A fixture de armas rola ao clicar em preparação; o teste mostra o canvas antes de iniciar qualquer gesto para que Especial acima da cruz permaneça visível. Não rola durante contatos, não altera IDs ou regras.
+
+Excertos do gate no SHA testado:
+
+```text
+PASS touch on canvas axis at 320/1200: (60,100) -> (60,95), held -> (60,90), release stops
+PASS 320/1200: up/down aligned with 176x220 canvas; empty 168x168 cross; 72x64 special centered on canvas, 16px gap, 264px total, no horizontal scroll
+PASS 320/1200: special centered beside canvas, 72x64, 16px gap; position retained through availability, firing, held key, release and pause
+0 failed of 103 tests
+Ran 8 tests in 14.664s
+OK
+```
+
+### Comandos, gate e revisão
+
+Gate inicial: **11/11 selecionados/executados, exit 0, coleta completa, zero bloqueados**, 229,73 s, no SHA `fced14f80d3590736b7a586a2a14871f8a495e1d`.
+
+| Comando | Resultado |
+|---|---|
+| `python3 scripts/kof_project.py test --target jvm` | 103/103 |
+| `python3 scripts/kof_project.py test --target js` | 103/103 |
+| `python3 tests/browser_controls.py` | PASS |
+| `python3 tests/browser_weapons.py` | PASS |
+| `python3 tests/browser.py` | PASS |
+| `python3 tests/browser_meteor.py` | PASS |
+| `python3 tests/browser_stage.py` | PASS |
+| `python3 tests/browser_subchief.py` | PASS |
+| `python3 tests/browser_boss.py` | PASS |
+| `python3 -m unittest discover -s tests -p 'test_kof_project.py'` | 8/8 OK; diagnósticos da fonte inválida são previstos |
+| `PATH="/home/renanfranca/projects/kof-sifuture/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh` | PASS |
+
+Revisão estrutural: **No action**, sem refactor adicional. Novos contêineres são locais à montagem; nenhum campo, evento, ID ou API foi alterado. Ordem de foco e propagação ao root continuam provadas pelo navegador. A geometria pertence à apresentação; regras de movimento/combate e disponibilidade permanecem nas mesmas fontes. Nenhum seam de produção criado só para testes. Styles de disponibilidade conservam dimensões e posição.
+
+Este complemento documental será comprometido antes do gate final, que repete os mesmos onze comandos. Resultado/head final e links específicos de entrega serão associados ao ledger e ao PR após esse gate. O [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml) seleciona Resolve verified Kof e Kof tests (jvm/js); sua execução ainda não existe neste momento. Build/Publish Pages são condicionais a push em main e ficam SKIPPED no PR. Sonar, Habit e mutation testing não configurados e excluídos; não há score de mutação ou pass dessas ferramentas.
+
+Não há falha persistente dos critérios automatizados. Plano, ledger, inventário, configuração e logs permanecem em `.agent/tmp/`, excluído localmente exatamente uma vez. Conforto no Android físico permanece pendente, sem declarar aceite de APK/WebView ou v1 completa.
