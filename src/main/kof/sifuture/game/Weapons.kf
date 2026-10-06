@@ -128,6 +128,48 @@ class Weapons {
         return fatal
     }
 
+    hitBossLaser(Boss boss) {
+        if (!boss.vulnerable()) { return }
+        for (var shot in lasers.shots) {
+            if (shot.active && !shot.impact && shot.x + Rules.LASER_WIDTH >= boss.x &&
+                shot.x + Rules.LASER_WIDTH <= boss.x + 40 &&
+                ((shot.y >= boss.y && shot.y <= boss.y + 51) ||
+                 (shot.y + Rules.LASER_HEIGHT >= boss.y && shot.y + Rules.LASER_HEIGHT <= boss.y + 51))) {
+                shot.x = boss.x
+                shot.y = boss.y
+                shot.impact = true
+                boss.damage(1)
+                boss.evolveWeapons()
+                return
+            }
+        }
+    }
+
+    hitBossBlaster(Boss boss) {
+        if (!boss.vulnerable() || !blaster.active || blaster.lives <= 0) { return }
+        if (blaster.x + 68 >= boss.x && blaster.x + 68 <= boss.x + 40 &&
+            ((blaster.y >= boss.y && blaster.y <= boss.y + 51) ||
+             (blaster.y + 21 >= boss.y && blaster.y + 21 <= boss.y + 51))) {
+            var damage = blaster.lives
+            blaster.lives = 0
+            boss.damage(damage)
+            boss.evolveWeapons()
+        }
+    }
+
+    hitBossSpecial(Boss boss) {
+        var contact = false
+        for (var beam in beams) {
+            if (beam.beginsBossContact(boss)) { contact = true; break }
+        }
+        if (!contact) { return }
+        for (var beam in beams) {
+            if (beam.contactSteps > 0) { boss.damage(1) }
+        }
+        for (var beam in beams) { if (beam.contactSteps > 0) { beam.hit() } }
+        boss.evolveWeapons()
+    }
+
     canSpecial(): Bool {
         if (charges == 0) { return false }
         for (var beam in beams) { if (beam.active) { return false } }

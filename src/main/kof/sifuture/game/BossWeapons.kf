@@ -1,0 +1,59 @@
+package sifuture.game
+
+class BossWeapons {
+    Int level = 0
+    Int fireSteps = 0
+    Int attempts = 0
+    Bool specialReady = false
+    BossSpecial special = BossSpecial()
+    List<BossShot> shots = listOf(BossShot(), BossShot())
+
+    public constructor() { }
+
+    reset() {
+        level = 0
+        fireSteps = 0
+        attempts = 0
+        specialReady = false
+        special.reset()
+        for (var shot in shots) { shot.reset() }
+    }
+
+    evolve() {
+        level = level + 1
+        for (var shot in shots) { shot.animated = true }
+    }
+
+    attemptFire(Int x, Int y) {
+        if ((level == 2 && fireSteps > 10 && specialReady) ||
+            (level == 3 && specialReady) || (level == 4 && fireSteps > 4)) { special.fire(x, y) }
+        fireSteps = fireSteps + 1
+        var interval = 13
+        if (level == 1 || level == 2) { interval = 31 }
+        if (level >= 3) { interval = 24 }
+        if (fireSteps >= interval) {
+            fireSteps = 0
+            var capacity = 1
+            if (level > 0) { capacity = 2 }
+            for (var i = 0; i < capacity; i++) {
+                if (!shots[i].active) { shots[i].fire(x, y); break }
+            }
+            if (level > 0) {
+                attempts = attempts + 1
+                if (attempts == 4) { specialReady = true; attempts = 0 }
+            }
+        }
+    }
+
+    hitShip(Ship ship) {
+        for (var shot in shots) {
+            if (shot.touchesShip(ship)) { ship.explode(); shot.active = false; break }
+        }
+        if (special.touchesShip(ship)) { ship.explode(); special.reset() }
+    }
+
+    advance() {
+        for (var shot in shots) { shot.advance() }
+        special.advance()
+    }
+}

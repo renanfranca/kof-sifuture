@@ -1,0 +1,193 @@
+import sifuture.GameControls
+import sifuture.GameView
+import sifuture.game.*
+import kof.ui.*
+
+prepareBoss(Game game) {
+    game.start(943)
+    game.stageSteps = 1420
+    game.boss.phase = BossPhase.Normal
+    game.boss.x = 120
+    game.boss.y = 100
+    game.boss.endX = 135
+    game.boss.endY = 110
+    game.ship.phase = ShipPhase.Normal
+    game.ship.y = 200
+    for (var meteor in game.meteors) { meteor.x = 10000; meteor.y = -100 }
+    for (var item in game.items) { item.x = 10000 }
+}
+
+prepareLaser(Game game) {
+    game.weapons.lasers.shots[0].fire(0, 100)
+    game.weapons.lasers.shots[0].x = 86
+}
+
+refresh(Game game, GameView drawing, GameControls controls, Label status) {
+    drawing.render(game)
+    controls.update()
+    var b = game.boss
+    var phase = 0
+    if (b.phase == BossPhase.Normal) { phase = 1 }
+    if (b.phase == BossPhase.Fury) { phase = 2 }
+    if (b.phase == BossPhase.Frenzy) { phase = 3 }
+    if (b.phase == BossPhase.Explosion) { phase = 4 }
+    var result = 0
+    if (game.screen == Screen.Result) { result = 1 }
+    var shipExplosion = 0
+    if (game.ship.phase == ShipPhase.Explosion) { shipExplosion = 1 }
+    var shots = 0
+    for (var shot in b.weapons.shots) { if (shot.active) { shots = shots + 1 } }
+    var special = 0
+    if (b.weapons.special.active) { special = 1 }
+    var meteorHit = 0
+    if (game.meteors[0].collided && game.meteors[1].collided) { meteorHit = 1 }
+    var playerShots = 0
+    for (var shot in game.weapons.lasers.shots) { if (shot.active) { playerShots = playerShots + 1 } }
+    if (game.weapons.blaster.active) { playerShots = playerShots + 1 }
+    for (var beam in game.weapons.beams) { if (beam.active) { playerShots = playerShots + 1 } }
+    status.text = "position:" + game.stagePosition() + ":steps:" + game.steps + ":phase:" + phase + ":x:" + b.x + ":y:" + b.y + ":hp:" + b.lives + ":level:" + b.weapons.level + ":clock:" + b.weapons.fireSteps + ":lifetime:" + b.lifeTime + ":normalSteps:" + b.normalSteps + ":explosionSteps:" + b.explosionSteps + ":explosionFrame:" + b.explosionFrame() + ":explosionX:" + b.explosionX + ":explosionY:" + b.explosionY + ":sprite:" + b.spriteFrame() + ":shots:" + shots + ":shotX:" + b.weapons.shots[0].x + ":shotY:" + b.weapons.shots[0].y + ":shotFrame:" + b.weapons.shots[0].spriteFrame() + ":special:" + special + ":specialX:" + b.weapons.special.x + ":specialY:" + b.weapons.special.y + ":specialFrame:" + b.weapons.special.frame() + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":shipExplosion:" + shipExplosion + ":result:" + result + ":playerShots:" + playerShots + ":charges:" + game.weapons.charges + ":meteorHit:" + meteorHit + ":meteorX:" + game.meteors[0].x
+}
+
+main() {
+    var game = Game()
+    prepareBoss(game)
+    game.boss.phase = BossPhase.Inactive
+    game.stageSteps = 1409
+    var canvas = Canvas(176, 220)
+    var drawing = GameView(canvas)
+    var controls = GameControls(game, drawing, canvas)
+    var status = Label("")
+    status.setId("boss-status")
+    var repaint = Button("Repaint", () -> { drawing.render(game) })
+    var encounter = Button("Encounter", () -> { prepareBoss(game); refresh(game, drawing, controls, status) })
+    var fury = Button("Fury", () -> {
+        prepareBoss(game)
+        game.boss.lives = 45
+        game.boss.weapons.level = 2
+        prepareLaser(game)
+        refresh(game, drawing, controls, status)
+    })
+    var frenzy = Button("Frenzy", () -> {
+        prepareBoss(game)
+        game.boss.lives = 20
+        game.boss.weapons.level = 3
+        prepareLaser(game)
+        refresh(game, drawing, controls, status)
+    })
+    var shots = Button("Shots", () -> {
+        prepareBoss(game)
+        game.boss.x = 165
+        game.boss.endX = 165
+        game.boss.endY = 10000
+        game.boss.weapons.level = 1
+        game.boss.weapons.evolve()
+        game.boss.weapons.level = 1
+        game.boss.weapons.fireSteps = 30
+        refresh(game, drawing, controls, status)
+    })
+    var special = Button("Boss special", () -> {
+        prepareBoss(game)
+        game.boss.weapons.level = 2
+        game.boss.weapons.specialReady = true
+        game.boss.weapons.fireSteps = 11
+        refresh(game, drawing, controls, status)
+    })
+    var fatal = Button("Fatal laser", () -> {
+        prepareBoss(game)
+        game.boss.lives = 1
+        game.boss.lifeTime = 30
+        game.boss.normalSteps = 35
+        game.boss.weapons.fireSteps = 12
+        prepareLaser(game)
+        refresh(game, drawing, controls, status)
+    })
+    var body = Button("Body contact", () -> {
+        prepareBoss(game)
+        game.ship.x = 70
+        game.ship.y = 100
+        game.boss.lives = 80
+        refresh(game, drawing, controls, status)
+    })
+    var invulnerable = Button("Invulnerable contact", () -> {
+        prepareBoss(game)
+        game.ship.x = 70
+        game.ship.y = 100
+        game.ship.phase = ShipPhase.Restart
+        refresh(game, drawing, controls, status)
+    })
+    var playerSpecial = Button("Player special", () -> {
+        prepareBoss(game)
+        game.ship.y = 130
+        game.weapons.level = 3
+        game.weapons.charges = 2
+        refresh(game, drawing, controls, status)
+    })
+    var defeat = Button("Defeat", () -> {
+        prepareBoss(game)
+        game.boss.lives = 1
+        game.ship.lives = 1
+        game.ship.explode()
+        game.ship.explosionSteps = 29
+        game.score = 17
+        game.weapons.level = 3
+        game.weapons.fireSteps = 12
+        game.weapons.lasers.shots[0].fire(0, 100)
+        refresh(game, drawing, controls, status)
+    })
+    var complete = Button("Complete journey", () -> {
+        game.start(909)
+        game.ship.lives = 1000
+        for (var i = 0; i < 30000 && game.screen == Screen.Play; i++) { game.step() }
+        refresh(game, drawing, controls, status)
+    })
+    var newShot = Button("New shot", () -> {
+        prepareBoss(game)
+        game.ship.x = 40
+        game.ship.y = 100
+        game.boss.x = 91
+        game.boss.weapons.fireSteps = 12
+        refresh(game, drawing, controls, status)
+    })
+    var movingShot = Button("Moving shot", () -> {
+        prepareBoss(game)
+        game.ship.y = 100
+        game.boss.x = 400
+        game.boss.endX = 400
+        game.boss.endY = 10000
+        game.boss.weapons.shots[0].fire(61, 100)
+        refresh(game, drawing, controls, status)
+    })
+    var reusedShot = Button("Reused shot", () -> {
+        prepareBoss(game)
+        game.ship.x = 40
+        game.ship.y = 100
+        game.boss.x = 91
+        game.boss.weapons.level = 1
+        game.boss.weapons.fireSteps = 30
+        game.boss.weapons.shots[0].fire(50, 100)
+        game.boss.weapons.shots[1].fire(160, 100)
+        refresh(game, drawing, controls, status)
+    })
+    var specialBoundary = Button("Special boundary", () -> {
+        prepareBoss(game)
+        game.ship.y = 100
+        game.boss.weapons.special.fire(43, 62)
+        game.boss.weapons.special.preparationSteps = 17
+        refresh(game, drawing, controls, status)
+    })
+    var absorbed = Button("Absorbed meteors", () -> {
+        prepareBoss(game)
+        game.ship.phase = ShipPhase.Restart
+        game.meteors[0].x = 121
+        game.meteors[0].y = 100
+        game.meteors[1].x = 161
+        game.meteors[1].y = 150
+        refresh(game, drawing, controls, status)
+    })
+    var window = Window("SiFuture boss")
+    window.size(296, 1000)
+    window.bind(Column(listOf(controls.root, status, repaint, encounter, fury, frenzy, shots, special, fatal, body, invulnerable, playerSpecial, defeat, complete, newShot, movingShot, reusedShot, specialBoundary, absorbed)))
+    window.show()
+    refresh(game, drawing, controls, status)
+    time.interval(Rules.STEP_MS, () -> { game.step(); refresh(game, drawing, controls, status) })
+}

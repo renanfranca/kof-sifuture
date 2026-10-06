@@ -685,3 +685,39 @@ Evidências locais opcionais: `.agent/tmp/sifuture-defeat.{red-jvm,red-js}.log`,
 `.agent/tmp/sifuture-defeat.structural-review.md`, `.agent/tmp/sifuture-defeat.ci-first.log`,
 `.agent/tmp/sifuture-defeat.final-summary.json`, `.agent/tmp/stage-browser/` e
 `.agent/tmp/validation/`. Os resultados essenciais estão acima, sem depender desses arquivos.
+
+## Boss final — 06/10/2026
+
+Execução aprovada no chat `sifuture-boss-primary`, worker `primary`, modelo `gpt-6.1-sol` / `medium`; implementação, validação e revisão compartilham contexto. Base `8f8f0710c3d440888aec27226e1ee87d25c54d97`; branch `sifuture-boss`. Fontes históricas consultadas diretamente em `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, sem executar o JAR. Checkout Kof consultado: `317d9f6b1c3e27032cc955a05f859f6c627d9338`.
+
+Compilador executado: instalação Linux Kof `0.5.0-beta`, JVM embarcada Eclipse Adoptium `25.0.4.1`. `kof info --json` não informa commit do pacote; sua identidade verificável inclui SHA-256 do `lib/kof.jar`: `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`. Não atribuir o SHA do checkout consultado ao binário instalado. Chrome `139.0.7258.154`, Python 3, Playwright e Pillow; yq `4.54.1` preparado com autorização em `.agent/tmp/tools/yq` para `tests/ci-contract.sh`.
+
+### Auditoria das expectativas (separada das assertions)
+
+As expectativas foram relidas contra `StageCount.java`, `BosStage1.java`, `BosStage1AllShoots.java`, `BosStage1Shoot1/2.java`, `AirShip.java`, `ShootLaser.java`, `ShootBlaster.java`, `AirShipEspecialShoot.java` e `GameCanvas.java`. Dimensões foram obtidas dos PNGs: boss 40 × 51, tiro normal 40 × 25, preparação especial 15 × 26, especial final 48 × 26. Isso produz spawn/destino y 30–168, destino x 88–135, tiro normal x −10/y +0 e especial x −3/y +38.
+
+O quarto disparo contado é uma tentativa, inclusive com os slots ocupados; o gatilho histórico permanece ligado após ser disponibilizado. Níveis 2/3 exigem esse gatilho; nível 4 depende apenas do relógio anterior >4. O relógio anterior >10 do nível 2 não pode ser substituído pelo posterior ao incremento. Evolução de arma não reinicia esse relógio; os `if` históricos permitem atravessar vários níveis em um contato.
+
+Para explosão, o desenho histórico usa o quadro atual e depois desloca/incrementa. Separando atualização e desenho, a entrada mostra quadro 0 na posição depois do movimento fatal, e a atualização seguinte aplica seu deslocamento de −1 antes de mostrar quadro 1. Os deslocamentos acumulados nos passos 1–27 são `1,2,3,4,5,6,7,8,9,10,12,14,16,18,20,22,25,28,31,34,37,40,45,50,55,60,65`. Quadro 9 ocupa 25–27; o passo 28 encerra. Uma expectativa inicial de deslocamento aplicava −2 um passo cedo; foi corrigida pela releitura dos quadros históricos, sem alterar o modelo para satisfazê-la.
+
+Exceção aprovada: o contato corporal exige nave normal; durante reinício invulnerável não muda nenhuma entidade. Continua restrito ao boss normal, sem evolução de ataque. A geometria histórica impossível do terceiro termo corporal (`y >= boss.y` e `y + altura <= boss.y`) não acrescenta área de contato para altura positiva. Laser e blaster usam seu ponto direito; especial do jogador também usa o ponto central vertical do boss.
+
+### Auditoria das assertions e evidência por critério
+
+Os cenários novos foram acrescentados à suíte comportamental existente por `Game.start/step`, com colaboradores reais. Casos incluem limites exatos e vizinhos, resistência restante do blaster e sua exaustão, prioridade simultânea, reaplicação de feixes esgotados, posições anteriores ao movimento/disparo, contagem com slots ocupados e reset. Comparações dos slots ocupados exigem posições exatas, evitando que um relançamento indevido passasse apenas porque o tiro estava à esquerda. A fixture de partida completa passou de 100 vidas/10000 passos máximos para 1000/30000, permitindo concluir o combate mais longo; isso não altera as regras do jogo.
+
+| Critério | Procedimento / assertion | Observação inicial |
+|---|---|---|
+| Entrada e trilha | Caso `final encounter enters…`; `boss explosion…resumes 290 steps`; `browser_boss.py` marcador e sprite | Entrada 146→147; congelamento; 289 passos em 175/Play; 290º em 176/Result. |
+| Movimento e fases | Spawn/destino reproduzidos com seed; chegada por eixo; fronteiras 80/70/45/20 e vizinhos; corpo/fúria/frenesi/reinício; pixels bos/bos1/bos2 | Campos/destinos nos intervalos; movimento +1 por eixo; fúria 44, frenesi 19; corpo não evolui; reinício sem dano. |
+| Cadência e capacidade | Cinco intervalos, primeiro slot livre, quarta tentativa e posições exatas com ocupação; relógio anterior >10/>4; seis quadros de preparação | 13/31/31/24/24; um/dois slots; quarta tentativa disponibiliza gatilho; quadro 6 somente após 18 avanços de preparação. |
+| Colisões | Bordas inclusive/vizinha; corpo→laser→blaster→especial; centro do feixe; meteoro absorvido; tiro novo/existente/reutilizado; Chrome 5→6 | Um prêmio; blaster esgotado não aplica dano; absorção sem dano/pontos e sem segunda movimentação; tiros aguardam próximo passo. |
+| Prêmio | Quatro famílias × lifeTime 30/31/60/61/120/121, clock 35 e tiro devido; score e sprites HUD no Chrome | 1650/1100/1100/550/550/275; relógio/fire congelados no golpe fatal; movimento fatal preservado e prêmio único. |
+| Explosão | Todos os passos 0–28 e offsets explícitos; sprites Chrome em cada passo, pausa/redesenhos; remoção e retomada | Quadro zero na entrada; um/três passos; quadro 9 em 25–27; inatividade/limpeza em 28; capturas 320/1200 inspecionadas. |
+| Encerramento/reinício | Derrota com chefe ativo; projéteis existentes terminam, nenhum novo da nave; resultado com vidas; confirmações e mesma seed | Score/vidas estáveis em derrota; resultado com tiro visual e duas confirmações; replay seed 909: 15272 passos, score 825 em ambas as larguras. |
+
+Provas de desenvolvimento no delta sobre a base: `python3 scripts/kof_project.py test --target jvm`: `0 failed of 103 tests`, `1 passed, 0 failed`. Checkpoints JS intermediários também passaram. `python3 tests/browser_boss.py` terminou com exit 0 nas duas larguras, usando modelo, desenho e controles reais. As quatorze imagens copiadas foram comparadas byte a byte com o histórico; o inventário SHA-256 é evidência local opcional em `.agent/tmp/boss-browser/asset-sha256.txt`. `NOTICE` foi preservado. Capturas opcionais em `.agent/tmp/boss-browser/`: normal, fury, frenzy, shots, special, absorbed, explosion0, explosion-step1/25/27, defeat e result em 320/1200.
+
+### Gates e limites
+
+Validação completa do commit, revisão estrutural e CI ainda serão registrados abaixo. Sonar, Habit e mutação ficam excluídos por ausência de configuração; não foram aprovados artificialmente. Touch do percurso é simulado no Chrome; Android real permanece pendente. Comparação visual com o vídeo histórico, música, menus completos e apresentação integral continuam pendentes. Este aceite não encerra a v1.

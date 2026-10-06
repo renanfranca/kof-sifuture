@@ -1,0 +1,35 @@
+package sifuture.game
+
+class BossSpecial {
+    Int x = 0
+    Int y = 0
+    Int preparationSteps = 0
+    Bool active = false
+
+    public constructor() { }
+
+    reset() { active = false; preparationSteps = 0 }
+
+    fire(Int bossX, Int bossY) {
+        if (active) { return }
+        active = true
+        preparationSteps = 0
+        x = bossX - 3
+        y = bossY + 38
+    }
+
+    frame(): Int { return preparationSteps / 3 }
+
+    touchesShip(Ship ship): Bool {
+        return active && ship.phase == ShipPhase.Normal && frame() == 6 && x >= ship.x && x <= ship.x + Rules.SHIP_WIDTH &&
+            ((y >= ship.y && y <= ship.y + Rules.SHIP_HEIGHT) ||
+             (y + 26 >= ship.y && y + 26 <= ship.y + Rules.SHIP_HEIGHT))
+    }
+
+    advance() {
+        if (!active) { return }
+        if (preparationSteps < 18) { preparationSteps = preparationSteps + 1 }
+        else { x = x - 10 }
+        if (x < -48) { reset() }
+    }
+}
