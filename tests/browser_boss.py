@@ -99,13 +99,14 @@ def journey(page, width):
     button(page, "Boss special")
     advance(page)
     start_x = state(page)["specialX"]
-    for frame in range(6):
+    for step in range(18):
+        frame = step // 3
         s = state(page)
         assert s["special"] == 1 and s["specialFrame"] == frame and s["specialX"] == start_x
         sprite(page, f"esp{frame}.png", s["specialX"], s["specialY"],
                occluded=((s["x"], s["y"], s["x"] + 40, s["y"] + 51),))
         redraws(page)
-        advance(page, 3 if frame < 5 else 2)
+        advance(page)
     s = state(page)
     assert s["specialFrame"] == 6 and s["specialX"] == start_x
     sprite(page, "esp6.png", s["specialX"], s["specialY"],

@@ -2258,9 +2258,10 @@ test "boss special checks previous fire clock and prepares six frames before mov
     var shot = g.boss.weapons.special
     assert(shot.active && shot.x == 118 && shot.y == 139 && shot.frame() == 0)
     var x = shot.x
-    for (var i = 0; i < 16; i++) { g.step() }
-    assert(shot.frame() == 5 && shot.x == x)
-    g.step()
+    for (var i = 0; i < 18; i++) {
+        assert(shot.frame() == i / 3 && shot.x == x)
+        g.step()
+    }
     assert(shot.frame() == 6 && shot.x == x)
     g.step()
     assert(shot.x == x - 10)

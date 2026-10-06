@@ -53,8 +53,8 @@ class BossWeapons {
         if (special.touchesShip(ship)) { ship.explode(); special.reset() }
     }
 
-    advance() {
+    advance(Bool existingSpecial) {
         for (var shot in shots) { shot.advance() }
-        special.advance()
+        if (existingSpecial) { special.advance() }
     }
 }

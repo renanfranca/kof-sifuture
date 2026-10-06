@@ -110,6 +110,7 @@ class Boss {
 
     advance(Bool existingExplosion) {
         if (phase == BossPhase.Inactive) { return }
+        var existingSpecial = weapons.special.active
         if (x < endX) { x = x + 1 }
         else if (x > endX) { x = x - 1 }
         if (y < endY) { y = y + 1 }
@@ -123,6 +124,6 @@ class Boss {
             if (normalSteps == 36) { lifeTime = lifeTime + 1; normalSteps = 0 }
         }
         if (phase == BossPhase.Explosion && !existingExplosion) { explosionX = x; explosionY = y }
-        weapons.advance()
+        weapons.advance(existingSpecial)
     }
 }
