@@ -60,6 +60,18 @@ class SpecialBeam {
         return false
     }
 
+    beginsBossContact(Boss boss): Bool {
+        if (!active || contactSteps > 0 || !boss.vulnerable()) { return false }
+        if (boss.x >= x && boss.x <= x + 319 &&
+            ((boss.y >= y && boss.y <= y + 32) ||
+             (boss.y + 51 >= y && boss.y + 51 <= y + 32) ||
+             (boss.y + 25 >= y && boss.y + 25 <= y + 32))) {
+            contactSteps = 6
+            return true
+        }
+        return false
+    }
+
     hit() {
         lives = lives - 1
         hitSteps = 3

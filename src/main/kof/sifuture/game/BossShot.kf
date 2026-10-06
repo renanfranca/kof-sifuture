@@ -1,0 +1,39 @@
+package sifuture.game
+
+class BossShot {
+    Int x = 0
+    Int y = 0
+    Bool active = false
+    Bool animated = false
+    Int animationSteps = 0
+
+    public constructor() { }
+
+    reset() { active = false; animated = false; animationSteps = 0 }
+
+    spriteFrame(): Int {
+        if (!animated || animationSteps < 3) { return 0 }
+        if (animationSteps < 5) { return 1 }
+        return 2
+    }
+
+    fire(Int bossX, Int bossY) {
+        animationSteps = 0
+        active = true
+        x = bossX - 10
+        y = bossY
+    }
+
+    touchesShip(Ship ship): Bool {
+        return active && ship.phase == ShipPhase.Normal && x >= ship.x && x <= ship.x + Rules.SHIP_WIDTH &&
+            ((y >= ship.y && y <= ship.y + Rules.SHIP_HEIGHT) ||
+             (y + 25 >= ship.y && y + 25 <= ship.y + Rules.SHIP_HEIGHT))
+    }
+
+    advance() {
+        if (!active) { return }
+        if (animated && animationSteps < 5) { animationSteps = animationSteps + 1 }
+        x = x - 4
+        if (x < -40) { active = false; animationSteps = 0 }
+    }
+}

@@ -458,3 +458,117 @@ Na execução:
 - [x] Gate final em `68f760b145c1153f55af0a13b967e3b67410101d`: 10/10 checks, 181,74 s, sem bloqueios. [PR #13](https://github.com/renanfranca/kof-sifuture/pull/13) aberto; [CI 37357041630](https://github.com/renanfranca/kof-sifuture/actions/runs/37357041630) no mesmo SHA com Resolve/JVM/JS SUCCESS e 87/87 em cada alvo. Pages SKIPPED. Nenhum critério do ajuste sem prova.
 
 Este complemento incorpora links disponíveis e repete os gates da skill antes da entrega; o código permanece em `ee6d720`. Resultados do head documental seguinte serão associados no ledger e no PR. Sem merge ou limpeza do trabalho não mesclado.
+
+
+## Próximo ciclo: boss final de SiFuture
+
+## Purpose and success
+
+Implementar o combate completo com o boss final no navegador: entrada na fase, evolução dos ataques, dano, pontuação, explosão e chegada ao resultado.
+
+Decisões desta conversa:
+
+- Preservar a explosão histórica de **28 passos**: primeiro quadro por um passo, demais quadros por três.
+- Durante o reinício invulnerável da nave, contato corporal não altera nenhuma das entidades; registrar essa exceção ao original.
+- Música permanece para outro ciclo.
+
+## Context and limits
+
+Base conferida: `8f8f0710c3d440888aec27226e1ee87d25c54d97`, checkout limpo. A implementação existente passou **87 testes em JVM, 87 em JS e os seis percursos Chrome**. Ambos os comandos de regras terminaram com:
+
+```text
+0 failed of 87 tests
+1 passed, 0 failed
+```
+
+Comandos observados: `python3 scripts/kof_project.py test --target jvm` e `--target js`, usando Kof instalado `0.5.0-beta`. Isso valida a base atual; os critérios do boss ainda precisam de implementação e provas.
+
+A fonte histórica consultada está em `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`. Fonte e bytecode foram inspecionados estaticamente, sem executar o JAR.
+
+A entrada histórica usa a largura da miniatura:
+
+```java
+this.BOS_TIME = MAX_RIGHT - this.smallAirship3.getWidth();
+```
+
+Fonte: [StageCount.java, linha 91](/home/renanfranca/projects/sifuture/src/StageCount.java:91). Com largura lógica 176 e miniatura de 30 pixels, o encontro começa em **146**, avança o marcador para **147** e suspende a trilha.
+
+A cadência curta do primeiro quadro vem desta atribuição:
+
+```java
+this.timeDraw = (byte)(this.timing - 1);
+```
+
+Fonte: [BosStage1.java, linha 316](/home/renanfranca/projects/sifuture/src/BosStage1.java:316). O incremento da mesma chamada encerra esse quadro após uma atualização.
+
+O ciclo conserva o mundo 176 × 220, passos de 30 ms, controles atuais e resultado existente. Android, música, menus completos e reformulação de apresentação permanecem pendentes.
+
+## Milestones
+
+1. **Registrar o novo contrato.** Acrescentar este ciclo ao `EXECPLAN.md` e à especificação existente, preservando os registros anteriores. Atualizar o README e complementar o aceite de fase/resultado.
+
+2. **Implementar entidade e progressão.** Adicionar `Boss`, com estados inativo, normal, fúria, frenesi e explosão, e classes próprias para armamento e os dois tipos de projétil. Usar campos mutáveis e manter `Game.start()`, `Game.step()` e `Game.stagePosition()` como entradas estáveis. O treinamento Kof orienta:
+
+   > “for **mutable state** use explicit fields + `constructor(...)`.”
+
+   Fonte: [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md:35). Isso permite que cada entidade seja responsável pelos seus contadores e transições, seguindo a organização já usada pelo subchefe.
+
+   No reset, usar resistência 100, posição inicial x 220–419/y 30–168 e destinos x 88–135/y 30–168; avançar uma unidade por eixo. Ativar uma vez em 146, marcar 147 e congelar a trilha durante combate e explosão. Depois, retomar até 176.
+
+3. **Implementar ataques e contatos históricos.**
+   - Evoluir o armamento abaixo de 80, 70, 45 e 20 de resistência, após contatos não fatais de armas. Preservar a ausência dessa evolução no contato corporal e o contato corporal restrito ao boss normal.
+   - Usar intervalos de tiro normal de 13/31/31/24/24 passos nos cinco níveis; capacidade inicial de um tiro e posterior de dois. Preservar o relógio entre mudanças de nível e evoluir também os tiros normais já lançados.
+   - Liberar o gatilho do especial a cada **quatro tentativas**, contando tentativas com slots ocupados. Preservar as condições históricas de cada nível: relógio anterior ao incremento `>10`, gatilho sem esse limite e, no último nível, relógio `>4`.
+   - Tiros normais avançam quatro unidades à esquerda. O especial apresenta seis quadros de preparação, três passos cada; somente o quadro 6 permite movimento de dez unidades e colisão.
+   - Preservar geometria e prioridade: corpo → laser → blaster → especial do jogador → contatos do boss com meteoros → tiros inimigos. Contatos usam posições do boss e dos seus tiros anteriores ao movimento/disparo; tiros novos ou reutilizados só podem colidir no passo seguinte.
+   - Meteoros absorvidos pelo boss não retiram resistência nem rendem pontos. Meteoros avançam uma vez por passo; excluir os absorvidos dos contatos posteriores do jogador. Impedir relançamento dos verticais enquanto qualquer chefe estiver ativo, mantendo os já lançados e os itens recorrentes.
+   - Reutilizar o protocolo verificado dos feixes do jogador, acrescentando a geometria do boss, inclusive seu ponto vertical central.
+
+   O contador real do especial confirma quatro tentativas:
+
+   ```java
+   this.shoot1Count++;
+   if (this.shoot1Count == SHOOT1_QUANTITY * 2) {
+       this.allShootOn = true;
+       this.shoot1Count = 0;
+   }
+   ```
+
+   Fonte: [BosStage1AllShoots.java, linha 218](/home/renanfranca/projects/sifuture/src/BosStage1AllShoots.java:218); `SHOOT1_QUANTITY` vale 2.
+
+4. **Integrar desenho, explosão e encerramento.** Copiar sem transformação `bos0` **não existe como nome de asset**: usar os arquivos históricos `bos.png`, `bos1.png`, `bos2.png`, `shoot0`–`shoot3.png` e `esp0`–`esp6.png`. Preservar NOTICE e reutilizar as dez explosões existentes.
+
+   Fúria usa `bos1.png`; frenesi alterna os três sprites a cada quatro passos. Preservar o movimento histórico do boss enquanto ativo, inclusive no passo fatal; capturar a posição da explosão após esse movimento. O golpe fatal interrompe disparos e incremento de `lifeTime`, concede o prêmio uma única vez e apresenta o quadro zero.
+
+   A explosão mostra quadro 0 na entrada, quadro 1 após um passo, quadro 9 nos passos 25–27 e fica inativa no passo 28. Preservar seu deslocamento histórico e limpar os projéteis do boss ao terminar. Desenho apenas consulta estado. Pausa congela todos os relógios; derrota conserva animação da cena com contatos e recompensas encerrados.
+
+## Progress
+
+- [x] Conferir especificação, implementação, testes e reparos anteriores.
+- [x] Confirmar recorte, invulnerabilidade e explosão de 28 passos.
+- [x] Implementar e verificar os critérios abaixo. Gate inicial completo no SHA `2a594f863aca62b824fea25fb83ffd37140bb292`: 11/11 comandos com exit 0, JVM/JS 103 testes cada e sete percursos Chrome.
+- [x] Registrar evidências por critério no aceite existente; revisão estrutural concluída sem refactor. Entrega e CI serão registrados no mesmo aceite e no ledger após os gates finais.
+
+## Validation
+
+Acrescentar casos à suíte comportamental existente e um percurso `tests/browser_boss.py`, com fixture Kof e modelo, desenho e controles reais. Reutilizar as provas existentes de controles, armas e resultado.
+
+| Critério e origem | Cenário e resultado esperado | Prova planejada |
+|---|---|---|
+| Entrada e trilha — `StageCount.java:180–186,276–285` | Cruzar 146 ativa uma vez e marca 147. Combate e explosão mantêm 147. Após o término, 289 passos ainda não concluem; o 290º chega a 176 e entra no resultado. | JVM/JS por `Game.step()`; navegador com marcador e sprites. |
+| Movimento e fases — `BosStage1.java:128–143,187–225,391–409` | Mesma seed reproduz posições/destinos. Armas cruzam 80→79, 70→69, 45→44 e 20→19; valores exatos dos limites ainda não evoluem. Corpo não evolui o ataque; reinício não causa dano corporal. | Casos de fronteira e movimento em ambos os alvos; sprites normal/fúria/frenesi no Chrome. |
+| Cadência e capacidade — `BosStage1AllShoots.java:78–139,200–225` | Conferir os cinco intervalos, primeiro slot livre e quarta tentativa. Com slots ocupados, o contador avança sem substituir tiros existentes. | Assertions de lançamento, contadores e posições; confirmação visual dos dois tipos. |
+| Colisões — `GameCanvas.java:158–200` e métodos históricos de cada projétil | Conferir bordas inclusivas, ponto central do especial, prioridades simultâneas, blaster esgotado, tiro novo/existente/reutilizado e transição do especial 5→6. | JVM/JS com resultado exato; Chrome com quadros antes/depois. |
+| Prêmio — `BosStage1.java:170–180,376–384` | Golpes fatais em `lifeTime` 30/31/60/61/120/121 dão 1650/1100/1100/550/550/275 pontos, inclusive quando o relógio está prestes a incrementar. Prêmio não se repete. | Quatro famílias de dano; verificar score, relógio, disparos e HUD. |
+| Explosão — `BosStage1.java:311–369` | Primeiro quadro dura um passo; demais, três. Conferir posição inicial, deslocamentos, quadro 9, remoção no passo 28 e retomada da trilha. | JVM/JS; pixels no Chrome em 320 e 1200 px, incluindo pausa e redesenhos. |
+| Encerramento e reinício — contratos atuais da especificação | Derrota durante o combate preserva score/vidas e encerra novos disparos da nave; projéteis existentes terminam. Nova partida limpa boss, ataques, efeitos e relógios. Resultado com vidas preserva tiro visual e duas confirmações. | Ampliar jornadas existentes e repetir partida completa com a mesma seed. |
+
+Executar regras JVM/JS, os seis percursos atuais, o novo percurso do boss, infraestrutura Python e contrato CI. Todos devem terminar com exit 0. Inspecionar as capturas do novo combate em Chrome nas duas larguras e comparar os assets copiados byte a byte.
+
+Antes da entrega, conferir **a correção das expectativas contra as fontes separadamente da qualidade das assertions**. Registrar, para cada critério, comando/procedimento, resultado observado, assertion ou captura, SHA testado, identidade do Kof, navegador e links de CI. Manter resumo versionado no aceite existente e evidências geradas em `.agent/tmp/`.
+
+Registrar falhas e critérios não verificados explicitamente. A comparação visual com o vídeo histórico permanece pendente; o aceite deste ciclo não encerra a v1 completa.
+
+Execução confirmada em `sifuture-boss-primary`, worker `primary`, `gpt-6.1-sol` / `medium`; papéis, validação e revisão compartilham contexto. Branch `sifuture-boss`; base imutável `8f8f0710c3d440888aec27226e1ee87d25c54d97`. Sonar, Habit e mutação excluídos por ausência de configuração. Inventário local inclui regras JVM/JS, sete jornadas Chrome, infraestrutura Python e contrato CI. O `yq` v4.54.1 foi preparado em `.agent/tmp/tools/`, após confirmação do usuário.
+
+Releitura complementar antes da entrega: quinta tentativa desliga o gatilho especial histórico. Assertion vermelha em JVM e correção do ramo `else`; gates iniciais/finais repetidos no novo SHA antes do PR.

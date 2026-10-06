@@ -9,6 +9,9 @@ class GameView {
     Image menu
     Image ship
     Image subchief
+    List<Image> bossFrames
+    List<Image> bossShots
+    List<Image> bossSpecialFrames
     Image subchiefShot
     Image shipRight
     List<Image> meteors
@@ -42,6 +45,9 @@ class GameView {
         ship = Image("assets/Middle.png")
         subchief = Image("assets/subchief.png")
         subchiefShot = Image("assets/laser0.png")
+        bossFrames = listOf(Image("assets/bos.png"), Image("assets/bos1.png"), Image("assets/bos2.png"))
+        bossShots = listOf(Image("assets/shoot0.png"), Image("assets/shoot1.png"), Image("assets/shoot2.png"), Image("assets/shoot3.png"))
+        bossSpecialFrames = listOf(Image("assets/esp0.png"), Image("assets/esp1.png"), Image("assets/esp2.png"), Image("assets/esp3.png"), Image("assets/esp4.png"), Image("assets/esp5.png"), Image("assets/esp6.png"))
         shipRight = Image("assets/Middle2.png")
         meteors = listOf(Image("assets/meteor000.png"), Image("assets/meteor001.png"), Image("assets/meteor002.png"), Image("assets/meteor003.png"), Image("assets/meteor004.png"), Image("assets/meteor005.png"))
         meteorHits = listOf(Image("assets/meteor0C0.png"), Image("assets/meteor0C1.png"), Image("assets/meteor0C2.png"))
@@ -90,6 +96,14 @@ class GameView {
         for (var shot in game.subchief.shots) {
             if (shot.active) { canvas.drawImage(subchiefShot, shot.x, shot.y) }
         }
+        for (var shot in game.boss.weapons.shots) {
+            if (shot.active) { canvas.drawImage(bossShots[shot.spriteFrame()], shot.x, shot.y) }
+        }
+        var bossSpecial = game.boss.weapons.special
+        if (bossSpecial.active) { canvas.drawImage(bossSpecialFrames[bossSpecial.frame()], bossSpecial.x, bossSpecial.y) }
+        var boss = game.boss
+        if (boss.vulnerable()) { canvas.drawImage(bossFrames[boss.spriteFrame()], boss.x, boss.y) }
+        if (boss.phase == BossPhase.Explosion) { canvas.drawImage(explosions[boss.explosionFrame()], boss.explosionX, boss.explosionY) }
         var chief = game.subchief
         if (chief.phase == SubchiefPhase.Normal) { canvas.drawImage(subchief, chief.x, chief.y) }
         if (chief.phase == SubchiefPhase.Explosion) {
