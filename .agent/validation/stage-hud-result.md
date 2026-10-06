@@ -756,3 +756,7 @@ Trecho atual de `python3 tests/browser_boss.py`:
 PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at 320px; 14234 steps, score 820
 PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at 1200px; 14234 steps, score 820
 ```
+
+O [PR #14](https://github.com/renanfranca/kof-sifuture/pull/14) foi aberto pronto para revisão no SHA `36695c7cf8f414a492a45101569af068ece09c98`. Gate final local nesse SHA: onze comandos com exit 0, coleta completa e zero bloqueados em 222,29 s; JVM/JS 103 testes cada, sete percursos Chrome em 320/1200, oito testes Python e contrato CI. Evidência local opcional: `.agent/tmp/validation/20261006T145009-2g4zknjx/summary.json`.
+
+O [workflow CI](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml) não havia criado execução para o primeiro head quando este complemento foi preparado. Checks Resolve verified Kof / Kof tests (jvm/js) permanecem pendentes, sem atribuir aprovação local ao GitHub. O PR foi confirmado OPEN, não draft e mergeável; workflow active e Actions habilitado. O complemento documental repete os gates antes da atualização do PR. Links de execução serão incorporados quando disponíveis.
