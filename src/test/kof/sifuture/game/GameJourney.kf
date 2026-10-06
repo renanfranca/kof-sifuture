@@ -2200,6 +2200,13 @@ test "boss normal fire uses five intervals and first free slot with four occupie
         assert(g.boss.weapons.shots[0].x == occupiedPositions[level] && g.boss.weapons.shots[1].x == occupiedPositions[level])
         if (level > 0) { assert(g.boss.weapons.specialReady && g.boss.weapons.attempts == 0) }
         else { assert(!g.boss.weapons.specialReady && g.boss.weapons.attempts == 0) }
+        for (var shot in g.boss.weapons.shots) { shot.active = true; shot.x = 10000; shot.y = -100 }
+        for (var i = 0; i < intervals[level] - 1; i++) { g.step() }
+        if (level > 0) { assert(g.boss.weapons.specialReady) }
+        g.step()
+        assert(!g.boss.weapons.specialReady)
+        if (level > 0) { assert(g.boss.weapons.attempts == 1) }
+        assert(g.boss.weapons.shots[0].x == occupiedPositions[level] && g.boss.weapons.shots[1].x == occupiedPositions[level])
     }
 }
 

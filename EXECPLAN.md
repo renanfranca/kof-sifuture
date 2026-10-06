@@ -570,3 +570,5 @@ Antes da entrega, conferir **a correção das expectativas contra as fontes sepa
 Registrar falhas e critérios não verificados explicitamente. A comparação visual com o vídeo histórico permanece pendente; o aceite deste ciclo não encerra a v1 completa.
 
 Execução confirmada em `sifuture-boss-primary`, worker `primary`, `gpt-6.1-sol` / `medium`; papéis, validação e revisão compartilham contexto. Branch `sifuture-boss`; base imutável `8f8f0710c3d440888aec27226e1ee87d25c54d97`. Sonar, Habit e mutação excluídos por ausência de configuração. Inventário local inclui regras JVM/JS, sete jornadas Chrome, infraestrutura Python e contrato CI. O `yq` v4.54.1 foi preparado em `.agent/tmp/tools/`, após confirmação do usuário.
+
+Releitura complementar antes da entrega: quinta tentativa desliga o gatilho especial histórico. Assertion vermelha em JVM e correção do ramo `else`; gates iniciais/finais repetidos no novo SHA antes do PR.

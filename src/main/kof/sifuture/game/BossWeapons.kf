@@ -41,6 +41,7 @@ class BossWeapons {
             if (level > 0) {
                 attempts = attempts + 1
                 if (attempts == 4) { specialReady = true; attempts = 0 }
+                else { specialReady = false }
             }
         }
     }
