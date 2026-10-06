@@ -779,3 +779,73 @@ Trecho dos dois jobs `Run complete Kof suite`:
 O manifest do resolve verifica Kof `0.5.0-beta`, tag `kof-0.5.0-beta-linux-x86_64`, commit de origem `317d9f6b1c3e27032cc955a05f859f6c627d9338`, arquivo `kof-0.5.0-beta-linux-x86_64.tar.gz` SHA-256 `f93f02eb62af584ea49ffb44efdbf54f970bdb9570f16fdc48ccc28242798ca9`. Ambos os jobs instalaram a mesma distribuição e usaram a JVM embarcada `25.0.4.1`. A identidade CI é separada do hash do JAR instalado localmente. Build/Publish Pages foram SKIPPED por ser PR; não houve publicação.
 
 Este complemento consolida links disponíveis antes do último commit e repete os gates locais/CI no novo head antes da entrega. Resultados atuais ficarão no ledger e na descrição do PR; os links acima conservam a evidência exata do SHA indicado. Não há critério local do boss sem prova; vídeo histórico e Android real permanecem pendentes. Logs CI opcionais em `.agent/tmp/boss-ci-first.log`.
+
+### Conferência do planejador após a implementação — 06/10/2026
+
+Comparação solicitada pelo usuário no head `b1989d082952aad16eef9e336a649630d1dbd482`, branch `sifuture-boss`, inicialmente limpa. O contrato comparado é o ciclo final do [EXECPLAN](../../EXECPLAN.md#próximo-ciclo-boss-final-de-sifuture) e a [especificação aprovada](../specifications/port-sifuture-to-kof.md#approved-browser-cycle-final-boss-06-october-2026). Não foi identificado desvio funcional do recorte aprovado. Esta conferência não altera produção ou testes versionados; acrescenta somente registros, sem commit ou publicação.
+
+A correção das expectativas foi conferida separadamente da suficiência das assertions, como exige o plano preparado com `plan-behavioral-acceptance`. Fonte histórica permanece em `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, checkout limpo: `StageCount`, `BosStage1`, `BosStage1AllShoots`, seus dois projéteis, `AirShip`, `ShootLaser`, `ShootBlaster`, `AirShipEspecialShoot`, `AirShipAllShoots` e `GameCanvas`. Foram relidos os ramos de entrada, movimento, evolução, geometria, prioridade, preparação e explosão; o JAR histórico não foi executado. A exceção de contato corporal durante reinício invulnerável permanece conforme a decisão aprovada.
+
+| Critério do plano | Evidência inspecionada nesta conferência | Resultado observado |
+|---|---|---|
+| Entrada e trilha | `StageCount.java:180,276`; `GameJourney.kf:2123,2317`; `browser_boss.py:53,180` | 146→147 uma vez; trilha suspensa; 289 passos após explosão ainda em Play/175, 290º em Result/176. |
+| Estado, movimento e evolução | `BosStage1.java:128,187,391`; `GameJourney.kf:2140,2213,2273,2556` | Resistência 100; spawn/destinos nos intervalos; movimento por eixo e no golpe fatal; limiares estritos 80/70/45/20; corpo não evolui; reinício não causa dano. |
+| Cadência e capacidade | `BosStage1AllShoots.java:78,200`; `GameJourney.kf:2181,2238`; `browser_boss.py:82,99` | 13/31/31/24/24; um/dois slots; relógio preservado; quarta tentativa liga gatilho, quinta desliga inclusive com slots ocupados; seis quadros de três passos, movimento somente no quadro 6. |
+| Colisões | `GameCanvas.java:158`; geometrias históricas dos projéteis; `GameJourney.kf:2348,2396,2426,2489,2511` | Prioridade preservada; tiros novos/reutilizados aguardam próximo passo; centro vertical do especial; reaplicação e limpeza em seis passos; absorção sem dano/pontos e sem segundo avanço; verticais existentes e itens continuam. |
+| Prêmio e golpe fatal | `BosStage1.java:170,376`; `GameJourney.kf:2291`; `browser_boss.py:157` | Quatro famílias de dano × seis fronteiras: 1650/1100/1100/550/550/275; prêmio único; relógios/disparo não avançam; âncora após movimento fatal. |
+| Explosão e desenho | `BosStage1.java:311`; `GameJourney.kf:2317,2464`; `browser_boss.py:168`; `GameView.kf:99` | Quadro 0 por um passo, demais por três; quadro 9 em 25–27; limpeza em 28; offsets históricos; fúria/frenesi corretos; pausa e três redesenhos mantêm estado e pixels. |
+| Resultado e reinício | `GameJourney.kf:2527`; `browser_boss.py:180,196,206`; jornadas anteriores | Derrota anima com score/vidas/contatos encerrados; projéteis da nave terminam; resultado com vidas mantém tiro visual e duas confirmações; nova partida limpa estado; dois replays seed 909 iguais: 14234 passos, score 820. |
+
+O mecanismo da explosão está em [Boss.kf:93](../../src/main/kof/sifuture/game/Boss.kf#L93):
+
+```kof
+    explosionFrame(): Int {
+        if (explosionSteps == 0) { return 0 }
+        return 1 + (explosionSteps - 1) / 3
+    }
+```
+
+O quadro zero existe somente no contador zero. Os contadores 1–3 mostram quadro 1, e 25–27 mostram quadro 9; `advanceExplosion` chama `reset()` em 28. Com passos de 30 ms, o efeito dura `30 + 9 × 90 = 840 ms`. A assertion de cada passo confere também os 27 deslocamentos acumulados explícitos, e o navegador compara pixels dos sprites, evitando depender somente da fórmula de produção.
+
+Reexecutados os onze comandos do plano no head acima:
+
+| Comando | Observação |
+|---|---|
+| `python3 scripts/kof_project.py test --target jvm` | exit 0; 103/103 |
+| `python3 scripts/kof_project.py test --target js` | exit 0; 103/103 |
+| `python3 tests/browser.py` | exit 0; menu, confirmações, pausa e resultado |
+| `python3 tests/browser_controls.py` | exit 0; teclado, pointer, touch, diagonais, opostos e cancelamento |
+| `python3 tests/browser_meteor.py` | exit 0; movimento, impacto e respawn |
+| `python3 tests/browser_weapons.py` | exit 0; itens, armas, especial e controles |
+| `python3 tests/browser_stage.py` | exit 0; HUD, jornada completa, resultado e fim dos efeitos |
+| `python3 tests/browser_subchief.py` | exit 0; combate, R1–R3 e jornada completa |
+| `python3 tests/browser_boss.py` | exit 0; combate, pixels, explosão, pausa, derrota e replay em 320/1200 |
+| `python3 -m unittest discover -s tests -p test_kof_project.py` | exit 0; 8/8, diagnósticos de compilação inválida esperados |
+| `bash tests/ci-contract.sh` com `.agent/tmp/tools` no PATH | exit 0; contrato com fixtures; não prova publicação real |
+
+Trechos observados de ambos os comandos JVM/JS e da nova jornada Chrome, respectivamente:
+
+```text
+0 failed of 103 tests
+1 passed, 0 failed
+PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at 320px; 14234 steps, score 820
+PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at 1200px; 14234 steps, score 820
+```
+
+Inspecionadas visualmente capturas normal/320, fury/1200, frenzy/320, special/1200, explosion0/320, explosion-step1/1200, explosion-step27/320 e result/1200. Comparação byte a byte: 14/14 assets históricos idênticos; diff de NOTICE vazio. Chrome `139.0.7258.154`; automação em desktop, não interação manual Android. Kof local `0.5.0-beta`, Eclipse Adoptium `25.0.4.1`, JAR SHA-256 `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`; checkout consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`, sem atribuir sua origem ao pacote local.
+
+Foram identificadas três oportunidades de cobertura permanente, sem desvio observado na implementação: nível inicial com slot 0 ocupado e slot 1 livre; níveis 2/3 com relógio elegível e gatilho desligado; meteoro absorvido também alinhado com nave normal. Provas temporárias por `Game.start/step`, com classes reais via `prepared_sources(fixture=BossReview.kf, model_only=True)`, foram executadas com `kof test <árvore temporária>/Main.kf --target jvm` e `--target js`. Em cada alvo:
+
+```text
+PASS initial boss capacity remains one with first slot occupied and second free
+PASS boss levels two and three require the special trigger even with an eligible clock
+PASS boss absorbed meteor cannot hit a normal ship at the same inclusive edge
+0 failed of 3 tests
+1 passed, 0 failed
+```
+
+No primeiro cenário, após 26 passos o tiro existente permanece ativo em x=896 e o slot 1 permanece vazio. No segundo, relógio 11→12 não lança especial sem gatilho. No terceiro, boss em Fury e nave normal x=70/y=100 compartilham a borda x=120 com o meteoro: ele é absorvido, nave continua normal com três vidas, resistência 100 e score zero. A primeira execução da prova adicional omitiu a configuração de nave normal e falhou nesse cenário por observar Restart; ela foi invalidada como erro da fixture, corrigida somente na prova e repetida nos dois alvos. Recomenda-se incorporar esses três cenários à suíte versionada para proteger futuras mudanças; esta revisão não os acrescenta nem aumenta artificialmente os 103 casos permanentes.
+
+O [CI 37484705995](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995) concluiu SUCCESS para este head do [PR #14](https://github.com/renanfranca/kof-sifuture/pull/14). O manifest registra o merge de validação `c3e4b34d3e3568c2b9d490f6aa0c775c73ec9a7c`, distribuição oficial Kof `0.5.0-beta`, origem `317d9f6b1c3e27032cc955a05f859f6c627d9338` e arquivo SHA-256 `f93f02eb62af584ea49ffb44efdbf54f970bdb9570f16fdc48ccc28242798ca9`. [Resolve](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995/job/112341647743), [JVM](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995/job/112342665328) e [JS](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995/job/112342665503) aprovados; ambos os logs de regras mostram 103/103. Pages foi SKIPPED, sem publicação.
+
+Lacunas preservadas: comparação com vídeo histórico, Android real, música, menus e apresentação completos; esta conferência aceita somente o ciclo do boss, sem encerrar a v1. Evidência local opcional consolidada em `.agent/tmp/boss-plan-review-20261006T153524Z/`: `summary.json`, logs dos onze comandos, `BossReview.kf`, logs das provas complementares, `ci-current.log` e `screenshots/`. A exclusão `/.agent/tmp/` foi conferida exatamente uma vez e não há arquivo dessa árvore rastreado pelo Git. Os resultados essenciais e limites estão neste registro, sem depender dos arquivos locais.
