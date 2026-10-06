@@ -607,3 +607,18 @@ Gate de entrega: repetir os onze checks sobre o complemento documental; resultad
 - [ ] Conforto no Android físico.
 
 Conferência posterior do planejamento no head `2d4e1e867aae2dd26963bc165eafcde78d3f6ab5`: nenhum desvio funcional identificado; os nove comandos do plano foram reexecutados com exit 0 (103/103 em JVM e JS, sete percursos Chrome). Geometria apresentou diferença 0 px nos centros e gap 16 em 320/1200; toque no eixo do canvas moveu e parou na soltura. Gate final do executor 11/11 conferido e [CI 37509126926](https://github.com/renanfranca/kof-sifuture/actions/runs/37509126926) confirmado no mesmo head do [PR #17](https://github.com/renanfranca/kof-sifuture/pull/17), Pages SKIPPED. O aceite existente registra critérios, comandos, capturas, qualidade da cobertura e limites. Apenas registros foram complementados, sem alteração de produção ou commit; conforto no Android físico permanece pendente.
+
+
+## Ciclo aprovado: Especial vertical na altura inteira do canvas — 06/10/2026
+
+Partir de `controls-alignment`, preservando os aceites anteriores como históricos. Substituir neste ciclo o Especial 72 × 64 pelo retângulo 56 × 220, coluna de 56 e conjunto de 248 pixels; manter canvas 176 × 220, cruz 168 × 168, setas 56, gap 16 e janela 296 sem quebra. Aplicar `writing-mode: vertical-rl` nos dois estilos declarativos de Kof, preservando nome “Especial”, IDs, foco, eventos e regras.
+
+- [x] Expectativa de layout atualizada antes da produção; controles e armas falharam no tamanho anterior.
+- [x] Alteração mínima nos estilos e largura da composição.
+- [x] Percursos integrados: texto inteiro/centralizado, topo/meio/base com duas cargas → uma, estados e regressões.
+- [ ] Gates inicial/final: JVM/JS, sete percursos Chrome e dois checks de infraestrutura.
+- [ ] Auditorias separadas de expectativas/assertions; revisão estrutural e capturas 320/1200.
+- [ ] Registrar SHA, comandos, navegador, resultados por critério e CI no aceite existente.
+- [ ] Conforto no Android físico (permanece fora do aceite simulado).
+
+Execução por `primary`, neste chat, com papéis e leases serializados. Validação e revisão compartilham o contexto da implementação. Sonar, Habit e mutation testing permanecem excluídos por ausência de configuração. Plano literal, ledger e evidências locais: `.agent/tmp/special-vertical.*`.

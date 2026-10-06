@@ -534,7 +534,8 @@ def cross_layout(browser, url):
                 point = {"x": west["x"] + column * 56 + 28, "y": north["y"] + row * 56 + 28}
                 assert page.evaluate("p => document.elementFromPoint(p.x, p.y).tagName", point) != "BUTTON"
             special = page.get_by_role("button", name="Especial", exact=True).bounding_box()
-            assert (special["width"], special["height"]) == (72, 64)
+            assert (special["width"], special["height"]) == (56, 220)
+            assert page.get_by_role("button", name="Especial", exact=True).evaluate("button => getComputedStyle(button).writingMode") == "vertical-rl"
             canvas = page.locator("canvas").bounding_box()
             assert (canvas["width"], canvas["height"]) == (176, 220)
             canvas_center = canvas["x"] + canvas["width"] / 2
@@ -542,8 +543,9 @@ def cross_layout(browser, url):
                 arrow = boxes[label]
                 assert abs(arrow["x"] + arrow["width"] / 2 - canvas_center) <= 1, (width, canvas, arrow)
             assert abs(special["x"] - canvas["x"] - canvas["width"] - 16) <= 1, (canvas, special)
-            assert abs(special["y"] + special["height"] / 2 - canvas["y"] - canvas["height"] / 2) <= 1, (canvas, special)
-            assert abs(special["x"] + special["width"] - canvas["x"] - 264) <= 1
+            assert abs(special["y"] - canvas["y"]) <= 1, (canvas, special)
+            assert abs(special["y"] + special["height"] - canvas["y"] - canvas["height"]) <= 1, (canvas, special)
+            assert abs(special["x"] + special["width"] - canvas["x"] - 248) <= 1
             for box in (*boxes.values(), canvas, special):
                 assert 0 <= box["x"] and box["x"] + box["width"] <= width, (width, box)
             assert canvas["y"] + canvas["height"] <= north["y"]
@@ -551,7 +553,7 @@ def cross_layout(browser, url):
             geometry = {"viewport": width, "canvas": canvas, "arrows": boxes, "special": special}
             (evidence / f"geometry-{width}.json").write_text(json.dumps(geometry, indent=2) + "\n")
             page.screenshot(path=str(evidence / f"cross-{width}.png"), full_page=True)
-    print("PASS 320/1200: up/down aligned with 176x220 canvas; empty 168x168 cross; 72x64 special centered on canvas, 16px gap, 264px total, no horizontal scroll")
+    print("PASS 320/1200: up/down aligned with 176x220 canvas; empty 168x168 cross; 56x220 vertical special aligned with canvas, 16px gap, 248px total, no horizontal scroll")
 
 
 def main():
