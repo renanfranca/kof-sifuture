@@ -106,8 +106,8 @@ main() {
     })
     var journey = Button("Full journey", () -> {
         game.start(907)
-        game.ship.lives = 100
-        for (var i = 0; i < 10000 && game.stagePosition() < 175; i++) { game.step() }
+        game.ship.lives = 1000
+        for (var i = 0; i < 30000 && game.stagePosition() < 175; i++) { game.step() }
         for (var i = 0; i < 9; i++) { game.step() }
         refresh(game, drawing, controls, status)
     })

@@ -721,3 +721,5 @@ Provas de desenvolvimento no delta sobre a base: `python3 scripts/kof_project.py
 ### Gates e limites
 
 Validação completa do commit, revisão estrutural e CI ainda serão registrados abaixo. Sonar, Habit e mutação ficam excluídos por ausência de configuração; não foram aprovados artificialmente. Touch do percurso é simulado no Chrome; Android real permanece pendente. Comparação visual com o vídeo histórico, música, menus completos e apresentação integral continuam pendentes. Este aceite não encerra a v1.
+
+Gate inicial no commit `980d0fdf91535e83e7702a28f8855bc5d66e9919`: 11 checks executados, dez aprovados e um bloqueado. JVM/JS: 103 testes cada; seis percursos Chrome, oito testes Python e contrato CI saíram com exit 0. `browser_stage.py` falhou em sua fixture Full journey, ainda limitada a 100 vidas/10000 passos antes do término do novo boss. A correção amplia o orçamento da fixture para 1000/30000 e conserva as assertions de 175→176/resultado; nenhuma regra foi alterada. Evidência local opcional: `.agent/tmp/validation/20261006T142614-82n7i_ha/summary.json`.
