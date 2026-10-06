@@ -343,16 +343,21 @@ class TouchContacts:
         return self.page.evaluate("window.controlEvents")
 
     def press(self, *labels):
-        before = len(self.events())
+        points = {}
         for label in labels:
-            assert label not in self.contacts
             box = self.page.get_by_role("button", name=label, exact=True).bounding_box()
-            self.contacts[label] = {"x": box["x"] + box["width"] / 2,
-                                    "y": box["y"] + box["height"] / 2, "id": self.next_id}
+            points[label] = (box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        return self.press_at(points)
+
+    def press_at(self, points):
+        before = len(self.events())
+        for label, (x, y) in points.items():
+            assert label not in self.contacts
+            self.contacts[label] = {"x": x, "y": y, "id": self.next_id}
             self.next_id += 1
         self.session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": list(self.contacts.values())})
         received = self.events()[before:]
-        assert sorted(e["label"] for e in received if e["type"] == "pointerdown") == sorted(labels), received
+        assert sorted(e["label"] for e in received if e["type"] == "pointerdown") == sorted(points), received
         for event in received:
             if event["type"] == "pointerdown":
                 self.pointer_ids[event["label"]] = event["id"]
@@ -377,6 +382,29 @@ class TouchContacts:
         box = self.page.get_by_role("button", name=destination, exact=True).bounding_box()
         self.contacts[label].update(x=box["x"] + box["width"] / 2, y=box["y"] + box["height"] / 2)
         self.session.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": list(self.contacts.values())})
+
+
+def touch_on_canvas_axis(browser, url):
+    for width in (320, 1200):
+        with control_page(browser, url, touch=True, width=width) as (page, run):
+            canvas = page.locator("canvas").bounding_box()
+            north = page.get_by_role("button", name="↑", exact=True).bounding_box()
+            point = (canvas["x"] + canvas["width"] / 2, north["y"] + north["height"] / 2)
+            target = page.evaluate("p => document.elementFromPoint(p[0], p[1]).textContent", point)
+            assert target == "↑", (width, point, target)
+
+            touch = TouchContacts(page)
+            touch.press_at({"↑": point})
+            run(1)
+            assert ship_observation(page) == (60, 95, False)
+            run(1)
+            assert ship_observation(page) == (60, 90, False)
+            touch.release("↑")
+            run(2)
+            assert ship_observation(page) == (60, 90, False)
+            TOUCH_EVIDENCE.append({"case": "canvas-axis", "viewport": width, "point": point,
+                                   "after_one_step": [60, 95], "stopped": [60, 90], "events": touch.events()})
+    print("PASS touch on canvas axis at 320/1200: (60,100) -> (60,95), held -> (60,90), release stops")
 
 
 def touch_diagonals(browser, url):
@@ -507,13 +535,23 @@ def cross_layout(browser, url):
                 assert page.evaluate("p => document.elementFromPoint(p.x, p.y).tagName", point) != "BUTTON"
             special = page.get_by_role("button", name="Especial", exact=True).bounding_box()
             assert (special["width"], special["height"]) == (72, 64)
-            assert special["x"] == east["x"] + 56 + 16
-            assert special["y"] + 32 == north["y"] + 84
             canvas = page.locator("canvas").bounding_box()
+            assert (canvas["width"], canvas["height"]) == (176, 220)
+            canvas_center = canvas["x"] + canvas["width"] / 2
+            for label in ("↑", "↓"):
+                arrow = boxes[label]
+                assert abs(arrow["x"] + arrow["width"] / 2 - canvas_center) <= 1, (width, canvas, arrow)
+            assert abs(special["x"] - canvas["x"] - canvas["width"] - 16) <= 1, (canvas, special)
+            assert abs(special["y"] + special["height"] / 2 - canvas["y"] - canvas["height"] / 2) <= 1, (canvas, special)
+            assert abs(special["x"] + special["width"] - canvas["x"] - 264) <= 1
+            for box in (*boxes.values(), canvas, special):
+                assert 0 <= box["x"] and box["x"] + box["width"] <= width, (width, box)
             assert canvas["y"] + canvas["height"] <= north["y"]
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            geometry = {"viewport": width, "canvas": canvas, "arrows": boxes, "special": special}
+            (evidence / f"geometry-{width}.json").write_text(json.dumps(geometry, indent=2) + "\n")
             page.screenshot(path=str(evidence / f"cross-{width}.png"), full_page=True)
-    print("PASS four 56x56 arrows, empty center/corners, 168x168 cross and 72x64 special with 16px gap at 320/1200")
+    print("PASS 320/1200: up/down aligned with 176x220 canvas; empty 168x168 cross; 72x64 special centered on canvas, 16px gap, 264px total, no horizontal scroll")
 
 
 def main():
@@ -527,6 +565,7 @@ def main():
                 args=["--no-sandbox", "--headless=new"]
             )
             try:
+                touch_on_canvas_axis(browser, url)
                 cross_layout(browser, url)
                 touch_diagonals(browser, url)
                 touch_opposites(browser, url)

@@ -396,6 +396,7 @@ def simultaneous_touch(browser, url):
         with scene(browser, url) as page:
             collect(page, 5)
             page.get_by_role("button", name="Center ship", exact=True).click()
+            page.locator("canvas").scroll_into_view_if_needed()
             advance(page)
             assert (status(page)["x"], status(page)["y"], status(page)["charges"]) == (60, 100, 2)
             touch = TouchContacts(page)
@@ -424,6 +425,7 @@ def simultaneous_touch(browser, url):
     with scene(browser, url) as page:
         collect(page, 5)
         page.get_by_role("button", name="Center ship", exact=True).click()
+        page.locator("canvas").scroll_into_view_if_needed()
         touch = TouchContacts(page)
         touch.press("→", "↑")
         touch.press("Especial")
@@ -451,23 +453,28 @@ def layout_and_indicator(browser, url):
         with scene(browser, url, width) as page:
             special = page.get_by_role("button", name="Especial", exact=True)
             assert special.is_disabled()
+            box = special.bounding_box()
             collect(page, 5)
             assert special.is_enabled()
-            box = special.bounding_box()
-            north = page.get_by_role("button", name="↑", exact=True).bounding_box()
-            south = page.get_by_role("button", name="↓", exact=True).bounding_box()
-            east = page.get_by_role("button", name="→", exact=True).bounding_box()
+            assert special.bounding_box() == box
+            page.locator("#game-keyboard").focus()
+            for label in ("↑", "←", "→", "↓", "Especial", "Pausar"):
+                page.keyboard.press("Tab")
+                assert page.get_by_role("button", name=label, exact=True).evaluate("node => node === document.activeElement"), label
+            canvas = page.locator("canvas").bounding_box()
             assert (box["width"], box["height"]) == (72, 64)
-            assert abs(box["x"] - east["x"] - east["width"] - 16) < 1
-            assert abs(box["y"] + 32 - (north["y"] + south["y"] + south["height"]) / 2) < 1
+            assert abs(box["x"] - canvas["x"] - canvas["width"] - 16) <= 1
+            assert abs(box["y"] + box["height"] / 2 - canvas["y"] - canvas["height"] / 2) <= 1
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
             page.screenshot(path=str(EVIDENCE / f"layout-{width}.png"), full_page=True)
             special.click()
             advance(page)
             assert status(page)["charges"] == 1 and special.is_disabled()
+            assert special.bounding_box() == box
             sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
             page.get_by_role("button", name="Pausar", exact=True).click()
+            assert special.bounding_box() == box
             frozen = canvas_image(page).tobytes()
             advance(page, 20)
             assert canvas_image(page).tobytes() == frozen
@@ -501,7 +508,7 @@ def layout_and_indicator(browser, url):
         assert canvas_image(page).crop((80, 0, 176, 30)).tobytes() == before
         sprite_matches(canvas_image(page), "StageMiddle.png", 80, 0)
         sprite_matches(canvas_image(page), "especialActivated1.png", 50, 21)
-    print("PASS 320px/desktop layout, 72x64 button, 16px separation and retained icon during special/paused state")
+    print("PASS 320/1200: special centered beside canvas, 72x64, 16px gap; position retained through availability, firing, held key, release and pause")
 
 
 def main():
