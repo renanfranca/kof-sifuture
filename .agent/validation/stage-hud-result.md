@@ -760,3 +760,22 @@ PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, resul
 O [PR #14](https://github.com/renanfranca/kof-sifuture/pull/14) foi aberto pronto para revisão no SHA `36695c7cf8f414a492a45101569af068ece09c98`. Gate final local nesse SHA: onze comandos com exit 0, coleta completa e zero bloqueados em 222,29 s; JVM/JS 103 testes cada, sete percursos Chrome em 320/1200, oito testes Python e contrato CI. Evidência local opcional: `.agent/tmp/validation/20261006T145009-2g4zknjx/summary.json`.
 
 O [workflow CI](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml) não havia criado execução para o primeiro head quando este complemento foi preparado. Checks Resolve verified Kof / Kof tests (jvm/js) permanecem pendentes, sem atribuir aprovação local ao GitHub. O PR foi confirmado OPEN, não draft e mergeável; workflow active e Actions habilitado. O complemento documental repete os gates antes da atualização do PR. Links de execução serão incorporados quando disponíveis.
+
+O [CI 37483308217](https://github.com/renanfranca/kof-sifuture/actions/runs/37483308217) terminou SUCCESS para o head `36695c7cf8f414a492a45101569af068ece09c98`. O checkout efetivamente testado foi o merge de validação do PR `384b3ce35bed6dc1fe5c86dc87772be98504576a`, registrado no manifest como `sifuture_sha`; a base é `8f8f0710c3d440888aec27226e1ee87d25c54d97`.
+
+| Check CI | Resultado e link persistente |
+|---|---|
+| Resolve verified Kof | [SUCCESS](https://github.com/renanfranca/kof-sifuture/actions/runs/37483308217/job/112336824839) |
+| Kof tests (jvm) | [SUCCESS, 103/103](https://github.com/renanfranca/kof-sifuture/actions/runs/37483308217/job/112337704693) |
+| Kof tests (js) | [SUCCESS, 103/103](https://github.com/renanfranca/kof-sifuture/actions/runs/37483308217/job/112337704724) |
+
+Trecho dos dois jobs `Run complete Kof suite`:
+
+```text
+0 failed of 103 tests
+1 passed, 0 failed
+```
+
+O manifest do resolve verifica Kof `0.5.0-beta`, tag `kof-0.5.0-beta-linux-x86_64`, commit de origem `317d9f6b1c3e27032cc955a05f859f6c627d9338`, arquivo `kof-0.5.0-beta-linux-x86_64.tar.gz` SHA-256 `f93f02eb62af584ea49ffb44efdbf54f970bdb9570f16fdc48ccc28242798ca9`. Ambos os jobs instalaram a mesma distribuição e usaram a JVM embarcada `25.0.4.1`. A identidade CI é separada do hash do JAR instalado localmente. Build/Publish Pages foram SKIPPED por ser PR; não houve publicação.
+
+Este complemento consolida links disponíveis antes do último commit e repete os gates locais/CI no novo head antes da entrega. Resultados atuais ficarão no ledger e na descrição do PR; os links acima conservam a evidência exata do SHA indicado. Não há critério local do boss sem prova; vídeo histórico e Android real permanecem pendentes. Logs CI opcionais em `.agent/tmp/boss-ci-first.log`.
