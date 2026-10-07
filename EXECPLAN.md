@@ -841,7 +841,7 @@ Execução: worker primary neste chat 01a11641-92f1-7902-9c41-c3aaa6668c66, tít
 
 - [x] Contrato incorporado sem apagar registros anteriores; worktree e ledger v6 separados.
 - [x] TDD: créditos50/terminal260, entrada única, confirmação, retenção por tela e contato literal.
-- [x] Provas JVM/JS113 casos e jornadas Chrome320/1200; sonda de reutilização137 nodes/26 styles estáveis em1000 ticks.
+- [x] Provas JVM/JS 113 casos e jornadas Chrome320/1200; sonda de reutilização137 nodes/26 styles estáveis em1000 ticks.
 - [x] Especificação, README e aceites existentes ampliados; auditorias de expectativa e suficiência separadas.
 - [ ] Checkpoint e gates completos iniciais/finais; revisão estrutural; entrega PR/CI.
 - [ ] Áudio/Android/escala/lifecycle/vídeo integral: fora do complemento, pendentes na v1.
@@ -939,3 +939,8 @@ O ciclo altera apresentação e orientação. Logo, sprites, HUD e mecânicas pe
 - A janela acompanha o conteúdo: a inspeção revelou que a antiga altura fixa deixava o guia fora da moldura; a largura fixa também causava rolagem horizontal interna quando havia scrollbar vertical. O canvas mantém 176×220 e os controles mantêm 248 px.
 - Testes mantêm quadros dos créditos, entrada da nave, seleção limitada, pausa, reinício e opções retidas. No guia compacto, após tocar a antiga coordenada sobre texto informativo, o teste devolve foco explicitamente ao receptor antes de soltar a tecla: a soltura deve ser observada na árvore de controles, conforme o contrato existente. A retenção efetiva de foco também é verificada antes desse toque.
 - Registros RED/GREEN e capturas locais: `.agent/tmp/controls-guide-*.json` e `.agent/tmp/navigation-browser/`. Suíte principal e checkpoint do percurso de fase passaram durante implementação; gates completos e revisão estrutural serão registrados em [controls-guide.md](.agent/validation/controls-guide.md).
+
+
+### Gate inicial e revisão do ciclo de apresentação
+
+No SHA `e1025afc61397ea01a6bb8c40aa61520bd299743`, os onze comandos aprovados passaram em 263,43 s: JVM/JS 113 testes por alvo sem falhas; sete percursos Chrome; 8 testes Python; contrato CI. Capturas em 320/1200 px de créditos/menu/pausa/guia fechado e aberto, incluindo fim dos detalhes, inspecionadas separadamente. Revisão estrutural no mesmo contexto: nenhum refactor necessário. O registro completo, com comandos, trechos, limites e links persistentes, está em [controls-guide.md](.agent/validation/controls-guide.md). A versão documental será comprometida antes de repetir os onze comandos no gate final e atualizar o PR #18 com SHA/resultados/CI.

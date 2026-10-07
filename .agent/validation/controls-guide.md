@@ -17,8 +17,6 @@ assert page.evaluate("creditDraws.length") == 0
 AssertionError
 assert [t["label"] for t in texts] == ["Novo Jogo", "Controles"], texts
 AssertionError
-assert guide.evaluate(...) == ["14px", "20px", "sans-serif", "12px"]
-AssertionError
 assert back_box["y"] + back_box["height"] <= window_box["y"] + window_box["height"]
 AssertionError
 ```
@@ -39,11 +37,11 @@ A soltura deve ser observada nos controles. Tocar a antiga opção depois de abr
 
 ## Regra Kof e realização no alvo
 
-O [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:275) orienta:
+O [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277) orienta:
 
 > `measureText` returns a `Double` (width in px) for text layout.
 
-Em [GameView.kf](../../src/main/kof/sifuture/GameView.kf), a mesma escala é passada para os dois blocos:
+Em [GameView.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameView.kf:180), a mesma escala é passada para os dois blocos:
 
 ```kof
 var scale = 0.75
@@ -69,3 +67,47 @@ Evidências opcionais locais: `.agent/tmp/navigation-browser/credits-arrived-{32
 O Validador executa localmente 11 comandos: suítes completas JVM/JS, sete percursos de navegador, unittest do wrapper e contrato CI com yq local. Fontes: plano, README, scripts e workflow. Sonar, mutation testing e Habit excluídos por ausência de configuração; não há alegação de pass ou score dessas ferramentas. O Coordenador acompanha os três checks CI e o Revisor aplica revisão estrutural. Committer preserva convenção e hooks normais, sem amend/rebase.
 
 Android físico, outros navegadores, comparação com vídeo histórico e ampliação da v1 permanecem fora deste ciclo. Resultados de CI do ciclo anterior não aprovam este novo conteúdo. CI final e publicação deste ciclo ainda não comprovados neste checkpoint.
+
+
+## Gate inicial e revisão concluídos
+
+SHA testado: `e1025afc61397ea01a6bb8c40aa61520bd299743`. Checkout limpo durante o gate. Em 263,43 s, 11 checks selecionados e executados, 0 bloqueados, todos com execução e coleta completas. Não houve omissão de checks no resumo. Kof instalado 0.5.0-beta; Java 25.0.2; Node 24.16.0; Chrome 139.0.7258.154; yq 4.54.1.
+
+| Comando local | Resultado observado |
+| --- | --- |
+| `python3 scripts/kof_project.py test --target jvm` | 113 testes; 0 falhas; 1 arquivo executável aprovado |
+| `python3 scripts/kof_project.py test --target js` | 113 testes; 0 falhas; 1 arquivo executável aprovado |
+| `python3 tests/browser.py` | Créditos, texto, seleção/foco, guia, confirmações, pausa/resultado e retenção aprovados em 320/1200 px |
+| `python3 tests/browser_controls.py` | Foco, teclado, cliques, diagonais, opostos, arrasto e cancelamento aprovados |
+| `python3 tests/browser_meteor.py` | Movimento, três quadros de impacto e respawn aprovados |
+| `python3 tests/browser_weapons.py` | Armas, especial, seis ordens de soltura e disponibilidade aprovados |
+| `python3 tests/browser_stage.py` | Fase, HUD, pausa, resultado e nova partida aprovados |
+| `python3 tests/browser_subchief.py` | Encontro completo, tiros, contatos, explosão e replay aprovados |
+| `python3 tests/browser_boss.py` | Entrada, fases, tiros, especial, explosão de 28 passos, resultado/replay aprovados |
+| `python3 -m unittest discover -s tests -p 'test_kof_project.py'` | 8 testes; OK |
+| `PATH="$PWD/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh` | Contrato CI aprovado; mocks não representam execução real de GitHub Actions |
+
+Trechos literais dos comandos Kof, um por alvo:
+
+```text
+0 failed of 113 tests
+```
+
+Trechos literais de `python3 tests/browser.py` no Chrome:
+
+```text
+PASS Portuguese Canvas menus at x48/12px, ship selection and independent neutral focus at 320px
+PASS Portuguese Canvas menus at x48/12px, ship selection and independent neutral focus at 1200px
+PASS compact Controls, 14/16px guide, closed/open/reset details and Enter/Space/click/touch without duplicate transitions at 320px
+PASS compact Controls, 14/16px guide, closed/open/reset details and Enter/Space/click/touch without duplicate transitions at 1200px
+```
+
+Aceite funcional: aprovado pelo agente sobre esse SHA, com os comandos acima. Isso demonstra o comportamento nos alvos e ambientes descritos; não comprova outros navegadores ou um Android físico.
+
+Aceite visual: aprovado pela inspeção do agente, separadamente, nas capturas de créditos, menu, pausa, guia fechado e guia aberto, incluindo o fim dos detalhes e Voltar, em 320/1200 px. Textos legíveis dentro dos limites escolhidos, nave indicando linhas, contornos neutros, canvas/direcional/Especial recolhidos no guia, sem instrução fixa e sem rolagem horizontal. Detalhes expandidos usam rolagem vertical; a moldura agora acompanha o conteúdo. Nenhuma aprovação visual humana foi presumida.
+
+Revisão estrutural com `refactor-design`: nenhuma correção de produção necessária. Campos de foco/teclas modelam a duração das interações, e `ControlsGuide` mantém conteúdo/expansão fora do domínio. Ordem dos eventos nativos protegida pelos percursos; estilos/widgets construídos uma vez. Recriar duas pequenas listas de créditos é apenas oportunidade de manutenção, sem risco demonstrado; nenhuma cache foi introduzida. Revisão, implementação e validação compartilham contexto.
+
+O gate final repetirá os 11 comandos sobre o commit documental que consolida este aceite; o SHA e resultados finais, além dos três checks CI, serão associados ao [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e aos seus [checks persistentes](https://github.com/renanfranca/kof-sifuture/pull/18/checks). O estado e os resultados detalhados permanecem também em `.agent/tmp/controls-guide.workflow.json` e `.agent/tmp/controls-guide-final.json`. Essa associação evita editar fontes versionadas depois do gate e atribuir evidência antiga a uma árvore nova.
+
+Lacunas fora deste aceite: Android físico, outros navegadores, comparação com vídeo histórico e publicação após merge. Neste ponto documental, CI e gate final aguardam execução; o PR registra seu estado posterior. Sonar, mutation testing e Habit continuam excluídos, sem inventar resultado verde. Fontes de produção/assets permanecem iguais ao SHA acima após a revisão.
