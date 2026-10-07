@@ -724,3 +724,5 @@ Implementação e checkpoints comportamentais: Credits/Controls no modelo; créd
 - [x] Revisão estrutural com consolidação do protocolo dos callbacks direcionais; registros de fase/resultado e controles atualizados, história preservada.
 - [ ] Gate final no commit revisado/documentado e entrega PR/CI (serão registrados no ledger e no PR).
 - [ ] V1: vídeo, Android, áudio/Opções/Música, escala e lifecycle posteriores continuam abertos.
+
+Revisão complementar: estilos de navegação agora são construídos uma vez, evitando registros KofJS a cada tick; sonda19→19 em1000 ticks e percurso público preservado. Correção adicional `6daccf42529c19e5f69d1cef1b84b04959b1e193` voltou pelo fluxo de implementação; gate completo11/11 passou em237,27s,112 testes por alvo e sete jornadas Chrome. Revisão estrutural reconferida no mesmo contexto, sem nova alteração comportamental. Consolidação final de documentação será validada novamente antes do PR; links posteriores no ledger/PR e registro de aceite.
