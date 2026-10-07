@@ -2765,7 +2765,7 @@ test "boss absorbed meteor cannot hit a normal ship at the same inclusive edge" 
 }
 
 
-test "first menu entrance advances only its selector and controls end it permanently" {
+test "each main menu arrival restarts its selector while staying does not" {
     var g = Game()
     g.confirm()
     assert(g.menuEntrance.x == -30 && g.menuEntrance.phase == MenuEntrancePhase.Entry)
@@ -2791,8 +2791,9 @@ test "first menu entrance advances only its selector and controls end it permane
     assert(immediate.screen == Screen.Controls && immediate.menuEntrance.x == 18)
     immediate.confirm()
     assert(immediate.screen == Screen.Menu && immediate.menuSelection == 1)
+    assert(immediate.menuEntrance.x == -30 && immediate.menuEntrance.phase == MenuEntrancePhase.Entry)
     immediate.step()
-    assert(immediate.menuEntrance.x == 18)
+    assert(immediate.menuEntrance.x == -20)
     immediate.navigate(Direction.Up)
     immediate.confirm(99)
     assert(immediate.screen == Screen.Play && immediate.steps == 0)
@@ -2800,11 +2801,40 @@ test "first menu entrance advances only its selector and controls end it permane
     immediate.navigate(Direction.Down)
     immediate.navigate(Direction.Down)
     immediate.confirm()
+    assert(immediate.screen == Screen.Menu && immediate.menuSelection == 0 && immediate.menuEntrance.x == -30)
     immediate.step()
-    assert(immediate.screen == Screen.Menu && immediate.menuEntrance.x == 18)
+    assert(immediate.menuEntrance.x == -20)
     immediate.confirm(99)
     immediate.screen = Screen.Result
     immediate.confirm()
+    assert(immediate.screen == Screen.Menu && immediate.menuSelection == 0 && immediate.menuEntrance.x == -30)
     immediate.step()
-    assert(immediate.screen == Screen.Menu && immediate.menuEntrance.x == 18)
+    assert(immediate.menuEntrance.x == -20)
+}
+
+
+test "repeated controls returns start entry and can leave before braking" {
+    var g = Game()
+    g.confirm()
+    for (var visit = 0; visit < 3; visit++) {
+        g.navigate(Direction.Down)
+        g.confirm()
+        assert(g.screen == Screen.Controls)
+        g.confirm()
+        assert(g.menuSelection == 1 && g.menuEntrance.x == -30)
+        g.step()
+        assert(g.menuEntrance.x == -20)
+        for (var i = 0; i < 11; i++) { g.step() }
+        assert(g.menuEntrance.x == 87 && g.menuEntrance.phase == MenuEntrancePhase.Braking)
+        for (var i = 0; i < 23; i++) { g.step() }
+        assert(g.menuEntrance.x == 18 && g.menuEntrance.phase == MenuEntrancePhase.Ready)
+        g.step()
+        assert(g.menuEntrance.x == 18)
+    }
+    g.confirm()
+    g.confirm()
+    assert(g.menuEntrance.x == -30)
+    g.navigate(Direction.Up)
+    g.confirm(99)
+    assert(g.screen == Screen.Play && g.steps == 0)
 }

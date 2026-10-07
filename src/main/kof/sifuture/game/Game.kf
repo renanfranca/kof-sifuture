@@ -148,12 +148,12 @@ class Game {
     }
 
     confirm(Int seed) {
-        if (screen == Screen.Credits) { screen = Screen.Menu }
+        if (screen == Screen.Credits) { enterMenu(0) }
         else if (screen == Screen.Menu) {
             if (menuSelection == 0) { start(seed) }
             else { openControls() }
         }
-        else if (screen == Screen.Controls) { screen = Screen.Menu }
+        else if (screen == Screen.Controls) { enterMenu(menuSelection) }
         else if (screen == Screen.Play) { pause() }
         else if (screen == Screen.Pause) {
             if (pauseSelection == 0) { resume() }
@@ -162,15 +162,21 @@ class Game {
         }
         else if (screen == Screen.Result) {
             if (!countComplete()) { displayedScore = score }
-            else { screen = Screen.Menu; menuSelection = 0; clearMovement() }
+            else { enterMenu(0) }
         }
+    }
+
+    private enterMenu(Int selection) {
+        if (screen == Screen.Menu) { return }
+        screen = Screen.Menu
+        menuSelection = selection
+        menuEntrance = MenuEntrance()
+        clearMovement()
     }
 
     abandon() {
         if (screen == Screen.Pause) {
-            screen = Screen.Menu
-            menuSelection = 0
-            clearMovement()
+            enterMenu(0)
         }
     }
 
@@ -189,7 +195,7 @@ class Game {
     step() {
         if (screen == Screen.Menu) { menuEntrance.advance(); return }
         if (screen == Screen.Credits) {
-            if (credits.advance()) { screen = Screen.Menu }
+            if (credits.advance()) { enterMenu(0) }
             return
         }
         if (screen == Screen.Result) {

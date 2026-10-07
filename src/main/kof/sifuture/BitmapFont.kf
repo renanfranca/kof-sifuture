@@ -1,0 +1,39 @@
+package sifuture
+
+import kof.ui.*
+import sifuture.BitmapGlyph
+
+class BitmapFont {
+    private List<BitmapGlyph> glyphs
+
+    public constructor(List<BitmapGlyph> glyphs) {
+        this.glyphs = glyphs
+    }
+
+    measure(String text): Int {
+        var width = 0
+        for (var i = 0; i < text.length; i++) {
+            width = width + glyph(text.substring(i, i + 1)).advance
+        }
+        return width
+    }
+
+    draw(Canvas canvas, String text, Int x, Int baseline) {
+        var cursor = x
+        for (var i = 0; i < text.length; i++) {
+            var item = glyph(text.substring(i, i + 1))
+            canvas.drawImage(item.image, cursor + item.left, baseline + item.top)
+            cursor = cursor + item.advance
+        }
+    }
+
+    private glyph(String character): BitmapGlyph {
+        for (var item in glyphs) {
+            if (item.character == character) { return item }
+        }
+        for (var item in glyphs) {
+            if (item.character == "?") { return item }
+        }
+        return glyphs[0]
+    }
+}

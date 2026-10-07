@@ -1,0 +1,81 @@
+package sifuture
+
+import kof.ui.*
+import sifuture.BitmapFont
+import sifuture.BitmapGlyph
+
+class BitmapFonts {
+    static menu(): BitmapFont {
+        return BitmapFont(listOf(
+            BitmapGlyph(" ", Image("assets/font-menu-0020.png"), 4, 0, 0),
+            BitmapGlyph("?", Image("assets/font-menu-003f.png"), 7, 1, -10),
+            BitmapGlyph("C", Image("assets/font-menu-0043.png"), 10, 1, -10),
+            BitmapGlyph("J", Image("assets/font-menu-004a.png"), 7, 1, -10),
+            BitmapGlyph("M", Image("assets/font-menu-004d.png"), 13, 0, -10),
+            BitmapGlyph("N", Image("assets/font-menu-004e.png"), 10, 0, -10),
+            BitmapGlyph("R", Image("assets/font-menu-0052.png"), 10, 0, -10),
+            BitmapGlyph("a", Image("assets/font-menu-0061.png"), 7, 1, -7),
+            BitmapGlyph("c", Image("assets/font-menu-0063.png"), 6, 1, -7),
+            BitmapGlyph("e", Image("assets/font-menu-0065.png"), 6, 1, -7),
+            BitmapGlyph("g", Image("assets/font-menu-0067.png"), 7, 1, -7),
+            BitmapGlyph("i", Image("assets/font-menu-0069.png"), 4, 0, -10),
+            BitmapGlyph("l", Image("assets/font-menu-006c.png"), 4, 0, -10),
+            BitmapGlyph("n", Image("assets/font-menu-006e.png"), 8, 0, -7),
+            BitmapGlyph("o", Image("assets/font-menu-006f.png"), 7, 1, -7),
+            BitmapGlyph("p", Image("assets/font-menu-0070.png"), 8, 0, -7),
+            BitmapGlyph("r", Image("assets/font-menu-0072.png"), 6, 0, -7),
+            BitmapGlyph("s", Image("assets/font-menu-0073.png"), 5, 0, -7),
+            BitmapGlyph("t", Image("assets/font-menu-0074.png"), 5, 0, -8),
+            BitmapGlyph("u", Image("assets/font-menu-0075.png"), 8, 0, -7),
+            BitmapGlyph("v", Image("assets/font-menu-0076.png"), 7, 0, -7)))
+    }
+
+    static credits(): BitmapFont {
+        return BitmapFont(listOf(
+            BitmapGlyph(" ", Image("assets/font-credits-0020.png"), 2, 0, 0),
+            BitmapGlyph("(", Image("assets/font-credits-0028.png"), 3, 0, -6),
+            BitmapGlyph(")", Image("assets/font-credits-0029.png"), 3, 1, -6),
+            BitmapGlyph("-", Image("assets/font-credits-002d.png"), 3, 0, -3),
+            BitmapGlyph(".", Image("assets/font-credits-002e.png"), 2, 1, -1),
+            BitmapGlyph("0", Image("assets/font-credits-0030.png"), 4, 0, -7),
+            BitmapGlyph("2", Image("assets/font-credits-0032.png"), 4, 0, -7),
+            BitmapGlyph("6", Image("assets/font-credits-0036.png"), 4, 0, -7),
+            BitmapGlyph("7", Image("assets/font-credits-0037.png"), 4, 1, -7),
+            BitmapGlyph(":", Image("assets/font-credits-003a.png"), 2, 1, -5),
+            BitmapGlyph("?", Image("assets/font-credits-003f.png"), 4, 1, -7),
+            BitmapGlyph("@", Image("assets/font-credits-0040.png"), 8, 1, -7),
+            BitmapGlyph("A", Image("assets/font-credits-0041.png"), 6, 0, -7),
+            BitmapGlyph("C", Image("assets/font-credits-0043.png"), 6, 0, -7),
+            BitmapGlyph("F", Image("assets/font-credits-0046.png"), 5, 0, -7),
+            BitmapGlyph("I", Image("assets/font-credits-0049.png"), 3, 0, -7),
+            BitmapGlyph("M", Image("assets/font-credits-004d.png"), 8, 0, -7),
+            BitmapGlyph("R", Image("assets/font-credits-0052.png"), 6, 0, -7),
+            BitmapGlyph("a", Image("assets/font-credits-0061.png"), 4, 0, -5),
+            BitmapGlyph("b", Image("assets/font-credits-0062.png"), 4, 0, -7),
+            BitmapGlyph("c", Image("assets/font-credits-0063.png"), 4, 0, -5),
+            BitmapGlyph("d", Image("assets/font-credits-0064.png"), 4, 0, -7),
+            BitmapGlyph("e", Image("assets/font-credits-0065.png"), 4, 0, -5),
+            BitmapGlyph("f", Image("assets/font-credits-0066.png"), 3, 0, -7),
+            BitmapGlyph("g", Image("assets/font-credits-0067.png"), 4, 1, -5),
+            BitmapGlyph("h", Image("assets/font-credits-0068.png"), 4, 0, -7),
+            BitmapGlyph("i", Image("assets/font-credits-0069.png"), 2, 0, -7),
+            BitmapGlyph("j", Image("assets/font-credits-006a.png"), 2, 0, -7),
+            BitmapGlyph("k", Image("assets/font-credits-006b.png"), 4, 0, -7),
+            BitmapGlyph("l", Image("assets/font-credits-006c.png"), 2, 0, -7),
+            BitmapGlyph("m", Image("assets/font-credits-006d.png"), 7, 0, -5),
+            BitmapGlyph("n", Image("assets/font-credits-006e.png"), 4, 0, -5),
+            BitmapGlyph("o", Image("assets/font-credits-006f.png"), 4, 0, -5),
+            BitmapGlyph("p", Image("assets/font-credits-0070.png"), 4, 0, -5),
+            BitmapGlyph("q", Image("assets/font-credits-0071.png"), 4, 0, -5),
+            BitmapGlyph("r", Image("assets/font-credits-0072.png"), 3, 0, -5),
+            BitmapGlyph("s", Image("assets/font-credits-0073.png"), 4, 0, -5),
+            BitmapGlyph("t", Image("assets/font-credits-0074.png"), 2, 0, -5),
+            BitmapGlyph("u", Image("assets/font-credits-0075.png"), 4, 0, -5),
+            BitmapGlyph("v", Image("assets/font-credits-0076.png"), 4, 0, -5),
+            BitmapGlyph("w", Image("assets/font-credits-0077.png"), 6, 0, -5),
+            BitmapGlyph("x", Image("assets/font-credits-0078.png"), 4, 0, -5),
+            BitmapGlyph("y", Image("assets/font-credits-0079.png"), 4, 0, -5),
+            BitmapGlyph("z", Image("assets/font-credits-007a.png"), 4, 0, -5)))
+    }
+
+}

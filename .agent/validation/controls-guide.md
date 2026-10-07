@@ -111,3 +111,50 @@ Revisão estrutural com `refactor-design`: nenhuma correção de produção nece
 O gate final repetirá os 11 comandos sobre o commit documental que consolida este aceite; o SHA e resultados finais, além dos três checks CI, serão associados ao [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e aos seus [checks persistentes](https://github.com/renanfranca/kof-sifuture/pull/18/checks). O estado e os resultados detalhados permanecem também em `.agent/tmp/controls-guide.workflow.json` e `.agent/tmp/controls-guide-final.json`. Essa associação evita editar fontes versionadas depois do gate e atribuir evidência antiga a uma árvore nova.
 
 Lacunas fora deste aceite: Android físico, outros navegadores, comparação com vídeo histórico e publicação após merge. Neste ponto documental, CI e gate final aguardam execução; o PR registra seu estado posterior. Sonar, mutation testing e Habit continuam excluídos, sem inventar resultado verde. Fontes de produção/assets permanecem iguais ao SHA acima após a revisão.
+
+## Fonte bitmap, margem do guia e retornos — 2026-10-07
+
+Plano: “Mais nitidez, espaço no guia e animação em cada retorno”. Execução no checkout atual e na branch `credits-pause-navigation`, a partir de `3e5c5d4b828eb2e51f2f255f7c286dd13a7fbb1e`, no chat `sifuture-clarity-primary`, `gpt-6.1-sol` / `medium`. Implementação, validação e revisão compartilham contexto. Esta seção complementa o histórico anterior; os resultados antigos não validam esta nova árvore.
+
+Os menus e a pausa usam fonte bitmap branca com serifas, tamanho nominal 14 px e peso Bold. Os créditos usam tamanho nominal 9 px, peso Regular, azul RGB(0,128,255) e texto literal preservado. Cada PNG tem apenas alpha 0/255. Máscaras, métricas e licença da referência local Liberation Serif estão em `fonts/`; o gerador reproduz os assets diretamente em `assets/` e as métricas Kof. O nome completo mede 123 px; `renan.andradefranca@gmail.com`, 114 px. Todas as linhas ficam dentro de 130 px. Baselines locais 8/18 e 8/18/28; imagens criadas uma vez pelo GameView; posicionamento inteiro sem transformação ou redimensionamento pelo renderizador.
+
+O [training de UI](../../../kof/training/idioms/ui.md) orienta a composição por imagem:
+
+```kof
+c.drawImage(logo, 5, 5)
+```
+
+Trecho de [BitmapFont.kf](../../src/main/kof/sifuture/BitmapFont.kf):
+
+```kof
+var item = glyph(text.substring(i, i + 1))
+canvas.drawImage(item.image, cursor + item.left, baseline + item.top)
+cursor = cursor + item.advance
+```
+
+O avanço define a posição do próximo caractere, e os deslocamentos alinham sua máscara à baseline. `measure` soma os mesmos avanços. Isso evita reduzir texto já desenhado; o desenho usa os pixels de tamanho final. A [referência de módulos local](/home/renanfranca/projects/kof/docs/language-reference/modules.md) orientou imports explícitos nas fixtures. `learn/35-kof-ui.md` distingue modelo e desenho: “only the JS target draws”. A realização atual está em `KofUi.java:522` e `js/JsRuntimeUiWidgets.java:477–483`, que chama `ctx.drawImage(img, x, y)`; o teste `KofJsBrowserE2ETest.java:847` exercita a mesma operação. As provas de pixels são do app JS no Chrome, não da compilação JVM.
+
+O guia tem painel externo preto de 248 px, padding 16 nos quatro lados e conteúdo 216 px. O estilo interno não repete padding. Tabela, listas e parágrafos cabem na coluna; fonte 14, entrelinha 20 e títulos 16 preservados. A seção Especial vem antes de Mais detalhes e está visível com os detalhes fechados. O texto completo sobre carga e disponibilidade continua nos detalhes. Crescimento vertical e retorno por Voltar foram exercitados; não houve rolagem horizontal.
+
+Todas as transições reais ao menu passam pelo mesmo método no modelo; cada uma cria uma nova `MenuEntrance`. Voltar de Controles preserva a seleção, pausa/resultado selecionam Novo Jogo. Permanecer no menu apenas avança o objeto atual. Créditos permanecem exclusivos da abertura; teclado mantido continua bloqueado. A suíte observa o retorno antes do primeiro passo, o primeiro passo, a frenagem, a parada, repetições e confirmação antecipada. O navegador percorre os botões reais, incluindo Concluir contagem antes de Voltar ao menu quando necessário.
+
+### Evidências anteriores ao checkpoint
+
+Os comandos JVM/JS passaram na árvore alterada baseada no SHA acima: 2 testes de medidas bitmap e 114 jornadas do modelo por alvo. O SHA é a base, não uma identificação isolada do conteúdo não comprometido. As falhas esperadas anteriores incluíram dois retornos sem reiniciar a nave, padding ausente, ausência de máscaras/gerador e ausência de chamadas de desenho de glifos.
+
+`python3 tests/browser.py`, app JS/Chrome 139.0.7258.154:
+
+```text
+PASS repeated real skip/Controls/pause/result arrivals at -30/-20/80/87/18, repaint and early confirmation at 320px
+PASS native glyph pixels, single image load, 16px padding/216px content and closed Special at 320px density2
+```
+
+O primeiro desenho x=-30 é observado pela chamada Canvas, pois a nave está fora da imagem. Os passos visíveis são comparados com pixels dos sprites históricos. Créditos são comparados integralmente com composição independente dos PNGs; isso confere ordem, e-mail, cores e alinhamento. O teste de geração confere cada pixel, limite, repertório e bytes regenerados. Medidas Kof também são executadas nos dois alvos.
+
+### Aceite visual separado
+
+Capturas de créditos, menu, pausa e guia fechado/aberto foram produzidas para 320/1200 px e densidades 1/2, no Chrome 139.0.7258.154. A inspeção encontrou menus serifados mais fortes e coerentes com os sprites, crédito azul uniforme, nome/e-mail completos e guia com espaço interno e Especial destacado. Os créditos continuam pequenos no mundo 176×220. Os assets e o bitmap nativo são binários; capturas de densidade 2 apresentam a interpolação de apresentação do Canvas pelo navegador. Não se afirma ausência de filtragem no compositor do navegador ou paridade com um aparelho físico.
+
+Evidências locais opcionais: `.agent/tmp/clarity-browser/{credits,menu,pause,guide,guide-open}-{320,1200}-d{1,2}.png`; `.agent/tmp/sifuture-clarity-*.log`; inventário e coletores `sifuture-clarity.validation.json`/`collectors.json`. Os fatos essenciais estão neste resumo e nos testes versionados. Inspeção automatizada e visual pelo agente; não houve sessão manual humana ou Android físico. Outros navegadores, comparação com vídeo histórico e publicação de Pages continuam fora da evidência local.
+
+Inventário confirmado: 11 comandos locais — JVM/JS, sete percursos Chrome, unittest Python (incluindo reprodução/pixels) e contrato CI. Sonar, mutation runner e Habit sem configuração e excluídos. CI selecionado: Resolve verified Kof, Kof tests(jvm/js). Gates completos do checkpoint e do commit final serão registrados abaixo; a entrega continua no [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e seus [checks](https://github.com/renanfranca/kof-sifuture/pull/18/checks).
