@@ -6,7 +6,6 @@ import kof.ui.*
 class GameView {
     Canvas canvas
     Image copyright0
-    Image copyright1
     Image title
     Image menu
     Image controlsMenu
@@ -45,7 +44,6 @@ class GameView {
     public constructor(Canvas canvas) {
         this.canvas = canvas
         copyright0 = Image("assets/copyright0.png")
-        copyright1 = Image("assets/copyright1.png")
         title = Image("assets/sifuture.png")
         menu = Image("assets/menu0.png")
         controlsMenu = Image("assets/menu1.png")
@@ -86,15 +84,19 @@ class GameView {
         canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
         canvas.setFill(Palette.white)
         if (game.screen == Screen.Credits) {
-            canvas.drawImage(copyright0, game.credits.x, game.credits.firstY)
-            canvas.drawImage(copyright1, game.credits.x, game.credits.secondY)
+            if (!game.credits.exitComplete) {
+                canvas.drawImage(copyright0, game.credits.x, game.credits.firstY)
+                drawContact(game.credits)
+            }
             return
         }
         if (game.screen == Screen.Menu) {
             canvas.drawImage(title, 11, 30)
             canvas.drawImage(menu, 48, 120)
             canvas.drawImage(controlsMenu, 48, 139)
-            canvas.drawImage(lifeShips[1], 18, 120 + game.menuSelection * 19)
+            var selector = lifeShips[1]
+            if (game.menuEntrance.phase == MenuEntrancePhase.Entry) { selector = lifeShips[2] }
+            canvas.drawImage(selector, game.menuEntrance.x, 120 + game.menuSelection * 19)
             return
         }
         if (game.screen == Screen.Controls) {
@@ -162,7 +164,25 @@ class GameView {
         }
         drawHud(game)
         if (game.screen == Screen.Result) { drawResult(game) }
-        if (game.screen == Screen.Pause) { canvas.drawImage(continueMenu, 60, 80) }
+        if (game.screen == Screen.Pause) {
+            canvas.drawImage(continueMenu, 60, 80)
+            canvas.fillText("Reiniciar", 60, 111)
+            canvas.fillText("Menu principal", 60, 130)
+            canvas.drawImage(lifeShips[1], 18, 80 + game.pauseSelection * 19)
+        }
+    }
+
+    private drawContact(Credits credits) {
+        var scale = 0.75
+        var width = canvas.measureText("renan.andradefranca@gmail.com")
+        if (width * scale > 130.0) { scale = 130.0 / width }
+        canvas.save()
+        canvas.transform(scale, 0.0, 0.0, scale, credits.x as Double, credits.secondY as Double)
+        canvas.setFill(Color(0, 128, 255))
+        canvas.fillText("contact:", 0, 10)
+        canvas.fillText("renan.andradefranca@gmail.com", 0, 22)
+        canvas.fillText("Inc. All rights reserved.", 0, 34)
+        canvas.restore()
     }
 
     private drawHud(Game game) {

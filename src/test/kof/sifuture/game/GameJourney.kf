@@ -111,21 +111,23 @@ test "menu navigation clamps repeats and controls return preserves selection" {
     assert(g.screen == Screen.Play)
 }
 
-test "credits advance horizontally wait fifty steps then exit vertically before menu" {
+test "credits count arrival among fifty frames and keep terminal frame before menu260" {
     var g = Game()
     assert(g.credits.x == -134 && g.credits.firstY == 110 && g.credits.secondY == 141)
     g.step()
     assert(g.credits.x == -129 && g.credits.waitSteps == 0)
     for (var i = 0; i < 35; i++) { g.step() }
     assert(g.credits.x == 46 && g.credits.firstY == 110)
-    for (var i = 0; i < 50; i++) { g.step() }
+    for (var i = 0; i < 49; i++) { g.step() }
     assert(g.credits.waitSteps == 50 && g.credits.firstY == 110 && g.credits.secondY == 141)
     g.step()
     assert(g.credits.firstY == 111 && g.credits.secondY == 140)
     for (var i = 0; i < 172; i++) { g.step() }
     assert(g.screen == Screen.Credits && g.credits.firstY == 283 && g.credits.secondY == -32)
     g.step()
-    assert(g.screen == Screen.Menu)
+    assert(g.screen == Screen.Credits && g.credits.exitComplete && g.credits.firstY == 283 && g.credits.secondY == -32)
+    g.step()
+    assert(g.screen == Screen.Menu && g.menuEntrance.x == -30)
     var x = g.credits.x
     g.step()
     assert(g.credits.x == x && g.credits.firstY == 283)
@@ -2760,4 +2762,49 @@ test "boss absorbed meteor cannot hit a normal ship at the same inclusive edge" 
     assert(game.meteors[0].x == 120 && game.meteors[0].collided)
     assert(game.ship.phase == ShipPhase.Normal && game.ship.lives == 3)
     assert(game.boss.lives == 100 && game.score == 0)
+}
+
+
+test "first menu entrance advances only its selector and controls end it permanently" {
+    var g = Game()
+    g.confirm()
+    assert(g.menuEntrance.x == -30 && g.menuEntrance.phase == MenuEntrancePhase.Entry)
+    g.step()
+    assert(g.menuEntrance.x == -20 && g.steps == 0 && g.stageSteps == 0)
+    for (var i = 0; i < 10; i++) { g.step() }
+    assert(g.menuEntrance.x == 80 && g.menuEntrance.phase == MenuEntrancePhase.Entry)
+    g.navigate(Direction.Down)
+    assert(g.menuSelection == 1)
+    g.step()
+    assert(g.menuEntrance.x == 87 && g.menuEntrance.phase == MenuEntrancePhase.Braking)
+    g.step()
+    assert(g.menuEntrance.x == 84)
+    for (var i = 0; i < 22; i++) { g.step() }
+    assert(g.menuEntrance.x == 18 && g.menuEntrance.phase == MenuEntrancePhase.Ready)
+    g.step()
+    assert(g.menuEntrance.x == 18 && g.steps == 0 && g.stageSteps == 0)
+
+    var immediate = Game()
+    immediate.confirm()
+    immediate.navigate(Direction.Down)
+    immediate.confirm()
+    assert(immediate.screen == Screen.Controls && immediate.menuEntrance.x == 18)
+    immediate.confirm()
+    assert(immediate.screen == Screen.Menu && immediate.menuSelection == 1)
+    immediate.step()
+    assert(immediate.menuEntrance.x == 18)
+    immediate.navigate(Direction.Up)
+    immediate.confirm(99)
+    assert(immediate.screen == Screen.Play && immediate.steps == 0)
+    immediate.pause()
+    immediate.navigate(Direction.Down)
+    immediate.navigate(Direction.Down)
+    immediate.confirm()
+    immediate.step()
+    assert(immediate.screen == Screen.Menu && immediate.menuEntrance.x == 18)
+    immediate.confirm(99)
+    immediate.screen = Screen.Result
+    immediate.confirm()
+    immediate.step()
+    assert(immediate.screen == Screen.Menu && immediate.menuEntrance.x == 18)
 }

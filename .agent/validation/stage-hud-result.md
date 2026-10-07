@@ -988,3 +988,132 @@ Head do PR nesse run: `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`. O checkout efe
 Os dois jobs Kof acima complementam cada critério de modelo da tabela: timing/transições dos créditos, exibição única, seleção, Continuar, reset com seed, abandono, resultado e regressões de combate/boss. Pixels, foco, clique nativo e contatos físicos permanecem demonstrados pelas jornadas Chrome locais, com navegador e capturas já registrados; não se atribui execução Chrome a esse CI. Build/Publish Pages foram skipped, conforme condição push emmain; não são checks selecionados deste PR.
 
 Esta inclusão de links/resultados é um commit exclusivamente documental adicional. Os gates locais serão repetidos nele antes de atualizar o PR; o estado final, SHA e jobs do novo head ficarão no ledger e na descrição do PR. Estes links preservam a execução terminal do código revisado e os resultados anteriores, sem se apresentar como evidência de um SHA futuro. Nenhum critério aberto de vídeo, Android, áudio, Opções/Música, lifecycle, escala ou foco externo foi encerrado por esse CI.
+
+### Revisão de conformidade com o plano — 2026-10-07
+
+Revisão solicitada pelo usuário após a implementação. Head revisado e executado: `7e35430837571ab11fa1d94e7f16abfd8097ed3f`; base `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`; [PR18](https://github.com/renanfranca/kof-sifuture/pull/18), aberto. **Aceite integral do ciclo pendente de R1 e R2 abaixo.** Esta revisão acrescenta somente este registro; não corrige produção ou testes nem publica comentários no PR.
+
+Os onze comandos de [Validation no plano](../../EXECPLAN.md), reproduzidos em `EXECPLAN.md:696–707`, foram executados novamente neste head: testes Kof JVM/JS, sete jornadas Chrome, unittest Python e contrato CI. Todos terminaram com exit0. O contrato CI usou `.agent/tmp/tools` no PATH. Resumo dos resultados locais:
+
+```text
+JVM: 0 failed of 112 tests; 1 passed, 0 failed
+JS:  0 failed of 112 tests; 1 passed, 0 failed
+Python: Ran 8 tests; OK
+11/11 comandos com exit0
+```
+
+Chrome `139.0.7258.154`, Playwright/CDP em larguras320/1200. Boss com seed909:14234 passos e score820 nas duas larguras. Assets selecionados8/8 idênticos byte a byte, NOTICE sem alteração e `git diff --check` limpo. As três provas complementares do boss estão na suíte permanente. Kof instalado0.5.0-beta/JDK embarcado25.0.4.1; checkout Kof consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`, sem atribuir esse SHA automaticamente à distribuição local.
+
+O [run37559613171](https://github.com/renanfranca/kof-sifuture/actions/runs/37559613171), evento pull_request, identifica o mesmo head revisado: [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37559613171/job/112593687654), [JVM](https://github.com/renanfranca/kof-sifuture/actions/runs/37559613171/job/112594163109) e [JS](https://github.com/renanfranca/kof-sifuture/actions/runs/37559613171/job/112594163008) success. Esse head identifica o PR; não foi reidentificado aqui o SHA de checkout do merge sintético do runner. Build/Publish Pages skipped. Chrome continua sendo prova local.
+
+**R1 — P2: opção retida para foco executa outra ação fora da sua tela.** O plano exige que toque execute a opção tocada (`EXECPLAN.md:688`). Reprodução pelo navegador real, nas duas larguras: iniciar, pausar, focar Reiniciar, pressionar Enter sem soltar, tocar Reiniciar enquanto Enter continua mantido. O primeiro comando reinicia, mas o botão Reiniciar permanece visível e habilitado durante Play; o toque seguinte pausa a partida.
+
+Trecho fiel de [GameControls.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameControls.kf:161):
+
+```kof
+    activateOption(Int option, String id) {
+        if (discardOptionClick == id) { discardOptionClick = ""; return }
+        focusOption(option)
+        game.confirm()
+        drawing.render(game)
+        update()
+    }
+```
+
+`update()` conserva a opção quando `secondaryFocused && (enterHeld || spaceHeld)` (`GameControls.kf:254`). `focusOption` só seleciona em Menu/Pause, mas `activateOption` confirma também em Play. Nesse estado, `Game.confirm` executa `pause()` (`Game.kf:155`). Preservar foco para receber a soltura da tecla não deve tornar uma opção antiga um comando da nova tela.
+
+Saída essencial da sonda `python3 .agent/tmp/navigation-plan-review-20261007T092502Z/stale_options.py`, alvo app JS/Chrome:
+
+```json
+{"case": "held_enter_restart_touch_pauses", "width": 320, "before": {"playing": true, "restart_visible": true, "restart_enabled": true}, "after": {"playing": false, "paused": true}}
+{"case": "held_enter_restart_touch_pauses", "width": 1200, "before": {"playing": true, "restart_visible": true, "restart_enabled": true}, "after": {"playing": false, "paused": true}}
+```
+
+A sonda termina0 porque confirma a reprodução do defeito; esse exit não é aceite. Capturas antes/depois foram inspecionadas. Correção necessária: validar a disponibilidade da opção na tela atual sem quebrar foco/soltura/deduplicação, e acrescentar regressão pela interação real com Enter mantido seguido de toque. A partida nunca deve pausar por um toque em Reiniciar.
+
+**R2 — P2: espera dos créditos contém51 quadros, em vez dos50 históricos aprovados.** O [plano](../../EXECPLAN.md#próximo-ciclo-créditos-controles-e-navegação-da-pausa), linha686, exige:
+
+> Preservar chegada, 50 quadros de espera e saída vertical histórica.
+
+No [histórico MenuCanvas.java](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:199), revisão `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, a chegada em x46 já é o primeiro quadro que incrementa delay:
+
+```java
+                    if (this.delay < 50) {
+                        g.drawImage(this.copyright0, i, j0, 0);
+                        g.drawImage(this.copyright1, i, j1, 0);
+                        delay++;
+```
+
+Em [Credits.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/game/Credits.kf:12), a chegada deixa waitSteps em0 e só o passo seguinte começa a contagem:
+
+```kof
+        if (x < Rules.WORLD_WIDTH / 4) { x = x + 5 }
+        else if (waitSteps < 50) { waitSteps = waitSteps + 1 }
+```
+
+A diferença decorre de contar atualizações depois da chegada, em vez de incluir o primeiro quadro parado. Observação Canvas no app JS, relógio controlado30ms, em320/1200:
+
+| Quadro lógico desde a abertura | Histórico: x/y0/y1 | App observado: x/y0/y1 |
+| --- | --- | --- |
+| 36: chegada | 46/110/141 | 46/110/141 |
+| 85: último quadro de espera histórico | 46/110/141 | 46/110/141 |
+| 86: primeira saída histórica | 46/111/140 | 46/110/141 |
+| 87 | 46/112/139 | 46/111/140 |
+
+Quadros36 a86 inclusivos são51 períodos na mesma posição; a saída começa30ms tarde. Valores históricos foram derivados estaticamente do fonte, preservando a ordem desenhar/incrementar, sem executar o JAR. Valores do app foram observados com `python3 .agent/tmp/navigation-plan-review-20261007T092502Z/focused_review.py`. Redesenhos extras não são contados como novos períodos.
+
+O teste permanente `GameJourney.kf:121–124` exige mais50 passos depois da chegada e saída somente no próximo, reproduzindo a expectativa incorreta. O registro anterior de "fifty-frame wait" e a alteração da especificação para "50steps" não demonstram o contrato de50 quadros aprovado. Correção necessária: alinhar contagem e assertions com a chegada e o primeiro quadro de saída do histórico; reconferir também a fronteira final da animação ao ajustar essa contagem. Não há exceção aprovada para esse quadro adicional.
+
+Os demais percursos revisados têm as provas descritas acima; áudio/Opções/Música, vídeo histórico, Android físico, pausa automática, escala adaptável e foco externo continuam fora deste ciclo. Os resultados verdes não encerram R1, que falta nas jornadas permanentes, nem R2, cuja expectativa permanente precisa ser corrigida.
+
+Evidência local opcional: `.agent/tmp/navigation-plan-review-20261007T092502Z/` contém summary.json, onze logs, assets.json, sondas, resultados JSON e capturas. Este registro inclui os procedimentos, resultados e limites essenciais e pode ser entendido sem esses arquivos. A exclusão local `/.agent/tmp/` está presente exatamente uma vez, e nenhum artefato temporário foi adicionado ao Git.
+
+
+### Complemento — confirmação, entrada e contato (07/10/2026)
+
+Escopo aprovado em EXECPLAN.md: correções R1/R2, Confirmar preservando seleção, cinco áreas transparentes sobre opções, entrada única da nave e contato Kof. Base de reprodução: `7e35430837571ab11fa1d94e7f16abfd8097ed3f`. Worktree isolado, branch `menu-entrance-credits`. A revisão R1/R2 acima foi preservada a partir do checkout original sem modificar aquele arquivo local. Worker `primary`/`gpt-6.1-sol`/`medium`, chat `01a11641-92f1-7902-9c41-c3aaa6668c66`; Implementer, Validator e Structural Reviewer compartilham contexto.
+
+**Auditoria de expectativas (contrato):** histórico `MenuCanvas.java:123–136` avança10 com propulsores e recua3; o percurso adaptado aprovado fixa x18. `MenuCanvas.java:199–212` conta chegada na espera e mantém um intervalo vazio antes de sair dos créditos. A tabela aprovada fixa quadros0/1/36/85/86/87/258/259/260 e passos0/1/11/12/13/35/36, sem depender de executar o JAR histórico. A exceção de contato substitui a apresentação de copyright1, preservando os assets e NOTICE.
+
+**Auditoria de suficiência (prova):** `GameJourney.kf` observa pelo Game.step os relógios, seleção, retornos, fases e posições; o teste de créditos inclui chegada nos50 quadros e separa258,259 (`exitComplete`) e260. `tests/browser.py::retained_options` verifica seis transições (três opções × Enter/Space), offscreen/pointer-events, repetição, tentativa de seleção por opção antiga, toque e soltura/rearme. `confirmation_journeys` executa as cinco opções via Enter, Space, clique Confirmar e toque direto; foco em Confirmar conserva seleção. `credits_animation` usa relógio30ms, observa chamadas Canvas/texto literal, RGB, baselines, largura medida, transform e restauração; não atribui prova de pixels ao JVM. O primeiro sprite em x-30 está inteiramente fora do Canvas: sua chamada é observada, e os demais quadros visíveis são comparados com pixels. Faixas de borda azul sobrepostas ao seletor são explicitamente excluídas da comparação de sprite e verificadas separadamente na UI. Capturas inteiras320/1200 permitem inspeção visual da composição.
+
+A mesma regressão permanente de retenção foi executada contra o código da base e falhou porque pointerEvents não era none (`.agent/tmp/retained-baseline-red.log`). A contagem aprovada falhou na base (1/112 JVM, `.agent/tmp/credits-red.log`). Novo contato falhou com copyright1 ainda desenhado (`contact-red.log`); Confirmar ausente falhou por timeout (`confirmation-red2.log`). O novo contrato da entrada primeiro falhou por campo ausente, antes da classe existir; depois a jornada113/113 JVM/JS e os quadros Chrome provaram comportamento, não apenas compilação. Uma regressão adicional mostrou seleção indevida por ArrowDown no controle retido e foi corrigida pela disponibilidade da tela (`retained-navigation-red.log`).
+
+Resultados intermediários, anteriores ao checkpoint: `python3 scripts/kof_project.py test --target jvm` e `--target js`:
+
+```text
+0 failed of 113 tests
+1 passed, 0 failed
+```
+
+`python3 tests/browser.py`, JS/Chrome139.0.7258.154, nas duas larguras:
+
+```text
+PASS retained options reject Space/Enter/touch after Controls/Restart/Main Menu
+PASS credits frames0/1/36/85/86/87/258/259/260
+PASS menu, Enter and Space, conservative confirmation, pause, result and menu in Chrome
+```
+
+Essas linhas são trechos dos resultados intermediários; os SHAs e resultados dos gates completos serão registrados abaixo. Kof do PATH0.5.0-beta, JDK embarcado25.0.4.1, JAR SHA256 `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`; checkout consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`, distinguido da distribuição.
+
+Fontes Kof: [classes idiom](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/idioms/classes.md) declara:
+
+> for **mutable state** use explicit fields + `constructor(...)`.
+
+MenuEntrance mantém posição/fase em campos; somente Game.step chama advance. Isso deixa o render como leitura, preservando a separação entre passagem do tempo e redesenho. [Learn07](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/07-classes-and-objects.md) §3 demonstra mutação de campos, e [referência de classes](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/docs/language-reference/classes.md) descreve o contrato. No [idioma UI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/idioms/ui.md), o bloco temporário usa:
+
+```kof
+c.save()
+c.setGlobalAlpha(0.3)
+c.transform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+c.fillText("rótulo", 10, 20)
+c.restore()
+var w = c.measureText("rótulo")   // Double — real text width
+```
+
+Save/restore preservam transformação e cor; measureText retorna largura Double. O fonte `KofUi.java:520–521` registra measureText/transform; `JsRuntimeUiWidgets.java:468–476` chama ctx.measureText/ctx.transform reais; `UiE2ETest.java:672–694` cobre vinculação da API. Canvas JVM/Native são no-op; pixels, medidas e interações são aceitos pelo Chrome. As visões antigas de Learn35 não substituem essa implementação/prova atual. A sintaxe literal Style e Button/on/setStyle foi consultada na implementação e verificada por build e comportamento JS.
+
+Evidências opcionais em `.agent/tmp/`: logs RED/GREEN, `navigation-browser/`, identidade Kof e inventários. Sonar, Habit e runner de mutação ausentes de configuração e excluídos; não têm resultado pass. Áudio, Android, escala, lifecycle e comparação integral com vídeo continuam pendentes e fora deste complemento.
+
+
+Sonda de reutilização, Chrome139 com relógio controlado: após pular créditos e1000 ticks de Menu, nodes137→137 e styles26→26. `.agent/tmp/registry-reuse.json` preserva o resultado; não é teste de helper nem prova de lifecycle fora deste recorte. Inspeção visual das capturas de créditos e Menu/pausa em320/1200: contato literal completo, três linhas dentro do bloco, sem corte; único Confirmar, nave/seletor e borda visíveis; pausa conserva o sprite RESUME e os dois textos Kof. A escala nominal0.75 e a redução com fonte Canvas20px também são verificadas por largura/transform; tolerância1e-7 na matriz considera a precisão do DOMMatrix do navegador, mantendo a prova de posições inteiras exatas e largura até130 (tolerância1e-5).

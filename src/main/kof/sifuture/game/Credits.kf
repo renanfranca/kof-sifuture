@@ -5,17 +5,22 @@ class Credits {
     Int firstY = 110
     Int secondY = 141
     Int waitSteps = 0
+    Bool exitComplete = false
 
     public constructor() { }
 
     advance(): Bool {
-        if (x < Rules.WORLD_WIDTH / 4) { x = x + 5 }
+        if (exitComplete) { return true }
+        if (x < Rules.WORLD_WIDTH / 4) {
+            x = x + 5
+            if (x >= Rules.WORLD_WIDTH / 4) { waitSteps = 1 }
+        }
         else if (waitSteps < 50) { waitSteps = waitSteps + 1 }
         else if (secondY >= -31 || firstY <= Rules.WORLD_HEIGHT) {
             firstY = firstY + 1
             secondY = secondY - 1
         }
-        else { return true }
+        else { exitComplete = true }
         return false
     }
 }

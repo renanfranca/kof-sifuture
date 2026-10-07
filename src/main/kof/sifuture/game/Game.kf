@@ -5,6 +5,7 @@ class Game {
     Int pauseSelection = 0
     Int menuSelection = 0
     Credits credits = Credits()
+    MenuEntrance menuEntrance = MenuEntrance()
     Ship ship = Ship()
     Background background = Background()
     List<Item> items = listOf(Item(ItemKind.Evolution), Item(ItemKind.Life))
@@ -106,6 +107,7 @@ class Game {
     }
 
     start(Int seed) {
+        menuEntrance.finish()
         clearMovement()
         rng.seed(seed)
         screen = Screen.Play
@@ -134,7 +136,7 @@ class Game {
     }
 
     openControls() {
-        if (screen == Screen.Menu) { screen = Screen.Controls; clearMovement() }
+        if (screen == Screen.Menu) { menuEntrance.finish(); screen = Screen.Controls; clearMovement() }
     }
 
     confirm() {
@@ -185,6 +187,7 @@ class Game {
     }
 
     step() {
+        if (screen == Screen.Menu) { menuEntrance.advance(); return }
         if (screen == Screen.Credits) {
             if (credits.advance()) { screen = Screen.Menu }
             return
