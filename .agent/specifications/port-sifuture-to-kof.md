@@ -1,6 +1,19 @@
 # Port SiFuture to Kof
 
 - **Status:** Approved specification; browser gameplay, manual controls/pause, background, items, weapon evolution, historically accepted boss-free stage, sprite HUD, moving result, subchief and final boss combat slices implemented. Full v1 remains open.
+
+## Approved credits, Controls and pause navigation cycle — 2026-10-06
+
+This cycle adds the historical credits animation at application creation, the navigable New Game/Controls menu, the Controls explanation with Back, and Continue/Restart/Main Menu on pause. Options and Music remain required v1 work for the audio cycle. Automatic pause, adaptive scaling, keyboard input outside the controls tree and actual Android execution remain later cycles.
+
+Credits start at x=-134, y0=110, y1=141 in the 176 × 220 world. Every 30 ms step moves x by 5 until x=46, holds for 50 steps, then moves y0 down and y1 up by one while y1 >= -31 or y0 <= 220. The next step after both have exited opens Menu. Rendering MUST NOT advance these clocks. Enter with focus, a canvas touch or the skip button opens only Menu; held Enter MUST NOT begin a game. Credits MUST NOT recur after Controls, restart, abandonment or result within this instance.
+
+New Game starts selected. Up/Down clamp at the two menu options and the three pause options; held/repeated key events or a held touch MUST NOT repeatedly navigate. Confirmation executes the selected option, and direct touch executes the touched option. Back preserves Controls selection. Controls MUST explain keyboard mapping and focus, diagonals, last-pressed opposites, captured drag, independent release/cancel, special once per press and cleared movement on pause.
+
+Continue preserves every combat state and clock; the next step advances once without restoring held movement. Restart uses the same reset as `Game.start(seed)` and has an injectable seed through `Game.restart(seed)`/`Game.confirm(seed)`. It restores ship (0,100), three lives, score zero, position 5, base weapon, zero charges and inactive bosses. Main Menu ends the attempt, clears active inputs, selects New Game and prevents subsequent steps/resume from continuing it. New Game begins cleanly without credits. The existing two result confirmations remain unchanged.
+
+Copy copyright0/1 and the used menu0/1/4 sprites byte for byte; preserve NOTICE. Promote the three complementary boss proofs recorded in stage-hud-result.md to the existing permanent GameJourney suite. Run all eleven commands in the approved plan and retain separate expectation/assertion audits, SHA, Kof identity, browser/version, captures and CI links in the existing acceptance records. Historical-video comparison and physical Android remain explicit acceptance gaps.
+
 - **Source:** The SiFuture port handoff and the approved proposal in the Codex task.
 - **Port repository:** `/home/renanfranca/projects/kof-sifuture`.
 - **Historical game:** `/home/renanfranca/projects/sifuture`.

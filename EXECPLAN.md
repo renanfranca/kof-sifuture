@@ -624,3 +624,96 @@ Partir de `controls-alignment`, preservando os aceites anteriores como históric
 Execução por `primary`, neste chat, com papéis e leases serializados. Validação e revisão compartilham o contexto da implementação. Sonar, Habit e mutation testing permanecem excluídos por ausência de configuração. Plano literal, ledger e evidências locais: `.agent/tmp/special-vertical.*`.
 
 Gate de entrega deste ciclo: repetir todos os onze checks no complemento documental; o ledger e a descrição do PR #17 registrarão o head final, resultado do gate e execução específica de CI antes da entrega.
+
+
+# Próximo ciclo: créditos, Controles e navegação da pausa
+
+## Purpose and success
+
+**Sim: o núcleo das mecânicas já está implementado e aceito nos ciclos de gameplay, incluindo subchefe e boss final. A v1 completa continua aberta.** A própria [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:3) registra:
+
+> subchief and final boss combat slices implemented. Full v1 remains open.
+
+Nesta releitura, executei as suítes JVM/JS e o percurso principal do Chrome no commit `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`, todos com saída 0:
+
+```text
+0 failed of 103 tests
+1 passed, 0 failed
+PASS menu, Enter and Space, conservative confirmation, pause, result and menu in Chrome
+```
+
+As regras da partida têm evidência automatizada. Ainda faltam requisitos da aplicação completa e a comparação visual com o vídeo histórico.
+
+O próximo ciclo escolhido entregará **abertura com créditos animados → menu navegável → Controles → partida → pausa com Continuar, Reiniciar e Menu principal**.
+
+## Context and limits
+
+- Preservar a animação histórica dos créditos. A frequência será a determinada pela [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:148):
+
+  > Credits MUST appear once when the application opens. Enter or touch MUST skip them. They MUST NOT recur within the same running application instance.
+
+- Opções e os controles de Música ficam para o ciclo de áudio, conforme a escolha feita nesta conversa. Continuam obrigatórios para concluir a v1.
+- Pausa automática, escala adaptável, entrada fora da árvore de controles e execução Android ficam para ciclos posteriores. Neste ciclo, o teclado mantém a ativação por clique ou Tab.
+- Consultar o histórico em `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, sem executar seu JAR como oráculo. Kof consultado: `317d9f6b1c3e27032cc955a05f859f6c627d9338`; instalação executada: `0.5.0-beta`.
+
+## Milestones
+
+1. **Adicionar abertura e navegação ao modelo.** Acrescentar Credits e Controls às telas existentes. Os créditos aparecem na criação da aplicação; iniciar, reiniciar e voltar ao menu nunca os reativam. Manter `Game.start(seed)`, `step()` e `stagePosition()`. Acrescentar ações explícitas para abrir Controles, navegar entre opções, reiniciar com seed injetável e abandonar a partida.
+
+2. **Integrar telas e controles Kof.** Reutilizar a composição atual, com botões acessíveis para toque direto. Menu: Novo Jogo e Controles. Pausa: Continuar, Reiniciar e Menu principal. Cima/Baixo selecionam sem ultrapassar as extremidades; confirmação executa a seleção. Controles explica teclado, foco, diagonais, opostos, arrasto, soltura e especial, com ação Voltar. Preservar os bloqueios de teclas mantidas e a deduplicação do clique nativo.
+
+3. **Preservar apresentação e responsabilidades.** Copiar `copyright0.png`, `copyright1.png` e os sprites de menu utilizados sem transformação; preservar NOTICE. Animações avançam somente nos passos de 30 ms; desenho apenas consulta estado. O estado mutável dos créditos pertence a uma classe, seguindo o [idioma Kof](/home/renanfranca/projects/kof/training/idioms/classes.md:35):
+
+   > for **mutable state** use explicit fields + `constructor(...)`.
+
+   Isso mantém posição e relógios da animação juntos, permitindo redesenhar sem acelerar sua execução.
+
+4. **Consolidar testes e documentação.** Ampliar as jornadas existentes e promover as três provas complementares do boss já [registradas](/home/renanfranca/projects/kof-sifuture/.agent/validation/stage-hud-result.md:837) à suíte permanente. Atualizar a especificação, o EXECPLAN e os registros de aceite existentes, preservando a história dos ciclos anteriores.
+
+## Progress
+
+- [x] Especificação, implementação, testes e aceites relidos.
+- [x] Base atual verificada em JVM, JS e no percurso principal do Chrome.
+- [x] Recorte e animação histórica escolhidos pelo usuário.
+- [ ] Implementação e aceite do novo ciclo. Nenhum arquivo versionado foi alterado nesta preparação.
+
+## Validation
+
+As verificações abaixo são **planejadas**, ainda não resultados do novo ciclo.
+
+| Critério e fonte | Contexto, ação e resultado esperado | Prova prevista |
+|---|---|---|
+| Créditos — [histórico](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:192) | Abertura começa em x=-134; primeiro avanço mostra x=-129. Preservar chegada, 50 quadros de espera e saída vertical histórica. Redesenhar não avança a animação. | JVM/JS nas transições; Chrome com relógio controlado e comparação dos sprites. |
+| Exibição única — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:148) | Enter focado ou toque pula somente para Menu. Manter Enter pressionado não inicia a partida. Retornos de Controles, pausa e resultado não repetem créditos. | Ampliar `browser.py`, observando também o evento seguinte à transição. |
+| Navegação — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:144) | Seleção inicial Novo Jogo; Baixo seleciona Controles; repetição mantida não navega novamente. Toque executa diretamente a opção tocada. Voltar de Controles conserva essa seleção. | Modelo e Chrome em 320/1200; nomes acessíveis, foco e ausência de Carregar/Opções neste recorte. |
+| Continuar — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:150) | Pausar uma partida com movimento e projéteis ativos congela estado. Continuar conserva a partida; o primeiro passo avança uma vez, sem recuperar movimento mantido. | Reutilizar provas de pausa e acrescentar a navegação pela nova tela. |
+| Reiniciar — mesma fonte | Reiniciar uma partida evoluída restaura nave em `(0,100)`, três vidas, score zero, posição 5, arma básica, zero cargas e chefes inativos. Uma seed fixa reproduz a nova partida. | JVM/JS pelo comando de reinício; Chrome pela ação real, verificando também o primeiro passo. |
+| Menu principal — mesma fonte | Abandonar durante combate retorna ao menu com Novo Jogo selecionado; passos seguintes não retomam a tentativa. Novo Jogo começa uma partida limpa, sem créditos. | Modelo e Chrome, incluindo teclas e contatos mantidos durante a saída. |
+| Regressões | Resultado mantém suas duas confirmações; combate, controles e geometria atuais continuam aceitos. As três provas complementares do boss tornam-se permanentes. | Suíte completa e sete jornadas existentes. |
+
+Executar:
+
+```bash
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 tests/browser.py
+python3 tests/browser_controls.py
+python3 tests/browser_meteor.py
+python3 tests/browser_weapons.py
+python3 tests/browser_stage.py
+python3 tests/browser_subchief.py
+python3 tests/browser_boss.py
+python3 -m unittest discover -s tests -p 'test_kof_project.py'
+PATH="$PWD/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh
+```
+
+Antes da entrega, conferir separadamente **se cada expectativa corresponde às fontes** e **se suas assertions demonstram o comportamento**. Registrar por critério comando, resultado, assertion/captura, SHA, identidade Kof, navegador e links de CI. Guardar evidência gerada em `.agent/tmp/` e resumos versionados em `.agent/validation/`.
+
+Falhas, cobertura ausente, comparação com vídeo e Android real devem permanecer explicitamente pendentes; uma suíte verde não encerra esses critérios.
+
+
+### Execução confirmada — créditos e navegação
+
+Branch `credits-pause-navigation`, checkout atual sem worktree, base `main` fixa `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`. Worker `primary`, chat `01a113e4-c500-76c1-850c-191a12bc6f41`, título `sifuture-navigation-primary`, `gpt-6.1-sol`/`medium`. Os sete papéis compartilham contexto e usam leases serializados; revisão e validação não são independentes. Onze checks locais e Resolve/JVM/JS no CI confirmados. Sonar, Habit e mutação excluídos por ausência de configuração, sem atribuir pass. Plano literal, ledger, inventário, coletores e logs em `.agent/tmp/credits-pause-navigation.*`.
+
+Implementação e checkpoints comportamentais: Credits/Controls no modelo; créditos em classe mutável avançada por step; seleção limitada e deduplicada; reinício com seed e abandono; telas, botões e explicação Kof. Três provas do boss promovidas à suíte permanente. JVM/JS: 112 casos; Chrome: créditos, navegação e reinício nos percursos existentes em 320/1200. Gates completos e auditorias serão registrados no aceite antes da entrega.

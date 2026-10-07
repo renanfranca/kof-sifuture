@@ -1,7 +1,10 @@
 package sifuture.game
 
 class Game {
-    Screen screen = Screen.Menu
+    Screen screen = Screen.Credits
+    Int pauseSelection = 0
+    Int menuSelection = 0
+    Credits credits = Credits()
     Ship ship = Ship()
     Background background = Background()
     List<Item> items = listOf(Item(ItemKind.Evolution), Item(ItemKind.Life))
@@ -13,6 +16,8 @@ class Game {
     Boss boss = Boss()
     List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
     Weapons weapons = Weapons()
+    Bool navigationUpHeld = false
+    Bool navigationDownHeld = false
     Bool padLeft = false
     Bool padRight = false
     Bool padUp = false
@@ -64,6 +69,7 @@ class Game {
         if (direction == Direction.Right) { heldRight = pressed }
         if (direction == Direction.Up) { heldUp = pressed }
         if (direction == Direction.Down) { heldDown = pressed }
+        if (pressed && movementAllowed) { navigate(direction) }
         if (screen == Screen.Play && !padPressed() && movementAllowed) { ship.direction(direction, pressed) }
     }
 
@@ -72,6 +78,19 @@ class Game {
     }
 
     movement(Direction direction, Bool pressed) {
+        if (!pressed && direction == Direction.Up) { navigationUpHeld = false }
+        if (!pressed && direction == Direction.Down) { navigationDownHeld = false }
+        if (screen == Screen.Menu || screen == Screen.Pause) {
+            if (direction == Direction.Up && pressed && !navigationUpHeld) {
+                navigationUpHeld = true
+                navigate(direction)
+            }
+            if (direction == Direction.Down && pressed && !navigationDownHeld) {
+                navigationDownHeld = true
+                navigate(direction)
+            }
+            return
+        }
         var held = false
         if (direction == Direction.Left) { held = padLeft }
         if (direction == Direction.Right) { held = padRight }
@@ -103,21 +122,62 @@ class Game {
         boss.reset()
     }
 
-    confirm() {
-        if (screen == Screen.Menu) {
-            Int seedBound = Rules.RANDOM_SEED_BOUND
-            start(random.int(seedBound))
+    navigate(Direction direction) {
+        if (screen == Screen.Pause) {
+            if (direction == Direction.Up && pauseSelection > 0) { pauseSelection = pauseSelection - 1 }
+            if (direction == Direction.Down && pauseSelection < 2) { pauseSelection = pauseSelection + 1 }
+            return
         }
+        if (screen != Screen.Menu) { return }
+        if (direction == Direction.Up && menuSelection > 0) { menuSelection = menuSelection - 1 }
+        if (direction == Direction.Down && menuSelection < 1) { menuSelection = menuSelection + 1 }
+    }
+
+    openControls() {
+        if (screen == Screen.Menu) { screen = Screen.Controls; clearMovement() }
+    }
+
+    confirm() {
+        if ((screen == Screen.Menu && menuSelection == 0) || (screen == Screen.Pause && pauseSelection == 1)) {
+            Int seedBound = Rules.RANDOM_SEED_BOUND
+            this.confirm(random.int(seedBound))
+        }
+        else { this.confirm(0) }
+    }
+
+    confirm(Int seed) {
+        if (screen == Screen.Credits) { screen = Screen.Menu }
+        else if (screen == Screen.Menu) {
+            if (menuSelection == 0) { start(seed) }
+            else { openControls() }
+        }
+        else if (screen == Screen.Controls) { screen = Screen.Menu }
         else if (screen == Screen.Play) { pause() }
-        else if (screen == Screen.Pause) { resume() }
+        else if (screen == Screen.Pause) {
+            if (pauseSelection == 0) { resume() }
+            else if (pauseSelection == 1) { restart(seed) }
+            else { abandon() }
+        }
         else if (screen == Screen.Result) {
             if (!countComplete()) { displayedScore = score }
-            else { screen = Screen.Menu; clearMovement() }
+            else { screen = Screen.Menu; menuSelection = 0; clearMovement() }
         }
     }
 
+    abandon() {
+        if (screen == Screen.Pause) {
+            screen = Screen.Menu
+            menuSelection = 0
+            clearMovement()
+        }
+    }
+
+    restart(Int seed) {
+        if (screen == Screen.Pause) { start(seed) }
+    }
+
     pause() {
-        if (screen == Screen.Play) { screen = Screen.Pause; clearMovement() }
+        if (screen == Screen.Play) { screen = Screen.Pause; pauseSelection = 0; clearMovement() }
     }
 
     resume() {
@@ -125,6 +185,10 @@ class Game {
     }
 
     step() {
+        if (screen == Screen.Credits) {
+            if (credits.advance()) { screen = Screen.Menu }
+            return
+        }
         if (screen == Screen.Result) {
             subchief.advance()
             boss.advance()

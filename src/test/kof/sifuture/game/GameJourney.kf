@@ -1,6 +1,152 @@
 package sifuture.game
 import sifuture.game.*
 
+test "menu and pause touch directions select once per contact without becoming ship movement" {
+    var g = Game()
+    g.confirm()
+    g.movement(Direction.Down, true)
+    assert(g.menuSelection == 1 && !g.padPressed())
+    g.movement(Direction.Down, true)
+    assert(g.menuSelection == 1)
+    g.movement(Direction.Down, false)
+    g.movement(Direction.Up, true)
+    assert(g.menuSelection == 0)
+    g.movement(Direction.Up, false)
+    g.start(77)
+    g.pause()
+    g.movement(Direction.Down, true)
+    g.movement(Direction.Down, true)
+    assert(g.pauseSelection == 1 && !g.padPressed())
+    g.movement(Direction.Down, false)
+    g.movement(Direction.Down, true)
+    assert(g.pauseSelection == 2 && !g.padPressed())
+}
+
+test "pause main menu ends attempt clears contacts and selects a clean new game" {
+    var g = Game()
+    g.start(55)
+    g.step()
+    g.movement(Direction.Right, true)
+    g.keyboard(Direction.Down, true)
+    g.pause()
+    g.navigate(Direction.Up)
+    assert(g.pauseSelection == 0)
+    g.navigate(Direction.Down)
+    g.navigate(Direction.Down)
+    g.navigate(Direction.Down)
+    assert(g.pauseSelection == 2)
+    g.confirm()
+    assert(g.screen == Screen.Menu && g.menuSelection == 0 && !g.padPressed())
+    var steps = g.steps
+    var projectileX = g.weapons.lasers.shots[0].x
+    g.step()
+    g.resume()
+    assert(g.screen == Screen.Menu && g.steps == steps && g.weapons.lasers.shots[0].x == projectileX)
+    g.confirm(55)
+    assert(g.screen == Screen.Play && g.steps == 0 && g.ship.x == 0 && g.score == 0)
+    g.keyboard(Direction.Down, true)
+    g.step()
+    assert(g.ship.y == 100 && g.steps == 1)
+    g.pause()
+    g.abandon()
+    assert(g.screen == Screen.Menu && g.menuSelection == 0)
+}
+
+test "pause restart clears evolved combat and replays an injected seed" {
+    var g = Game()
+    g.start(314)
+    for (var i = 0; i < 45; i++) { g.step() }
+    g.ship.x = 60
+    g.ship.lives = 1
+    g.score = 90
+    g.weapons.level = 3
+    g.weapons.charges = 2
+    g.boss.phase = BossPhase.Fury
+    g.subchief.phase = SubchiefPhase.Normal
+    g.keyboard(Direction.Right, true)
+    g.movement(Direction.Up, true)
+    g.pause()
+    assert(g.pauseSelection == 0)
+    g.navigate(Direction.Down)
+    assert(g.pauseSelection == 1)
+    g.confirm(314)
+    assert(g.screen == Screen.Play && g.steps == 0 && g.stagePosition() == 5)
+    assert(g.ship.x == 0 && g.ship.y == 100 && g.ship.lives == 3)
+    assert(g.score == 0 && g.displayedScore == 0 && g.ship.restartFrame == 0)
+    assert(g.weapons.level == 0 && g.weapons.charges == 0 && g.weapons.fireSteps == 0)
+    assert(g.subchief.phase == SubchiefPhase.Inactive && g.boss.phase == BossPhase.Inactive)
+    assert(!g.padPressed() && !g.ship.right && !g.ship.up)
+    var meteorX = g.meteors[0].x
+    var meteorY = g.meteors[0].y
+    var bossX = g.boss.x
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.steps == 1 && g.ship.x == 0 && g.ship.restartFrame == 1)
+    g.pause()
+    g.restart(314)
+    assert(g.meteors[0].x == meteorX && g.meteors[0].y == meteorY && g.boss.x == bossX)
+}
+
+test "menu navigation clamps repeats and controls return preserves selection" {
+    var g = Game()
+    g.confirm()
+    assert(g.menuSelection == 0)
+    g.keyboard(Direction.Up, true)
+    assert(g.menuSelection == 0)
+    g.keyboard(Direction.Up, false)
+    g.keyboard(Direction.Down, true)
+    g.keyboard(Direction.Down, true)
+    assert(g.menuSelection == 1)
+    g.confirm()
+    assert(g.screen == Screen.Controls)
+    g.step()
+    g.confirm()
+    assert(g.screen == Screen.Menu && g.menuSelection == 1)
+    g.keyboard(Direction.Down, true)
+    assert(g.menuSelection == 1)
+    g.keyboard(Direction.Down, false)
+    g.keyboard(Direction.Up, true)
+    assert(g.menuSelection == 0)
+    g.confirm(123)
+    assert(g.screen == Screen.Play)
+}
+
+test "credits advance horizontally wait fifty steps then exit vertically before menu" {
+    var g = Game()
+    assert(g.credits.x == -134 && g.credits.firstY == 110 && g.credits.secondY == 141)
+    g.step()
+    assert(g.credits.x == -129 && g.credits.waitSteps == 0)
+    for (var i = 0; i < 35; i++) { g.step() }
+    assert(g.credits.x == 46 && g.credits.firstY == 110)
+    for (var i = 0; i < 50; i++) { g.step() }
+    assert(g.credits.waitSteps == 50 && g.credits.firstY == 110 && g.credits.secondY == 141)
+    g.step()
+    assert(g.credits.firstY == 111 && g.credits.secondY == 140)
+    for (var i = 0; i < 172; i++) { g.step() }
+    assert(g.screen == Screen.Credits && g.credits.firstY == 283 && g.credits.secondY == -32)
+    g.step()
+    assert(g.screen == Screen.Menu)
+    var x = g.credits.x
+    g.step()
+    assert(g.credits.x == x && g.credits.firstY == 283)
+}
+
+test "application opens with credits and confirmation skips only to menu once" {
+    var g = Game()
+    assert(g.screen == Screen.Credits)
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+    g.start(123)
+    g.pause()
+    g.resume()
+    assert(g.screen == Screen.Play)
+    g.screen = Screen.Result
+    g.score = 5
+    g.confirm()
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+}
+
 test "finishing with right held restores normal ship while score counts and position freezes" {
     var g = Game()
     g.start(908)
@@ -2578,4 +2724,40 @@ test "boss evolution preserves a due clock uses first free slot and jumps crosse
     assert(g.boss.lives == 19 && g.boss.weapons.level == 4 && g.boss.phase == BossPhase.Frenzy)
     assert(g.boss.lifeTime == 61 && g.boss.normalSteps == 0 && g.boss.weapons.fireSteps == 6 && g.score == 0)
     assert(g.boss.weapons.special.active && g.weapons.blaster.lives == 0)
+}
+
+test "initial boss capacity remains one with first slot occupied and second free" {
+    var game = Game()
+    prepareBoss(game)
+    game.boss.weapons.shots[0].fire(1010, -100)
+    for (var i = 0; i < 26; i++) { game.step() }
+    assert(game.boss.weapons.shots[0].active && game.boss.weapons.shots[0].x == 896)
+    assert(!game.boss.weapons.shots[1].active)
+    assert(game.boss.weapons.fireSteps == 0 && game.boss.weapons.attempts == 0)
+}
+
+test "boss levels two and three require the special trigger even with an eligible clock" {
+    for (var level = 2; level <= 3; level++) {
+        var game = Game()
+        prepareBoss(game)
+        game.boss.weapons.level = level
+        game.boss.weapons.fireSteps = 11
+        game.boss.weapons.specialReady = false
+        game.step()
+        assert(!game.boss.weapons.special.active && game.boss.weapons.fireSteps == 12)
+    }
+}
+
+test "boss absorbed meteor cannot hit a normal ship at the same inclusive edge" {
+    var game = Game()
+    prepareBoss(game)
+    game.boss.phase = BossPhase.Fury
+    game.ship.x = 70
+    game.ship.y = 100
+    game.meteors[0].x = 121
+    game.meteors[0].y = 100
+    game.step()
+    assert(game.meteors[0].x == 120 && game.meteors[0].collided)
+    assert(game.ship.phase == ShipPhase.Normal && game.ship.lives == 3)
+    assert(game.boss.lives == 100 && game.score == 0)
 }

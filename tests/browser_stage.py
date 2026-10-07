@@ -318,6 +318,69 @@ def boundaries(page):
         assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
 
 
+def pause_navigation(page, width):
+    overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+    overlay.focus()
+    page.keyboard.down("ArrowRight")
+    advance(page, 13)
+    evolved = state(page)
+    assert evolved["lasers"] > 0 and evolved["shipX"] > 40
+    page.keyboard.press("Enter")
+    advance(page, 10)
+    frozen = state(page)
+    assert frozen["steps"] == evolved["steps"] and frozen["shipX"] == evolved["shipX"]
+    page.keyboard.press("ArrowDown")
+    page.keyboard.press("ArrowUp")
+    page.keyboard.press("Enter")
+    advance(page)
+    continued = state(page)
+    assert continued["steps"] == frozen["steps"] + 1 and continued["shipX"] == frozen["shipX"]
+    page.keyboard.down("ArrowRight")
+    advance(page)
+    assert state(page)["shipX"] == continued["shipX"]
+    page.keyboard.press("Enter")
+    page.keyboard.press("ArrowDown")
+    page.keyboard.down("Enter")
+    page.keyboard.down("Enter")
+    page.get_by_role("button", name="Observe", exact=True).click()
+    reset = state(page)
+    expected = {"steps": 0, "position": 5, "score": 0, "displayed": 0, "lives": 3,
+                "shipX": 0, "shipY": 100, "level": 0, "charges": 0, "restartFrame": 0,
+                "fireSteps": 0, "bossActive": 0, "subchiefActive": 0,
+                "lasers": 0, "blaster": 0, "beams": 0}
+    assert {key: reset[key] for key in expected} == expected
+    assert page.get_by_role("button", name="Pausar", exact=True).count() == 1
+    overlay.focus()
+    page.keyboard.down("Enter")
+    assert page.get_by_role("button", name="Pausar", exact=True).count() == 1
+    page.keyboard.up("Enter")
+    advance(page)
+    first = state(page)
+    assert first["steps"] == 1 and first["restartFrame"] == 1 and first["shipX"] == 0
+    page.keyboard.up("ArrowRight")
+    page.keyboard.press("ArrowRight")
+    advance(page)
+    assert state(page)["shipX"] == 0
+    page.keyboard.down("ArrowRight")
+    page.keyboard.press("Enter")
+    page.get_by_role("button", name="Menu principal", exact=True).tap()
+    advance(page, 20)
+    ended = state(page)
+    assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
+    assert ended["steps"] == 2
+    assert page.get_by_role("button", name="Novo Jogo", exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+    page.get_by_role("button", name="Novo Jogo", exact=True).tap()
+    advance(page)
+    assert state(page)["steps"] == 1 and state(page)["shipX"] == 0
+    page.keyboard.up("ArrowRight")
+    page.get_by_role("button", name="Pausar", exact=True).tap()
+    page.get_by_role("button", name="Reiniciar", exact=True).tap()
+    page.get_by_role("button", name="Observe", exact=True).click()
+    assert state(page)["steps"] == 0 and state(page)["shipX"] == 0 and state(page)["lives"] == 3
+    page.screenshot(path=str(EVIDENCE / f"navigation-reset-{width}.png"), full_page=True)
+    print(f"PASS pause freezes active combat, navigation continues once, Restart resets and held input cannot leak through Main Menu at {width}px")
+
+
 def main():
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     with served_build(fixture=ROOT / "tests/stage.kf") as url, served_build() as app_url:
@@ -326,7 +389,7 @@ def main():
                                         args=["--no-sandbox", "--headless=new"])
             try:
                 for width in (320, 1200):
-                    for journey in (hud_and_pause, moving_result, right_held_result, right_input_clearing, defeat_projectiles, defeat_effects):
+                    for journey in (pause_navigation, hud_and_pause, moving_result, right_held_result, right_input_clearing, defeat_projectiles, defeat_effects):
                         page = open_scene(browser, url, width)
                         errors = []
                         page.on("pageerror", lambda error: errors.append(str(error)))
@@ -341,6 +404,7 @@ def main():
                         assert not errors, errors
                         page.close()
                     page = open_scene(browser, app_url, width)
+                    page.get_by_role("button", name="Pular créditos", exact=True).click()
                     page.get_by_role("button", name="Novo Jogo", exact=True).click()
                     advance(page, 10)
                     sprite(page, "3lives.png", 6, 9, occluded=((0, 0, 8, 30),))

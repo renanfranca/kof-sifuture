@@ -238,6 +238,7 @@ def main():
                     app.clock.install(time=datetime(2026, 1, 1))
                     app.clock.pause_at(datetime(2026, 1, 1))
                     app.goto(app_url)
+                    button(app, "Pular créditos")
                     button(app, "Novo Jogo")
                     advance(app, 10)
                     app.screenshot(path=str(EVIDENCE / f"app-{width}.png"))

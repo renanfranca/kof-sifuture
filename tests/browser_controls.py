@@ -509,8 +509,22 @@ def touch_pause_clears_diagonal(browser, url):
         run(1)
         assert ship_observation(page) == (65, 100, False)
         touch.release("↓")
+        touch.press("→", "↑")
+        run(1)
+        page.get_by_role("button", name="Pausar", exact=True).click()
+        page.get_by_role("button", name="Menu principal", exact=True).click()
+        run(2)
+        assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
+        assert page.get_by_role("button", name="Pular créditos", exact=True).count() == 0
+        page.get_by_role("button", name="Novo Jogo", exact=True).click()
+        run(1)
+        assert ship_observation(page) == (0, 100, False)
+        touch.release("→")
+        touch.release("↑")
+        run(1)
+        assert ship_observation(page) == (0, 100, False)
         TOUCH_EVIDENCE.append({"case": "pause", "events": touch.events()})
-    print("PASS pause with two held fingers clears both axes; continue stays still until a new press")
+    print("PASS pause with two held fingers clears both axes; Continue and Main Menu keep held contacts from moving the resumed or new ship")
 
 
 def cross_layout(browser, url):

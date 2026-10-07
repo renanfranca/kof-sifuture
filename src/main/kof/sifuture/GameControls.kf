@@ -8,6 +8,12 @@ class GameControls {
     GameView drawing
     Button overlay
     Button action
+    Button secondary
+    Button mainMenu
+    Label help
+    Bool secondaryFocused = false
+    Bool menuFocused = false
+    String discardOptionClick = ""
     Button special
     Button north
     Button west
@@ -70,15 +76,30 @@ class GameControls {
         action.setId("game-action")
         action.on("pointerdown", (e: Event) -> { this.discardEnterClick = false })
         action.on("blur", (e: Event) -> { this.discardEnterClick = false })
+        secondary = Button("Controles", () -> { this.activateOption(1, "game-secondary") })
+        secondary.setId("game-secondary")
+        secondary.on("pointerdown", (e: Event) -> { this.discardOptionClick = "" })
+        secondary.on("focus", (e: Event) -> { this.secondaryFocused = true; this.focusOption(1) })
+        secondary.on("blur", (e: Event) -> { this.secondaryFocused = false; this.discardOptionClick = "" })
+        mainMenu = Button("Menu principal", () -> { this.activateOption(2, "game-menu") })
+        mainMenu.setId("game-menu")
+        mainMenu.on("pointerdown", (e: Event) -> { this.discardOptionClick = "" })
+        mainMenu.on("focus", (e: Event) -> { this.menuFocused = true; this.focusOption(2) })
+        mainMenu.on("blur", (e: Event) -> { this.menuFocused = false; this.discardOptionClick = "" })
+        help = Label("Teclado: clique no jogo ou use Tab para dar foco. Setas movem a nave; Enter confirma e pausa; 1 tenta o especial. Toque: setas independentes combinam diagonais; em opostos vale a última seta pressionada, e soltá-la retoma a outra ainda mantida. Arrasto mantém a seta inicial até soltar ou cancelar. Soltar uma seta conserva as demais. Especial faz uma tentativa por pressão, sem repetir enquanto mantido. Pausa limpa movimentos; Continuar exige nova pressão.")
+        help.setId("game-help")
+        help.setStyle(Style("max-width: 272; white-space: normal; padding: 8"))
         var hint = Label("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age; 1 dispara especial.")
-        root = Column(listOf(movementControls, action, hint))
+        root = Column(listOf(movementControls, action, secondary, mainMenu, help, hint))
         root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
         root.on("keyup", (e: Event) -> { this.keyChanged(e.key(), e.target(), false) })
         update()
     }
 
     View keyboardSurface(Canvas canvas) {
-        overlay = Button("Ativar teclado do jogo", () -> {})
+        overlay = Button("Ativar teclado do jogo", () -> {
+            if (game.screen == Screen.Credits) { this.activateAction() }
+        })
         configureOverlay()
         var surface = View(Style("position: relative; width: 176; height: 220; padding: 0; align-self: center"))
         surface.bind(canvas)
@@ -109,11 +130,26 @@ class GameControls {
     Button directionButton(Direction direction, String name) {
         var button = Button(name, () -> {})
         button.setStyle(Style("width: 56; height: 56; padding: 0; touch-action: none; user-select: none"))
-        button.on("pointerdown", (e: Event) -> { game.movement(direction, true) })
-        button.on("pointerup", (e: Event) -> { game.movement(direction, false) })
-        button.on("pointercancel", (e: Event) -> { game.movement(direction, false) })
-        button.on("pointerleave", (e: Event) -> { game.movement(direction, false) })
+        button.on("pointerdown", (e: Event) -> { game.movement(direction, true); drawing.render(game); this.update() })
+        button.on("pointerup", (e: Event) -> { game.movement(direction, false); drawing.render(game); this.update() })
+        button.on("pointercancel", (e: Event) -> { game.movement(direction, false); drawing.render(game); this.update() })
+        button.on("pointerleave", (e: Event) -> { game.movement(direction, false); drawing.render(game); this.update() })
         return button
+    }
+
+    focusOption(Int option) {
+        if (game.screen == Screen.Menu) { game.menuSelection = option }
+        if (game.screen == Screen.Pause) { game.pauseSelection = option }
+        drawing.render(game)
+        update()
+    }
+
+    activateOption(Int option, String id) {
+        if (discardOptionClick == id) { discardOptionClick = ""; return }
+        focusOption(option)
+        game.confirm()
+        drawing.render(game)
+        update()
     }
 
     activateAction() {
@@ -121,6 +157,8 @@ class GameControls {
             discardEnterClick = false
             return
         }
+        if (game.screen == Screen.Menu) { game.menuSelection = 0 }
+        if (game.screen == Screen.Pause) { game.pauseSelection = 0 }
         game.confirm()
         drawing.render(game)
         update()
@@ -152,22 +190,25 @@ class GameControls {
             var freshPress = pressed && !enterHeld
             enterHeld = pressed
             if (pressed && target == "game-action") { discardEnterClick = true }
-            if (freshPress && (target == "game-keyboard" || target == "game-action" || target == "game-special")) {
+            if (pressed && (target == "game-secondary" || target == "game-menu")) { discardOptionClick = target }
+            if (freshPress && (target == "game-keyboard" || target == "game-action" || target == "game-special" || target == "game-secondary" || target == "game-menu")) {
                 if (target == "game-special") { activateSpecial() }
                 else { game.confirm(); drawing.render(game); update() }
             }
             if (!pressed) {
                 discardEnterClick = false
-                updateSpecial()
+                discardOptionClick = ""
+                update()
             }
             return
         }
-        var movementAllowed = target == "game-keyboard"
+        var movementAllowed = target == "game-keyboard" || game.screen == Screen.Menu || game.screen == Screen.Pause
         if (key == "ArrowLeft") { game.keyboard(Direction.Left, pressed, movementAllowed) }
         if (key == "ArrowRight") { game.keyboard(Direction.Right, pressed, movementAllowed) }
         if (key == "ArrowUp") { game.keyboard(Direction.Up, pressed, movementAllowed) }
         if (key == "ArrowDown") { game.keyboard(Direction.Down, pressed, movementAllowed) }
         drawing.render(game)
+        update()
     }
 
     private updateSpecial() {
@@ -178,14 +219,31 @@ class GameControls {
         special.setDisabled(!available && !preserveFocus)
     }
 
+    setOptionStyle(Button button, Bool visible, Bool selected) {
+        if (!visible) { button.setStyle(Style("display: none")) }
+        else if (selected) { button.setStyle(Style("display: block; outline: 2px solid blue")) }
+        else { button.setStyle(Style("display: block; outline: none")) }
+    }
+
     update() {
         var playing = game.screen == Screen.Play
         updateSpecial()
-        north.setDisabled(!playing)
+        var navigating = game.screen == Screen.Menu || game.screen == Screen.Pause
+        north.setDisabled(!playing && !navigating)
         west.setDisabled(!playing)
         east.setDisabled(!playing)
-        south.setDisabled(!playing)
-        if (game.screen == Screen.Menu) { action.text = "Novo Jogo" }
+        south.setDisabled(!playing && !navigating)
+        if (game.screen == Screen.Credits) { action.text = "Pular créditos" }
+        if (game.screen == Screen.Menu) { action.text = "Novo Jogo"; secondary.text = "Controles" }
+        if (game.screen == Screen.Controls) { action.text = "Voltar" }
+        if (game.screen == Screen.Pause) { secondary.text = "Reiniciar" }
+        var showSecondary = navigating || (secondaryFocused && (enterHeld || spaceHeld))
+        var showMenu = game.screen == Screen.Pause || (menuFocused && (enterHeld || spaceHeld))
+        setOptionStyle(secondary, showSecondary, (game.screen == Screen.Menu && game.menuSelection == 1) || (game.screen == Screen.Pause && game.pauseSelection == 1))
+        setOptionStyle(mainMenu, showMenu, game.screen == Screen.Pause && game.pauseSelection == 2)
+        setOptionStyle(action, true, navigating && ((game.screen == Screen.Menu && game.menuSelection == 0) || (game.screen == Screen.Pause && game.pauseSelection == 0)))
+        if (game.screen == Screen.Controls) { help.setStyle(Style("display: block; max-width: 272; white-space: normal; padding: 8")) }
+        else { help.setStyle(Style("display: none")) }
         if (game.screen == Screen.Play) { action.text = "Pausar" }
         if (game.screen == Screen.Pause) { action.text = "Continuar" }
         if (game.screen == Screen.Result) {

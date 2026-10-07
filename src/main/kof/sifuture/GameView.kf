@@ -5,8 +5,12 @@ import kof.ui.*
 
 class GameView {
     Canvas canvas
+    Image copyright0
+    Image copyright1
     Image title
     Image menu
+    Image controlsMenu
+    Image continueMenu
     Image ship
     Image subchief
     List<Image> bossFrames
@@ -40,8 +44,12 @@ class GameView {
 
     public constructor(Canvas canvas) {
         this.canvas = canvas
+        copyright0 = Image("assets/copyright0.png")
+        copyright1 = Image("assets/copyright1.png")
         title = Image("assets/sifuture.png")
         menu = Image("assets/menu0.png")
+        controlsMenu = Image("assets/menu1.png")
+        continueMenu = Image("assets/menu4.png")
         ship = Image("assets/Middle.png")
         subchief = Image("assets/subchief.png")
         subchiefShot = Image("assets/laser0.png")
@@ -77,10 +85,22 @@ class GameView {
     render(Game game) {
         canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
         canvas.setFill(Palette.white)
+        if (game.screen == Screen.Credits) {
+            canvas.drawImage(copyright0, game.credits.x, game.credits.firstY)
+            canvas.drawImage(copyright1, game.credits.x, game.credits.secondY)
+            return
+        }
         if (game.screen == Screen.Menu) {
             canvas.drawImage(title, 11, 30)
             canvas.drawImage(menu, 48, 120)
-            canvas.fillText("Novo Jogo", 56, 174)
+            canvas.drawImage(controlsMenu, 48, 139)
+            canvas.drawImage(lifeShips[1], 18, 120 + game.menuSelection * 19)
+            return
+        }
+        if (game.screen == Screen.Controls) {
+            canvas.fillText("CONTROLES", 48, 70)
+            canvas.fillText("Teclado e toque", 40, 100)
+            canvas.fillText("Instruções abaixo", 35, 130)
             return
         }
         for (var y = Rules.HEADER_HEIGHT; y < Rules.WORLD_HEIGHT; y = y + 60) {
@@ -142,7 +162,7 @@ class GameView {
         }
         drawHud(game)
         if (game.screen == Screen.Result) { drawResult(game) }
-        if (game.screen == Screen.Pause) { canvas.fillText("PAUSADO", 60, 100) }
+        if (game.screen == Screen.Pause) { canvas.drawImage(continueMenu, 60, 80) }
     }
 
     private drawHud(Game game) {

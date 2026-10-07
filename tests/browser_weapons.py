@@ -598,6 +598,7 @@ def main():
                     page.clock.install(time=datetime(2026, 1, 1))
                     page.clock.pause_at(datetime(2026, 1, 1))
                     page.goto(url)
+                    page.get_by_role("button", name="Pular créditos", exact=True).click()
                     advance(page)
                     page.get_by_role("button", name="Novo Jogo", exact=True).click()
                     advance(page, 45)
