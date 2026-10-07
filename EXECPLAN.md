@@ -845,3 +845,11 @@ Execução: worker primary neste chat 01a11641-92f1-7902-9c41-c3aaa6668c66, tít
 - [x] Especificação, README e aceites existentes ampliados; auditorias de expectativa e suficiência separadas.
 - [ ] Checkpoint e gates completos iniciais/finais; revisão estrutural; entrega PR/CI.
 - [ ] Áudio/Android/escala/lifecycle/vídeo integral: fora do complemento, pendentes na v1.
+
+
+Gate inicial no complemento: `b6a46355b0e4b31d0a0511452344733fc7abc6f2`,11/11 comandos com exit0,113 casos por alvo,253,37s. O primeiro checkpoint `4ab9cf78` teve duas expectativas de teste corrigidas em commit adicional; nenhum gate foi aceito para ele. Revisão estrutural no mesmo contexto sem delta de produção; auditorias separadas e imagens inspecionadas. PR18 recebe o complemento; CI do checkpoint [37622526346](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346). Aceites existentes preservam fonte, assertions, comandos, SHA, Kof e navegador. Gate final no commit documental e CI do head entregue permanecem pendentes e serão registrados no ledger/PR.
+
+
+- [x] CI do checkpoint: [37622526346](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346), Resolve/JVM/JS success,113 testes por alvo; identidade do merge sintético/Kof e links dos jobs no aceite versionado.
+- [x] Revisão estrutural concluída no contexto primary, sem refactor de produção; somente consolidação documental após checkpoint.
+- [ ] Final-validating e CI do head final: resultados posteriores no ledger/PR, mantendo os SHAs deste registro explícitos.

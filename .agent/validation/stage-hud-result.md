@@ -1089,8 +1089,8 @@ Resultados intermediários, anteriores ao checkpoint: `python3 scripts/kof_proje
 `python3 tests/browser.py`, JS/Chrome139.0.7258.154, nas duas larguras:
 
 ```text
-PASS retained options reject Space/Enter/touch after Controls/Restart/Main Menu
-PASS credits frames0/1/36/85/86/87/258/259/260
+PASS retained options reject Space/Enter/touch after Controls/Restart/Main Menu; releases rearm at 320px
+PASS credits frames0/1/36/85/86/87/258/259/260, literal contact/transform isolation and entrance0/1/11/12/13/35/36 at 320px
 PASS menu, Enter and Space, conservative confirmation, pause, result and menu in Chrome
 ```
 
@@ -1120,3 +1120,68 @@ Sonda de reutilização, Chrome139 com relógio controlado: após pular crédito
 
 
 Gate diagnóstico no checkpoint `4ab9cf78dd7ebbc36fec1c834f2894f05e6f6452`: os onze comandos executados; nove com exit0 e dois com exit1. O percurso de fase ainda esperava `game-action` = Novo Jogo; agora deve exigir Confirmar (Enter) e a opção Novo Jogo disponível. O percurso de pausa comparava integralmente a nave emy95, parcialmente coberta pelos novos textos; passa a navegar publicamente atéy155, mover a diagonal paray150 e manter as mesmas assertions de pixels antes/durante/depois da pausa e solturas. Isso conserva a prova completa do sprite fora da sobreposição, sem apagar assertions. Nenhuma alteração de produção para esses diagnósticos. Todos os gates serão repetidos; o run diagnóstico não é aceite.
+
+
+**Gate inicial aceito:** commit `b6a46355b0e4b31d0a0511452344733fc7abc6f2`, onze selecionados/executados, zero bloqueados,253,37s, todos exit0 e coleta completa. Fonte: executor `run_validation.py`, inventário confirmado em `.agent/tmp/menu-credits.validation.json`, resumo `initial-validation-2.json`. Os casos negativos intencionais da infraestrutura estão dentro de testes aprovados; não são falhas aceitas silenciosamente.
+
+| Comando | Resultado observado |
+|---|---|
+| `python3 scripts/kof_project.py test --target jvm` | exit0; coleta completa;113 testes,0 falhas |
+| `python3 scripts/kof_project.py test --target js` | exit0; coleta completa;113 testes,0 falhas |
+| `python3 tests/browser_stage.py` | exit0; coleta completa |
+| `python3 tests/browser_weapons.py` | exit0; coleta completa |
+| `python3 tests/browser_subchief.py` | exit0; coleta completa |
+| `python3 tests/browser.py` | exit0; coleta completa |
+| `python3 tests/browser_controls.py` | exit0; coleta completa |
+| `python3 tests/browser_meteor.py` | exit0; coleta completa |
+| `python3 tests/browser_boss.py` | exit0; coleta completa |
+| `python3 -m unittest discover -s tests -p 'test_kof_project.py'` | exit0; coleta completa;8 testes OK |
+| `PATH="$PWD/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh` | exit0; coleta completa |
+
+Trecho fiel da suíte de modelo, ambos os alvos:
+
+```text
+0 failed of 113 tests
+1 passed, 0 failed
+```
+
+As novas jornadas Chrome incluem Enter e Space mantidos nas três transições e todos os comandos por quatro modos. O contato foi medido com fonte nominal10px e fonte20px para exercitar também a redução de escala. Reset com seed, pausa, movimento, resultado e combate foram conservados pelos modelos e percursos existentes; boss:14234 passos/score820 nas duas larguras. Assets8/8 iguais ao histórico por SHA256; NOTICE sem alteração. Git diff --check sem problemas. Exclusão `/.agent/tmp/` exatamente uma vez; evidências temporárias fora do Git.
+
+**Revisão estrutural:** mesmo contexto, sem delta de produção. Acoplamento temporal: o construtor prepara widgets antes da janela, step avança e render lê. Estado de invocação: held/discard pertencem ao protocolo de entrada, e exitComplete distingue258/259 com mesmas posições. Fronteiras: estado de animação não conhece UI, enquanto GameView isola desenho/transform. Mapeamento de cinco IDs: oportunidade de manutenção se o menu crescer, sem refactor necessário neste recorte; não se introduziu framework adicional. Recursos: sonda1000 ticks estável. Contratos adjacentes cobertos pelo gate. Relatório opcional: `.agent/tmp/menu-credits.structural-review.md`.
+
+Trecho de [GameControls.kf:175](https://github.com/renanfranca/kof-sifuture/blob/b6a46355b0e4b31d0a0511452344733fc7abc6f2/src/main/kof/sifuture/GameControls.kf#L175):
+
+```kof
+        if (discardOptionClick == id) { discardOptionClick = ""; return }
+        if (game.screen != screen) { return }
+        if (screen == Screen.Menu) { game.menuSelection = option }
+        else { game.pauseSelection = option }
+        game.confirm()
+```
+
+O callback conserva a tela de origem. Se a tela mudou, retorna antes de selecionar ou confirmar; soltar teclas continua sendo recebido pela árvore raiz. O foco retido é deslocado para fora do viewport e não recebe ponteiros; a jornada verifica os dois fatos antes de tentar outra ativação. A disponibilidade de teclado também usa a tela atual, impedindo que o controle antigo navegue outro menu.
+
+Trecho de [GameView.kf:179](https://github.com/renanfranca/kof-sifuture/blob/b6a46355b0e4b31d0a0511452344733fc7abc6f2/src/main/kof/sifuture/GameView.kf#L179):
+
+```kof
+        canvas.save()
+        canvas.transform(scale, 0.0, 0.0, scale, credits.x as Double, credits.secondY as Double)
+        canvas.setFill(Color(0, 128, 255))
+        canvas.fillText("contact:", 0, 10)
+        canvas.fillText("renan.andradefranca@gmail.com", 0, 22)
+        canvas.fillText("Inc. All rights reserved.", 0, 34)
+        canvas.restore()
+```
+
+A transformação leva a origem local atéx/y1 e escala somente o bloco. Restore devolve cor e matriz anteriores, comprovadas pela observação do contexto após cada render. Não se altera o PNG antigo para conseguir a nova apresentação.
+
+Entrega continua no [PR18](https://github.com/renanfranca/kof-sifuture/pull/18). O [CI do checkpoint37622526346](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346) identifica head `b6a46355b0e4b31d0a0511452344733fc7abc6f2`; Resolve/JVM/JS terminaram com success. O commit documental e a entrega final repetem o gate local completo; resultados posteriores, SHA final e CI ficam no ledger e na descrição do PR. Chrome é prova local; o CI configurado cobre resolução Kof e testes JVM/JS, sem atribuir-lhe execução Chrome.
+
+
+**CI do checkpoint aceito:** run37622526346, evento pull_request, head `b6a46355b0e4b31d0a0511452344733fc7abc6f2`, checkout/manifesto do merge sintético `fc60ec100cf6cb3346022acc3e9c6f9a1bcecff6` (identificado no log de instalação). [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346/job/112796074011), [JVM](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346/job/112797060310) e [JS](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346/job/112797060201) success;113 testes/zero falhas em cada alvo. Kof oficial0.5.0-beta, commit `317d9f6b1c3e27032cc955a05f859f6c627d9338`, archiveSHA256 `f93f02eb62af584ea49ffb44efdbf54f970bdb9570f16fdc48ccc28242798ca9`. Logs JVM/JS mostram:
+
+```text
+0 failed of 113 tests
+```
+
+Build/Publish Pages skipped por evento pull_request; nenhum merge/publicação foi realizado. A CI deste parágrafo demonstra o código no checkpoint identificado, não um SHA futuro. O único delta posterior é esta consolidação documental; final-validating repete os onze comandos no novo commit e CI do head entregue fica no ledger/PR, sem confundir sua identidade com este checkpoint. Áudio, Android, escala, lifecycle e vídeo integral continuam fora do complemento. R1/R2 de navegação/créditos estão encerradas pelas regressões permanentes e pelas provas de fronteira descritas neste registro.
