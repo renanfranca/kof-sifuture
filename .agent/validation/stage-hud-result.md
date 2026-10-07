@@ -988,3 +988,82 @@ Head do PR nesse run: `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`. O checkout efe
 Os dois jobs Kof acima complementam cada critério de modelo da tabela: timing/transições dos créditos, exibição única, seleção, Continuar, reset com seed, abandono, resultado e regressões de combate/boss. Pixels, foco, clique nativo e contatos físicos permanecem demonstrados pelas jornadas Chrome locais, com navegador e capturas já registrados; não se atribui execução Chrome a esse CI. Build/Publish Pages foram skipped, conforme condição push emmain; não são checks selecionados deste PR.
 
 Esta inclusão de links/resultados é um commit exclusivamente documental adicional. Os gates locais serão repetidos nele antes de atualizar o PR; o estado final, SHA e jobs do novo head ficarão no ledger e na descrição do PR. Estes links preservam a execução terminal do código revisado e os resultados anteriores, sem se apresentar como evidência de um SHA futuro. Nenhum critério aberto de vídeo, Android, áudio, Opções/Música, lifecycle, escala ou foco externo foi encerrado por esse CI.
+
+### Revisão de conformidade com o plano — 2026-10-07
+
+Revisão solicitada pelo usuário após a implementação. Head revisado e executado: `7e35430837571ab11fa1d94e7f16abfd8097ed3f`; base `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`; [PR18](https://github.com/renanfranca/kof-sifuture/pull/18), aberto. **Aceite integral do ciclo pendente de R1 e R2 abaixo.** Esta revisão acrescenta somente este registro; não corrige produção ou testes nem publica comentários no PR.
+
+Os onze comandos de [Validation no plano](../../EXECPLAN.md), reproduzidos em `EXECPLAN.md:696–707`, foram executados novamente neste head: testes Kof JVM/JS, sete jornadas Chrome, unittest Python e contrato CI. Todos terminaram com exit0. O contrato CI usou `.agent/tmp/tools` no PATH. Resumo dos resultados locais:
+
+```text
+JVM: 0 failed of 112 tests; 1 passed, 0 failed
+JS:  0 failed of 112 tests; 1 passed, 0 failed
+Python: Ran 8 tests; OK
+11/11 comandos com exit0
+```
+
+Chrome `139.0.7258.154`, Playwright/CDP em larguras320/1200. Boss com seed909:14234 passos e score820 nas duas larguras. Assets selecionados8/8 idênticos byte a byte, NOTICE sem alteração e `git diff --check` limpo. As três provas complementares do boss estão na suíte permanente. Kof instalado0.5.0-beta/JDK embarcado25.0.4.1; checkout Kof consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`, sem atribuir esse SHA automaticamente à distribuição local.
+
+O [run37559613171](https://github.com/renanfranca/kof-sifuture/actions/runs/37559613171), evento pull_request, identifica o mesmo head revisado: [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37559613171/job/112593687654), [JVM](https://github.com/renanfranca/kof-sifuture/actions/runs/37559613171/job/112594163109) e [JS](https://github.com/renanfranca/kof-sifuture/actions/runs/37559613171/job/112594163008) success. Esse head identifica o PR; não foi reidentificado aqui o SHA de checkout do merge sintético do runner. Build/Publish Pages skipped. Chrome continua sendo prova local.
+
+**R1 — P2: opção retida para foco executa outra ação fora da sua tela.** O plano exige que toque execute a opção tocada (`EXECPLAN.md:688`). Reprodução pelo navegador real, nas duas larguras: iniciar, pausar, focar Reiniciar, pressionar Enter sem soltar, tocar Reiniciar enquanto Enter continua mantido. O primeiro comando reinicia, mas o botão Reiniciar permanece visível e habilitado durante Play; o toque seguinte pausa a partida.
+
+Trecho fiel de [GameControls.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameControls.kf:161):
+
+```kof
+    activateOption(Int option, String id) {
+        if (discardOptionClick == id) { discardOptionClick = ""; return }
+        focusOption(option)
+        game.confirm()
+        drawing.render(game)
+        update()
+    }
+```
+
+`update()` conserva a opção quando `secondaryFocused && (enterHeld || spaceHeld)` (`GameControls.kf:254`). `focusOption` só seleciona em Menu/Pause, mas `activateOption` confirma também em Play. Nesse estado, `Game.confirm` executa `pause()` (`Game.kf:155`). Preservar foco para receber a soltura da tecla não deve tornar uma opção antiga um comando da nova tela.
+
+Saída essencial da sonda `python3 .agent/tmp/navigation-plan-review-20261007T092502Z/stale_options.py`, alvo app JS/Chrome:
+
+```json
+{"case": "held_enter_restart_touch_pauses", "width": 320, "before": {"playing": true, "restart_visible": true, "restart_enabled": true}, "after": {"playing": false, "paused": true}}
+{"case": "held_enter_restart_touch_pauses", "width": 1200, "before": {"playing": true, "restart_visible": true, "restart_enabled": true}, "after": {"playing": false, "paused": true}}
+```
+
+A sonda termina0 porque confirma a reprodução do defeito; esse exit não é aceite. Capturas antes/depois foram inspecionadas. Correção necessária: validar a disponibilidade da opção na tela atual sem quebrar foco/soltura/deduplicação, e acrescentar regressão pela interação real com Enter mantido seguido de toque. A partida nunca deve pausar por um toque em Reiniciar.
+
+**R2 — P2: espera dos créditos contém51 quadros, em vez dos50 históricos aprovados.** O [plano](../../EXECPLAN.md#próximo-ciclo-créditos-controles-e-navegação-da-pausa), linha686, exige:
+
+> Preservar chegada, 50 quadros de espera e saída vertical histórica.
+
+No [histórico MenuCanvas.java](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:199), revisão `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, a chegada em x46 já é o primeiro quadro que incrementa delay:
+
+```java
+                    if (this.delay < 50) {
+                        g.drawImage(this.copyright0, i, j0, 0);
+                        g.drawImage(this.copyright1, i, j1, 0);
+                        delay++;
+```
+
+Em [Credits.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/game/Credits.kf:12), a chegada deixa waitSteps em0 e só o passo seguinte começa a contagem:
+
+```kof
+        if (x < Rules.WORLD_WIDTH / 4) { x = x + 5 }
+        else if (waitSteps < 50) { waitSteps = waitSteps + 1 }
+```
+
+A diferença decorre de contar atualizações depois da chegada, em vez de incluir o primeiro quadro parado. Observação Canvas no app JS, relógio controlado30ms, em320/1200:
+
+| Quadro lógico desde a abertura | Histórico: x/y0/y1 | App observado: x/y0/y1 |
+| --- | --- | --- |
+| 36: chegada | 46/110/141 | 46/110/141 |
+| 85: último quadro de espera histórico | 46/110/141 | 46/110/141 |
+| 86: primeira saída histórica | 46/111/140 | 46/110/141 |
+| 87 | 46/112/139 | 46/111/140 |
+
+Quadros36 a86 inclusivos são51 períodos na mesma posição; a saída começa30ms tarde. Valores históricos foram derivados estaticamente do fonte, preservando a ordem desenhar/incrementar, sem executar o JAR. Valores do app foram observados com `python3 .agent/tmp/navigation-plan-review-20261007T092502Z/focused_review.py`. Redesenhos extras não são contados como novos períodos.
+
+O teste permanente `GameJourney.kf:121–124` exige mais50 passos depois da chegada e saída somente no próximo, reproduzindo a expectativa incorreta. O registro anterior de "fifty-frame wait" e a alteração da especificação para "50steps" não demonstram o contrato de50 quadros aprovado. Correção necessária: alinhar contagem e assertions com a chegada e o primeiro quadro de saída do histórico; reconferir também a fronteira final da animação ao ajustar essa contagem. Não há exceção aprovada para esse quadro adicional.
+
+Os demais percursos revisados têm as provas descritas acima; áudio/Opções/Música, vídeo histórico, Android físico, pausa automática, escala adaptável e foco externo continuam fora deste ciclo. Os resultados verdes não encerram R1, que falta nas jornadas permanentes, nem R2, cuja expectativa permanente precisa ser corrigida.
+
+Evidência local opcional: `.agent/tmp/navigation-plan-review-20261007T092502Z/` contém summary.json, onze logs, assets.json, sondas, resultados JSON e capturas. Este registro inclui os procedimentos, resultados e limites essenciais e pode ser entendido sem esses arquivos. A exclusão local `/.agent/tmp/` está presente exatamente uma vez, e nenhum artefato temporário foi adicionado ao Git.
