@@ -163,3 +163,41 @@ Inventário confirmado: 11 comandos locais — JVM/JS, sete percursos Chrome, un
 ### Primeira execução integral e ajuste de expectativa
 
 SHA `3829df10ab82175b2b8f823edf0bd86fd098616e`: 11 comandos executados, coleta completa, 1 bloqueado; os outros dez passaram. Tempo 274,24 s. `browser_stage.py::pause_navigation` ainda comparava o sprite parado em x=18 após 20 passos do retorno da pausa. Nesse instante a entrada repetida está em frenagem em x=63. A expectativa foi adaptada conservando os 20 passos, a comparação dos pixels e as verificações de combate/teclas mantidas. Evidência local opcional: `.agent/tmp/validation/20261007T212216-3rxo74lp/summary.json`.
+
+### Gate inicial aprovado e revisão estrutural
+
+SHA testado `d462d7211e457f6d4ee180cb8443fef73f1b2a53`: 11/11 comandos executados, 0 bloqueados, coleta completa, 309,57 s. Kof 0.5.0-beta e Chrome 139.0.7258.154. Resultado por comando:
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 scripts/kof_project.py test --target jvm` | 116 testes, 0 falhas, 2 suítes aprovadas |
+| `python3 scripts/kof_project.py test --target js` | 116 testes, 0 falhas, 2 suítes aprovadas |
+| `python3 tests/browser.py` | Créditos bitmap, menus, guia, retornos reais repetidos, pixels, foco e densidades 1/2 aprovados |
+| `python3 tests/browser_controls.py` | Teclado, foco, contatos, diagonais/opostos e cancelamento aprovados |
+| `python3 tests/browser_meteor.py` | Movimento, impactos e respawn aprovados |
+| `python3 tests/browser_weapons.py` | Evolução, consumo de carga, disponibilidade e pressão sem repetição aprovados |
+| `python3 tests/browser_stage.py` | Fase, HUD, pausa, resultado, reinício e entrada repetida durante bloqueio de tecla aprovados |
+| `python3 tests/browser_subchief.py` | Encontro completo, tiros, explosão e replay aprovados |
+| `python3 tests/browser_boss.py` | Entrada, fases, especial, explosão, resultado e replay aprovados |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | 10 testes OK; pixels/métricas e reprodução incluídos |
+| `PATH="$PWD/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh` | Contrato CI aprovado com fixtures; não representa execução real de Actions |
+
+Trechos literais das suítes Kof, em ambos os alvos:
+
+```text
+0 failed of 2 tests
+0 failed of 114 tests
+```
+
+`python3 tests/browser_stage.py`, alvo JS/Chrome:
+
+```text
+PASS held right restores Middle.png on result entry and release, frozen ship and exact score at both widths
+PASS Chrome 139.0.7258.154 at 320 and 1200 pixels; repaint does not advance simulation
+```
+
+As mensagens de sintaxe no unittest são esperadas: `test_real_compile_failure_does_not_publish` injeta `invalid syntax @@@` e verifica rejeição sem publicar output. Não são erros da aplicação aprovada. Evidência local opcional: `.agent/tmp/validation/20261007T212852-lxnh8iwz/summary.json`.
+
+Revisão estrutural concluída no mesmo contexto da implementação. Não houve refactor de produção: transições pertencem ao modelo, fontes ao renderizador, máscaras ao gerador e estilos do painel são separados dos blocos. `measure` deriva a largura; não há cache duplicado. A comparação com a base comprova que assets históricos e arquivos de armas/combate/HUD não foram alterados. A mutabilidade dos glifos é uma oportunidade futura de manutenção, sem uso mutante atual que justifique alteração neste ciclo. Detalhes opcionais em `.agent/tmp/sifuture-clarity.structural-review.md`.
+
+O delta após esta revisão é apenas documentação. O gate final repetirá os mesmos 11 comandos no último commit; seu SHA e resultado serão associados ao [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e aos [checks](https://github.com/renanfranca/kof-sifuture/pull/18/checks), sem alegar que CI anterior aprovou este conteúdo. Nenhum merge ou publicação de Pages integra esta execução. Limites visuais e de dispositivo permanecem os registrados acima.
