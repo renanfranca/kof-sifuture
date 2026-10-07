@@ -369,7 +369,7 @@ def pause_navigation(page, width):
     ended = state(page)
     assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
     assert ended["steps"] == 2
-    sprite(page, "2lives.png", 18, 120)
+    sprite(page, "2lives.png", 63, 120)
     page.get_by_role("button", name="Novo Jogo", exact=True).tap()
     advance(page)
     assert state(page)["steps"] == 1 and state(page)["shipX"] == 0

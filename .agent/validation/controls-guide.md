@@ -118,13 +118,13 @@ Plano: “Mais nitidez, espaço no guia e animação em cada retorno”. Execuç
 
 Os menus e a pausa usam fonte bitmap branca com serifas, tamanho nominal 14 px e peso Bold. Os créditos usam tamanho nominal 9 px, peso Regular, azul RGB(0,128,255) e texto literal preservado. Cada PNG tem apenas alpha 0/255. Máscaras, métricas e licença da referência local Liberation Serif estão em `fonts/`; o gerador reproduz os assets diretamente em `assets/` e as métricas Kof. O nome completo mede 123 px; `renan.andradefranca@gmail.com`, 114 px. Todas as linhas ficam dentro de 130 px. Baselines locais 8/18 e 8/18/28; imagens criadas uma vez pelo GameView; posicionamento inteiro sem transformação ou redimensionamento pelo renderizador.
 
-O [training de UI](../../../kof/training/idioms/ui.md) orienta a composição por imagem:
+O [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:287) orienta a composição por imagem:
 
 ```kof
 c.drawImage(logo, 5, 5)
 ```
 
-Trecho de [BitmapFont.kf](../../src/main/kof/sifuture/BitmapFont.kf):
+Trecho de [BitmapFont.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/BitmapFont.kf:24):
 
 ```kof
 var item = glyph(text.substring(i, i + 1))
@@ -158,3 +158,8 @@ Capturas de créditos, menu, pausa e guia fechado/aberto foram produzidas para 3
 Evidências locais opcionais: `.agent/tmp/clarity-browser/{credits,menu,pause,guide,guide-open}-{320,1200}-d{1,2}.png`; `.agent/tmp/sifuture-clarity-*.log`; inventário e coletores `sifuture-clarity.validation.json`/`collectors.json`. Os fatos essenciais estão neste resumo e nos testes versionados. Inspeção automatizada e visual pelo agente; não houve sessão manual humana ou Android físico. Outros navegadores, comparação com vídeo histórico e publicação de Pages continuam fora da evidência local.
 
 Inventário confirmado: 11 comandos locais — JVM/JS, sete percursos Chrome, unittest Python (incluindo reprodução/pixels) e contrato CI. Sonar, mutation runner e Habit sem configuração e excluídos. CI selecionado: Resolve verified Kof, Kof tests(jvm/js). Gates completos do checkpoint e do commit final serão registrados abaixo; a entrega continua no [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e seus [checks](https://github.com/renanfranca/kof-sifuture/pull/18/checks).
+
+
+### Primeira execução integral e ajuste de expectativa
+
+SHA `3829df10ab82175b2b8f823edf0bd86fd098616e`: 11 comandos executados, coleta completa, 1 bloqueado; os outros dez passaram. Tempo 274,24 s. `browser_stage.py::pause_navigation` ainda comparava o sprite parado em x=18 após 20 passos do retorno da pausa. Nesse instante a entrada repetida está em frenagem em x=63. A expectativa foi adaptada conservando os 20 passos, a comparação dos pixels e as verificações de combate/teclas mantidas. Evidência local opcional: `.agent/tmp/validation/20261007T212216-3rxo74lp/summary.json`.
