@@ -360,3 +360,14 @@ Kof consultado: `training/idioms/ui.md:405` — “the compiler owns the parse (
 O complemento documental será comprometido antes do gate final, que repete os mesmos onze checks. Resultados do head final serão associados ao ledger e à descrição do [PR #17](https://github.com/renanfranca/kof-sifuture/pull/17). Links persistentes: [checks atuais do PR](https://github.com/renanfranca/kof-sifuture/pull/17/checks) e [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml). Resolve verified Kof e Kof tests (jvm/js) são selecionados no CI; Build/Publish Pages só executam em push na main. Sonar, Habit e mutation testing não configurados e excluídos, sem alegar pass dessas ferramentas.
 
 Evidências locais opcionais: `.agent/tmp/validation/20261006T193226-8moxx5m5/`, `.agent/tmp/special-vertical.*`, `.agent/tmp/sifuture-controls/`, `.agent/tmp/background-items-weapons/` e `.agent/tmp/special-key-release/`. Capturas `application-320.png`, `application-1200.png`, layouts e estados revisados; conteúdo essencial acima dispensa esses arquivos. Exclusão local `/.agent/tmp/` conferida exatamente uma vez. Conforto no celular físico permanece pendente até verificação real; este ciclo não encerra o aceite Android/v1.
+
+
+## Controles e saída da pausa — ciclo de créditos e navegação, 06/10/2026
+
+Gate inicial `50affe515aeeec0f6ee9776a4d774feb8c7cf469`: onze checks com exit0, JVM/JS112/112 e sete jornadas Chrome139.0.7258.154. Touch simulado em320/1200: setas navegam com seleção limitada, Controles/Voltar conserva seleção, e Menu principal com dois dedos mantidos limpa a tentativa. Novo Jogo começa nave(0,100) parada; soltar esses contatos não recupera movimento. Diagonais, opostos, arrasto capturado e especial continuam cobertos. Resultado do percurso:
+
+```text
+PASS pause with two held fingers clears both axes; Continue and Main Menu keep held contacts from moving the resumed or new ship
+```
+
+Comando: `python3 tests/browser_controls.py`, classes reais da fixture controls.kf. O teste `touch_pause_clears_diagonal` observa sprite/posição antes e depois da soltura na nova tentativa. Gate final e CI serão associados ao mesmo ciclo; [registro por critério, fontes, assertions e limites](stage-hud-result.md#créditos-controles-e-navegação-da-pausa--06102026). Android físico/conforto continuam pendentes. O arquivo mantém os ciclos anteriores como históricos.

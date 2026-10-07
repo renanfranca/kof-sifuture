@@ -849,3 +849,116 @@ No primeiro cenário, após 26 passos o tiro existente permanece ativo em x=896 
 O [CI 37484705995](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995) concluiu SUCCESS para este head do [PR #14](https://github.com/renanfranca/kof-sifuture/pull/14). O manifest registra o merge de validação `c3e4b34d3e3568c2b9d490f6aa0c775c73ec9a7c`, distribuição oficial Kof `0.5.0-beta`, origem `317d9f6b1c3e27032cc955a05f859f6c627d9338` e arquivo SHA-256 `f93f02eb62af584ea49ffb44efdbf54f970bdb9570f16fdc48ccc28242798ca9`. [Resolve](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995/job/112341647743), [JVM](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995/job/112342665328) e [JS](https://github.com/renanfranca/kof-sifuture/actions/runs/37484705995/job/112342665503) aprovados; ambos os logs de regras mostram 103/103. Pages foi SKIPPED, sem publicação.
 
 Lacunas preservadas: comparação com vídeo histórico, Android real, música, menus e apresentação completos; esta conferência aceita somente o ciclo do boss, sem encerrar a v1. Evidência local opcional consolidada em `.agent/tmp/boss-plan-review-20261006T153524Z/`: `summary.json`, logs dos onze comandos, `BossReview.kf`, logs das provas complementares, `ci-current.log` e `screenshots/`. A exclusão `/.agent/tmp/` foi conferida exatamente uma vez e não há arquivo dessa árvore rastreado pelo Git. Os resultados essenciais e limites estão neste registro, sem depender dos arquivos locais.
+
+
+## Créditos, Controles e navegação da pausa — 06/10/2026
+
+O ciclo implementa abertura única com créditos animados, menu Novo Jogo/Controles, explicação com Voltar e pausa com Continuar/Reiniciar/Menu principal. V1 continua aberta. Branch `credits-pause-navigation`, sem worktree; base fixa `main` `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`. Worker `primary`, chat `01a113e4-c500-76c1-850c-191a12bc6f41`, título `sifuture-navigation-primary`, `gpt-6.1-sol`/`medium`. Implementação, validação e revisão compartilham contexto; revisão não independente.
+
+Gate inicial sobre `50affe515aeeec0f6ee9776a4d774feb8c7cf469`, checkout limpo: **11/11 checks selecionados/executados, zero bloqueados, 236.96 s**. Regras JVM/JS: 112 testes em cada alvo (seis novos casos de navegação/abertura e três provas complementares do boss, além dos 103 anteriores). As sete jornadas Chrome passaram. Infraestrutura: oito unittest Python OK e contrato CI completo. Os diagnósticos de compilação no unittest são produzidos pela fixture deliberadamente inválida de `test_real_compile_failure_does_not_publish`; seu resultado esperado é impedir publicação, não compilar a fixture.
+
+Comandos executados no SHA acima, todos exit 0:
+
+```bash
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 tests/browser.py
+python3 tests/browser_controls.py
+python3 tests/browser_meteor.py
+python3 tests/browser_weapons.py
+python3 tests/browser_stage.py
+python3 tests/browser_subchief.py
+python3 tests/browser_boss.py
+python3 -m unittest discover -s tests -p 'test_kof_project.py'
+PATH="$PWD/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh
+```
+
+Trechos observados dos comandos JVM/JS, browser.py e browser_stage.py, respectivamente:
+
+```text
+0 failed of 112 tests
+1 passed, 0 failed
+PASS historical credits pixels, 30ms steps, redraw purity, fifty-frame wait and natural completion at 320px
+PASS credits skip, bounded menu, Controls and pause navigation at 1200px
+PASS pause freezes active combat, navigation continues once, Restart resets and held input cannot leak through Main Menu at 320px
+```
+
+### Expectativas conferidas contra fontes
+
+Fonte histórica: SiFuture `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, `MenuCanvas.java:98–109,192–217`, inspecionada estaticamente, sem executar o JAR. A frequência por instância vem da especificação aprovada; o restart histórico que repetia créditos não é reproduzido. Os PNGs têm copyright0 134×31 e copyright1 134×30.
+
+Trecho fiel de [MenuCanvas.java](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:192), linhas194–210 (omissões marcadas):
+
+```java
+if (this.i < Midlet.width/4) {
+// ...
+this.i+=5;
+// ...
+if (this.delay < 50) {
+// ...
+if ((this.j1 >= -this.copyright0.getHeight()) || (this.j0 <= Midlet.height)) {
+    this.j0+=1;
+    this.j1-=1;
+```
+
+Incrementar x de cinco em cinco sob `x < 176/4` chega a46, não44. A espera dura cinquenta atualizações. O `||` conserva a saída enquanto qualquer imagem ainda atende à condição; y0=283/y1=-32 encerra a saída e o passo seguinte abre Menu. Posições iniciais -134/110/141 e menu no passo260 foram conferidos separadamente das assertions. O recorte de Opções/Música, as três opções da pausa, os bloqueios de entrada e as duas confirmações de resultado seguem a especificação e o plano deste ciclo.
+
+Kof consultado: treinamento `language/classes.md`, `idioms/classes.md`, `idioms/functions.md`, `idioms/ui.md`, `anti-patterns/fake-idioms.md`, `anti-patterns/duplicate-state.md` e tooling/cli; referência classes/closures; Learn 07,23,35-kof-ui; registro KofUi e implementação/testes UI JS. Regra do [treinamento de classes](/home/renanfranca/projects/kof/training/idioms/classes.md:35), também explicada em [Learn Kof, capítulo07](/home/renanfranca/projects/kof/learn/07-classes-and-objects.md:55):
+
+> for **mutable state** use explicit fields + `constructor(...)`.
+
+`Credits` guarda posições e relógio em campos mutáveis e constructor explícito. `Game.step()` avança a animação; `GameView.render()` consulta esses campos. A classe expressa o estado que muda ao longo do tempo; renderizar novamente não executa outra atualização. O contrato de classes e os percursos JVM/JS/Chrome sustentam essa escolha; compilação isolada não foi tratada como prova de execução.
+
+### Assertions e resultados por critério
+
+| Critério | Resultado e prova permanente | Limite/CI |
+|---|---|---|
+| Créditos históricos e desenho puro | GameJourney: -134→-129; chegada46; espera50; y111/140 no primeiro passo de saída; menu260. browser.py em320/1200: observação Canvas quando fora da tela, pixels na chegada/saída e cinco redesenhos sem mudança. | Assets comparados, vídeo não comparado. JVM/JS no workflow; Chrome local. |
+| Exibição única e confirmação | Abre antes do primeiro passo; Enter focado repetido abre somente Menu e evento seguinte não inicia. Touch no canvas pula. Controles, pausa, resultado e nova partida sem retorno dos créditos. | browser.py, GameJourney e retornos das jornadas existentes. |
+| Navegação e toque direto | Clamp0..1/0..2; repetição mantida fica em Reiniciar, diferente do próximo índice2; setas de toque atualizam seleção imediatamente. Novo Jogo tocado executa mesmo após retorno de Controles selecionado. Carregar/Opções ausentes no DOM deste recorte. | browser.py em320/1200 e caso de contatos GameJourney. |
+| Controles | Texto visível inclui Tab/foco, setas/Enter/1, diagonais, opostos, arrasto, soltura/cancelamento e especial. Voltar conserva seleção; screenshots sem scroll horizontal. | browser.py; interação desktop automatizada, não manual Android. |
+| Continuar | Partida com lasers ativos/movimento pausa; clocks/posição congelados; navegação não altera combate; próximo passo exatamente+1 sem restaurar tecla mantida. | browser_stage.py e provas existentes de pausa JVM/JS/Chrome. |
+| Reiniciar | Comando real Enter e toque limpa vidas/score/fase/arma/cargas/chefes/projéteis antes do primeiro passo; depois steps1/restartFrame1 sem movimento mantido. Seed injetável reproduz spawn através de Game.restart/confirm(seed). | GameJourney e browser_stage.py, ambos widths. |
+| Menu principal | Sai de combate e seleciona Novo Jogo; step/resume não retomam tentativa. Nova partida limpa sem créditos; teclado e dois contatos CDP mantidos não movem a nave nova, inclusive depois da soltura. | GameJourney, browser_stage.py, browser_controls.py. |
+| Regressões e três provas do boss | 112/112 JVM/JS e sete jornadas; slot0 ocupado não lança slot1 no nível inicial; níveis2/3 sem gatilho não lançam especial; meteoro absorvido preserva nave normal na borda inclusiva. | GameJourney permanente; vídeo/Android continuam pendentes. |
+
+Trechos fiéis das assertions permanentes, que observam modelo e ações reais em vez da topologia dos arquivos:
+
+```kof
+assert(g.credits.x == -129 && g.credits.waitSteps == 0)
+assert(g.credits.waitSteps == 50 && g.credits.firstY == 110 && g.credits.secondY == 141)
+assert(g.screen == Screen.Menu && g.menuSelection == 1)
+```
+
+Fonte: [GameJourney no checkpoint](https://github.com/renanfranca/kof-sifuture/blob/50affe515aeeec0f6ee9776a4d774feb8c7cf469/src/test/kof/sifuture/game/GameJourney.kf). A primeira assertion mede um único passo; a segunda fixa o estado depois da espera, sem calcular expectativas usando a decisão de produção. A terceira demonstra seleção conservada na volta de Controles.
+
+```python
+assert continued["steps"] == frozen["steps"] + 1 and continued["shipX"] == frozen["shipX"]
+assert {key: reset[key] for key in expected} == expected
+assert first["steps"] == 1 and first["restartFrame"] == 1 and first["shipX"] == 0
+```
+
+Fonte: [browser_stage.py no checkpoint](https://github.com/renanfranca/kof-sifuture/blob/50affe515aeeec0f6ee9776a4d774feb8c7cf469/tests/browser_stage.py#L336). `expected` lista zero steps/score/displayed/level/charges/fireSteps/chefes/projéteis, três vidas, posição5 e nave(0,100). O botão Observe apenas lê/redesenha o estado antes do próximo tick; não chama step. Por isso a prova distingue reset correto de uma partida que já avançou silenciosamente. A terceira assertion fixa precisamente o primeiro passo após reinício.
+
+```kof
+assert(game.boss.weapons.shots[0].active && game.boss.weapons.shots[0].x == 896)
+assert(!game.boss.weapons.shots[1].active)
+assert(!game.boss.weapons.special.active && game.boss.weapons.fireSteps == 12)
+assert(game.ship.phase == ShipPhase.Normal && game.ship.lives == 3)
+```
+
+As três oportunidades registradas na revisão anterior agora vivem em GameJourney. Passaram nos dois alvos, sem mudar comportamento do boss. Capacidades, gatilhos e prioridades são observados pelo Game.step com entidades reais.
+
+Chrome `139.0.7258.154`, viewports320/1200, Playwright/CDP; não houve aceite manual Android. Kof local `0.5.0-beta`, JDK embarcado Temurin `25.0.4.1+1`, JAR SHA-256 `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`. Checkout consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`; não se atribui automaticamente essa origem ao pacote local.
+
+Comparação byte a byte: **8/8** copyright0/1, menu0/1/4, 2lives/3lives e sifuture idênticos; diff de NOTICE vazio. Capturas credits-arrived, credits-exit, menu, Controls e pause em320/1200 inspecionadas visualmente. A fidelidade dos PNGs e esses quadros não substituem comparação com o vídeo completo.
+
+### Revisão, falhas e lacunas
+
+Revisão estrutural no mesmo contexto: consolidado somente o protocolo movimento→render→update dos quatro callbacks em `directionChanged`, preservando tipos/ordem de eventos, foco, IDs e bloqueios. Risco classificado: repetição podia omitir atualização de seleção num evento; a prova de toque imediato já havia revelado esse efeito durante implementação. Nenhum teste de helper interno criado. Estado de créditos permanece na classe; input físico, movimento ativo e navegação têm lifetimes distintos; start(seed) continua a única política de reset. Demais dimensões da rubrica avaliadas, sem ampliação do combate.
+
+Falhas de preparação preservadas: fixture inicial chamou finish privado e foi corrigida antes do RED válido; comparação por pixels de imagem completamente fora da tela teve zero amostras e foi substituída por observação Canvas mais pixels visíveis. Um callback novo com update sem receptor capturado deixou seleção visual atrasada no JS emitido; this explícito e a consolidação do protocolo corrigiram a prova pública. Isso não foi transformado em regra geral da linguagem nem em alteração do compilador. Um checkpoint avulso de armas encerrou143/log vazio, sem resultado aproveitável; o gate completo posterior executou a jornada com exit0. RED de abertura confirmou1/104 antes da mudança; APIs novas e botões ausentes também produziram falhas esperadas antes da produção.
+
+Inventário CI: [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml), Resolve verified Kof e Kof tests(jvm/js), a serem associados ao PR após o gate final. Chrome e infraestrutura foram executados localmente; o CI configurado exercita a matriz Kof. Build/Publish Pages são condicionais a push emmain e não são gate de PR. Sonar, mutation runner e Habit não configurados e excluídos, sem alegação de pass/score. Não há nova medição de cobertura.
+
+Pendentes para v1: comparação com vídeo histórico; Android físico; áudio, Opções e Música; pausa automática; escala adaptável; entrada fora da árvore de controles. Evidência gerada opcional: `.agent/tmp/navigation-browser/`, `stage-browser/navigation-reset-*`, `navigation-assets.json`, `navigation-kof-identity.json`, `navigation-acceptance-audit.md`, `credits-pause-navigation.structural-review.md` e `validation/20261007T011914-rj7fs1sh/`. Resumo, resultados e limites essenciais estão aqui; arquivos locais não são necessários para ler o aceite. Gate final repetirá os onze comandos no commit revisado/documentado.

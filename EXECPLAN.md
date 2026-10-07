@@ -717,3 +717,10 @@ Falhas, cobertura ausente, comparação com vídeo e Android real devem permanec
 Branch `credits-pause-navigation`, checkout atual sem worktree, base `main` fixa `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`. Worker `primary`, chat `01a113e4-c500-76c1-850c-191a12bc6f41`, título `sifuture-navigation-primary`, `gpt-6.1-sol`/`medium`. Os sete papéis compartilham contexto e usam leases serializados; revisão e validação não são independentes. Onze checks locais e Resolve/JVM/JS no CI confirmados. Sonar, Habit e mutação excluídos por ausência de configuração, sem atribuir pass. Plano literal, ledger, inventário, coletores e logs em `.agent/tmp/credits-pause-navigation.*`.
 
 Implementação e checkpoints comportamentais: Credits/Controls no modelo; créditos em classe mutável avançada por step; seleção limitada e deduplicada; reinício com seed e abandono; telas, botões e explicação Kof. Três provas do boss promovidas à suíte permanente. JVM/JS: 112 casos; Chrome: créditos, navegação e reinício nos percursos existentes em 320/1200. Gates completos e auditorias serão registrados no aceite antes da entrega.
+
+
+- [x] Gate inicial 11/11 no SHA `50affe515aeeec0f6ee9776a4d774feb8c7cf469`, 236,96 s; JVM/JS 112/112, sete percursos Chrome e infraestrutura.
+- [x] Expectativas históricas e qualidade das assertions auditadas separadamente; oito sprites idênticos, NOTICE preservado, capturas320/1200 inspecionadas.
+- [x] Revisão estrutural com consolidação do protocolo dos callbacks direcionais; registros de fase/resultado e controles atualizados, história preservada.
+- [ ] Gate final no commit revisado/documentado e entrega PR/CI (serão registrados no ledger e no PR).
+- [ ] V1: vídeo, Android, áudio/Opções/Música, escala e lifecycle posteriores continuam abertos.

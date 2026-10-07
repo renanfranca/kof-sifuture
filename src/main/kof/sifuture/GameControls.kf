@@ -130,11 +130,17 @@ class GameControls {
     Button directionButton(Direction direction, String name) {
         var button = Button(name, () -> {})
         button.setStyle(Style("width: 56; height: 56; padding: 0; touch-action: none; user-select: none"))
-        button.on("pointerdown", (e: Event) -> { game.movement(direction, true); drawing.render(game); this.update() })
-        button.on("pointerup", (e: Event) -> { game.movement(direction, false); drawing.render(game); this.update() })
-        button.on("pointercancel", (e: Event) -> { game.movement(direction, false); drawing.render(game); this.update() })
-        button.on("pointerleave", (e: Event) -> { game.movement(direction, false); drawing.render(game); this.update() })
+        button.on("pointerdown", (e: Event) -> { this.directionChanged(direction, true) })
+        button.on("pointerup", (e: Event) -> { this.directionChanged(direction, false) })
+        button.on("pointercancel", (e: Event) -> { this.directionChanged(direction, false) })
+        button.on("pointerleave", (e: Event) -> { this.directionChanged(direction, false) })
         return button
+    }
+
+    private directionChanged(Direction direction, Bool pressed) {
+        game.movement(direction, pressed)
+        drawing.render(game)
+        update()
     }
 
     focusOption(Int option) {
