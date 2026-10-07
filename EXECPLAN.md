@@ -726,3 +726,7 @@ Implementação e checkpoints comportamentais: Credits/Controls no modelo; créd
 - [ ] V1: vídeo, Android, áudio/Opções/Música, escala e lifecycle posteriores continuam abertos.
 
 Revisão complementar: estilos de navegação agora são construídos uma vez, evitando registros KofJS a cada tick; sonda19→19 em1000 ticks e percurso público preservado. Correção adicional `6daccf42529c19e5f69d1cef1b84b04959b1e193` voltou pelo fluxo de implementação; gate completo11/11 passou em237,27s,112 testes por alvo e sete jornadas Chrome. Revisão estrutural reconferida no mesmo contexto, sem nova alteração comportamental. Consolidação final de documentação será validada novamente antes do PR; links posteriores no ledger/PR e registro de aceite.
+
+- [x] Gate final local11/11 no head `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`,237,94s,112 testes por alvo.
+- [x] [PR18](https://github.com/renanfranca/kof-sifuture/pull/18) criado pronto para revisão, sem merge; [CI37558500360](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360) com Resolve/JVM/JS success,112 testes por alvo. Links e identidade do merge sintético registrados no aceite.
+- [ ] Commit documental com estes links: repetir gates e acompanhar CI do novo head antes da entrega; registros posteriores no ledger e PR. Código do ciclo concluído; v1 permanece aberta.

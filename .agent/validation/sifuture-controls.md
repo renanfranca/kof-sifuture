@@ -371,3 +371,5 @@ PASS pause with two held fingers clears both axes; Continue and Main Menu keep h
 ```
 
 Comando: `python3 tests/browser_controls.py`, classes reais da fixture controls.kf. O teste `touch_pause_clears_diagonal` observa sprite/posição antes e depois da soltura na nova tentativa. Gate final e CI serão associados ao mesmo ciclo; [registro por critério, fontes, assertions e limites](stage-hud-result.md#créditos-controles-e-navegação-da-pausa--06102026). Android físico/conforto continuam pendentes. O arquivo mantém os ciclos anteriores como históricos.
+
+Entrega do ciclo: [PR18](https://github.com/renanfranca/kof-sifuture/pull/18), head `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`; gate local final11/11, incluindo browser_controls e abandono com contatos mantidos. [CI37558500360](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360) Resolve/JVM/JS success,112 testes por alvo. CI demonstra modelo; contatos/foco continuam evidência Chrome local. Detalhes, checksums, merge sintético e links individuais no registro stage-hud-result. Inclusão documental será validada novamente antes da entrega.

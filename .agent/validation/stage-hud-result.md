@@ -970,3 +970,21 @@ O gate final do commit `d097c105b7612031826b62258fdcc1ceea8a587a` também conclu
 Sonda local complementar (não teste permanente de implementação): registro de estilos **19→19 em1000 ticks**, relógio Chrome controlado e estilos reutilizados. Script opcional `.agent/tmp/styles_probe.py`. Tentativa inicial da sonda usou modo headless antigo removido pelo Chrome e falhou antes de executar assertions; foi corrigida para a mesma configuração headless=new das jornadas permanentes. O resultado válido mede ausência de crescimento nesse percurso; as jornadas públicas continuam demonstrando visual, foco e navegação.
 
 Gate completo após reutilização de estilos: commit `6daccf42529c19e5f69d1cef1b84b04959b1e193`, onze comandos selecionados/executados, zero bloqueados, todos exit0 e coleta completa,237,27s. JVM/JS:112/112 cada; sete jornadas Chrome; Python8OK e contrato CI passou. Fontes e assertions da tabela acima foram reconferidas após a correção; nenhum critério foi removido. Evidência opcional `validation/20261007T013408-d768qpoy/`. O gate final repetirá esses comandos após consolidar este registro. Resultados posteriores e links de jobs ficarão também no PR e ledger. [CI desta branch](https://github.com/renanfranca/kof-sifuture/actions?query=branch%3Acredits-pause-navigation) exercita modelo/combate; navegador permanece evidência local.
+
+### Entrega e CI do ciclo de navegação
+
+[PR18](https://github.com/renanfranca/kof-sifuture/pull/18), aberto para revisão em `credits-pause-navigation`, sem worktree. Gate final local do commit `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`: **11/11**, zero bloqueados, todos exit0/coleta completa,237,94s;112 testes JVM e112 JS, sete jornadas Chrome, Python8OK e contrato CI. Evidência opcional `validation/20261007T013846-818n8zrp/`.
+
+CI [run37558500360](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360) concluiu success:
+
+| Check selecionado | Resultado e evidência permanente |
+| --- | --- |
+| resolve-kof | [Resolve verified Kof](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360/job/112590171339): success; pacote0.5.0-beta, Kof commit `317d9f6b1c3e27032cc955a05f859f6c627d9338`, arquivo Linux SHA-256 `f93f02eb62af584ea49ffb44efdbf54f970bdb9570f16fdc48ccc28242798ca9`. |
+| ci-jvm | [Kof tests(jvm)](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360/job/112590744093): success, `0 failed of 112 tests`, `1 passed, 0 failed`. |
+| ci-js | [Kof tests(js)](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360/job/112590744163): success, `0 failed of 112 tests`, `1 passed, 0 failed`. |
+
+Head do PR nesse run: `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`. O checkout efetivamente testado foi o merge sintético GitHub `d6fa61f16678e1e58e4b041eded939e41d55763b`, cujos pais são a base `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4` e esse head; não houve merge humano do PR. O campo sifuture_sha do manifest identifica esse merge. Identidade do arquivo CI e JAR local são checksums de objetos diferentes.
+
+Os dois jobs Kof acima complementam cada critério de modelo da tabela: timing/transições dos créditos, exibição única, seleção, Continuar, reset com seed, abandono, resultado e regressões de combate/boss. Pixels, foco, clique nativo e contatos físicos permanecem demonstrados pelas jornadas Chrome locais, com navegador e capturas já registrados; não se atribui execução Chrome a esse CI. Build/Publish Pages foram skipped, conforme condição push emmain; não são checks selecionados deste PR.
+
+Esta inclusão de links/resultados é um commit exclusivamente documental adicional. Os gates locais serão repetidos nele antes de atualizar o PR; o estado final, SHA e jobs do novo head ficarão no ledger e na descrição do PR. Estes links preservam a execução terminal do código revisado e os resultados anteriores, sem se apresentar como evidência de um SHA futuro. Nenhum critério aberto de vídeo, Android, áudio, Opções/Música, lifecycle, escala ou foco externo foi encerrado por esse CI.
