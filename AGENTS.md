@@ -1,5 +1,14 @@
 # AGENTS.md — Learning and explaining Kof
 
+## Worktree creation
+
+- Work in the current checkout by default.
+- Create a Git worktree only when the user explicitly asks for one. A request
+  to implement a plan, isolate changes, or use workers does not authorize
+  worktree creation.
+- If the current checkout has changes that prevent safe progress, preserve
+  them and explain the blocker; do not create a worktree automatically.
+
 ## Mandatory retrieval in every session
 
 At the start of every agent session in this repository, read the local
