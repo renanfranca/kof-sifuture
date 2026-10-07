@@ -853,3 +853,89 @@ Gate inicial no complemento: `b6a46355b0e4b31d0a0511452344733fc7abc6f2`,11/11 co
 - [x] CI do checkpoint: [37622526346](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346), Resolve/JVM/JS success,113 testes por alvo; identidade do merge sintético/Kof e links dos jobs no aceite versionado.
 - [x] Revisão estrutural concluída no contexto primary, sem refactor de produção; somente consolidação documental após checkpoint.
 - [ ] Final-validating e CI do head final: resultados posteriores no ledger/PR, mantendo os SHAs deste registro explícitos.
+
+
+## Ciclo aprovado: textos, seleção e guia de controles — 2026-10-07
+
+Plano aprovado pelo usuário e confirmação de execução recebida neste chat. Distribuição: `primary`, `gpt-6.1-sol` / `medium`, com os sete papéis atribuídos e leases serializados. Mutation Analyst e Habit Curator inativos, sem configuração local. Validação e revisão compartilham o contexto da implementação. Checkout atual, branch `credits-pause-navigation`, base `main` no SHA `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`. O [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) permanece aberto.
+
+O plano literal e o estado do fluxo ficam em `.agent/tmp/controls-guide.md` e `.agent/tmp/controls-guide.workflow.json`; este registro permanece legível sem esses arquivos locais.
+
+$implement-approved-plan # Melhorar textos, seleção e guia de controles
+
+## Resultado desejado
+
+Conforme suas escolhas: texto Kof uniforme nos créditos e menus, nave como indicador de seleção, guia curto de controles e remoção da instrução fixa no rodapé.
+
+Hoje existe uma mistura de imagem e texto. Em [GameView.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameView.kf:88):
+
+```kof
+canvas.drawImage(copyright0, game.credits.x, game.credits.firstY)
+drawContact(game.credits)
+```
+
+O copyright vem do PNG; o contato é desenhado separadamente. Usar a mesma renderização, cor e escala nos dois blocos corrigirá a diferença visual.
+
+## Créditos e menus
+
+- Desenhar copyright, nome completo e contato com `Canvas.fillText`, mantendo `renan.andradefranca@gmail.com` e a cor azul `RGB(0,128,255)`.
+- Aplicar uma escala compartilhada aos dois blocos, calculada pela linha mais larga, com limite de 130 pixels. Preservar conteúdo, posições e duração da animação.
+- Desenhar as opções em português, com fonte sans-serif uniforme de aproximadamente 12 pixels: **Novo Jogo**, **Controles**, **Continuar**, **Reiniciar** e **Menu principal**. Alinhar todas em `x=48`, dentro das áreas de toque existentes.
+- Remover o retângulo azul da seleção. A nave continuará apontando a opção escolhida, inclusive durante sua entrada animada.
+- Mostrar foco do teclado com contorno neutro de 1 pixel no perímetro da área do jogo; botões externos terão seu próprio contorno discreto. Nenhum retângulo acompanhará as linhas do menu.
+- Manter confirmação direta por Enter e toque, nomes acessíveis e proteção contra ações duplicadas.
+
+Para ajustar texto no Canvas, seguir a orientação do [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277):
+
+> `measureText` returns a `Double` (width in px) for text layout.
+
+A largura medida determinará o ajuste; `save()` e `restore()` isolarão as transformações para não alterar desenhos posteriores.
+
+## Guia de controles
+
+Substituir o parágrafo extenso por dois blocos em uma coluna, com fonte sans-serif de 14 pixels, entrelinha de 20 pixels e títulos de 16 pixels. Usar texto claro sobre fundo escuro, largura máxima de 248 pixels e espaçamento de 12 pixels.
+
+**Teclado**
+
+Introdução: “Na partida, clique na área do jogo ou use Tab até ‘Ativar teclado do jogo’.”
+
+| Tecla | Ação |
+|---|---|
+| Setas | Mover a nave na partida |
+| ↑ / ↓ | Escolher uma opção nos menus |
+| Enter | Confirmar nos menus; pausar na partida |
+| 1 | Usar o especial quando disponível |
+
+**Toque**
+
+- “Toque em uma opção do menu para abri-la.”
+- “Segure as setas para mover. Combine duas para fazer diagonal.”
+- “Solte todas as setas para parar.”
+- “Especial: uma tentativa por pressão, quando disponível.”
+- “Pausar: abrir o menu da pausa.”
+
+Adicionar **Mais detalhes**, inicialmente fechado, com regras de direções opostas, arrasto, soltura independente, cancelamento, prioridade do direcional, disponibilidade do especial e foco dos botões. Explicar que Espaço ativa o botão focado e que Enter/Espaço sobre **Especial** tentam o especial.
+
+Na tela Controles, recolher o direcional e o botão Especial e substituir o canvas vazio por um cabeçalho compacto de 44 pixels. Preservar o elemento que recebe teclado e a retenção temporária de foco durante teclas mantidas. Manter **Voltar** e fechar os detalhes ao entrar novamente no guia.
+
+Remover completamente a instrução fixa do rodapé.
+
+## Verificação e limites
+
+- Ampliar os testes existentes em `tests/browser.py`: conferir textos dos créditos, cor e escala compartilhadas; nave indicando a seleção; foco independente; guia fechado/aberto; ausência do rodapé e de rolagem horizontal.
+- Verificar abertura e retorno de Controles por Enter, Espaço, clique e toque. Abrir detalhes não poderá confirmar o jogo; manter uma tecla não poderá provocar uma segunda transição.
+- Preservar os testes dos quadros dos créditos, entrada da nave, seleção limitada, pausa, reinício e opções antigas retidas durante uma pressão.
+- Executar testes Kof em JVM/JS e os sete percursos existentes no navegador.
+- Inspecionar capturas de créditos, menu, pausa e guia em larguras de 320 e 1200 pixels. Aprovação funcional e aprovação visual serão registradas separadamente.
+- Atualizar documentação e registro em `.agent/validation/`, com SHA, comandos, navegador e resultados; capturas e logs ficarão em `.agent/tmp/`. Registrar qualquer critério ainda não comprovado.
+
+O ciclo altera apresentação e orientação. Logo, sprites, HUD e mecânicas permanecem preservados. A implementação usará o checkout atual e as APIs existentes de Kof, sem alterações no compilador.
+
+### Implementação e evidências deste ciclo
+
+- Créditos e cinco opções desenhados com `Canvas.fillText`; uma escala determinada pela maior largura dos dois blocos; transformações isoladas por `save`/`restore`. Conteúdo dos créditos transcrito do PNG preservando os anos 2006-2007 e o nome sem alteração do asset.
+- Nave indica seleção durante entrada e retornos; foco neutro de 1 px no perímetro da área ou no botão externo, sem retângulos nas opções.
+- `ControlsGuide` compõe tabela, lista de toque e detalhes com widgets Kof existentes. Cabeçalho de 44 px, direcional/Especial recolhidos, receptor de teclado preservado. Detalhes usam a proteção de uma ação por pressão e fecham na saída.
+- A janela acompanha o conteúdo: a inspeção revelou que a antiga altura fixa deixava o guia fora da moldura; a largura fixa também causava rolagem horizontal interna quando havia scrollbar vertical. O canvas mantém 176×220 e os controles mantêm 248 px.
+- Testes mantêm quadros dos créditos, entrada da nave, seleção limitada, pausa, reinício e opções retidas. No guia compacto, após tocar a antiga coordenada sobre texto informativo, o teste devolve foco explicitamente ao receptor antes de soltar a tecla: a soltura deve ser observada na árvore de controles, conforme o contrato existente. A retenção efetiva de foco também é verificada antes desse toque.
+- Registros RED/GREEN e capturas locais: `.agent/tmp/controls-guide-*.json` e `.agent/tmp/navigation-browser/`. Suíte principal e checkpoint do percurso de fase passaram durante implementação; gates completos e revisão estrutural serão registrados em [controls-guide.md](.agent/validation/controls-guide.md).

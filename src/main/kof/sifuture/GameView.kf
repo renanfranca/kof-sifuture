@@ -5,11 +5,7 @@ import kof.ui.*
 
 class GameView {
     Canvas canvas
-    Image copyright0
     Image title
-    Image menu
-    Image controlsMenu
-    Image continueMenu
     Image ship
     Image subchief
     List<Image> bossFrames
@@ -43,11 +39,7 @@ class GameView {
 
     public constructor(Canvas canvas) {
         this.canvas = canvas
-        copyright0 = Image("assets/copyright0.png")
         title = Image("assets/sifuture.png")
-        menu = Image("assets/menu0.png")
-        controlsMenu = Image("assets/menu1.png")
-        continueMenu = Image("assets/menu4.png")
         ship = Image("assets/Middle.png")
         subchief = Image("assets/subchief.png")
         subchiefShot = Image("assets/laser0.png")
@@ -85,26 +77,20 @@ class GameView {
         canvas.setFill(Palette.white)
         if (game.screen == Screen.Credits) {
             if (!game.credits.exitComplete) {
-                canvas.drawImage(copyright0, game.credits.x, game.credits.firstY)
-                drawContact(game.credits)
+                drawCredits(game.credits)
             }
             return
         }
         if (game.screen == Screen.Menu) {
             canvas.drawImage(title, 11, 30)
-            canvas.drawImage(menu, 48, 120)
-            canvas.drawImage(controlsMenu, 48, 139)
+            drawMenuLabel("Novo Jogo", 120)
+            drawMenuLabel("Controles", 139)
             var selector = lifeShips[1]
             if (game.menuEntrance.phase == MenuEntrancePhase.Entry) { selector = lifeShips[2] }
             canvas.drawImage(selector, game.menuEntrance.x, 120 + game.menuSelection * 19)
             return
         }
-        if (game.screen == Screen.Controls) {
-            canvas.fillText("CONTROLES", 48, 70)
-            canvas.fillText("Teclado e toque", 40, 100)
-            canvas.fillText("Instruções abaixo", 35, 130)
-            return
-        }
+        if (game.screen == Screen.Controls) { return }
         for (var y = Rules.HEADER_HEIGHT; y < Rules.WORLD_HEIGHT; y = y + 60) {
             for (var x = -game.background.offset; x < Rules.WORLD_WIDTH; x = x + 60) {
                 canvas.drawImage(background, x, y)
@@ -165,23 +151,47 @@ class GameView {
         drawHud(game)
         if (game.screen == Screen.Result) { drawResult(game) }
         if (game.screen == Screen.Pause) {
-            canvas.drawImage(continueMenu, 60, 80)
-            canvas.fillText("Reiniciar", 60, 111)
-            canvas.fillText("Menu principal", 60, 130)
+            drawMenuLabel("Continuar", 80)
+            drawMenuLabel("Reiniciar", 99)
+            drawMenuLabel("Menu principal", 118)
             canvas.drawImage(lifeShips[1], 18, 80 + game.pauseSelection * 19)
         }
     }
 
-    private drawContact(Credits credits) {
-        var scale = 0.75
-        var width = canvas.measureText("renan.andradefranca@gmail.com")
-        if (width * scale > 130.0) { scale = 130.0 / width }
+    private drawMenuLabel(String text, Int y) {
         canvas.save()
-        canvas.transform(scale, 0.0, 0.0, scale, credits.x as Double, credits.secondY as Double)
+        canvas.transform(1.2, 0.0, 0.0, 1.2, 48.0, (y + 13) as Double)
+        canvas.fillText(text, 0, 0)
+        canvas.restore()
+    }
+
+    private drawCredits(Credits credits) {
+        var firstLines = listOf("Copyright (c) 2006-2007", "Renan Meneses de Andrade Franca")
+        var secondLines = listOf("contact:", "renan.andradefranca@gmail.com", "Inc. All rights reserved.")
+        var width = 0.0
+        for (var line in firstLines) {
+            var measured = canvas.measureText(line)
+            if (measured > width) { width = measured }
+        }
+        for (var line in secondLines) {
+            var measured = canvas.measureText(line)
+            if (measured > width) { width = measured }
+        }
+        var scale = 0.75
+        if (width * scale > 130.0) { scale = 130.0 / width }
+        drawCreditBlock(firstLines, credits.x, credits.firstY, scale)
+        drawCreditBlock(secondLines, credits.x, credits.secondY, scale)
+    }
+
+    private drawCreditBlock(List<String> lines, Int x, Int y, Double scale) {
+        canvas.save()
+        canvas.transform(scale, 0.0, 0.0, scale, x as Double, y as Double)
         canvas.setFill(Color(0, 128, 255))
-        canvas.fillText("contact:", 0, 10)
-        canvas.fillText("renan.andradefranca@gmail.com", 0, 22)
-        canvas.fillText("Inc. All rights reserved.", 0, 34)
+        var baseline = 10
+        for (var line in lines) {
+            canvas.fillText(line, 0, baseline)
+            baseline = baseline + 12
+        }
         canvas.restore()
     }
 

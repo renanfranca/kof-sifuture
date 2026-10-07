@@ -1,0 +1,92 @@
+package sifuture
+
+import kof.ui.*
+
+class ControlsGuide {
+    Column root
+    Button disclosure
+    Bool discardClick = false
+    private Column details
+    private Bool expanded = false
+    private Style hiddenStyle
+    private Style contentStyle
+
+    public constructor() {
+        hiddenStyle = Style("display: none")
+        contentStyle = Style("display: flex; flex-direction: column; width: 248; max-width: 248; gap: 12; padding: 0; background: #121212; color: #eeeeee; font-family: sans-serif; font-size: 14; line-height: 20px; white-space: normal")
+        var keyboard = Table(listOf("Tecla", "Ação"), listOf(
+            listOf("Setas", "Mover a nave na partida"),
+            listOf("↑ / ↓", "Escolher uma opção nos menus"),
+            listOf("Enter", "Confirmar nos menus; pausar na partida"),
+            listOf("1", "Usar o especial quando disponível")))
+        keyboard.setStyle(Style("width: 248; table-layout: fixed; border-collapse: collapse; font-family: sans-serif; font-size: 14; line-height: 20px; text-align: left"))
+        var keyboardBlock = Column(listOf(
+            heading("Teclado"),
+            paragraph("Na partida, clique na área do jogo ou use Tab até ‘Ativar teclado do jogo’."),
+            keyboard))
+        keyboardBlock.setStyle(contentStyle)
+        var touch = Ul(listOf(
+            "Toque em uma opção do menu para abri-la.",
+            "Segure as setas para mover. Combine duas para fazer diagonal.",
+            "Solte todas as setas para parar.",
+            "Especial: uma tentativa por pressão, quando disponível.",
+            "Pausar: abrir o menu da pausa."))
+        touch.setId("controls-touch")
+        touch.setStyle(Style("margin: 0; padding: 0 0 0 18px; font-family: sans-serif; font-size: 14; line-height: 20px"))
+        var touchBlock = Column(listOf(heading("Toque"), touch))
+        touchBlock.setStyle(contentStyle)
+        details = Column(listOf(
+            paragraph("Direções opostas: vence a última pressionada. Ao soltá-la, retoma a outra ainda mantida."),
+            paragraph("Arrasto: o dedo mantém a seta inicial; deslizar não troca a direção. Soltura ou cancelamento encerra essa pressão. Com o mouse, sair da seta encerra a pressão."),
+            paragraph("Soltar uma seta conserva as outras; soltar a última para. Pausar limpa movimentos; Continuar exige novas pressões."),
+            paragraph("O direcional tem prioridade sobre o teclado enquanto pressionado. Depois de soltá-lo, uma seta já mantida não move sozinha."),
+            paragraph("Setas usadas em outros botões não movem a nave. Voltar por Tab conserva bloqueios; solte a tecla nos controles antes de pressionar novamente. Clicar na área rearma apenas as setas, sem mover nem liberar Enter."),
+            paragraph("Especial só funciona na partida, com carga e nave normal, sem outro especial ativo. Uma pressão faz uma tentativa quando disponível; manter o botão ou a tecla não repete."),
+            paragraph("Tab muda o foco dos botões; Espaço ativa o botão focado. Enter/Espaço sobre Especial tentam o especial. Enter na área ou em Confirmar confirma a seleção; em Voltar retorna ao menu."),
+            paragraph("O contorno neutro mostra o foco; a nave mostra a opção selecionada. Solte Enter/Espaço nos controles antes de outra ação; uma tecla mantida não confirma a próxima tela.")))
+        details.setId("controls-details")
+        var idle = Style("outline: none; font-family: sans-serif; font-size: 14")
+        var focused = Style("outline: 1px solid gray; font-family: sans-serif; font-size: 14")
+        disclosure = Button("Mais detalhes", () -> {
+            if (this.discardClick) { this.discardClick = false; return }
+            this.toggle()
+        })
+        disclosure.setId("game-details")
+        disclosure.setStyle(idle)
+        disclosure.on("pointerdown", (e: Event) -> { this.discardClick = false })
+        disclosure.on("focus", (e: Event) -> { disclosure.setStyle(focused) })
+        disclosure.on("blur", (e: Event) -> { this.discardClick = false; disclosure.setStyle(idle) })
+        root = Column(listOf(keyboardBlock, touchBlock, disclosure, details))
+        root.setId("game-help")
+        close()
+    }
+
+    private Label heading(String text) {
+        var label = Label(text)
+        label.setStyle(Style("font-family: sans-serif; font-size: 16; line-height: 20px; font-weight: bold; color: #eeeeee"))
+        return label
+    }
+
+    private Label paragraph(String text) {
+        var label = Label(text)
+        label.setStyle(Style("font-family: sans-serif; font-size: 14; line-height: 20px; color: #eeeeee; white-space: normal"))
+        return label
+    }
+
+    toggle() {
+        expanded = !expanded
+        if (expanded) { details.setStyle(contentStyle); disclosure.text = "Menos detalhes" }
+        else { details.setStyle(hiddenStyle); disclosure.text = "Mais detalhes" }
+    }
+
+    show() {
+        root.setStyle(contentStyle)
+    }
+
+    close() {
+        expanded = false
+        details.setStyle(hiddenStyle)
+        disclosure.text = "Mais detalhes"
+        root.setStyle(hiddenStyle)
+    }
+}

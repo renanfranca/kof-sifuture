@@ -23,6 +23,70 @@ def wait_for(predicate, page, timeout=5):
     raise AssertionError("observable condition did not appear")
 
 
+def record_menu(page):
+    page.add_init_script("""
+        window.menuTexts = [];
+        window.menuShips = [];
+        const draw = CanvasRenderingContext2D.prototype.drawImage;
+        const text = CanvasRenderingContext2D.prototype.fillText;
+        CanvasRenderingContext2D.prototype.drawImage = function(image, x, y, ...rest) {
+            if (image.src && /[23]lives\.png$/.test(image.src)) {
+                window.menuShips.push([image.src.split('/').pop(), x, y]);
+            }
+            return draw.call(this, image, x, y, ...rest);
+        };
+        CanvasRenderingContext2D.prototype.fillText = function(label, x, y, ...rest) {
+            const m = this.getTransform();
+            window.menuTexts.push({label, x: m.a*x+m.e, y: m.d*y+m.f,
+                size: parseFloat(this.font)*m.a, font: this.font, color: this.fillStyle});
+            return text.call(this, label, x, y, ...rest);
+        };
+    """)
+
+
+def selected_line(page, name, y):
+    assert page.evaluate("menuShips.slice(-1)[0][2]") == y
+    assert page.get_by_role("button", name=name, exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "none"
+
+
+def menu_presentation(browser, url):
+    for width in (320, 1200):
+        page = browser.new_page(viewport={"width": width, "height": 1000})
+        record_menu(page)
+        page.clock.install(time=datetime(2026, 1, 1))
+        page.clock.pause_at(datetime(2026, 1, 1))
+        page.goto(url)
+        page.get_by_role("button", name="Pular créditos", exact=True).click()
+        texts = page.evaluate("menuTexts.slice(-2)")
+        assert [t["label"] for t in texts] == ["Novo Jogo", "Controles"], texts
+        assert [t["x"] for t in texts] == [48, 48]
+        assert [t["y"] for t in texts] == [133, 152]
+        assert all(math.isclose(t["size"], 12, abs_tol=1e-5) and "sans-serif" in t["font"] for t in texts)
+        page.clock.run_for(36 * 30)
+        page.get_by_role("button", name="Controles", exact=True).focus()
+        selected_line(page, "Controles", 139)
+        sprite(page, "2lives.png", 18, 139)
+        surface = page.locator("#game-keyboard").locator("..")
+        assert surface.evaluate("n => [getComputedStyle(n).outlineWidth, getComputedStyle(n).outlineColor]") == ["1px", "rgb(128, 128, 128)"]
+        page.get_by_role("button", name="Confirmar (Enter)", exact=True).focus()
+        selected_line(page, "Controles", 139)
+        assert surface.evaluate("n => getComputedStyle(n).outlineStyle") == "none"
+        assert page.locator("#game-action").evaluate("n => getComputedStyle(n).outlineWidth") == "1px"
+        page.get_by_role("button", name="Novo Jogo", exact=True).click()
+        page.get_by_role("button", name="Pausar", exact=True).click()
+        texts = page.evaluate("menuTexts.slice(-3)")
+        assert [t["label"] for t in texts] == ["Continuar", "Reiniciar", "Menu principal"]
+        assert [t["x"] for t in texts] == [48, 48, 48]
+        assert [t["y"] for t in texts] == [93, 112, 131]
+        assert all(math.isclose(t["size"], 12, abs_tol=1e-5) and "sans-serif" in t["font"] for t in texts)
+        page.get_by_role("button", name="Menu principal", exact=True).focus()
+        selected_line(page, "Menu principal", 118)
+        sprite(page, "2lives.png", 18, 118)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.close()
+        print(f"PASS Portuguese Canvas menus at x48/12px, ship selection and independent neutral focus at {width}px")
+
+
 def credits_animation(browser, url):
     evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/navigation-browser"
     evidence.mkdir(parents=True, exist_ok=True)
@@ -46,7 +110,7 @@ def credits_animation(browser, url):
             CanvasRenderingContext2D.prototype.fillText = function(text, x, y, ...rest) {
                 const m = this.getTransform();
                 window.creditTexts.push({text, x, y, color: this.fillStyle,
-                    matrix: [m.a, m.b, m.c, m.d, m.e, m.f], width: this.measureText(text).width});
+                    font: this.font, matrix: [m.a, m.b, m.c, m.d, m.e, m.f], width: this.measureText(text).width});
                 return originalText.call(this, text, x, y, ...rest);
             };
         """)
@@ -56,16 +120,17 @@ def credits_animation(browser, url):
         page.keyboard.press("ArrowLeft")
 
         def credits(x, y0, y1):
-            assert page.evaluate("creditDraws.slice(-1)") == [["copyright0.png", x, y0]]
-            texts = page.evaluate("creditTexts.slice(-3)")
-            assert [t["text"] for t in texts] == ["contact:", "renan.andradefranca@gmail.com", "Inc. All rights reserved."]
-            assert [t["y"] for t in texts] == [10, 22, 34]
-            scale = min(0.75, 130 / texts[1]["width"])
-            for t in texts:
+            assert page.evaluate("creditDraws.length") == 0
+            texts = page.evaluate("creditTexts.slice(-5)")
+            assert [t["text"] for t in texts] == ["Copyright (c) 2006-2007", "Renan Meneses de Andrade Franca",
+                                                   "contact:", "renan.andradefranca@gmail.com", "Inc. All rights reserved."]
+            assert [t["y"] for t in texts] == [10, 22, 10, 22, 34]
+            scale = min(0.75, 130 / max(t["width"] for t in texts))
+            for index, t in enumerate(texts):
                 assert t["x"] == 0 and t["color"] == "#0080ff", t
-                assert all(math.isclose(observed, expected, abs_tol=1e-7) for observed, expected in zip(t["matrix"], [scale, 0, 0, scale, x, y1])), t
+                assert all(math.isclose(observed, expected, abs_tol=1e-7) for observed, expected in zip(t["matrix"], [scale, 0, 0, scale, x, y0 if index < 2 else y1])), t
                 assert t["width"] * scale <= 130 + 1e-5
-            assert page.evaluate("creditDraws.every(d => d[0] !== 'copyright1.png')")
+            assert len({t["font"] for t in texts}) == 1
             assert page.locator("canvas").evaluate("n => {const c=n.getContext('2d'),m=c.getTransform();return [m.a,m.b,m.c,m.d,m.e,m.f,c.fillStyle]}") == [1, 0, 0, 1, 0, 0, "#ffffff"]
 
         credits(-134, 110, 141)
@@ -127,6 +192,7 @@ def menu_navigation(browser, url):
     for width in (320, 1200):
         context = browser.new_context(viewport={"width": width, "height": 1000}, has_touch=True)
         page = context.new_page()
+        record_menu(page)
         page.clock.install(time=datetime(2026, 1, 1))
         page.clock.pause_at(datetime(2026, 1, 1))
         page.goto(url)
@@ -137,9 +203,9 @@ def menu_navigation(browser, url):
         assert page.get_by_role("button", name="Opções", exact=True).count() == 0
         page.get_by_role("button", name="↓", exact=True).tap()
         page.get_by_role("button", name="↓", exact=True).tap()
-        assert page.get_by_role("button", name="Controles", exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+        selected_line(page, "Controles", 139)
         page.get_by_role("button", name="↑", exact=True).tap()
-        assert page.get_by_role("button", name="Novo Jogo", exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+        selected_line(page, "Novo Jogo", 120)
         overlay.focus()
         page.keyboard.down("ArrowDown")
         page.keyboard.down("ArrowDown")
@@ -147,7 +213,7 @@ def menu_navigation(browser, url):
         assert page.get_by_role("button", name="Voltar", exact=True).count() == 1
         explanation = page.locator("#game-help")
         assert explanation.is_visible()
-        for term in ("Tab", "foco", "Enter", "1", "diagonais", "opostos", "Arrasto", "Soltar", "Especial", "cancelar"):
+        for term in ("Tab", "Enter", "1", "diagonal", "Solte", "Especial"):
             assert term in explanation.inner_text()
         page.screenshot(path=str(Path(__file__).resolve().parents[1] / f".agent/tmp/navigation-browser/controls-{width}.png"), full_page=True)
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -166,15 +232,15 @@ def menu_navigation(browser, url):
         page.screenshot(path=str(Path(__file__).resolve().parents[1] / f".agent/tmp/navigation-browser/pause-{width}.png"), full_page=True)
         page.keyboard.down("ArrowDown")
         page.keyboard.down("ArrowDown")
-        assert page.get_by_role("button", name="Reiniciar", exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+        selected_line(page, "Reiniciar", 99)
         page.keyboard.up("ArrowDown")
         page.keyboard.press("ArrowDown")
         page.keyboard.press("ArrowDown")
-        assert page.get_by_role("button", name="Menu principal", exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+        selected_line(page, "Menu principal", 118)
         page.keyboard.press("ArrowUp")
         page.keyboard.press("ArrowUp")
         page.keyboard.press("ArrowUp")
-        assert page.get_by_role("button", name="Continuar", exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+        selected_line(page, "Continuar", 80)
         page.get_by_role("button", name="Menu principal", exact=True).tap()
         page.clock.run_for(60)
         assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
@@ -193,6 +259,7 @@ def confirmation_journeys(browser, url):
     for width in (320, 1200):
         context = browser.new_context(viewport={"width": width, "height": 1000}, has_touch=True)
         page = context.new_page()
+        record_menu(page)
         page.clock.install(time=datetime(2026, 1, 1))
         page.clock.pause_at(datetime(2026, 1, 1))
         page.goto(url)
@@ -202,7 +269,7 @@ def confirmation_journeys(browser, url):
             controls.focus()
             confirm = page.get_by_role("button", name="Confirmar (Enter)", exact=True)
             confirm.focus()
-            assert controls.evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+            selected_line(page, "Controles", 139)
             if mode == "touch":
                 controls.tap()
             elif mode == "click":
@@ -251,10 +318,102 @@ def confirmation_journeys(browser, url):
         print(f"PASS every menu/pause option via Enter, Confirmar/Space/click and direct touch; retained controls isolated after three held-Enter transitions at {width}px")
 
 
+def controls_guide(browser, url):
+    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/navigation-browser"
+    for width in (320, 1200):
+        context = browser.new_context(viewport={"width": width, "height": 1000}, has_touch=True)
+        page = context.new_page()
+        page.clock.install(time=datetime(2026, 1, 1))
+        page.clock.pause_at(datetime(2026, 1, 1))
+        page.goto(url)
+        page.get_by_role("button", name="Pular créditos", exact=True).click()
+        for mode in ("Enter", "Space", "click", "touch"):
+            controls = page.get_by_role("button", name="Controles", exact=True)
+            if mode in ("Enter", "Space"):
+                controls.focus()
+                page.keyboard.press(mode)
+            elif mode == "click":
+                controls.click()
+            else:
+                controls.tap()
+            back = page.get_by_role("button", name="Voltar", exact=True)
+            assert back.is_visible()
+            guide = page.locator("#game-help")
+            assert guide.is_visible()
+            assert guide.evaluate("n => [getComputedStyle(n).fontSize, getComputedStyle(n).lineHeight, getComputedStyle(n).fontFamily, getComputedStyle(n).gap]") == ["14px", "20px", "sans-serif", "12px"]
+            assert guide.bounding_box()["width"] <= 248
+            window_box = page.locator(".kof-window").bounding_box()
+            back_box = back.bounding_box()
+            assert back_box["y"] + back_box["height"] <= window_box["y"] + window_box["height"]
+            assert page.locator("#controls-heading").bounding_box()["height"] == 44
+            assert page.locator("#game-keyboard").bounding_box()["height"] == 44
+            assert not page.locator("canvas").is_visible()
+            for name in ("↑", "↓", "←", "→", "Especial"):
+                assert not page.get_by_role("button", name=name, exact=True).is_visible()
+            assert page.get_by_text("Na partida, clique na área do jogo ou use Tab até ‘Ativar teclado do jogo’.", exact=True).is_visible()
+            assert guide.locator("th").all_text_contents() == ["Tecla", "Ação"]
+            assert guide.locator("td").all_text_contents() == ["Setas", "Mover a nave na partida", "↑ / ↓", "Escolher uma opção nos menus", "Enter", "Confirmar nos menus; pausar na partida", "1", "Usar o especial quando disponível"]
+            assert guide.locator("#controls-touch li").all_text_contents() == ["Toque em uma opção do menu para abri-la.", "Segure as setas para mover. Combine duas para fazer diagonal.", "Solte todas as setas para parar.", "Especial: uma tentativa por pressão, quando disponível.", "Pausar: abrir o menu da pausa."]
+            for title in ("Teclado", "Toque"):
+                assert guide.get_by_text(title, exact=True).evaluate("n => getComputedStyle(n).fontSize") == "16px"
+            details = page.locator("#controls-details")
+            assert not details.is_visible()
+            assert page.get_by_text("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age; 1 dispara especial.", exact=True).count() == 0
+            if mode == "Enter":
+                page.screenshot(path=str(evidence / f"controls-closed-{width}.png"), full_page=True)
+            toggle = page.get_by_role("button", name="Mais detalhes", exact=True)
+            if mode in ("Enter", "Space"):
+                toggle.focus()
+                page.keyboard.down(mode)
+                page.keyboard.down(mode)
+                if mode == "Space":
+                    page.keyboard.up(mode)
+            elif mode == "click":
+                toggle.click()
+            else:
+                toggle.tap()
+            assert details.is_visible()
+            assert back.is_visible()
+            text = details.inner_text()
+            for term in ("opostas", "última", "Arrasto", "cancelamento", "Soltar uma", "prioridade", "disponível", "foco", "Espaço", "Enter/Espaço"):
+                assert term in text, (term, text)
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            assert page.evaluate("Array.from(document.querySelectorAll('*')).filter(n => ['auto','scroll'].includes(getComputedStyle(n).overflowX)).every(n => n.scrollWidth <= n.clientWidth)")
+            if mode == "Enter":
+                page.clock.run_for(90)
+                assert details.is_visible()
+                page.screenshot(path=str(evidence / f"controls-open-{width}.png"), full_page=True)
+                back.scroll_into_view_if_needed()
+                assert back.is_visible()
+                page.screenshot(path=str(evidence / f"controls-open-bottom-{width}.png"), full_page=True)
+                back.focus()
+                page.keyboard.down("Enter")
+                assert back.is_visible()
+                page.keyboard.up("Enter")
+            page.get_by_role("button", name="Menos detalhes", exact=True).click()
+            assert not details.is_visible()
+            page.get_by_role("button", name="Mais detalhes", exact=True).click()
+            if mode in ("Enter", "Space"):
+                back.focus()
+                page.keyboard.press(mode)
+            elif mode == "click":
+                back.click()
+            else:
+                back.tap()
+            assert page.get_by_role("button", name="Controles", exact=True).is_visible()
+            assert page.locator("canvas").is_visible()
+            assert page.locator("#game-keyboard").bounding_box()["height"] == 220
+            assert not guide.is_visible()
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        context.close()
+        print(f"PASS compact Controls, 14/16px guide, closed/open/reset details and Enter/Space/click/touch without duplicate transitions at {width}px")
+
+
 def retained_options(browser, url):
     for width in (320, 1200):
         context = browser.new_context(viewport={"width": width, "height": 1000}, has_touch=True)
         page = context.new_page()
+        record_menu(page)
         page.clock.install(time=datetime(2026, 1, 1))
         page.clock.pause_at(datetime(2026, 1, 1))
         page.goto(url)
@@ -270,11 +429,12 @@ def retained_options(browser, url):
             page.keyboard.down(held_key)
             expected = "Voltar" if option == "Controles" else "Pausar" if option == "Reiniciar" else "Novo Jogo"
             assert page.get_by_role("button", name=expected, exact=True).is_visible()
+            assert target.evaluate("n => document.activeElement === n")
             assert target.evaluate("n => getComputedStyle(n).pointerEvents") == "none"
             assert target.bounding_box()["x"] < -1000
             if option == "Menu principal":
                 page.keyboard.press("ArrowDown")
-                assert page.get_by_role("button", name="Novo Jogo", exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+                selected_line(page, "Novo Jogo", 120)
             if held_key == "Enter":
                 page.keyboard.press("Space")
             else:
@@ -282,8 +442,10 @@ def retained_options(browser, url):
             page.touchscreen.tap(old_box["x"] + old_box["width"] / 2, old_box["y"] + 1)
             page.keyboard.down(held_key)
             assert page.get_by_role("button", name=expected, exact=True).is_visible()
+            if option == "Controles":
+                page.locator("#game-keyboard").focus()
             page.keyboard.up(held_key)
-            assert not target.is_visible()
+            assert not target.is_visible(), (option, held_key, target.bounding_box(), page.locator("#game-action").inner_text())
             if option == "Controles":
                 page.get_by_role("button", name="Voltar", exact=True).focus()
                 page.keyboard.press("Space")
@@ -319,6 +481,9 @@ def main():
             )
             try:
                 startup_context = browser.new_context(viewport={"width": 800, "height": 600})
+                credits_animation(browser, url)
+                menu_presentation(browser, url)
+                controls_guide(browser, url)
                 retained_options(browser, url)
                 confirmation_journeys(browser, url)
                 startup_page = startup_context.new_page()
@@ -360,7 +525,7 @@ def main():
                     assert zone.is_disabled()
                 page.keyboard.press("Tab")
                 assert overlay.evaluate("node => document.activeElement === node")
-                assert overlay.evaluate("node => getComputedStyle(node).outlineStyle") == "solid"
+                assert overlay.locator("..").evaluate("node => getComputedStyle(node).outlineStyle") == "solid"
                 page.keyboard.down("Enter")
                 page.keyboard.down("Enter")
                 wait_for(lambda: page.get_by_role("button", name="Novo Jogo").count() == 1, page)
@@ -462,7 +627,6 @@ def main():
                 page.keyboard.press("Enter")
                 wait_for(lambda: page.get_by_role("button", name="Novo Jogo").count() == 1, page)
                 assert not errors, errors
-                credits_animation(browser, url)
                 menu_navigation(browser, url)
                 print("PASS menu, Enter and Space, conservative confirmation, pause, result and menu in Chrome")
             finally:

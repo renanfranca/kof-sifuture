@@ -1,5 +1,6 @@
 package sifuture
 
+import sifuture.ControlsGuide
 import sifuture.game.*
 import kof.ui.*
 
@@ -13,7 +14,15 @@ class GameControls {
     Button continueOption
     Button restartOption
     Button mainMenu
-    Label help
+    ControlsGuide guide
+    View bitmap
+    Label controlsHeading
+    Column pad
+    Column specialColumn
+    Column gameColumn
+    View surface
+    Bool keyboardFocused = false
+    Bool actionFocused = false
     String focusedOption = ""
     String discardOptionClick = ""
     Button special
@@ -32,8 +41,21 @@ class GameControls {
     private Style optionStyle
     private Style retainedOptionStyle
     private Style actionStyle
-    private Style selectedOptionStyle
-    private Style helpStyle
+    private Style surfaceStyle
+    private Style focusedSurfaceStyle
+    private Style focusedActionStyle
+    private Style specialAvailableFocusedStyle
+    private Style specialUnavailableFocusedStyle
+    private Style padStyle
+    private Style specialColumnStyle
+    private Style gameColumnStyle
+    private Style guideColumnStyle
+    private Style guideSurfaceStyle
+    private Style focusedGuideSurfaceStyle
+    private Style canvasStyle
+    private Style headingStyle
+    private Style keyboardStyle
+    private Style guideKeyboardStyle
     private Style specialAvailableStyle
     private Style specialUnavailableStyle
 
@@ -42,11 +64,19 @@ class GameControls {
         this.drawing = drawing
         hiddenStyle = Style("display: none")
         optionStyle = Style("display: block; width: 128; height: 19; padding: 0; pointer-events: auto; border: 0; background: transparent; color: transparent; outline: none")
-        selectedOptionStyle = Style("display: block; width: 128; height: 19; padding: 0; pointer-events: auto; border: 0; background: transparent; color: transparent; outline: 2px solid blue")
-        actionStyle = Style("display: block")
+        actionStyle = Style("display: block; outline: none")
+        focusedActionStyle = Style("display: block; outline: 1px solid gray")
+        surfaceStyle = Style("position: relative; width: 176; height: 220; padding: 0; align-self: center; outline: none")
+        focusedSurfaceStyle = Style("position: relative; width: 176; height: 220; padding: 0; align-self: center; outline: 1px solid gray")
         retainedOptionStyle = Style("position: absolute; left: -10000; top: 0; width: 1; height: 1; padding: 0; pointer-events: none")
-        helpStyle = Style("display: block; max-width: 272; white-space: normal; padding: 8")
-        var surface = keyboardSurface(canvas)
+        guide = ControlsGuide()
+        guideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: none")
+        focusedGuideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: 1px solid gray")
+        keyboardStyle = overlayStyle()
+        guideKeyboardStyle = Style("position: absolute; top: 0; left: 0; width: 248; height: 44; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
+        canvasStyle = Style("display: block; width: 176; height: 220; padding: 0")
+        headingStyle = Style("display: block; height: 44; font-family: sans-serif; font-size: 16; line-height: 44px; font-weight: bold; text-align: center; color: #eeeeee; background: #121212")
+        keyboardSurface(canvas)
 
         north = directionButton(Direction.Up, "↑")
         west = directionButton(Direction.Left, "←")
@@ -60,13 +90,16 @@ class GameControls {
         top.setStyle(rowStyle)
         middle.setStyle(rowStyle)
         bottom.setStyle(rowStyle)
-        var pad = Column(listOf(top, middle, bottom))
-        pad.setStyle(Style("align-items: center; gap: 0; padding: 0"))
+        pad = Column(listOf(top, middle, bottom))
+        padStyle = Style("display: flex; align-items: center; gap: 0; padding: 0")
+        pad.setStyle(padStyle)
         special = Button("Especial", () -> {})
         special.setId("game-special")
-        specialAvailableStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 1")
-        specialUnavailableStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 0.5")
-        special.on("focus", (e: Event) -> { this.specialFocused = true })
+        specialAvailableStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 1; outline: none")
+        specialAvailableFocusedStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 1; outline: 1px solid gray")
+        specialUnavailableFocusedStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 0.5; outline: 1px solid gray")
+        specialUnavailableStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 0.5; outline: none")
+        special.on("focus", (e: Event) -> { this.specialFocused = true; this.updateSpecial() })
         special.on("blur", (e: Event) -> {
             this.specialFocused = false
             this.updateSpecial()
@@ -80,21 +113,22 @@ class GameControls {
         special.on("pointerup", (e: Event) -> { this.specialPointerHeld = false })
         special.on("pointercancel", (e: Event) -> { this.specialPointerHeld = false })
         special.on("pointerleave", (e: Event) -> { this.specialPointerHeld = false })
-        var gameColumn = Column(listOf(surface, pad))
-        gameColumn.setStyle(Style("width: 176; align-items: center; padding: 0"))
-        var specialColumn = Column(listOf(special))
-        specialColumn.setStyle(Style("width: 56; height: 220; justify-content: center; padding: 0"))
+        gameColumn = Column(listOf(surface, pad))
+        gameColumnStyle = Style("width: 176; align-items: center; padding: 0")
+        guideColumnStyle = Style("width: 248; align-items: center; padding: 0")
+        gameColumn.setStyle(gameColumnStyle)
+        specialColumn = Column(listOf(special))
+        specialColumnStyle = Style("display: flex; width: 56; height: 220; justify-content: center; padding: 0")
+        specialColumn.setStyle(specialColumnStyle)
         var movementControls = Row(listOf(gameColumn, specialColumn))
         movementControls.setStyle(Style("width: 248; flex-wrap: nowrap; align-self: center; align-items: flex-start; gap: 16; padding: 0"))
         action = Button("Novo Jogo", () -> { this.activateAction() })
         action.setId("game-action")
         action.on("pointerdown", (e: Event) -> { this.discardEnterClick = false })
-        action.on("blur", (e: Event) -> { this.discardEnterClick = false })
-        help = Label("Teclado: clique no jogo ou use Tab para dar foco. Setas movem a nave; Enter confirma e pausa; 1 tenta o especial. Toque: setas independentes combinam diagonais; em opostos vale a última seta pressionada, e soltá-la retoma a outra ainda mantida. Arrasto mantém a seta inicial até soltar ou cancelar. Soltar uma seta conserva as demais. Especial faz uma tentativa por pressão, sem repetir enquanto mantido. Pausa limpa movimentos; Continuar exige nova pressão.")
-        help.setId("game-help")
-        help.setStyle(helpStyle)
-        var hint = Label("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age; 1 dispara especial.")
-        root = Column(listOf(movementControls, action, help, hint))
+        action.on("focus", (e: Event) -> { this.actionFocused = true; action.setStyle(focusedActionStyle) })
+        action.on("blur", (e: Event) -> { this.actionFocused = false; this.discardEnterClick = false; action.setStyle(actionStyle) })
+        root = Column(listOf(movementControls, guide.root, action))
+        root.setStyle(Style("width: 248; max-width: 248; align-self: center; padding: 0"))
         root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
         root.on("keyup", (e: Event) -> { this.keyChanged(e.key(), e.target(), false) })
         update()
@@ -105,8 +139,14 @@ class GameControls {
             if (game.screen == Screen.Credits) { this.activateAction() }
         })
         configureOverlay()
-        var surface = View(Style("position: relative; width: 176; height: 220; padding: 0; align-self: center"))
-        surface.bind(canvas)
+        surface = View(surfaceStyle)
+        bitmap = View(canvasStyle)
+        bitmap.bind(canvas)
+        surface.bind(bitmap)
+        controlsHeading = Label("Controles")
+        controlsHeading.setId("controls-heading")
+        controlsHeading.setStyle(hiddenStyle)
+        surface.bind(controlsHeading)
         surface.bind(overlay)
         newGame = menuOption(surface, Screen.Menu, 0, "game-new", "Novo Jogo", Style("position: absolute; left: 48; top: 120; width: 128; height: 19; padding: 0; pointer-events: none"))
         controlsOption = menuOption(surface, Screen.Menu, 1, "game-controls", "Controles", Style("position: absolute; left: 48; top: 139; width: 128; height: 19; padding: 0; pointer-events: none"))
@@ -118,27 +158,37 @@ class GameControls {
 
     configureOverlay() {
         overlay.setId("game-keyboard")
-        var idleStyle = overlayStyle(false)
-        var focusedStyle = overlayStyle(true)
-        overlay.setStyle(idleStyle)
+        overlay.setStyle(keyboardStyle)
         overlay.on("pointerdown", (e: Event) -> { game.rearmKeyboard() })
-        overlay.on("focus", (e: Event) -> { overlay.setStyle(focusedStyle) })
+        overlay.on("focus", (e: Event) -> { this.keyboardFocused = true; this.updateSurfaceFocus() })
         overlay.on("blur", (e: Event) -> {
             game.clearKeyboard()
-            overlay.setStyle(idleStyle)
+            this.keyboardFocused = false
+            this.updateSurfaceFocus()
         })
     }
 
-    Style overlayStyle(Bool focused) {
-        if (focused) {
-            return Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: 2px solid blue")
-        }
+    Style overlayStyle() {
         return Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
+    }
+
+    private updateSurfaceFocus() {
+        var focused = keyboardFocused || optionAvailable(focusedOption)
+        if (game.screen == Screen.Controls) {
+            if (focused) { surface.setStyle(focusedGuideSurfaceStyle) }
+            else { surface.setStyle(guideSurfaceStyle) }
+        }
+        else if (focused) { surface.setStyle(focusedSurfaceStyle) }
+        else { surface.setStyle(surfaceStyle) }
     }
 
     Button directionButton(Direction direction, String name) {
         var button = Button(name, () -> {})
-        button.setStyle(Style("width: 56; height: 56; padding: 0; touch-action: none; user-select: none"))
+        var idle = Style("width: 56; height: 56; padding: 0; touch-action: none; user-select: none; outline: none")
+        var focused = Style("width: 56; height: 56; padding: 0; touch-action: none; user-select: none; outline: 1px solid gray")
+        button.setStyle(idle)
+        button.on("focus", (e: Event) -> { button.setStyle(focused) })
+        button.on("blur", (e: Event) -> { button.setStyle(idle) })
         button.on("pointerdown", (e: Event) -> { this.directionChanged(direction, true) })
         button.on("pointerup", (e: Event) -> { this.directionChanged(direction, false) })
         button.on("pointercancel", (e: Event) -> { this.directionChanged(direction, false) })
@@ -166,7 +216,7 @@ class GameControls {
                 this.update()
             }
         })
-        button.on("blur", (e: Event) -> { this.focusedOption = ""; this.discardOptionClick = "" })
+        button.on("blur", (e: Event) -> { this.focusedOption = ""; this.discardOptionClick = ""; this.updateSurfaceFocus() })
         slot.bind(button)
         surface.bind(slot)
         return button
@@ -222,9 +272,11 @@ class GameControls {
             else { enterHeld = pressed }
             var freshPress = pressed && !held
             if (target == "game-action" && (pressed || key == " ")) { discardEnterClick = true }
+            if (target == "game-details" && (pressed || key == " ")) { guide.discardClick = true }
             if (pressed && optionTarget(target)) { discardOptionClick = target }
             if (freshPress) {
-                if (target == "game-special") { activateSpecial() }
+                if (target == "game-details" && game.screen == Screen.Controls) { guide.toggle() }
+                else if (target == "game-special") { activateSpecial() }
                 else if (target == "game-action" || (key == "Enter" && target == "game-keyboard") || optionAvailable(target)) {
                     game.confirm()
                     drawing.render(game)
@@ -232,7 +284,7 @@ class GameControls {
                 }
             }
             if (!pressed) {
-                if (key == "Enter") { discardEnterClick = false; discardOptionClick = "" }
+                if (key == "Enter") { discardEnterClick = false; discardOptionClick = ""; guide.discardClick = false }
                 update()
             }
             return
@@ -249,17 +301,18 @@ class GameControls {
     private updateSpecial() {
         var available = game.canSpecial()
         var preserveFocus = specialFocused && (oneHeld || enterHeld || spaceHeld)
-        if (available) { special.setStyle(specialAvailableStyle) }
+        if (available && specialFocused) { special.setStyle(specialAvailableFocusedStyle) }
+        else if (available) { special.setStyle(specialAvailableStyle) }
+        else if (specialFocused) { special.setStyle(specialUnavailableFocusedStyle) }
         else { special.setStyle(specialUnavailableStyle) }
         special.setDisabled(!available && !preserveFocus)
     }
 
-    setOptionStyle(Button button, String id, Bool visible, Bool selected) {
+    setOptionStyle(Button button, String id, Bool visible) {
         if (!visible) {
             if (focusedOption == id && (enterHeld || spaceHeld)) { button.setStyle(retainedOptionStyle) }
             else { button.setStyle(hiddenStyle) }
         }
-        else if (selected) { button.setStyle(selectedOptionStyle) }
         else { button.setStyle(optionStyle) }
     }
 
@@ -273,16 +326,35 @@ class GameControls {
         west.setDisabled(!playing)
         east.setDisabled(!playing)
         south.setDisabled(!playing && !navigating)
-        setOptionStyle(newGame, "game-new", menu, game.menuSelection == 0)
-        setOptionStyle(controlsOption, "game-controls", menu, game.menuSelection == 1)
-        setOptionStyle(continueOption, "game-continue", pause, game.pauseSelection == 0)
-        setOptionStyle(restartOption, "game-restart", pause, game.pauseSelection == 1)
-        setOptionStyle(mainMenu, "game-menu", pause, game.pauseSelection == 2)
-        action.setStyle(actionStyle)
+        setOptionStyle(newGame, "game-new", menu)
+        setOptionStyle(controlsOption, "game-controls", menu)
+        setOptionStyle(continueOption, "game-continue", pause)
+        setOptionStyle(restartOption, "game-restart", pause)
+        setOptionStyle(mainMenu, "game-menu", pause)
+        if (actionFocused) { action.setStyle(focusedActionStyle) }
+        else { action.setStyle(actionStyle) }
+        updateSurfaceFocus()
         if (game.screen == Screen.Credits) { action.text = "Pular créditos" }
         if (navigating) { action.text = "Confirmar (Enter)" }
-        if (game.screen == Screen.Controls) { action.text = "Voltar"; help.setStyle(helpStyle) }
-        else { help.setStyle(hiddenStyle) }
+        if (game.screen == Screen.Controls) {
+            action.text = "Voltar"
+            guide.show()
+            bitmap.setStyle(hiddenStyle)
+            controlsHeading.setStyle(headingStyle)
+            overlay.setStyle(guideKeyboardStyle)
+            pad.setStyle(hiddenStyle)
+            gameColumn.setStyle(guideColumnStyle)
+            if (specialFocused && (oneHeld || enterHeld || spaceHeld)) { specialColumn.setStyle(retainedOptionStyle) }
+            else { specialColumn.setStyle(hiddenStyle) }
+        } else {
+            guide.close()
+            bitmap.setStyle(canvasStyle)
+            controlsHeading.setStyle(hiddenStyle)
+            overlay.setStyle(keyboardStyle)
+            pad.setStyle(padStyle)
+            gameColumn.setStyle(gameColumnStyle)
+            specialColumn.setStyle(specialColumnStyle)
+        }
         if (playing) { action.text = "Pausar" }
         if (game.screen == Screen.Result) {
             if (game.countComplete()) { action.text = "Voltar ao menu" }
