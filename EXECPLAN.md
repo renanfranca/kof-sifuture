@@ -730,3 +730,126 @@ Revisão complementar: estilos de navegação agora são construídos uma vez, e
 - [x] Gate final local11/11 no head `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`,237,94s,112 testes por alvo.
 - [x] [PR18](https://github.com/renanfranca/kof-sifuture/pull/18) criado pronto para revisão, sem merge; [CI37558500360](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360) com Resolve/JVM/JS success,112 testes por alvo. Links e identidade do merge sintético registrados no aceite.
 - [ ] Commit documental com estes links: repetir gates e acompanhar CI do novo head antes da entrega; registros posteriores no ledger e PR. Código do ciclo concluído; v1 permanece aberta.
+
+
+## Complemento aprovado — menu, entrada e contato (07/10/2026)
+
+$implement-approved-plan # Melhorar o menu, restaurar a entrada da nave e atualizar os créditos
+
+## Resultado esperado
+
+Este plano substitui o anterior e mantém as correções R1/R2. Entregar:
+
+- Uma única ação **Confirmar (Enter)** abaixo do menu e da pausa, executando a seleção atual.
+- Toque direto nas opções desenhadas, sem repetir a lista abaixo.
+- Entrada da nave com propulsores somente na primeira abertura do Menu, inclusive após pular créditos.
+- Contato **renan.andradefranca@gmail.com** como texto Kof no bloco animado dos créditos.
+- Espera de50 quadros e término histórico dos créditos, com Menu no quadro260.
+
+Incorporar este complemento ao `EXECPLAN.md` durante a execução, preservando os registros anteriores.
+
+## Menu e confirmação
+
+Atualmente, tocar na ação principal força a primeira opção, conforme [GameControls.kf:174](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameControls.kf:174):
+
+```kof
+if (game.screen == Screen.Menu) { game.menuSelection = 0 }
+if (game.screen == Screen.Pause) { game.pauseSelection = 0 }
+game.confirm()
+```
+
+O novo botão Confirmar removerá essas atribuições: focá-lo, tocá-lo ou pressionar Space executará a seleção existente, assim como Enter. Selecionar Controles e confirmar abrirá Controles imediatamente.
+
+- Reaproveitar `Button` e `Style` Kof para criar áreas transparentes sobre as opções, com nomes acessíveis e indicação de foco. Toque executa diretamente a opção tocada.
+- Menu conserva as posições atuais. Na pausa, mostrar Continuar, Reiniciar e Menu principal nas linhas y80/99/118; conservar o sprite de Continuar e desenhar os outros dois rótulos em Kof.
+- Cima/Baixo continuam limitados às opções; foco numa opção atualiza a seleção. Focar Confirmar conserva a seleção.
+- Construir widgets e estilos uma vez, reutilizando-os nas atualizações.
+- Validar seleção e ativação pela tela atual. Opções anteriores retidas para receber solturas ficam fora da área visível, sem receber toque, e não podem confirmar outra tela.
+- Preservar bloqueios de Enter/Space mantidos e descarte do clique nativo. Soltar a tecla continua funcionando após uma transição.
+- Pular créditos, Voltar, Pausar e as duas confirmações de resultado mantêm suas ações específicas.
+
+## Entrada da nave
+
+O histórico usa o sprite com propulsores e avanço de dez unidades, em [MenuCanvas.java:123](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:123):
+
+```java
+g.drawImage(this.arrow[1], this.iMenu, Midlet.height/2, 0);
+this.iMenu += 10;
+```
+
+Depois troca para o sprite normal e recua três unidades. Preservar essas velocidades e adaptar o percurso à composição atual, cuja posição final é x18:
+
+| Passo desde a abertura do Menu | x | Apresentação |
+|---|---:|---|
+| 0 / 1 | -30 / -20 | `3lives.png`, com propulsores |
+| 11 | 80 | Último quadro com propulsores |
+| 12 / 13 | 87 / 84 | `2lives.png`, desaceleração |
+| 35 / 36 | 18 / 18 | Posição final, sem quadro vazio |
+
+- Acrescentar uma classe mutável `MenuEntrance`, com posição e fases Entrada/Frenagem/Pronta. Somente `Game.step()` avança essa animação, a cada30ms.
+- Desenhar a nave na linha da seleção atual. Navegação e confirmação permanecem disponíveis durante a entrada; nenhuma ação fica esperando a animação terminar.
+- Sair para uma partida ou Controles encerra definitivamente a entrada. Retornos de Controles, abandono e resultado apresentam o seletor pronto, conservando as regras de seleção.
+- A animação não avança os relógios da partida nem reaparece na pausa.
+
+O estado permanece em uma classe, conforme o [idioma Kof](/home/renanfranca/projects/kof/training/idioms/classes.md:36):
+
+> for **mutable state** use explicit fields + `constructor(...)`.
+
+Isso mantém a atualização temporal separada do desenho, como explicado em [Learn Kof](/home/renanfranca/projects/kof/learn/07-classes-and-objects.md:65).
+
+## Créditos e novo contato
+
+Preservar o término histórico escolhido:
+
+| Quadro | Resultado esperado |
+|---|---|
+| 0 / 1 | x=-134 / -129; y0=110, y1=141 |
+| 36–85 | Exatamente50 quadros em46/110/141 |
+| 86 / 87 |46/111/140 e46/112/139 |
+| 258 | Última atualização:46/283/-32 |
+| 259 | Credits, sem sprites ou texto |
+| 260 | Menu, começando a entrada da nave |
+
+- Contar a chegada como primeiro quadro de espera.
+- Acrescentar `exitComplete` em `Credits`: marcado no259; `advance()` retorna true no260. Desenho não altera esses estados.
+- Conservar `copyright0.png`, com autor e anos. Substituir somente a apresentação de `copyright1.png` por três linhas Kof: `contact:`, `renan.andradefranca@gmail.com` e `Inc. All rights reserved.`.
+- O texto acompanha x/y1, usa azul RGB(0,128,255) e ocupa o bloco existente de30 unidades de altura. Desenhar com escala0,75, reduzida apenas se a largura medida ultrapassar130 unidades; baselines locais10/22/34.
+- Usar `save`/`restore` para isolar a transformação e a cor, seguindo o [idioma Canvas](/home/renanfranca/projects/kof/training/idioms/ui.md:266). Isso impede que o ajuste dos créditos afete desenhos posteriores.
+- Preservar os PNGs históricos e NOTICE. A mudança de apresentação do contato é uma exceção explicitamente escolhida; o e-mail antigo não aparece nos créditos.
+
+## Testes e entrega
+
+Ampliar as jornadas existentes, sem criar testes de helpers internos:
+
+- **Confirmação:** selecionar cada opção e executar com Enter, Confirmar/Space e toque direto. Demonstrar que focar Confirmar não volta à primeira opção.
+- **Transições:** confirmar Reiniciar, Menu principal e Controles com Enter mantido; tocar na antiga área e tentar Space no controle retido. Nenhuma ação indevida ocorre. Após solturas, uma nova confirmação funciona uma vez.
+- **Entrada:** verificar os passos da tabela em JVM/JS e os sprites no Chrome320/1200; redesenhar não avança. Confirmar durante a entrada funciona imediatamente; retornos não repetem a animação.
+- **Créditos:** verificar chegada, último quadro de espera, primeira saída, intervalo terminal e Menu260. Enter mantido ao pular não inicia uma partida.
+- **Contato:** observar o texto literal e sua transformação no Canvas, conferir ausência do desenho antigo e inspecionar capturas320/1200 quanto a corte e legibilidade.
+- **Regressões:** conservar reset com seed, pausa, movimento, resultado e combate.
+
+As novas regressões devem demonstrar falha antes das correções. Executar os [onze comandos previstos](/home/renanfranca/projects/kof-sifuture/EXECPLAN.md:696), exigindo saída zero e nenhuma falha.
+
+Atualizar especificação, README e aceites existentes com fontes, expectativas, assertions, resultados, SHA, identidade Kof, navegador e CI disponível. Evidências ficam em `.agent/tmp/`. Auditar separadamente a expectativa correta e a suficiência da prova.
+
+Áudio, Android, escala, lifecycle e comparação integral com o vídeo permanecem fora deste complemento. Nenhuma alteração de implementação foi realizada neste planejamento.
+
+Execução: worker primary neste chat 01a11641-92f1-7902-9c41-c3aaa6668c66, título menu-credits-primary, gpt-6.1-sol/medium. Branch menu-entrance-credits em worktree limpo, base fixa 7e35430837571ab11fa1d94e7f16abfd8097ed3f. Revisão e validação compartilham contexto. Onze checks locais e três CI confirmados; Sonar/Habit/mutação sem configuração, excluídos. Registros anteriores preservados.
+
+
+### Progresso do complemento
+
+- [x] Contrato incorporado sem apagar registros anteriores; worktree e ledger v6 separados.
+- [x] TDD: créditos50/terminal260, entrada única, confirmação, retenção por tela e contato literal.
+- [x] Provas JVM/JS113 casos e jornadas Chrome320/1200; sonda de reutilização137 nodes/26 styles estáveis em1000 ticks.
+- [x] Especificação, README e aceites existentes ampliados; auditorias de expectativa e suficiência separadas.
+- [ ] Checkpoint e gates completos iniciais/finais; revisão estrutural; entrega PR/CI.
+- [ ] Áudio/Android/escala/lifecycle/vídeo integral: fora do complemento, pendentes na v1.
+
+
+Gate inicial no complemento: `b6a46355b0e4b31d0a0511452344733fc7abc6f2`,11/11 comandos com exit0,113 casos por alvo,253,37s. O primeiro checkpoint `4ab9cf78` teve duas expectativas de teste corrigidas em commit adicional; nenhum gate foi aceito para ele. Revisão estrutural no mesmo contexto sem delta de produção; auditorias separadas e imagens inspecionadas. PR18 recebe o complemento; CI do checkpoint [37622526346](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346). Aceites existentes preservam fonte, assertions, comandos, SHA, Kof e navegador. Gate final no commit documental e CI do head entregue permanecem pendentes e serão registrados no ledger/PR.
+
+
+- [x] CI do checkpoint: [37622526346](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346), Resolve/JVM/JS success,113 testes por alvo; identidade do merge sintético/Kof e links dos jobs no aceite versionado.
+- [x] Revisão estrutural concluída no contexto primary, sem refactor de produção; somente consolidação documental após checkpoint.
+- [ ] Final-validating e CI do head final: resultados posteriores no ledger/PR, mantendo os SHAs deste registro explícitos.

@@ -203,7 +203,8 @@ def native_confirmation(page):
     assert action.inner_text() == "Voltar ao menu"
     page.keyboard.up("Enter")
     page.keyboard.press("Enter")
-    assert action.inner_text() == "Novo Jogo"
+    assert action.inner_text() == "Confirmar (Enter)"
+    assert page.get_by_role("button", name="Novo Jogo", exact=True).is_visible()
 
 
 def vertical_and_full_journey(page):
