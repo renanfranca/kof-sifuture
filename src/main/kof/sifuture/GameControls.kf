@@ -26,12 +26,20 @@ class GameControls {
     Bool specialPointerHeld = false
     Bool discardEnterClick = false
     private Bool specialFocused = false
+    private Style hiddenStyle
+    private Style optionStyle
+    private Style selectedOptionStyle
+    private Style helpStyle
     private Style specialAvailableStyle
     private Style specialUnavailableStyle
 
     public constructor(Game game, GameView drawing, Canvas canvas) {
         this.game = game
         this.drawing = drawing
+        hiddenStyle = Style("display: none")
+        optionStyle = Style("display: block; outline: none")
+        selectedOptionStyle = Style("display: block; outline: 2px solid blue")
+        helpStyle = Style("display: block; max-width: 272; white-space: normal; padding: 8")
         var surface = keyboardSurface(canvas)
 
         north = directionButton(Direction.Up, "↑")
@@ -88,7 +96,7 @@ class GameControls {
         mainMenu.on("blur", (e: Event) -> { this.menuFocused = false; this.discardOptionClick = "" })
         help = Label("Teclado: clique no jogo ou use Tab para dar foco. Setas movem a nave; Enter confirma e pausa; 1 tenta o especial. Toque: setas independentes combinam diagonais; em opostos vale a última seta pressionada, e soltá-la retoma a outra ainda mantida. Arrasto mantém a seta inicial até soltar ou cancelar. Soltar uma seta conserva as demais. Especial faz uma tentativa por pressão, sem repetir enquanto mantido. Pausa limpa movimentos; Continuar exige nova pressão.")
         help.setId("game-help")
-        help.setStyle(Style("max-width: 272; white-space: normal; padding: 8"))
+        help.setStyle(helpStyle)
         var hint = Label("Clique no jogo ou use Tab para ativar teclado. Setas movem; Enter age; 1 dispara especial.")
         root = Column(listOf(movementControls, action, secondary, mainMenu, help, hint))
         root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
@@ -226,9 +234,9 @@ class GameControls {
     }
 
     setOptionStyle(Button button, Bool visible, Bool selected) {
-        if (!visible) { button.setStyle(Style("display: none")) }
-        else if (selected) { button.setStyle(Style("display: block; outline: 2px solid blue")) }
-        else { button.setStyle(Style("display: block; outline: none")) }
+        if (!visible) { button.setStyle(hiddenStyle) }
+        else if (selected) { button.setStyle(selectedOptionStyle) }
+        else { button.setStyle(optionStyle) }
     }
 
     update() {
@@ -248,8 +256,8 @@ class GameControls {
         setOptionStyle(secondary, showSecondary, (game.screen == Screen.Menu && game.menuSelection == 1) || (game.screen == Screen.Pause && game.pauseSelection == 1))
         setOptionStyle(mainMenu, showMenu, game.screen == Screen.Pause && game.pauseSelection == 2)
         setOptionStyle(action, true, navigating && ((game.screen == Screen.Menu && game.menuSelection == 0) || (game.screen == Screen.Pause && game.pauseSelection == 0)))
-        if (game.screen == Screen.Controls) { help.setStyle(Style("display: block; max-width: 272; white-space: normal; padding: 8")) }
-        else { help.setStyle(Style("display: none")) }
+        if (game.screen == Screen.Controls) { help.setStyle(helpStyle) }
+        else { help.setStyle(hiddenStyle) }
         if (game.screen == Screen.Play) { action.text = "Pausar" }
         if (game.screen == Screen.Pause) { action.text = "Continuar" }
         if (game.screen == Screen.Result) {
