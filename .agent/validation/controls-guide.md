@@ -301,3 +301,34 @@ Revisão estrutural no mesmo contexto da implementação: nenhuma alteração de
 A auditoria de critérios confirmou as escolhas aprovadas; a auditoria de asserções confirmou as observações correspondentes no modelo e na aplicação real. A inspeção visual do agente conferiu os12 recortes de créditos/menu/pausa em320/1200px e densidades1/2, com nome/e-mail completos e nenhuma opção cortada. Não houve aprovação visual humana; essa aceitação continua pendente. Os108 assets históricos comparados à base mantêm seus blobs Git, incluindo números do HUD. Só os glifos gerados foram retirados.
 
 O delta após a revisão contém apenas este registro de aceitação. O gate final repetirá os dez comandos no commit da documentação; seu SHA e resultados serão associados ao [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e aos [checks](https://github.com/renanfranca/kof-sifuture/pull/18/checks). Não se usa CI antigo como prova deste conteúdo. Merge e publicação de Pages não foram executados. Limites: aprovação visual do usuário, outros navegadores e Android físico continuam sem verificação.
+
+### Revisão independente do plano — 2026-10-08
+
+SHA revisado e testado: `26631abb604e281222ddf4b17a6a078cc6e744a2`, checkout limpo durante os testes. A revisão comparou o delta desde `ab21e65cbb3a7a099b972d5476a995eb4c9aea81` com o plano aprovado de fonte normal nos créditos e menus. Não encontrou desvios do plano ou regressões nos percursos executados. Esta execução confirma localmente o gate no commit da documentação; não confirma checks remotos, merge ou publicação.
+
+| Comando | Resultado observado nesta revisão |
+| --- | --- |
+| `python3 scripts/kof_project.py test --target jvm` | 114 testes, zero falhas |
+| `python3 scripts/kof_project.py test --target js` | 114 testes, zero falhas |
+| `python3 tests/browser.py` | Texto, geometria, cores, animação, quadro vazio, navegação e retornos aprovados |
+| `python3 tests/browser_controls.py` | Teclado, foco, ponteiros e toque aprovados |
+| `python3 tests/browser_meteor.py` | Movimento, impactos e respawn aprovados |
+| `python3 tests/browser_weapons.py` | Armas, especial e controles aprovados |
+| `python3 tests/browser_stage.py` | Fase, HUD, pausa, resultado e reinício aprovados |
+| `python3 tests/browser_subchief.py` | Encontro completo e replay aprovados |
+| `python3 tests/browser_boss.py` | Encontro completo e replay aprovados |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | Oito testes, OK |
+
+Trechos literais de `python3 tests/browser.py`, JS/Chrome 139.0.7258.154:
+
+```text
+PASS Portuguese sans-serif menus at x48/16px, ship selection and independent neutral focus at 320px
+PASS repeated real skip/Controls/pause/result arrivals at -30/-20/80/87/18, repaint and early confirmation at 1200px
+PASS 16px smooth text, complete credits/email at zoom100%, no bitmap fonts, guide padding/216px and closed Special at 320px density2
+```
+
+As asserções com medidas reais no Canvas verificaram os seis textos dos créditos, os cinco rótulos de menu, tamanho efetivo de 16px, margens de 12px, cores, áreas de toque e restauração do estado de desenho. O percurso passou em larguras de 320/1200px e densidades 1/2 a 100% de zoom. Os limites da animação e o quadro final vazio foram conferidos no modelo e no navegador. A comparação dos assets encontrou apenas a remoção dos 65 glifos gerados; imagens históricas e NOTICE não mudaram. O guia de controles e o modelo de entradas repetidas no menu não tiveram alterações de produção neste delta.
+
+A inspeção visual do agente, por amostragem das capturas de créditos, menu principal e pausa, encontrou nome/e-mail completos e opções sem cortes. As capturas não substituem a aprovação visual do usuário. Outros navegadores e Android físico permanecem sem verificação. Não houve correção no código de produção; a única alteração desta revisão é este registro.
+
+Evidências locais opcionais: `.agent/tmp/review-legible-text-20261008T125732Z/summary.json` e logs `01.log` a `10.log`; capturas renovadas em `.agent/tmp/credits-text-browser/`. Os resultados essenciais estão acima e não dependem desses arquivos locais.
