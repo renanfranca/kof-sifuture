@@ -378,3 +378,101 @@ Entrega do ciclo: [PR18](https://github.com/renanfranca/kof-sifuture/pull/18), h
 ### Complemento de confirmação — 07/10/2026
 
 O menu/pausa têm um único Confirmar abaixo da composição; os nomes acessíveis das opções ficam em Buttons transparentes sobre os rótulos do Canvas. Focar Confirmar preserva a seleção. Os callbacks de cada opção validam a tela de origem; durante uma tecla mantida, o foco antigo é conservado fora do viewport com pointer-events:none para receber a soltura sem ativar outra tela. O [registro da fase/HUD/resultado](stage-hud-result.md#complemento--confirmação-entrada-e-contato-07102026) preserva auditorias separadas de expectativa/prova, RED/GREEN, identidade e gates completos. `tests/browser.py::confirmation_journeys` cobre os cinco comandos por quatro modos; `retained_options` cobre Enter/Space mantidos, toque na área anterior e rearme em320/1200. Os percursos anteriores de direcional, especial e pausa continuam parte dos onze checks.
+## Investigação: teclado sem clicar na área do jogo — 08/10/2026
+
+Investigação solicitada pelo usuário, com `plan-behavioral-acceptance`: explicar por que as setas funcionam no menu sem clicar no receptor transparente e comprovar se a partida pode dispensar esse clique. Esta execução observa o comportamento atual e uma experiência isolada; não entrega uma alteração de produção.
+
+### Revisões, ambiente e procedimento
+
+Aplicação local testada: `02eb48e55102b5f0cafd85020b77f37da07060fa`. O [deployment 6937190874](https://github.com/renanfranca/kof-sifuture/actions/runs/37786185171/job/113342992632) associa o mesmo SHA ao [site público](https://renanfranca.github.io/kof-sifuture/) e tem estado `success`; o [workflow](https://github.com/renanfranca/kof-sifuture/actions/runs/37786185171) também terminou com sucesso. A API foi consultada nesta investigação. O navegador executou as mesmas observações no build local e no site público.
+
+Chrome `139.0.7258.154`, Playwright, alvo JS, larguras 320/1200 px, altura 900 px, densidade 1. O relógio virtual avança os intervalos reais de 30 ms; os eventos de teclado são enviados pelo navegador. Cada cenário usa um contexto novo. Não se usa `.focus()` para preparar os percursos: o foco chega aos elementos por Tab/Shift+Tab. Um observador conta `pointerdown` e registra alvo de `keydown`/`keyup`; todos os percursos terminaram com zero pressões de ponteiro. Enter pode gerar o clique nativo de um botão, o que não representa um clique de mouse ou toque na área do jogo.
+
+Compilador instalado: Kof `0.5.0-beta`, launcher `/home/renanfranca/.local/share/kof/kof-0.5.0-beta-linux-x86_64/bin/kof`; SHA-256 do JAR `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`. Checkout Kof consultado: `317d9f6b1c3e27032cc955a05f859f6c627d9338`. O JAR não informa o commit de origem em `dev/kof/version.properties`; não se atribui a ele o SHA do checkout consultado. Essa lacuna de proveniência não deve ser apresentada como resolvida.
+
+Comandos concluídos com exit 0:
+
+```bash
+python3 .agent/tmp/keyboard-no-click/probe.py
+python3 .agent/tmp/keyboard-no-click/probe.py --prototype-only
+```
+
+A primeira execução bem-sucedida obteve 28 observações; a segunda repetiu quatro observações do protótipo e acrescentou duas de perda de foco: 30 observações distintas, 34 contando repetições. O script agora inclui os limites de foco também na execução completa. Fontes de produção permaneceram sem alteração, confirmado por `git diff -- src`. Evidência local opcional: `.agent/tmp/keyboard-no-click/`, com script, logs, `results.json`, `summary.txt`, capturas, identidade do compilador e respostas das APIs. As conclusões essenciais estão transcritas abaixo.
+
+### Por que menu e partida diferem
+
+O [contrato atual](../specifications/port-sifuture-to-kof.md:34) limita o movimento ao receptor:
+
+> Arrows move the ship only when they originate at the overlay.
+
+O [training de eventos](../../../kof/training/idioms/ui.md:380) explica a origem:
+
+> `target()` returns the **id** of the node that originated the event
+
+O [Learn Kof 35](../../../kof/learn/35-kof-ui.md:5) delimita a prova visual:
+
+> only the JS target draws
+
+Em [GameControls.kf](../../src/main/kof/sifuture/GameControls.kf:150), o observador pertence à coluna que contém a área, o guia e o botão principal:
+
+```kof
+root = Column(listOf(movementControls, guide.root, action))
+root.setStyle(rootStyle)
+root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
+root.on("keyup", (e: Event) -> { this.keyChanged(e.key(), e.target(), false) })
+```
+
+O evento nasce no elemento focado e chega ao ancestral pelo DOM. `e.target()` continua identificando o elemento de origem. No runtime consultado, `JsRuntimeUiComponents.java:103` chama `node.addEventListener(type, fn)`, e `JsRuntimeUiEvents.java:31` lê `raw.target.id`. `KofJsBrowserE2ETest.java:1083` verifica `t=campo-main` para a origem do evento. A [especificação W3C de keydown](https://www.w3.org/TR/uievents/#event-type-keydown) estabelece o elemento focado como alvo; sem um elemento focado, usa `body` ou a raiz do documento. Um evento originado no `body` não atravessa a coluna interna dos controles.
+
+Em [GameControls.kf](../../src/main/kof/sifuture/GameControls.kf:319), o filtro decide quais origens podem mover ou navegar:
+
+```kof
+var movementAllowed = target == "game-keyboard" || optionAvailable(target) || (target == "game-action" && (game.screen == Screen.Menu || game.screen == Screen.Pause))
+```
+
+`game-action` é o mesmo botão que exibe Confirmar no menu e Pausar na partida. O último termo permite as setas nesse botão somente em Menu/Pause. Portanto, o menu pode funcionar porque Confirmar ou uma opção já tem foco; isso não demonstra ausência de foco. Na partida, com foco em Pausar, o último termo fica falso. O filtro pertence à aplicação, não é uma exigência do navegador ou uma regra geral da linguagem Kof.
+
+### Resultados observados
+
+| Contexto e ação real | Resultado no código atual, local e Pages, em 320/1200 px |
+| --- | --- |
+| Abertura nova, foco em BODY; Enter durante créditos; esperar os 477 passos; Baixo/Enter no menu | Enter não pula créditos; depois a seleção permanece em Novo Jogo, y=120, e a partida não inicia. |
+| Tab até o receptor; Enter para pular créditos; Baixo/Enter abre Controles; Enter volta; Cima/Enter inicia; Direita por seis passos | Foco permanece em `game-keyboard`; a nave vai de `(0,100)` a `(30,100)`, sem clique. |
+| Soltar Direita; seis passos; Cima por seis passos; soltar; pausar/continuar por Enter; seis passos | Soltar mantém x=30; Cima leva a y=70; pausa/retomada não reinicia movimento. |
+| Tab até Pular créditos; Enter; Baixo com foco em Confirmar | Seleção passa de Novo Jogo, y=120, para Controles, y=139, sem clicar no receptor. |
+| Cima/Enter inicia com foco ainda em `game-action`; Direita por seis passos | Nave permanece `(0,100)`. |
+| Após soltar Direita, Tab até o receptor; nova Direita por seis passos | Nave vai a `(30,100)`, ainda sem clique. |
+
+O deslocamento é comparado a coordenadas literais e conferido pelos pixels opacos de `Middle.png` no canvas real, reutilizando `sprite` de `tests/browser_stage.py`. A imagem inicial é observada antes da seta; seis passos mantêm um quadro visível durante a animação de reinício. O controle negativo usa a mesma nave, capaz de se mover, e a mesma duração. Assim, imobilidade não é confundida com um limite do mundo, explosão, pausa ou falta de atualização.
+
+Trechos literais de `summary.txt`, obtidos de `results.json` pelo comando Python de sumarização, JS/Chrome, site público, 320 px:
+
+```text
+pages-320-menu-action-arrows: focus=game-action; action=Confirmar (Enter); selection_y=139; pointerdowns=0
+pages-320-play-action-blocked: focus=game-action; action=Pausar; ship_x=0; ship_y=100; pointerdowns=0
+pages-320-play-tab-recovery: focus=game-keyboard; action=Pausar; ship_x=30; ship_y=100; pointerdowns=0
+```
+
+Essas três observações demonstram a diferença entre telas e que Tab já elimina a necessidade de clicar. O percurso completo por teclado também passou. Nenhuma dessas observações demonstra captura automática de teclas desde BODY.
+
+### Viabilidade experimental e limite encontrado
+
+Uma cópia descartável das fontes, preparada por `prepared_sources()`, recebeu somente esta substituição no filtro: `(target == "game-action" && (game.screen == Screen.Menu || game.screen == Screen.Pause))` por `target == "game-action"`. Essa cópia foi compilada com `kof build ... --target js --output ...` e executada em Chrome. O arquivo experimental e o build ficam em `.agent/tmp/`; não substituem as fontes canônicas.
+
+Com Tab até Pular créditos e dois Enter, a partida iniciou com foco em Pausar. Direita por seis passos levou x=0 a x=30; sua soltura conservou x=30. Isso demonstra viabilidade de continuar jogando com o foco já adquirido no botão principal, sem tocar a área e sem transferir o foco ao receptor.
+
+O limite seguinte também foi verificado: mantendo Direita e usando Shift+Tab para sair de Pausar, a nave continuou até x=60. O `blur` desse botão não limpa movimento, enquanto o `blur` do receptor o limpa. Portanto, a alteração de uma linha não satisfaz o contrato de perda de foco.
+
+```text
+prototype-320-action-moving: focus=game-action; action=Pausar; ship_x=30; ship_y=100; pointerdowns=0
+prototype-320-action-release: focus=game-action; action=Pausar; ship_x=30; ship_y=100; pointerdowns=0
+prototype-320-blur-gap: focus=BUTTON; action=Pausar; ship_x=60; ship_y=100; pointerdowns=0
+```
+
+As três observações se repetiram em 1200 px. A marca PASS na sonda do último caso significa que a falha prevista foi reproduzida; não significa aceite do protótipo. A experiência não cobre o Especial com foco em Pausar, saída da árvore, soltura externa, mudanças de aba/janela ou todas as transições de tela. Navegar até Novo Jogo e entrar por uma opção, em vez de Confirmar, também requer prova própria, pois a opção fica oculta na partida e pode devolver o foco a BODY.
+
+### Handoff e lacunas
+
+O [plano existente](../../EXECPLAN.md) recebeu critérios separados de observações para uma eventual mudança. A investigação está concluída. O contrato atual continua sendo receptor por clique ou Tab; extensão para o botão principal e ativação automática desde a abertura são propostas distintas. A pergunta do usuário não foi convertida silenciosamente em autorização para captura global ou em escolha de API de foco que não foi demonstrada no Kof.
+
+Não houve alteração de produção, commit, PR, merge ou publicação nesta investigação. Safari, Firefox, Android físico e captura de teclas com o navegador em segundo plano não foram testados. A suite completa não foi reexecutada: a comprovação usa os percursos focados acima, sem atribuir aos demais testes um resultado novo.
