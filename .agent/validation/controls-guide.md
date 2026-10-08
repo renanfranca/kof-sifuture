@@ -332,3 +332,25 @@ As asserções com medidas reais no Canvas verificaram os seis textos dos crédi
 A inspeção visual do agente, por amostragem das capturas de créditos, menu principal e pausa, encontrou nome/e-mail completos e opções sem cortes. As capturas não substituem a aprovação visual do usuário. Outros navegadores e Android físico permanecem sem verificação. Não houve correção no código de produção; a única alteração desta revisão é este registro.
 
 Evidências locais opcionais: `.agent/tmp/review-legible-text-20261008T125732Z/summary.json` e logs `01.log` a `10.log`; capturas renovadas em `.agent/tmp/credits-text-browser/`. Os resultados essenciais estão acima e não dependem desses arquivos locais.
+
+### Merge e publicação verificada — 2026-10-08
+
+Após autorização explícita do usuário, o [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) foi integrado a `main` às 13:33:15 UTC. SHA integrado, testado no CI e publicado: `e649066885e3b3fd6513bebf8629c29d46f835b3`. A árvore desse merge corresponde à revisão `2a98416a97a4236a551c7247b8f93b6bcadbcbde`, que inclui o registro independente acima.
+
+O [CI do PR](https://github.com/renanfranca/kof-sifuture/actions/runs/37784858795) passou nos três jobs aplicáveis. O [workflow de main](https://github.com/renanfranca/kof-sifuture/actions/runs/37785258372) terminou com sucesso nos cinco jobs: resolução do Kof, testes JVM/JS, construção do site completo e publicação. O passo de publicação foi executado com sucesso, sem ser ignorado. A API do GitHub confirmou o deployment `6937009579`, associado ao SHA integrado:
+
+```json
+{"environment_url":"https://renanfranca.github.io/kof-sifuture/","state":"success"}
+```
+
+A aplicação publicada em [GitHub Pages](https://renanfranca.github.io/kof-sifuture/) foi verificada com `python3 tests/browser.py https://renanfranca.github.io/kof-sifuture/`, saída 0. Chrome 139.0.7258.154, larguras 320/1200px, densidades 1/2 e zoom 100%. Trechos literais:
+
+```text
+PASS Portuguese sans-serif menus at x48/16px, ship selection and independent neutral focus at 320px
+PASS 16px smooth text, complete credits/email at zoom100%, no bitmap fonts, guide padding/216px and closed Special at 1200px density2
+PASS menu, Enter and Space, conservative confirmation, pause, result and menu in Chrome
+```
+
+O percurso verificou créditos, animação, menus, controles e navegação na aplicação pública. O cenário determinístico de resultado usa a fixture `tests/weapons.kf`, compilada e servida localmente pelo mesmo teste; seu resultado não demonstra execução dessa fixture no Pages. Esta checagem de publicação complementa os sete percursos e as suítes completas já registrados acima, sem atribuir uma nova execução pública a todos eles.
+
+O checkout local foi restaurado para `main`, sincronizado com `origin/main` e limpo após o merge. Este registro será entregue em um commit apenas de documentação; a publicação desse commit será acompanhada também. A aprovação visual humana continua pendente; a execução automatizada não a substitui. Evidências locais opcionais: `.agent/tmp/merge-pages-pr-ci.json`, `.agent/tmp/merge-pages-main-ci.json`, `.agent/tmp/merge-pages-deployment-status.json`, `.agent/tmp/merge-pages-live-browser.log` e capturas em `.agent/tmp/credits-text-browser/`.
