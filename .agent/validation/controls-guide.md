@@ -261,3 +261,43 @@ A inspeção inicial do agente encontrou nome e e-mail completos, texto azul uni
 Gerador, classes, JSON de máscaras, PNGs `font-*` e testes de máscaras/medidas da fonte bitmap foram removidos após a migração dos consumidores. Texto e geometria passaram ao percurso real de navegador; não há teste novo imposto por organização interna. Imagens históricas, dígitos do HUD, NOTICE e licenças arquivadas permanecem preservados.
 
 Inventário confirmado: dez comandos locais — suítes JVM/JS, sete percursos Chrome e unittest Python — e três checks CI, Resolve verified Kof e Kof tests(jvm/js). Sonar, Habit e executor de mutação excluídos por ausência de configuração; não se atribui resultado aprovado ou score a ferramentas não executadas. Os gates completos no commit e seus resultados serão registrados após execução.
+
+
+### Gate inicial aprovado e revisão estrutural
+
+SHA testado: `fbe2029b03b58f5a778d8429442dd9486c57274f`. Checkout limpo durante o gate. Dez comandos selecionados e executados, zero bloqueados, coleta completa; duração272,45s. Kof instalado0.5.0-beta; Chrome139.0.7258.154; larguras320/1200px, densidades1/2 e zoom100%. Resultado observado:
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 scripts/kof_project.py test --target jvm` | 114 testes, zero falhas, uma suíte aprovada |
+| `python3 scripts/kof_project.py test --target js` | 114 testes, zero falhas, uma suíte aprovada |
+| `python3 tests/browser.py` | Texto16px, créditos completos, dimensões/cores, relógio, quadro vazio, cinco zonas, foco, confirmações e retornos aprovados |
+| `python3 tests/browser_controls.py` | Teclado, foco, contatos, diagonais/opostos, arrasto/cancelamento aprovados |
+| `python3 tests/browser_meteor.py` | Movimento, três impactos e respawn aprovados |
+| `python3 tests/browser_weapons.py` | Armas, especial, seis ordens de soltura e disponibilidade aprovados |
+| `python3 tests/browser_stage.py` | Fase, HUD, pausa, resultado, reinício e entrada repetida aprovados |
+| `python3 tests/browser_subchief.py` | Encontro completo, tiros, contatos, explosão e replay aprovados |
+| `python3 tests/browser_boss.py` | Entrada, fases, especial, explosão, resultado e replay aprovados |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | Oito testes, OK |
+
+Trecho literal das suítes Kof, uma por alvo:
+
+```text
+0 failed of 114 tests
+1 passed, 0 failed
+```
+
+Trecho literal de `python3 tests/browser.py`, JS/Chrome:
+
+```text
+PASS credits frames0/1/54/55/254/255/256/462/463/474/475/476/477, six-second hold, text geometry/color/transform isolation and entrance0/1/11/12/13/35/36 at 320px
+PASS menu, Enter and Space, conservative confirmation, pause, result and menu in Chrome
+```
+
+As mensagens PARSE do unittest são esperadas no caso `test_real_compile_failure_does_not_publish`, que injeta sintaxe inválida e exige rejeição sem publicação. Não representam falha na aplicação. Evidência local opcional do gate: `.agent/tmp/validation/20261008T014051-6u7fx6zr/summary.json`.
+
+Revisão estrutural no mesmo contexto da implementação: nenhuma alteração de produção necessária. Relógio no modelo, texto no renderizador e visibilidade/foco nos controles; os dois canvases e estilos são criados uma vez. O helper recebe todos os dados do desenho e restaura o contexto, sem reter pedido mutável. `exitComplete` distingue o quadro vazio da abertura do menu. A repetição das dimensões fixas nos estilos é uma oportunidade futura, protegida pela geometria independente, sem justificar refactor neste ciclo. O [idioma de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277) e os anti-patterns `duplicate-state.md`/`unnecessary-abstraction.md` foram novamente consultados. Rubrica e classificações locais opcionais: `.agent/tmp/credits-text.structural-review.md`.
+
+A auditoria de critérios confirmou as escolhas aprovadas; a auditoria de asserções confirmou as observações correspondentes no modelo e na aplicação real. A inspeção visual do agente conferiu os12 recortes de créditos/menu/pausa em320/1200px e densidades1/2, com nome/e-mail completos e nenhuma opção cortada. Não houve aprovação visual humana; essa aceitação continua pendente. Os108 assets históricos comparados à base mantêm seus blobs Git, incluindo números do HUD. Só os glifos gerados foram retirados.
+
+O delta após a revisão contém apenas este registro de aceitação. O gate final repetirá os dez comandos no commit da documentação; seu SHA e resultados serão associados ao [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e aos [checks](https://github.com/renanfranca/kof-sifuture/pull/18/checks). Não se usa CI antigo como prova deste conteúdo. Merge e publicação de Pages não foram executados. Limites: aprovação visual do usuário, outros navegadores e Android físico continuam sem verificação.
