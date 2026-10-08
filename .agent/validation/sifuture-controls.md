@@ -476,3 +476,47 @@ As três observações se repetiram em 1200 px. A marca PASS na sonda do último
 O [plano existente](../../EXECPLAN.md) recebeu critérios separados de observações para uma eventual mudança. A investigação está concluída. O contrato atual continua sendo receptor por clique ou Tab; extensão para o botão principal e ativação automática desde a abertura são propostas distintas. A pergunta do usuário não foi convertida silenciosamente em autorização para captura global ou em escolha de API de foco que não foi demonstrada no Kof.
 
 Não houve alteração de produção, commit, PR, merge ou publicação nesta investigação. Safari, Firefox, Android físico e captura de teclas com o navegador em segundo plano não foram testados. A suite completa não foi reexecutada: a comprovação usa os percursos focados acima, sem atribuir aos demais testes um resultado novo.
+
+## Aceite: jogar com o foco adquirido no menu — 08/10/2026
+
+Plano aprovado pelo usuário e executado na mesma pasta, branch `keyboard-menu-focus`, sem worktree. A investigação acima permanece histórica: o protótipo não era aceite; este ciclo corrige a perda de foco antes da entrega. Base da execução: `27dcc29f5b7e617249e6381824401e99fee85d5d`, commit preparatório que preserva aquela investigação.
+
+### Expectativas conferidas
+
+O escopo aprovado permite setas/1 no receptor transparente, botão principal e opção com foco retido. Preserva aquisição inicial por Tab/clique, Enter como ação principal, Espaço como ação do botão funcional, memória de teclas e prioridade do direcional. Uma opção fora da tela original se chama “Teclado do jogo”; Espaço não confirma ali. Blur limpa movimento efetivo e encerra a retenção. Abertura automática, captura global, API nova e pausa em segundo plano continuam fora deste ciclo.
+
+A classificação em `GameControls.keyboardReceiver` deriva dos identificadores, disponibilidade e `focusedOption` existentes. Nenhum segundo receptor ativo é armazenado. O mecanismo segue o training `idioms/ui.md:380`: `target()` retorna o id da origem real. `learn/35-kof-ui.md:5` explica que a prova de desenho exige JS. O runtime consultado `js/JsRuntimeUiEvents.java:31` lê `raw.target.id`; `KofJsBrowserE2ETest.java:1083` verifica `t=campo-main`. Essas fontes fundamentam o uso existente de eventos, sem propor uma API de foco.
+
+### Qualidade das assertions conferida separadamente
+
+As ampliações permanecem em `tests/browser.py::confirmation_journeys`, abertura do `main`, `tests/browser_controls.py::keyboard_origin_and_release` e `tests/browser_weapons.py::keyboard_edges`. Cada novo cenário de entrada por opção usa contexto novo e relógio pausado. Tab/Shift+Tab obtêm o foco; não se usa `.focus()` nas novas provas exclusivamente por teclado. O observador registra origem de keydown/keyup e pointerdown desde antes da abertura. O observador de desenho lê o quadro completo; limpar apenas a faixa do HUD não apaga a observação da nave. Coordenadas esperadas são literais e os pixels opacos do sprite real são comparados com o canvas.
+
+A primeira expectativa de `Middle2.png` durante Restart foi corrigida após consultar `GameView.kf:150`: a propulsão desenhada à direita exige fase Normal. Essa assertion incorreta não conta como RED válido. Com a expectativa corrigida para `Middle.png`, o filtro antigo falhou em x30 e o novo passou. As etapas de movimento/soltura usam seis passos; o percurso final de retorno termina com42 passos do reinício, antes de colisões aleatórias em Normal poderem confundir a prova de teclado.
+
+Sondas em fontes temporárias, reutilizando a jornada real, demonstram sensibilidade a dois erros plausíveis:
+
+```text
+EXPECTED REJECTION release-ends-retention
+assert page.evaluate("document.activeElement.id") == "game-new"
+AssertionError
+EXPECTED REJECTION option-blur-keeps-moving
+AssertionError: {'name': 'Middle.png', 'x': 90, 'y': 100}
+```
+
+No segundo caso a assertion exigia x60, após seis passos sem o receptor original. Também houve RED válido para movimento no principal, blur do principal e 1 no principal com duas cargas. Essas sondas não são um mutation runner configurado nem um score de mutação. Sonar, Habit e mutation runner permanecem excluídos por ausência de configuração.
+
+### Critérios e provas
+
+| Critério | Assertion e observação exigidas | Jornada |
+| --- | --- | --- |
+| Créditos/Enter mantido | Tab até principal; dois keydown Enter abrem somente menu; soltura e nova pressão iniciam; BODY inicial sem foco automático. | `browser.py::main`, 320/1200 |
+| Principal sem clique | Foco `game-action`; Direita seis passos x0→30; soltura conserva x30 por seis passos; origem real; zero pointerdown. | `browser.py::main`, 320/1200 |
+| Opção por teclado/clique/toque | Novo Jogo por Enter/Space conserva foco após soltura e tem zero pointerdown; clique/toque conserva foco e conta exatamente uma pressão na opção, nenhuma na área. Direita fresca x0→30; soltura conserva x30. | `confirmation_journeys`, quatro modos, 320/1200 |
+| Continuar/Reiniciar | Continuar conserva x30 e nova seta vai a60; Reiniciar limpa x60→0 e nova seta vai a30; repetir seta mantida conserva posição após ambas as transições. | `confirmation_journeys`, 320/1200 |
+| Blur/retenção | Principal: x90 para após Tab/Shift+Tab; retorno/repetição mantém x90; soltura/nova pressão vai a120. Opção: x60 para após Tab/Shift+Tab; desaparece imediatamente; retorno/repetição conserva x60; nova pressão vai a90. | `keyboard_origin_and_release` e `confirmation_journeys` |
+| 1 disponível | Nave normal, duas cargas; principal/Continuar retido deixam uma carga e desenham e0/e3/e6. Repetições por170 passos e após disponibilidade não gastam outra; soltura/nova pressão gasta a última. 1 mantido desde pausa não dispara ao continuar. Zero pointerdown inclusive na preparação por teclado. | `keyboard_edges`, 320/1200 |
+| Ações próprias e foco | Espaço retido não pausa; Enter retido pausa; nome Continuar restaurado na pausa. Tab para direcional retira contorno da área; Shift+Tab para overlay conserva o contorno corretamente. Guia, detalhes, Especial, captura de toque, prioridade do direcional e deduplicação continuam nos percursos existentes. | Três jornadas ampliadas e regressões existentes |
+
+Chrome139.0.7258.154, Playwright, JS, larguras320/1200px, densidade1, relógio de30ms. Suítes Kof JVM/JS complementam a prova; JVM não demonstra desenho. Compilador0.5.0-beta, launcher `/home/renanfranca/.local/share/kof/kof-0.5.0-beta-linux-x86_64/bin/kof`, JAR SHA-256 `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`. Checkout Kof consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`; o SHA de origem do binário continua desconhecido.
+
+Pré-checkpoint: as provas focadas de movimento, blur, retenção e especial passaram na árvore modificada. O gate completo sobre SHA comprometido e a revisão estrutural serão registrados abaixo antes da entrega. Evidência local opcional: `.agent/tmp/keyboard-menu-focus*.log`, `.agent/tmp/keyboard-menu-focus-audits.md`, `.agent/tmp/credits-text-browser/keyboard-retained-*.png` e `.agent/tmp/background-items-weapons/keyboard-*.png`. Este resumo preserva os critérios e limites sem depender desses arquivos. A execução e revisão compartilham o contexto de implementação; não são avaliações independentes. Outros navegadores, Android físico e troca de aba/janela não são critérios demonstrados aqui.

@@ -55,6 +55,44 @@ def record_menu(page):
     """)
 
 
+
+def record_keyboard(page):
+    page.add_init_script(r"""
+        window.keyboardEvents = [];
+        window.pointerdowns = 0;
+        window.shipDraw = null;
+        const draw = CanvasRenderingContext2D.prototype.drawImage;
+        const clear = CanvasRenderingContext2D.prototype.clearRect;
+        CanvasRenderingContext2D.prototype.clearRect = function(...args) {
+            if (args[2] === this.canvas.width && args[3] === this.canvas.height) window.shipDraw = null;
+            return clear.apply(this, args);
+        };
+        CanvasRenderingContext2D.prototype.drawImage = function(image, x, y, ...args) {
+            const name = image.src && image.src.split('/').pop();
+            if (/^Middle2?\.png$/.test(name)) window.shipDraw = {name, x, y};
+            return draw.call(this, image, x, y, ...args);
+        };
+        document.addEventListener('pointerdown', () => window.pointerdowns++);
+        for (const type of ['keydown', 'keyup']) {
+            document.addEventListener(type, e => window.keyboardEvents.push([type, e.key, e.target.id]));
+        }
+    """)
+
+
+def ship_at(page, x, y=100):
+    observed = page.evaluate("shipDraw")
+    assert observed is not None and (observed["x"], observed["y"]) == (x, y), observed
+    sprite(page, observed["name"], x, y)
+
+
+def tab_to(page, identity, *, reverse=False):
+    for _ in range(24):
+        if page.evaluate("document.activeElement.id") == identity:
+            return
+        page.keyboard.press("Shift+Tab" if reverse else "Tab")
+    raise AssertionError((identity, page.evaluate("document.activeElement.outerHTML")))
+
+
 def text_lines(page, labels, x, baselines, color, *, settled=False):
     texts = page.evaluate("canvasTexts")
     assert [t["label"] for t in texts] == labels, texts
@@ -272,6 +310,7 @@ def confirmation_journeys(browser, url):
         context = browser.new_context(viewport={"width": width, "height": 1000}, has_touch=True)
         page = context.new_page()
         record_menu(page)
+        record_keyboard(page)
         page.clock.install(time=datetime(2026, 1, 1))
         page.clock.pause_at(datetime(2026, 1, 1))
         page.goto(url)
@@ -328,6 +367,117 @@ def confirmation_journeys(browser, url):
         page.get_by_role("button", name="Novo Jogo", exact=True).click()
         page.get_by_role("button", name="Pausar", exact=True).click()
         page.screenshot(path=str(evidence / f"confirmation-pause-{width}.png"), full_page=True)
+        for mode in ("Enter", "Space", "click", "touch"):
+            entry_context = browser.new_context(viewport={"width": width, "height": 900}, has_touch=True)
+            page = entry_context.new_page()
+            record_keyboard(page)
+            page.clock.install(time=datetime(2026, 1, 1))
+            page.clock.pause_at(datetime(2026, 1, 1))
+            page.goto(url)
+            tab_to(page, "game-action")
+            page.keyboard.press("Enter")
+            tab_to(page, "game-new")
+            page.keyboard.down("ArrowRight")
+            target = page.locator("#game-new")
+            if mode in ("Enter", "Space"):
+                page.keyboard.down(mode)
+                page.keyboard.down(mode)
+            elif mode == "click":
+                target.click()
+            else:
+                target.tap()
+            assert page.get_by_role("button", name="Pausar", exact=True).is_visible()
+            assert page.evaluate("document.activeElement.id") == "game-new", mode
+            assert target.inner_text() == "Teclado do jogo"
+            assert page.get_by_role("button", name="Teclado do jogo", exact=True).evaluate("n => n === document.activeElement")
+            assert target.evaluate("n => getComputedStyle(n).pointerEvents") == "none"
+            assert page.locator("#game-keyboard").locator("..").evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+            if mode in ("Enter", "Space"):
+                page.keyboard.up(mode)
+            assert page.evaluate("document.activeElement.id") == "game-new"
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 0)
+            page.keyboard.up("ArrowRight")
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 30)
+            page.keyboard.up("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 30)
+            page.keyboard.press("Space")
+            assert page.get_by_role("button", name="Pausar", exact=True).is_visible()
+            page.keyboard.press("Enter")
+            assert page.get_by_role("button", name="Continuar", exact=True).is_visible()
+            tab_to(page, "game-continue")
+            assert target.evaluate("n => getComputedStyle(n).display") == "none"
+            page.keyboard.down("ArrowRight")
+            page.keyboard.press("Enter")
+            assert page.evaluate("document.activeElement.id") == "game-continue"
+            assert page.locator("#game-continue").inner_text() == "Teclado do jogo"
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 30)
+            page.keyboard.up("ArrowRight")
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 60)
+            page.keyboard.up("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 60)
+            page.keyboard.press("Enter")
+            assert page.locator("#game-continue").inner_text() == "Continuar"
+            tab_to(page, "game-restart")
+            page.keyboard.down("ArrowRight")
+            page.keyboard.press("Enter")
+            assert page.evaluate("document.activeElement.id") == "game-restart"
+            assert page.locator("#game-restart").inner_text() == "Teclado do jogo"
+            ship_at(page, 0)
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 0)
+            page.keyboard.up("ArrowRight")
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 30)
+            page.keyboard.up("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 30)
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 60)
+            page.keyboard.press("Shift+Tab" if mode in ("Space", "touch") else "Tab")
+            page.clock.run_for(180)
+            ship_at(page, 60)
+            assert page.locator("#game-restart").evaluate("n => getComputedStyle(n).display") == "none"
+            if mode in ("Space", "touch"):
+                assert page.evaluate("document.activeElement.id") == "game-keyboard"
+                assert page.locator("#game-keyboard").locator("..").evaluate("n => getComputedStyle(n).outlineStyle") == "solid"
+            else:
+                assert page.get_by_role("button", name="↑", exact=True).evaluate("n => document.activeElement === n")
+                assert page.locator("#game-keyboard").locator("..").evaluate("n => getComputedStyle(n).outlineStyle") == "none"
+            tab_to(page, "game-action")
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 60)
+            page.keyboard.up("ArrowRight")
+            page.keyboard.down("ArrowRight")
+            page.clock.run_for(180)
+            ship_at(page, 90)
+            page.keyboard.up("ArrowRight")
+            ship_at(page, 90)
+            events = page.evaluate("keyboardEvents")
+            assert ["keydown", "ArrowRight", "game-new"] in events
+            assert ["keydown", "ArrowRight", "game-continue"] in events
+            assert ["keydown", "ArrowRight", "game-restart"] in events
+            if mode in ("Enter", "Space"):
+                assert page.evaluate("pointerdowns") == 0
+            else:
+                assert page.evaluate("pointerdowns") == 1
+            assert page.evaluate("keyboardEvents.filter(e => e[1] === 'ArrowRight').every(e => e[2] !== 'game-keyboard')")
+            page.screenshot(path=str(evidence / f"keyboard-retained-{mode}-{width}.png"), full_page=True)
+            print(f"PASS retained {mode} option start x0→30, Continue x30→60, Restart x60→0→30, blur/held lock x60, fresh x90; pointerdowns={page.evaluate('pointerdowns')} at {width}px")
+            entry_context.close()
         context.close()
         print(f"PASS every menu/pause option via Enter, Confirmar/Space/click and direct touch; retained controls isolated after three held-Enter transitions at {width}px")
 
@@ -372,7 +522,7 @@ def controls_guide(browser, url):
             assert not page.locator("canvas:visible").is_visible()
             for name in ("↑", "↓", "←", "→", "Especial"):
                 assert not page.get_by_role("button", name=name, exact=True).is_visible()
-            assert page.get_by_text("Na partida, clique na área do jogo ou use Tab até ‘Ativar teclado do jogo’.", exact=True).is_visible()
+            assert page.get_by_text("Na abertura, use Tab ou clique em um controle. O foco do menu permite jogar sem clicar na área; ela continua disponível por clique ou Tab.", exact=True).is_visible()
             assert guide.locator("th").all_text_contents() == ["Tecla", "Ação"]
             assert guide.locator("td").all_text_contents() == ["Setas", "Mover a nave na partida", "↑ / ↓", "Escolher uma opção nos menus", "Enter", "Confirmar nos menus; pausar na partida", "1", "Usar o especial quando disponível"]
             assert guide.locator("#controls-touch li").all_text_contents() == ["Toque em uma opção do menu para abri-la.", "Segure as setas para mover. Combine duas para fazer diagonal.", "Solte todas as setas para parar.", "Especial: uma tentativa por pressão, quando disponível.", "Pausar: abrir o menu da pausa."]
@@ -445,7 +595,7 @@ def retained_options(browser, url):
             if option != "Controles":
                 page.get_by_role("button", name="Novo Jogo", exact=True).click()
                 page.get_by_role("button", name="Pausar", exact=True).click()
-            target = page.get_by_role("button", name=option, exact=True)
+            target = page.locator({"Controles": "#game-controls", "Reiniciar": "#game-restart", "Menu principal": "#game-menu"}[option])
             target.focus()
             old_box = target.bounding_box()
             page.keyboard.down(held_key)
@@ -456,7 +606,7 @@ def retained_options(browser, url):
             assert target.bounding_box()["x"] < -1000
             if option == "Menu principal":
                 page.keyboard.press("ArrowDown")
-                selected_line(page, "Novo Jogo", 120)
+                selected_line(page, "Controles", 139)
             if held_key == "Enter":
                 page.keyboard.press("Space")
             else:
@@ -482,6 +632,7 @@ def retained_options(browser, url):
                 page.get_by_role("button", name="Menu principal", exact=True).click()
             else:
                 page.get_by_role("button", name="Confirmar (Enter)", exact=True).focus()
+                page.keyboard.press("ArrowUp")
                 page.keyboard.press("Enter")
                 assert page.get_by_role("button", name="Pausar", exact=True).is_visible()
                 page.get_by_role("button", name="Pausar", exact=True).click()
@@ -619,22 +770,39 @@ def main():
                 confirmation_journeys(browser, url)
                 repeated_entrances(browser, url, result_url)
                 density_presentation(browser, url)
-                startup_page = startup_context.new_page()
-                startup_page.clock.install(time=datetime(2026, 1, 1))
-                startup_page.clock.pause_at(datetime(2026, 1, 1))
-                startup_page.goto(url)
-                assert startup_page.get_by_role("button", name="Pular créditos").count() == 1
-                assert startup_page.get_by_role("button", name="Novo Jogo").count() == 0
-                startup_page.get_by_role("button", name="Pular créditos").focus()
-                startup_page.keyboard.down("Enter")
-                startup_page.keyboard.down("Enter")
-                startup_page.clock.run_for(30)
-                assert startup_page.get_by_role("button", name="Novo Jogo").count() == 1
-                assert startup_page.get_by_role("button", name="Pausar").count() == 0
-                startup_page.keyboard.up("Enter")
-                for label in ("↑", "←", "→", "↓"):
-                    assert startup_page.get_by_role("button", name=label, exact=True).is_disabled() == (label in ("←", "→"))
                 startup_context.close()
+                for width in (320, 1200):
+                    context = browser.new_context(viewport={"width": width, "height": 900})
+                    startup_page = context.new_page()
+                    record_keyboard(startup_page)
+                    startup_page.clock.install(time=datetime(2026, 1, 1))
+                    startup_page.clock.pause_at(datetime(2026, 1, 1))
+                    startup_page.goto(url)
+                    assert startup_page.evaluate("document.activeElement.tagName") == "BODY"
+                    tab_to(startup_page, "game-action")
+                    startup_page.keyboard.down("Enter")
+                    startup_page.keyboard.down("Enter")
+                    startup_page.clock.run_for(30)
+                    assert startup_page.get_by_role("button", name="Novo Jogo").count() == 1
+                    assert startup_page.get_by_role("button", name="Pausar").count() == 0
+                    startup_page.keyboard.up("Enter")
+                    for label in ("↑", "←", "→", "↓"):
+                        assert startup_page.get_by_role("button", name=label, exact=True).is_disabled() == (label in ("←", "→"))
+                    startup_page.keyboard.press("Enter")
+                    assert startup_page.get_by_role("button", name="Pausar").is_visible()
+                    assert startup_page.evaluate("document.activeElement.id") == "game-action"
+                    sprite(startup_page, "Middle.png", 0, 100)
+                    startup_page.keyboard.down("ArrowRight")
+                    startup_page.clock.run_for(180)
+                    sprite(startup_page, "Middle.png", 30, 100)
+                    startup_page.keyboard.up("ArrowRight")
+                    startup_page.clock.run_for(180)
+                    sprite(startup_page, "Middle.png", 30, 100)
+                    assert startup_page.evaluate("pointerdowns") == 0
+                    assert startup_page.evaluate("keyboardEvents.filter(e => e[1] === 'ArrowRight')") == [
+                        ["keydown", "ArrowRight", "game-action"], ["keyup", "ArrowRight", "game-action"]]
+                    context.close()
+                    print(f"PASS Tab/held Enter opens only menu; new Enter starts and action arrows move 0→30, release stops, zero pointerdowns at {width}px")
                 page = browser.new_page(viewport={"width": 800, "height": 600})
                 errors = []
                 page.on("pageerror", lambda error: errors.append(str(error)))

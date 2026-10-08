@@ -980,3 +980,11 @@ Os critérios P1–P5 abaixo são uma proposta de extensão para o foco já adqu
 - Registrar por critério comando/procedimento, SHA, alvo, navegador, resultado observado, assertion relevante e artefato opcional no aceite de controles existente. Uma suíte aprovada não substitui a associação por critério. Registrar falhas, cobertura faltante e critérios não verificados antes da entrega.
 
 Investigação concluída, sem alteração de fontes de produção. A extensão proposta e a ativação automática desde BODY não estão entregues. Evidência gerada permanece em `.agent/tmp/keyboard-no-click/`, excluída localmente do Git.
+
+## Execução aprovada: foco do menu durante a partida — 08/10/2026
+
+O usuário aprovou a extensão delimitada na mensagem “Jogar sem clicar na área após navegar pelo menu” e confirmou execução no chat atual, na mesma pasta. Branch `keyboard-menu-focus`, base `27dcc29f5b7e617249e6381824401e99fee85d5d`. Chat `controls-keyboard-primary`, `gpt-6.1-sol`/`medium`, todos os papéis no mesmo contexto; sem workers separados nem worktree. O ledger v6 e o plano literal ficam em `.agent/tmp/keyboard-menu-focus.*`.
+
+A classificação derivada em GameControls, retenção até blur, nome acessível temporário, limpeza de movimento no blur e recepção de1 foram implementados. README, especificação e guia descrevem o novo contrato. As jornadas existentes recebem provas de entrada exclusivamente por teclado, clique/toque em opções, pausas, retorno por Tab/Shift+Tab, memória de teclas, pixels e três feixes disponíveis. O [aceite existente](.agent/validation/sifuture-controls.md#aceite-jogar-com-o-foco-adquirido-no-menu--08102026) mantém auditorias separadas de expectativa e assertions, RED/GREEN, critérios e limites.
+
+Inventário confirmado: onze checks locais (Kof JVM/JS, sete jornadas Chrome, Python e contrato CI); CI resolve a distribuição oficial e testa JVM/JS. Sonar, Habit e mutation runner excluídos por ausência de configuração. Gates completos sobre os commits, revisão estrutural no mesmo contexto e entrega em PR seguem o fluxo da skill; não há autorização de merge ou publicação neste ciclo.
