@@ -487,6 +487,27 @@ O escopo aprovado permite setas/1 no receptor transparente, botão principal e o
 
 A classificação em `GameControls.keyboardReceiver` deriva dos identificadores, disponibilidade e `focusedOption` existentes. Nenhum segundo receptor ativo é armazenado. O mecanismo segue o training `idioms/ui.md:380`: `target()` retorna o id da origem real. `learn/35-kof-ui.md:5` explica que a prova de desenho exige JS. O runtime consultado `js/JsRuntimeUiEvents.java:31` lê `raw.target.id`; `KofJsBrowserE2ETest.java:1083` verifica `t=campo-main`. Essas fontes fundamentam o uso existente de eventos, sem propor uma API de foco.
 
+O [filtro da aplicação](../../src/main/kof/sifuture/GameControls.kf:273) consulta o estado existente:
+
+```kof
+keyboardReceiver(String id): Bool {
+    return id == "game-keyboard" || id == "game-action" || optionAvailable(id) || (optionTarget(id) && focusedOption == id)
+}
+```
+
+O último termo permite a opção cujo id continua em `focusedOption`, mesmo fora da tela original. A [limpeza no modelo](../../src/main/kof/sifuture/game/Game.kf:46) conserva o direcional:
+
+```kof
+clearKeyboard() {
+    if (!padPressed()) { ship.clearInput() }
+}
+```
+
+Essa operação não atribui os campos `heldLeft/Right/Up/Down`; limpa apenas a entrada efetiva, quando o pad não a controla. As provas de retorno com tecla mantida e de prioridade do direcional demonstram a consequência no alvo JS. O [training](../../../kof/training/anti-patterns/duplicate-state.md:72) orienta a classificação derivada:
+
+> If a value can be derived from another, derive it (method or function).
+> Do not store projections.
+
 ### Qualidade das assertions conferida separadamente
 
 As ampliações permanecem em `tests/browser.py::confirmation_journeys`, abertura do `main`, `tests/browser_controls.py::keyboard_origin_and_release` e `tests/browser_weapons.py::keyboard_edges`. Cada novo cenário de entrada por opção usa contexto novo e relógio pausado. Tab/Shift+Tab obtêm o foco; não se usa `.focus()` nas novas provas exclusivamente por teclado. O observador registra origem de keydown/keyup e pointerdown desde antes da abertura. O observador de desenho lê o quadro completo; limpar apenas a faixa do HUD não apaga a observação da nave. Coordenadas esperadas são literais e os pixels opacos do sprite real são comparados com o canvas.
@@ -505,18 +526,53 @@ AssertionError: {'name': 'Middle.png', 'x': 90, 'y': 100}
 
 No segundo caso a assertion exigia x60, após seis passos sem o receptor original. Também houve RED válido para movimento no principal, blur do principal e 1 no principal com duas cargas. Essas sondas não são um mutation runner configurado nem um score de mutação. Sonar, Habit e mutation runner permanecem excluídos por ausência de configuração.
 
-### Critérios e provas
+### Critérios e resultados no checkpoint `9643f4e5ddb104334bfe43f83603781cf58ea8cd`
 
-| Critério | Assertion e observação exigidas | Jornada |
-| --- | --- | --- |
-| Créditos/Enter mantido | Tab até principal; dois keydown Enter abrem somente menu; soltura e nova pressão iniciam; BODY inicial sem foco automático. | `browser.py::main`, 320/1200 |
-| Principal sem clique | Foco `game-action`; Direita seis passos x0→30; soltura conserva x30 por seis passos; origem real; zero pointerdown. | `browser.py::main`, 320/1200 |
-| Opção por teclado/clique/toque | Novo Jogo por Enter/Space conserva foco após soltura e tem zero pointerdown; clique/toque conserva foco e conta exatamente uma pressão na opção, nenhuma na área. Direita fresca x0→30; soltura conserva x30. | `confirmation_journeys`, quatro modos, 320/1200 |
-| Continuar/Reiniciar | Continuar conserva x30 e nova seta vai a60; Reiniciar limpa x60→0 e nova seta vai a30; repetir seta mantida conserva posição após ambas as transições. | `confirmation_journeys`, 320/1200 |
-| Blur/retenção | Principal: x90 para após Tab/Shift+Tab; retorno/repetição mantém x90; soltura/nova pressão vai a120. Opção: x60 para após Tab/Shift+Tab; desaparece imediatamente; retorno/repetição conserva x60; nova pressão vai a90. | `keyboard_origin_and_release` e `confirmation_journeys` |
-| 1 disponível | Nave normal, duas cargas; principal/Continuar retido deixam uma carga e desenham e0/e3/e6. Repetições por170 passos e após disponibilidade não gastam outra; soltura/nova pressão gasta a última. 1 mantido desde pausa não dispara ao continuar. Zero pointerdown inclusive na preparação por teclado. | `keyboard_edges`, 320/1200 |
-| Ações próprias e foco | Espaço retido não pausa; Enter retido pausa; nome Continuar restaurado na pausa. Tab para direcional retira contorno da área; Shift+Tab para overlay conserva o contorno corretamente. Guia, detalhes, Especial, captura de toque, prioridade do direcional e deduplicação continuam nos percursos existentes. | Três jornadas ampliadas e regressões existentes |
+| Critério | Assertion e observação demonstradas | Jornada | Resultado |
+| --- | --- | --- | --- |
+| Créditos/Enter mantido | Tab até principal; dois keydown Enter abrem somente menu; soltura e nova pressão iniciam; BODY inicial sem foco automático. | `browser.py::main`, 320/1200 | PASS em320/1200px |
+| Principal sem clique | Foco `game-action`; Direita seis passos x0→30; soltura conserva x30 por seis passos; origem real; zero pointerdown. | `browser.py::main`, 320/1200 | PASS em320/1200px |
+| Opção por teclado/clique/toque | Novo Jogo por Enter/Space conserva foco após soltura e tem zero pointerdown; clique/toque conserva foco e conta exatamente uma pressão na opção, nenhuma na área. Direita fresca x0→30; soltura conserva x30. | `confirmation_journeys`, quatro modos, 320/1200 | PASS em320/1200px |
+| Continuar/Reiniciar | Continuar conserva x30 e nova seta vai a60; Reiniciar limpa x60→0 e nova seta vai a30; repetir seta mantida conserva posição após ambas as transições. | `confirmation_journeys`, 320/1200 | PASS em320/1200px |
+| Blur/retenção | Principal: x90 para após Tab/Shift+Tab; retorno/repetição mantém x90; soltura/nova pressão vai a120. Opção: x60 para após Tab/Shift+Tab; desaparece imediatamente; retorno/repetição conserva x60; nova pressão vai a90. | `keyboard_origin_and_release` e `confirmation_journeys` | PASS em320/1200px |
+| 1 disponível | Nave normal, duas cargas; principal/Continuar retido deixam uma carga e desenham e0/e3/e6. Repetições por170 passos e após disponibilidade não gastam outra; soltura/nova pressão gasta a última. 1 mantido desde pausa não dispara ao continuar. Zero pointerdown inclusive na preparação por teclado. | `keyboard_edges`, 320/1200 | PASS em320/1200px |
+| Ações próprias e foco | Espaço retido não pausa; Enter retido pausa; nome Continuar restaurado na pausa. Tab para direcional retira contorno da área; Shift+Tab para overlay conserva o contorno corretamente. Guia, detalhes, Especial, captura de toque, prioridade do direcional e deduplicação continuam nos percursos existentes. | Três jornadas ampliadas e regressões existentes | PASS em320/1200px |
 
 Chrome139.0.7258.154, Playwright, JS, larguras320/1200px, densidade1, relógio de30ms. Suítes Kof JVM/JS complementam a prova; JVM não demonstra desenho. Compilador0.5.0-beta, launcher `/home/renanfranca/.local/share/kof/kof-0.5.0-beta-linux-x86_64/bin/kof`, JAR SHA-256 `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`. Checkout Kof consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`; o SHA de origem do binário continua desconhecido.
 
-Pré-checkpoint: as provas focadas de movimento, blur, retenção e especial passaram na árvore modificada. O gate completo sobre SHA comprometido e a revisão estrutural serão registrados abaixo antes da entrega. Evidência local opcional: `.agent/tmp/keyboard-menu-focus*.log`, `.agent/tmp/keyboard-menu-focus-audits.md`, `.agent/tmp/credits-text-browser/keyboard-retained-*.png` e `.agent/tmp/background-items-weapons/keyboard-*.png`. Este resumo preserva os critérios e limites sem depender desses arquivos. A execução e revisão compartilham o contexto de implementação; não são avaliações independentes. Outros navegadores, Android físico e troca de aba/janela não são critérios demonstrados aqui.
+Gate inicial: onze checks passaram no SHA comprometido acima, incluindo todos os critérios da tabela. A revisão estrutural, no mesmo contexto, não encontrou defeito ou risco material que exigisse refactor. O gate final repetirá os mesmos onze comandos; seu SHA e resultados ficam no ledger e na descrição do PR, evitando atribuir um resultado ainda não executado à documentação. Evidência local opcional: `.agent/tmp/keyboard-menu-focus*.log`, `.agent/tmp/keyboard-menu-focus-audits.md`, `.agent/tmp/credits-text-browser/keyboard-retained-*.png` e `.agent/tmp/background-items-weapons/keyboard-*.png`. Este resumo preserva os critérios e limites sem depender desses arquivos. A execução e revisão compartilham o contexto de implementação; não são avaliações independentes. Outros navegadores, Android físico e troca de aba/janela não são critérios demonstrados aqui.
+
+### Gate inicial e revisão estrutural
+
+SHA testado: `9643f4e5ddb104334bfe43f83603781cf58ea8cd`. Executor determinístico: `run_validation.py`, phase `initial-validating`, role `validator`, inventário e collectors confirmados em `.agent/tmp/keyboard-menu-focus.*`. Onze comandos selecionados e executados, zero bloqueados, todos exit0; duração461,82s. Comandos:
+
+```bash
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 tests/browser_stage.py
+python3 tests/browser_weapons.py
+python3 tests/browser_subchief.py
+python3 tests/browser.py
+python3 tests/browser_controls.py
+python3 tests/browser_meteor.py
+python3 tests/browser_boss.py
+python3 -m unittest discover -s tests -p 'test_kof_project.py'
+PATH="/home/renanfranca/projects/kof-sifuture/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh
+```
+
+Kof:114 testes por alvo, zero falhas. Chrome: sete jornadas completas aprovadas. Python:8 testes, OK; os diagnósticos de parse aparecem no teste que exige rejeitar uma fonte inválida, não são falha omitida. Contrato CI: cenários positivos e rejeições esperadas aprovados. Trechos literais dos logs JVM/JS e das jornadas de controles/armas:
+
+```text
+0 failed of 114 tests
+PASS retained Enter option start x0→30, Continue x30→60, Restart x60→0→30, blur/held lock x60, fresh x90; pointerdowns=0 at 320px
+PASS retained touch option start x0→30, Continue x30→60, Restart x60→0→30, blur/held lock x60, fresh x90; pointerdowns=1 at 1200px
+PASS primary blur stops x90, Tab/Shift+Tab return/repeat stays x90, observed release/fresh press reaches x120, zero pointerdowns at 320px
+PASS 1 on game-action: two charges→one, three beam sprites, held/repeat through availability stays one, fresh press→zero; zero pointerdowns at 320px
+PASS 1 on game-continue: two charges→one, three beam sprites, held/repeat through availability stays one, fresh press→zero; zero pointerdowns at 1200px
+```
+
+Os modos Enter/Space têm zero pointerdown nas duas larguras; clique/toque têm exatamente uma pressão na opção, nenhuma na área. A origem é comprovada pelas assertions sobre `document.activeElement.id` e `keyboardEvents`, além da posição/pixels observados. A transição por tecla mantida é conferida antes da soltura/nova pressão, não inferida apenas da posição final.
+
+Revisão `refactor-design`: filtro compartilhado deriva o receptor; foco/blur delimitam retenção; nomes/estilos permanecem na UI; o modelo mantém memória, disponibilidade do especial e prioridade do direcional. Bloqueios são registrados antes das ações. A rubrica completa não identificou risco material ou API nova. Dividir a longa jornada ou alterar visibilidade de helpers seria organização, sem necessidade demonstrada; nenhuma fonte foi alterada na revisão. Capturas do contorno no principal e do guia fechado em320px inspecionadas pelo agente; assertions de texto/geometria cobrem ambas as larguras. Isso não é revisão independente nem aprovação visual humana.
+
+Evidência local opcional do gate: `.agent/tmp/validation/20261008T154737-2n0fr6m1/summary.json`; revisão em `.agent/tmp/keyboard-menu-focus.structural-review.md`. CI-only: [workflow Kof CI and GitHub Pages nesta branch](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml?query=branch%3Akeyboard-menu-focus), jobs Resolve verified Kof e Kof tests(jvm/js). A CI será acompanhada no PR; esta branch não publica Pages. Nenhum critério de teclado aprovado permanece sem prova local; CI e gate final ainda precisam concluir antes da entrega.
