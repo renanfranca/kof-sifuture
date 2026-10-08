@@ -62,14 +62,14 @@ def journey(page, width):
     advance(page)
     assert state(page)["x"] == 121 and state(page)["y"] == 101
     boss_sprite(page)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"normal-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"normal-{width}.png"))
     for label, phase, hp in (("Fury", 2, 44), ("Frenzy", 3, 19)):
         button(page, label)
         advance(page)
         assert state(page)["phase"] == phase and state(page)["hp"] == hp
         advance(page)
         boss_sprite(page)
-        page.locator("canvas").screenshot(path=str(EVIDENCE / f"{label.lower()}-{width}.png"))
+        page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"{label.lower()}-{width}.png"))
         redraws(page)
         freeze(page)
     advance(page, 3)
@@ -92,7 +92,7 @@ def journey(page, width):
     s = state(page)
     assert s["shotFrame"] == 2
     sprite(page, "shoot2.png", s["shotX"], s["shotY"], occluded=((165, s["y"], 205, s["y"] + 51),))
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"shots-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"shots-{width}.png"))
     advance(page, 27)
     assert state(page)["shots"] == 2
 
@@ -111,7 +111,7 @@ def journey(page, width):
     assert s["specialFrame"] == 6 and s["specialX"] == start_x
     sprite(page, "esp6.png", s["specialX"], s["specialY"],
            occluded=((s["x"], s["y"], s["x"] + 40, s["y"] + 51),))
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"special-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"special-{width}.png"))
     freeze(page)
     advance(page)
     assert state(page)["specialX"] == start_x - 10
@@ -145,7 +145,7 @@ def journey(page, width):
     advance(page)
     assert state(page)["meteorHit"] == 1 and state(page)["meteorX"] == 120
     assert state(page)["score"] == 0 and state(page)["hp"] == 100
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"absorbed-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"absorbed-{width}.png"))
     button(page, "Player special")
     button(page, "Ativar teclado do jogo")
     page.keyboard.down("1")
@@ -164,7 +164,7 @@ def journey(page, width):
     for digit, x in (("1", 112), ("6", 128), ("5", 144), ("0", 160)):
         sprite(page, digit + ".png", x, 0)
     redraws(page)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"explosion0-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"explosion0-{width}.png"))
     offsets = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 25, 28, 31, 34, 37, 40, 45, 50, 55, 60, 65)
     for step, offset in enumerate(offsets, 1):
         advance(page)
@@ -174,7 +174,7 @@ def journey(page, width):
         assert s["explosionX"] == 121 - offset and s["position"] == 147 and s["score"] == 1650
         sprite(page, f"explosion{frame}.png", 121 - offset, 101)
         if step in (1, 25, 27):
-            page.locator("canvas").screenshot(path=str(EVIDENCE / f"explosion-step{step}-{width}.png"))
+            page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"explosion-step{step}-{width}.png"))
             freeze(page)
             redraws(page)
     advance(page)
@@ -201,14 +201,14 @@ def journey(page, width):
     assert state(page)["hp"] == 1 and state(page)["score"] == 17 and state(page)["lives"] == 0
     assert state(page)["playerShots"] == 0 and state(page)["x"] != x
     redraws(page)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-{width}.png"))
 
     button(page, "Complete journey")
     s = state(page)
     assert s["result"] == 1 and s["position"] == 176 and s["phase"] == 0
     button(page, "Complete journey")
     assert state(page) == s
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"result-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"result-{width}.png"))
     print(f"PASS boss entry, phases, shots, special, damage, 28-step explosion, pause, result and seeded replay at {width}px; {s['steps']} steps, score {s['score']}")
 
 

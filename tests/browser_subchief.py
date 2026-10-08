@@ -54,7 +54,7 @@ def journey(page, width):
     button(page, "Encounter")
     advance(page)
     sprite(page, "subchief.png", 121, 100)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"combat-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"combat-{width}.png"))
     redraws(page)
     button(page, "Shots")
     advance(page)
@@ -84,7 +84,7 @@ def journey(page, width):
     advance(page, 36)
     assert state(page)["charges"] == 1 and state(page)["blueLives"] < 10 and state(page)["hp"] < 30
     sprite(page, "especialActivated1.png", 50, 21)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"special-hud-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"special-hud-{width}.png"))
     page.keyboard.up("1")
     freeze(page)
     redraws(page)
@@ -104,7 +104,7 @@ def journey(page, width):
         redraws(page)
         if frame == 4:
             freeze(page)
-        page.locator("canvas").screenshot(path=str(EVIDENCE / f"explosion-{frame}-{width}.png"))
+        page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"explosion-{frame}-{width}.png"))
     advance(page, 3)
     assert state(page)["normal"] == 0 and state(page)["explosion"] == 0
     advance(page, 10)
@@ -154,7 +154,7 @@ def repair_journey(page, width):
                 sprite(page, "e6.png", 5, 100)
             for digit, x in zip(str(reward), (128, 144, 160)):
                 sprite(page, f"{digit}.png", x, 0)
-            page.locator("canvas").screenshot(path=str(EVIDENCE / f"r1-{lifetime}-{weapon}-{width}.png"))
+            page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"r1-{lifetime}-{weapon}-{width}.png"))
             redraws(page)
             freeze(page)
             advance(page)
@@ -164,7 +164,7 @@ def repair_journey(page, width):
     advance(page)
     assert state(page)["shipNormal"] == 1 and state(page)["shotX"] == 90 and state(page)["shots"] == 1
     sprite(page, "laser0.png", 90, 113, occluded=((101, 100, 129, 126),))
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"r2-new-shot-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"r2-new-shot-{width}.png"))
     redraws(page)
     freeze(page)
     advance(page)
@@ -175,7 +175,7 @@ def repair_journey(page, width):
     advance(page)
     assert state(page)["shipNormal"] == 1 and state(page)["shotX"] == 47 and state(page)["shots"] == 1
     sprite(page, "laser0.png", 47, 113, occluded=((0, 100, 50, 133),))
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"r2-existing-shot-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"r2-existing-shot-{width}.png"))
     advance(page)
     assert state(page)["shipExplosion"] == 1 and state(page)["shots"] == 0
     sprite(page, "explosion0.png", 0, 100)
@@ -196,7 +196,7 @@ def repair_journey(page, width):
     assert observed["orangeActive"] == 1 and observed["orangeDeath"] == 4 and observed["orangeMarker"] == 6
     sprite(page, "e2.png", 5, 100, occluded=((observed["blueX"], 110, observed["blueX"] + 319, 142),
                                              (observed["darkX"], 120, observed["darkX"] + 319, 152)))
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"r3-seventh-step-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"r3-seventh-step-{width}.png"))
     freeze(page)
     redraws(page)
     advance(page)
@@ -212,7 +212,7 @@ def repair_journey(page, width):
     advance(page)
     assert state(page)["orangeActive"] == 0 and state(page)["orangeMarker"] == 0
     assert bitmap(page).crop((5, 100, 176, 132)).tobytes() != before
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"r3-six-steps-after-last-hit-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"r3-six-steps-after-last-hit-{width}.png"))
     print(f"PASS R1 eight fatal boundaries; R2 new/existing/reused shots; R3 reapplication and six-step cleanup at {width}px")
 
 

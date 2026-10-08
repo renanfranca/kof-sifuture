@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def sprite_matches(page, x, frame):
-    actual = Image.open(io.BytesIO(page.locator("canvas").screenshot())).convert("RGB")
+    actual = Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
     expected = Image.open(ROOT / "assets" / f"meteor0C{frame}.png").convert("RGBA")
     samples = [(px, py, expected.getpixel((px, py))[:3])
                for py in range(expected.height) for px in range(expected.width)

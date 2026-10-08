@@ -1,14 +1,11 @@
 package sifuture
 
 import sifuture.game.*
-import sifuture.BitmapFont
-import sifuture.BitmapFonts
 import kof.ui.*
 
 class GameView {
     Canvas canvas
-    BitmapFont menuFont
-    BitmapFont creditFont
+    Canvas creditsCanvas
     Image title
     Image ship
     Image subchief
@@ -43,8 +40,7 @@ class GameView {
 
     public constructor(Canvas canvas) {
         this.canvas = canvas
-        menuFont = BitmapFonts.menu()
-        creditFont = BitmapFonts.credits()
+        creditsCanvas = Canvas(Rules.CREDITS_WIDTH, Rules.CREDITS_HEIGHT)
         title = Image("assets/sifuture.png")
         ship = Image("assets/Middle.png")
         subchief = Image("assets/subchief.png")
@@ -79,14 +75,16 @@ class GameView {
     }
 
     render(Game game) {
-        canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
-        canvas.setFill(Palette.white)
         if (game.screen == Screen.Credits) {
+            creditsCanvas.clearRect(0, 0, Rules.CREDITS_WIDTH, Rules.CREDITS_HEIGHT)
+            creditsCanvas.setFill(Palette.white)
             if (!game.credits.exitComplete) {
                 drawCredits(game.credits)
             }
             return
         }
+        canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
+        canvas.setFill(Palette.white)
         if (game.screen == Screen.Menu) {
             canvas.drawImage(title, 11, 30)
             drawMenuLabel("Novo Jogo", 120)
@@ -165,20 +163,28 @@ class GameView {
     }
 
     private drawMenuLabel(String text, Int y) {
-        menuFont.draw(canvas, text, 48, y + 13)
+        drawText(canvas, text, 48, y + 14, Palette.white)
     }
 
     private drawCredits(Credits credits) {
-        drawCreditBlock(listOf("Copyright (c) 2006-2007", "Renan Meneses de Andrade Franca"), credits.x, credits.firstY)
+        drawCreditBlock(listOf("Copyright (c) 2006-2007", "Renan Meneses", "de Andrade Franca"), credits.x, credits.firstY)
         drawCreditBlock(listOf("contact:", "renan.andradefranca@gmail.com", "Inc. All rights reserved."), credits.x, credits.secondY)
     }
 
     private drawCreditBlock(List<String> lines, Int x, Int y) {
-        var baseline = y + 8
+        var baseline = y + 16
         for (var line in lines) {
-            creditFont.draw(canvas, line, x, baseline)
-            baseline = baseline + 10
+            drawText(creditsCanvas, line, x, baseline, Color(0, 128, 255))
+            baseline = baseline + 24
         }
+    }
+
+    private drawText(Canvas target, String text, Int x, Int baseline, Color color) {
+        target.save()
+        target.setFill(color)
+        target.transform(1.6, 0.0, 0.0, 1.6, x * 1.0, baseline * 1.0)
+        target.fillText(text, 0, 0)
+        target.restore()
     }
 
     private drawHud(Game game) {

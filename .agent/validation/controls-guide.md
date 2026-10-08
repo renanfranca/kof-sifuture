@@ -201,3 +201,63 @@ As mensagens de sintaxe no unittest são esperadas: `test_real_compile_failure_d
 Revisão estrutural concluída no mesmo contexto da implementação. Não houve refactor de produção: transições pertencem ao modelo, fontes ao renderizador, máscaras ao gerador e estilos do painel são separados dos blocos. `measure` deriva a largura; não há cache duplicado. A comparação com a base comprova que assets históricos e arquivos de armas/combate/HUD não foram alterados. A mutabilidade dos glifos é uma oportunidade futura de manutenção, sem uso mutante atual que justifique alteração neste ciclo. Detalhes opcionais em `.agent/tmp/sifuture-clarity.structural-review.md`.
 
 O delta após esta revisão é apenas documentação. O gate final repetirá os mesmos 11 comandos no último commit; seu SHA e resultado serão associados ao [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e aos [checks](https://github.com/renanfranca/kof-sifuture/pull/18/checks), sem alegar que CI anterior aprovou este conteúdo. Nenhum merge ou publicação de Pages integra esta execução. Limites visuais e de dispositivo permanecem os registrados acima.
+
+
+## Fonte normal e legível — ciclo aprovado de 2026-10-07
+
+Este suplemento substitui as dimensões, tipografia e relógios dos créditos dos registros anteriores; os resultados históricos permanecem como histórico. Base da execução: `ab21e65cbb3a7a099b972d5476a995eb4c9aea81`, branch `credits-pause-navigation`, entrega no [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) e [checks](https://github.com/renanfranca/kof-sifuture/pull/18/checks). Execução, validação e revisão compartilham o mesmo contexto `credits-text-primary`, gpt-6.1-sol/medium.
+
+### Auditoria das expectativas
+
+As escolhas aprovadas são: texto sans-serif suave de16px; créditos exclusivos262 × 260 sobre #121212, margens12, linhas24, RGB(0,128,255) uniforme e e-mail inteiro; nome dividido em duas linhas. Blocos y40/136, baselines locais16/40/64. Entrada x-262 até12 em passos5/30ms, parada por6000ms após chegada, saída1px/30ms com altura72, quadro final vazio. Durante créditos apenas receptor de teclado e Pular créditos. Menus brancos x48/baseline opção+14, zonas128 × 19, nave e espaçamentos preservados. Jogo176 × 220, guia aprovado e APIs Kof preservados.
+
+O passo54 está em x8, o55 chega exatamente a12. Passos56–255 são200 intervalos completos de30ms; passo256 inicia a saída. Passo462 tem y247/-71, passo463 tem y248/-72: o segundo bloco passa da borda superior. Passo474 tem y259/-83 e passo475 y260/-84: o primeiro fica completamente fora. Passo476 permanece Créditos sem texto, passo477 abre Menu. A altura dos blocos determina a saída; a altura do mundo do jogo não governa o relógio dos créditos.
+
+### Auditoria das asserções
+
+`GameJourney` observa `Game.step`, a entrada antes/depois do clamp, espera199/200, primeira saída, ambos os limites e saída para Menu. A primeira execução JVM falhou na expectativa inicial da nova jornada; a implementação corrigiu o relógio. Trecho de `python3 scripts/kof_project.py test --target jvm`:
+
+```text
+FAIL credits enter exactly at twelve wait six seconds and leave one empty frame: assertion failed
+1 failed of 114 tests
+```
+
+`tests/browser.py` observa a aplicação gerada, chamadas de Canvas com transformação e medidas reais, tamanho efetivo16px, cores, limites e áreas de toque. Repetir ArrowLeft redesenha sem avançar o relógio. O primeiro percurso falhou porque a superfície ainda media176 × 220; após criar a superfície exclusiva, o percurso completo passou. Excertos de `python3 tests/browser.py`, JS/Chrome139.0.7258.154:
+
+```text
+PASS Portuguese sans-serif menus at x48/16px, ship selection and independent neutral focus at 320px
+PASS 16px smooth text, complete credits/email at zoom100%, no bitmap fonts, guide padding/216px and closed Special at 320px density2
+```
+
+A escala observada corresponde a16px, com tolerância0,001 para a representação numérica. Os seis textos são comparados literalmente e medidos com o próprio Canvas, com margens12 no quadro parado; todos os cinco rótulos de menu são comparados às zonas128 × 19 e às linhas de base. A cor/transformação do contexto volta a branco/identidade após desenho. Pixels de alfa parcial demonstram suavização no ambiente testado; não fixam um desenho de glifo para todos os sistemas. O quadro476 verifica todas as componentes transparentes do bitmap, além da ausência de chamadas de texto. Zoom100%, densidades1/2, ausência de rolagem horizontal e direcional/Especial ocultos são verificados no navegador. As jornadas existentes preservam Enter/Espaço/toque, seleção/foco, tecla mantida, pausa, guia e resultado. Os sete percursos observam o canvas visível; o segundo canvas oculto dos créditos não substitui a superfície176 × 220 do jogo.
+
+### Regra Kof e evidência do alvo
+
+O [idioma de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277) orienta:
+
+> `save`/`restore` stack the context state (alpha, transform,
+> colors) — without them, an adjustment leaks into all the following drawing.
+
+Em [GameView.kf](../../src/main/kof/sifuture/GameView.kf), o desenho compartilhado aplica:
+
+```kof
+target.save()
+target.setFill(color)
+target.transform(1.6, 0.0, 0.0, 1.6, x * 1.0, baseline * 1.0)
+target.fillText(text, 0, 0)
+target.restore()
+```
+
+A transformação coloca a origem na posição desejada e multiplica a fonte padrão10px por1,6. `restore` recupera o estado anterior; a próxima imagem conserva suas coordenadas. O registro `KofUi.java:516–521`, a implementação `JsRuntimeUiWidgets.java:449–475` e `UiE2ETest.java:672` foram consultados diretamente; os métodos já existem e delegam ao contexto Canvas no navegador. A antiga página `docs/ui/PLAN-CANVAS-WIDGET.md` não enumera todas essas operações, por isso não foi usada como prova de ausência. O [capítulo Learn Kof35](/home/renanfranca/projects/kof/learn/35-kof-ui.md:3) afirma:
+
+> only the JS target draws
+
+Logo, executar as jornadas do modelo em JVM/JS e medir a apresentação no Chrome são evidências complementares. O compilador sozinho não demonstra legibilidade. O corpus consultado inclui `training/language/ui.md`, `training/idioms/ui.md`, classes/controle de fluxo e `training/anti-patterns/fake-idioms.md`; nenhuma API pública do Kof foi alterada.
+
+### Aceite visual e limites
+
+A inspeção inicial do agente encontrou nome e e-mail completos, texto azul uniforme e menus brancos alinhados com a nave. Capturas são geradas em320/1200px e densidades1/2, Chrome139.0.7258.154/zoom100%. Evidência local opcional: `.agent/tmp/credits-text-browser/`, incluindo imagens da página e do canvas. O guia mantém as verificações e as capturas de sua composição aprovada. Inspeção do agente é distinta da aprovação visual do usuário, que permanece pendente. Família sans-serif concreta e rasterização podem variar por sistema; outros navegadores e Android físico não estão demonstrados.
+
+Gerador, classes, JSON de máscaras, PNGs `font-*` e testes de máscaras/medidas da fonte bitmap foram removidos após a migração dos consumidores. Texto e geometria passaram ao percurso real de navegador; não há teste novo imposto por organização interna. Imagens históricas, dígitos do HUD, NOTICE e licenças arquivadas permanecem preservados.
+
+Inventário confirmado: dez comandos locais — suítes JVM/JS, sete percursos Chrome e unittest Python — e três checks CI, Resolve verified Kof e Kof tests(jvm/js). Sonar, Habit e executor de mutação excluídos por ausência de configuração; não se atribui resultado aprovado ou score a ferramentas não executadas. Os gates completos no commit e seus resultados serão registrados após execução.

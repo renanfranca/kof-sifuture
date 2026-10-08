@@ -15,7 +15,7 @@ EVIDENCE = ROOT / ".agent/tmp/stage-browser"
 
 
 def bitmap(page):
-    return Image.open(io.BytesIO(page.locator("canvas").screenshot())).convert("RGB")
+    return Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
 
 
 def sprite(page, name, x, y, *, occluded=(), background_offset=None):
@@ -93,7 +93,7 @@ def hud_and_pause(page, width):
     page.get_by_role("button", name="Continuar", exact=True).click()
     advance(page)
     assert state(page)["steps"] == 11
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"hud-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"hud-{width}.png"))
 
 
 def right_input_clearing(page, width):
@@ -109,7 +109,7 @@ def right_input_clearing(page, width):
         advance(page)
         assert state(page)["shipX"] == 45
         sprite(page, "Middle.png", 45, 150)
-        page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-cleared-{action}-{width}.png"))
+        page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"right-cleared-{action}-{width}.png"))
 
 
 def right_held_result(page, width):
@@ -123,7 +123,7 @@ def right_held_result(page, width):
     assert page.get_by_role("button", name="Concluir contagem", exact=True).count() == 1
     assert state(page)["shipX"] == 50 and state(page)["shipY"] == 150
     sprite(page, "Middle.png", 50, 150)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-result-entry-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"right-result-entry-{width}.png"))
     page.keyboard.up("ArrowRight")
     for expected in (5, 10, 15, 17):
         advance(page)
@@ -131,7 +131,7 @@ def right_held_result(page, width):
         assert state(page)["shipX"] == 50 and state(page)["shipY"] == 150
         sprite(page, "Middle.png", 50, 150)
     assert state(page)["steps"] == 1710 and state(page)["score"] == 17
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-result-release-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"right-result-release-{width}.png"))
 
 
 def moving_result(page, width):
@@ -167,7 +167,7 @@ def moving_result(page, width):
     assert final["lives"] == initial["lives"] and final["charges"] == 2 and final["level"] == 3
     assert final["position"] == 176 and final["explosion"] == 30
     assert page.get_by_role("button", name="Voltar ao menu", exact=True).count() == 1
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"result-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"result-{width}.png"))
     page.keyboard.up("Enter")
     page.keyboard.press("Enter")
     assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
@@ -257,7 +257,7 @@ def defeat_projectiles(page, width):
     for name, x, y in (("laser00.png", 15, 140), ("ylwBlaster00.png", 0, 65),
                        ("e0.png", 0, 40), ("e3.png", 0, 160), ("e6.png", 0, 190)):
         sprite(page, name, x, y, occluded=overlay)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-flight-entry-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-flight-entry-{width}.png"))
     advance(page)
     for name, x, y in (("laser00.png", 20, 140), ("ylwBlaster00.png", 5, 65),
                        ("e0.png", 5, 40), ("e3.png", 6, 160), ("e6.png", 5, 190)):
@@ -270,7 +270,7 @@ def defeat_projectiles(page, width):
         advance(page)
     current = state(page)
     assert (current["lasers"], current["blaster"], current["beams"]) == (0, 0, 0)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-flight-finished-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-flight-finished-{width}.png"))
     page.get_by_role("button", name="Voltar ao menu", exact=True).click()
     page.get_by_role("button", name="Novo Jogo", exact=True).click()
     advance(page)
@@ -287,7 +287,7 @@ def defeat_effects(page, width):
     sprite(page, "laser03.png", 25, 140)
     sprite(page, "ylwBlaster04.png", 0, 180)
     sprite(page, "e4.png", 0, 40)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-effects-entry-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-effects-entry-{width}.png"))
     for step in range(1, 7):
         advance(page)
         current = state(page)
@@ -299,7 +299,7 @@ def defeat_effects(page, width):
                    background_offset=current["background"])
         if step < 6:
             sprite(page, "e4.png" if step < 3 else "e5.png", 0, 40)
-        page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-effects-{step}-{width}.png"))
+        page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-effects-{step}-{width}.png"))
     for _ in range(52):
         advance(page)
         current = state(page)
@@ -409,7 +409,7 @@ def main():
                     page.get_by_role("button", name="Novo Jogo", exact=True).click()
                     advance(page, 10)
                     sprite(page, "3lives.png", 6, 9, occluded=((0, 0, 8, 30),))
-                    assert page.locator("canvas").bounding_box()["width"] == 176
+                    assert page.locator("canvas:visible").bounding_box()["width"] == 176
                     page.screenshot(path=str(EVIDENCE / f"app-{width}.png"))
                     page.close()
                 print("PASS stage HUD, vertical impacts, full journey, moving result, exact count, boundaries and two confirmations")

@@ -24,7 +24,7 @@ JET_SAMPLES = [(x, y, SHIP_RIGHT.getpixel((x, y))[:3]) for y in range(20) for x 
 
 
 def ship_observation(page):
-    canvas = Image.open(io.BytesIO(page.locator("canvas").screenshot())).convert("RGB")
+    canvas = Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
     pixels = canvas.load()
     anchor_x, anchor_y, anchor_rgb = SAMPLES[0]
     candidates = []
@@ -387,7 +387,7 @@ class TouchContacts:
 def touch_on_canvas_axis(browser, url):
     for width in (320, 1200):
         with control_page(browser, url, touch=True, width=width) as (page, run):
-            canvas = page.locator("canvas").bounding_box()
+            canvas = page.locator("canvas:visible").bounding_box()
             north = page.get_by_role("button", name="↑", exact=True).bounding_box()
             point = (canvas["x"] + canvas["width"] / 2, north["y"] + north["height"] / 2)
             target = page.evaluate("p => document.elementFromPoint(p[0], p[1]).textContent", point)
@@ -555,7 +555,7 @@ def cross_layout(browser, url):
             special = page.get_by_role("button", name="Especial", exact=True).bounding_box()
             assert (special["width"], special["height"]) == (56, 220)
             assert page.get_by_role("button", name="Especial", exact=True).evaluate("button => getComputedStyle(button).writingMode") == "vertical-rl"
-            canvas = page.locator("canvas").bounding_box()
+            canvas = page.locator("canvas:visible").bounding_box()
             assert (canvas["width"], canvas["height"]) == (176, 220)
             canvas_center = canvas["x"] + canvas["width"] / 2
             for label in ("↑", "↓"):

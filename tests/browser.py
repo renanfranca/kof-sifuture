@@ -1,8 +1,6 @@
 """Exercise the generated KofJS game in Chrome with observable waits."""
 
 import argparse
-import math
-import json
 from datetime import datetime
 import sys
 from contextlib import nullcontext
@@ -24,61 +22,66 @@ def wait_for(predicate, page, timeout=5):
     raise AssertionError("observable condition did not appear")
 
 
-FONT_DATA = json.loads((Path(__file__).resolve().parents[1] / "fonts/bitmap.json").read_text())["fonts"]
+CREDIT_LABELS = ["Copyright (c) 2006-2007", "Renan Meneses", "de Andrade Franca", "contact:",
+                 "renan.andradefranca@gmail.com", "Inc. All rights reserved."]
 
 
 def record_menu(page):
-    page.add_init_script("""
-        window.bitmapDraws = [];
+    page.add_init_script(r"""
         window.menuShips = [];
         window.canvasTexts = [];
         const draw = CanvasRenderingContext2D.prototype.drawImage;
         const clear = CanvasRenderingContext2D.prototype.clearRect;
         const text = CanvasRenderingContext2D.prototype.fillText;
         CanvasRenderingContext2D.prototype.clearRect = function(x, y, w, h) {
-            if (w === 176 && h === 220) window.bitmapDraws = [];
+            if (w === this.canvas.width && h === this.canvas.height) window.canvasTexts = [];
             return clear.call(this, x, y, w, h);
         };
         CanvasRenderingContext2D.prototype.drawImage = function(image, x, y, ...rest) {
             const asset = image.src && image.src.split('/').pop();
-            if (asset && asset.startsWith('font-')) {
-                const m = this.getTransform();
-                window.bitmapDraws.push({asset, x, y, rest, matrix: [m.a,m.b,m.c,m.d,m.e,m.f]});
-            }
             if (asset && /[23]lives\.png$/.test(asset)) window.menuShips.push([asset, x, y]);
             return draw.call(this, image, x, y, ...rest);
         };
         CanvasRenderingContext2D.prototype.fillText = function(label, x, y, ...rest) {
-            window.canvasTexts.push(label);
+            const m = this.getTransform();
+            const metrics = this.measureText(label);
+            window.canvasTexts.push({label, x: m.a*x+m.c*y+m.e, y: m.b*x+m.d*y+m.f,
+                size: parseFloat(this.font)*m.a, font: this.font, color: this.fillStyle,
+                width: metrics.width*m.a, ascent: metrics.actualBoundingBoxAscent*m.d,
+                descent: metrics.actualBoundingBoxDescent*m.d,
+                matrix: [m.a,m.b,m.c,m.d,m.e,m.f]});
             return text.call(this, label, x, y, ...rest);
         };
     """)
 
 
-def bitmap_lines(page, font_name, labels, x, baselines, pixels=False):
-    glyphs = {g["character"]: g for g in FONT_DATA[font_name]["glyphs"]}
-    expected = []
-    for label, baseline in zip(labels, baselines):
-        cursor = x
-        for c in label:
-            glyph = glyphs[c]
-            expected.append({"asset": glyph["asset"], "x": cursor + glyph["left"], "y": baseline + glyph["top"],
-                             "rest": [], "matrix": [1, 0, 0, 1, 0, 0]})
-            cursor += glyph["advance"]
-        assert cursor - x <= (130 if font_name == "credits" else 128)
-    assert page.evaluate("bitmapDraws") == expected
-    assert page.evaluate("canvasTexts") == []
-    if pixels:
-        observed = page.locator("canvas").evaluate("n => Array.from(n.getContext('2d').getImageData(0,0,176,220).data)")
-        from PIL import Image
-        composed = Image.new("RGBA", (176, 220))
-        for draw in expected:
-            glyph = Image.open(Path(__file__).resolve().parents[1] / "assets" / draw["asset"]).convert("RGBA")
-            composed.alpha_composite(glyph, (draw["x"], draw["y"]))
-        for y in range(220):
-            for px in range(176):
-                index = 4 * (y * 176 + px)
-                assert tuple(observed[index:index+4]) == composed.getpixel((px, y)), (px, y)
+def text_lines(page, labels, x, baselines, color, *, settled=False):
+    texts = page.evaluate("canvasTexts")
+    assert [t["label"] for t in texts] == labels, texts
+    canvas = page.locator("canvas:visible")
+    bounds = canvas.bounding_box()
+    for text, baseline in zip(texts, baselines):
+        assert abs(text["x"] - x) < 0.001 and abs(text["y"] - baseline) < 0.001, text
+        assert abs(text["size"] - 16) < 0.001 and text["font"] == "10px sans-serif", text
+        assert text["color"] == color, text
+        assert abs(text["matrix"][0] - 1.6) < 0.001 and abs(text["matrix"][3] - 1.6) < 0.001, text
+        if settled:
+            assert text["x"] >= 12 and text["x"] + text["width"] <= bounds["width"] - 12, text
+            assert baseline - text["ascent"] >= 12 and baseline + text["descent"] <= bounds["height"] - 12, text
+    assert canvas.evaluate("n => {const c=n.getContext('2d'),m=c.getTransform();return [m.a,m.b,m.c,m.d,m.e,m.f,c.fillStyle]}") == [1,0,0,1,0,0,"#ffffff"]
+
+
+def menu_lines(page, labels, positions):
+    text_lines(page, labels, 48, [y + 14 for y in positions], "#ffffff")
+    texts = page.evaluate("canvasTexts")
+    canvas = page.locator("canvas:visible").bounding_box()
+    assert canvas["width"] == 176 and canvas["height"] == 220
+    for label, y, text in zip(labels, positions, texts):
+        box = page.get_by_role("button", name=label, exact=True).bounding_box()
+        assert box["width"] == 128 and box["height"] == 19
+        assert box["x"] - canvas["x"] == 48 and box["y"] - canvas["y"] == y
+        assert text["width"] <= 128
+        assert text["y"] - text["ascent"] >= y and text["y"] + text["descent"] <= y + 19
 
 
 def selected_line(page, name, y):
@@ -94,7 +97,7 @@ def menu_presentation(browser, url):
         page.clock.pause_at(datetime(2026, 1, 1))
         page.goto(url)
         page.get_by_role("button", name="Pular créditos", exact=True).click()
-        bitmap_lines(page, "menu", ["Novo Jogo", "Controles"], 48, [133, 152])
+        menu_lines(page, ["Novo Jogo", "Controles"], [120, 139])
         page.clock.run_for(36 * 30)
         page.get_by_role("button", name="Controles", exact=True).focus()
         selected_line(page, "Controles", 139)
@@ -107,17 +110,17 @@ def menu_presentation(browser, url):
         assert page.locator("#game-action").evaluate("n => getComputedStyle(n).outlineWidth") == "1px"
         page.get_by_role("button", name="Novo Jogo", exact=True).click()
         page.get_by_role("button", name="Pausar", exact=True).click()
-        bitmap_lines(page, "menu", ["Continuar", "Reiniciar", "Menu principal"], 48, [93, 112, 131])
+        menu_lines(page, ["Continuar", "Reiniciar", "Menu principal"], [80, 99, 118])
         page.get_by_role("button", name="Menu principal", exact=True).focus()
         selected_line(page, "Menu principal", 118)
         sprite(page, "2lives.png", 18, 118)
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.close()
-        print(f"PASS Portuguese bitmap menus at x48/14px, ship selection and independent neutral focus at {width}px")
+        print(f"PASS Portuguese sans-serif menus at x48/16px, ship selection and independent neutral focus at {width}px")
 
 
 def credits_animation(browser, url):
-    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/navigation-browser"
+    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/credits-text-browser"
     evidence.mkdir(parents=True, exist_ok=True)
     for width in (320, 1200):
         page = browser.new_page(viewport={"width": width, "height": 1000})
@@ -130,39 +133,46 @@ def credits_animation(browser, url):
         page.keyboard.press("ArrowLeft")
 
         def credits(x, y0, y1):
-            bitmap_lines(page, "credits", ["Copyright (c) 2006-2007", "Renan Meneses de Andrade Franca", "contact:",
-                         "renan.andradefranca@gmail.com", "Inc. All rights reserved."], x,
-                         [y0 + 8, y0 + 18, y1 + 8, y1 + 18, y1 + 28], pixels=(x == 46 and y0 == 110))
-            assert page.locator("canvas").evaluate("n => {const c=n.getContext('2d'),m=c.getTransform();return [m.a,m.b,m.c,m.d,m.e,m.f,c.fillStyle]}") == [1, 0, 0, 1, 0, 0, "#ffffff"]
+            text_lines(page, CREDIT_LABELS, x, [y0 + 16, y0 + 40, y0 + 64, y1 + 16, y1 + 40, y1 + 64],
+                       "#0080ff", settled=(x == 12 and y0 == 40))
 
-        credits(-134, 110, 141)
+        canvas = page.locator("canvas:visible")
+        assert canvas.bounding_box()["width"] == 262 and canvas.bounding_box()["height"] == 260
+        assert overlay.bounding_box()["width"] == 262 and overlay.bounding_box()["height"] == 260
+        assert overlay.locator("..").evaluate("n => getComputedStyle(n).backgroundColor") == "rgb(18, 18, 18)"
+        for name in ("↑", "↓", "←", "→", "Especial"):
+            assert not page.get_by_role("button", name=name, exact=True).is_visible()
+        credits(-262, 40, 136)
         page.clock.run_for(30)
-        credits(-129, 110, 141)
+        credits(-257, 40, 136)
         for _ in range(5):
             page.keyboard.press("ArrowLeft")
-        credits(-129, 110, 141)
-        page.clock.run_for(35 * 30)
-        credits(46, 110, 141)
+        credits(-257, 40, 136)
+        page.clock.run_for(53 * 30)
+        credits(8, 40, 136)
+        page.clock.run_for(30)
+        credits(12, 40, 136)
         page.screenshot(path=str(evidence / f"credits-arrived-{width}.png"), full_page=True)
-        page.locator("canvas").evaluate("n => n.getContext('2d').font = '20px sans-serif'")
+        page.clock.run_for(199 * 30)
+        credits(12, 40, 136)
         page.keyboard.press("ArrowLeft")
-        credits(46, 110, 141)
-        assert all(d["matrix"] == [1, 0, 0, 1, 0, 0] for d in page.evaluate("bitmapDraws"))
-        page.locator("canvas").evaluate("n => n.getContext('2d').font = '10px sans-serif'")
-        page.keyboard.press("ArrowLeft")
-        credits(46, 110, 141)
-        page.clock.run_for(49 * 30)
-        credits(46, 110, 141)
+        credits(12, 40, 136)
         page.clock.run_for(30)
-        credits(46, 111, 140)
+        credits(12, 40, 136)
         page.clock.run_for(30)
-        credits(46, 112, 139)
-        page.clock.run_for(171 * 30)
-        credits(46, 283, -32)
-        page.evaluate("bitmapDraws.length=0")
+        credits(12, 41, 135)
+        page.clock.run_for(206 * 30)
+        credits(12, 247, -71)
         page.clock.run_for(30)
-        assert page.get_by_role("button", name="Pular créditos", exact=True).count() == 1
-        assert page.evaluate("bitmapDraws.length") == 0
+        credits(12, 248, -72)
+        page.clock.run_for(11 * 30)
+        credits(12, 259, -83)
+        page.clock.run_for(30)
+        credits(12, 260, -84)
+        page.clock.run_for(30)
+        assert page.get_by_role("button", name="Pular créditos", exact=True).is_visible()
+        assert page.evaluate("canvasTexts") == []
+        assert canvas.evaluate("n => Array.from(n.getContext('2d').getImageData(0,0,n.width,n.height).data).every(v=>v===0)")
         page.screenshot(path=str(evidence / f"credits-terminal-{width}.png"), full_page=True)
         page.clock.run_for(30)
         assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
@@ -187,7 +197,7 @@ def credits_animation(browser, url):
         sprite(page, "2lives.png", 18, 120, occluded=((46, 118, 50, 141),))
         page.screenshot(path=str(evidence / f"menu-{width}.png"), full_page=True)
         page.close()
-        print(f"PASS credits frames0/1/36/85/86/87/258/259/260, literal bitmap contact/pixel equality/transform isolation and entrance0/1/11/12/13/35/36 at {width}px")
+        print(f"PASS credits frames0/1/54/55/254/255/256/462/463/474/475/476/477, six-second hold, text geometry/color/transform isolation and entrance0/1/11/12/13/35/36 at {width}px")
 
 
 def menu_navigation(browser, url):
@@ -217,7 +227,7 @@ def menu_navigation(browser, url):
         assert explanation.is_visible()
         for term in ("Tab", "Enter", "1", "diagonal", "Solte", "Especial"):
             assert term in explanation.inner_text()
-        page.screenshot(path=str(Path(__file__).resolve().parents[1] / f".agent/tmp/navigation-browser/controls-{width}.png"), full_page=True)
+        page.screenshot(path=str(Path(__file__).resolve().parents[1] / f".agent/tmp/credits-text-browser/controls-{width}.png"), full_page=True)
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.keyboard.press("Enter")
         assert page.get_by_role("button", name="Controles", exact=True).count() == 1
@@ -231,7 +241,7 @@ def menu_navigation(browser, url):
         page.keyboard.press("Enter")
         assert page.get_by_role("button", name="Reiniciar", exact=True).count() == 1
         assert page.get_by_role("button", name="Menu principal", exact=True).count() == 1
-        page.screenshot(path=str(Path(__file__).resolve().parents[1] / f".agent/tmp/navigation-browser/pause-{width}.png"), full_page=True)
+        page.screenshot(path=str(Path(__file__).resolve().parents[1] / f".agent/tmp/credits-text-browser/pause-{width}.png"), full_page=True)
         page.keyboard.down("ArrowDown")
         page.keyboard.down("ArrowDown")
         selected_line(page, "Reiniciar", 99)
@@ -257,7 +267,7 @@ def menu_navigation(browser, url):
 
 
 def confirmation_journeys(browser, url):
-    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/navigation-browser"
+    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/credits-text-browser"
     for width in (320, 1200):
         context = browser.new_context(viewport={"width": width, "height": 1000}, has_touch=True)
         page = context.new_page()
@@ -299,7 +309,7 @@ def confirmation_journeys(browser, url):
                 page.get_by_role("button", name="Pausar", exact=True).click()
                 target = page.get_by_role("button", name=option, exact=True)
                 old_box = target.bounding_box()
-                canvas = page.locator("canvas").bounding_box()
+                canvas = page.locator("canvas:visible").bounding_box()
                 assert old_box["y"] - canvas["y"] == {"Continuar": 80, "Reiniciar": 99, "Menu principal": 118}[option], (option, old_box, canvas)
                 target.focus()
                 page.get_by_role("button", name="Confirmar (Enter)", exact=True).focus()
@@ -323,7 +333,7 @@ def confirmation_journeys(browser, url):
 
 
 def controls_guide(browser, url):
-    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/navigation-browser"
+    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/credits-text-browser"
     for width in (320, 1200):
         context = browser.new_context(viewport={"width": width, "height": 1000}, has_touch=True)
         page = context.new_page()
@@ -359,7 +369,7 @@ def controls_guide(browser, url):
             assert back_box["y"] + back_box["height"] <= window_box["y"] + window_box["height"]
             assert page.locator("#controls-heading").bounding_box()["height"] == 44
             assert page.locator("#game-keyboard").bounding_box()["height"] == 44
-            assert not page.locator("canvas").is_visible()
+            assert not page.locator("canvas:visible").is_visible()
             for name in ("↑", "↓", "←", "→", "Especial"):
                 assert not page.get_by_role("button", name=name, exact=True).is_visible()
             assert page.get_by_text("Na partida, clique na área do jogo ou use Tab até ‘Ativar teclado do jogo’.", exact=True).is_visible()
@@ -413,7 +423,7 @@ def controls_guide(browser, url):
             else:
                 back.tap()
             assert page.get_by_role("button", name="Controles", exact=True).is_visible()
-            assert page.locator("canvas").is_visible()
+            assert page.locator("canvas:visible").is_visible()
             assert page.locator("#game-keyboard").bounding_box()["height"] == 220
             assert not guide.is_visible()
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -481,7 +491,7 @@ def retained_options(browser, url):
 
 
 def repeated_entrances(browser, url, result_url):
-    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/navigation-browser"
+    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/credits-text-browser"
     for width in (320, 1200):
         page = browser.new_page(viewport={"width": width, "height": 1000})
         record_menu(page)
@@ -537,7 +547,7 @@ def repeated_entrances(browser, url, result_url):
 
 
 def density_presentation(browser, url):
-    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/clarity-browser"
+    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/credits-text-browser"
     evidence.mkdir(parents=True, exist_ok=True)
     for width in (320, 1200):
         for density in (1, 2):
@@ -548,19 +558,24 @@ def density_presentation(browser, url):
             page.clock.pause_at(datetime(2026, 1, 1))
             page.goto(url)
             page.wait_for_function("Object.values(window.__kofNodes).filter(n => n.tagName === 'IMG').every(n => n.complete && n.naturalWidth > 0)")
-            page.clock.run_for(36 * 30)
-            labels = ["Copyright (c) 2006-2007", "Renan Meneses de Andrade Franca", "contact:", "renan.andradefranca@gmail.com", "Inc. All rights reserved."]
-            bitmap_lines(page, "credits", labels, 46, [118,128,149,159,169], pixels=True)
-            images = page.evaluate("Object.values(window.__kofNodes).filter(n => n.tagName === 'IMG' && n.src.includes('/font-')).length")
+            page.clock.run_for(55 * 30)
+            text_lines(page, CREDIT_LABELS, 12, [56, 80, 104, 152, 176, 200], "#0080ff", settled=True)
+            assert page.locator("canvas:visible").evaluate("n => {const p=n.getContext('2d').getImageData(0,0,n.width,n.height).data;for(let i=3;i<p.length;i+=4){if(p[i]>0&&p[i]<255)return true;}return false;}")
+            assert page.evaluate("devicePixelRatio") == density
+            assert page.evaluate("visualViewport.scale") == 1
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             page.screenshot(path=str(evidence / f"credits-{width}-d{density}.png"), full_page=True)
+            page.locator("canvas:visible").screenshot(path=str(evidence / f"credits-canvas-{width}-d{density}.png"))
             page.get_by_role("button", name="Pular créditos", exact=True).click()
             page.clock.run_for(35 * 30)
-            bitmap_lines(page, "menu", ["Novo Jogo", "Controles"], 48, [133,152])
+            menu_lines(page, ["Novo Jogo", "Controles"], [120, 139])
             page.screenshot(path=str(evidence / f"menu-{width}-d{density}.png"), full_page=True)
+            page.locator("canvas:visible").screenshot(path=str(evidence / f"menu-canvas-{width}-d{density}.png"))
             page.get_by_role("button", name="Novo Jogo", exact=True).click()
             page.get_by_role("button", name="Pausar", exact=True).click()
-            bitmap_lines(page, "menu", ["Continuar", "Reiniciar", "Menu principal"], 48, [93,112,131])
+            menu_lines(page, ["Continuar", "Reiniciar", "Menu principal"], [80, 99, 118])
             page.screenshot(path=str(evidence / f"pause-{width}-d{density}.png"), full_page=True)
+            page.locator("canvas:visible").screenshot(path=str(evidence / f"pause-canvas-{width}-d{density}.png"))
             page.get_by_role("button", name="Menu principal", exact=True).click()
             page.get_by_role("button", name="Controles", exact=True).click()
             guide = page.locator("#game-help")
@@ -579,9 +594,9 @@ def density_presentation(browser, url):
             assert page.evaluate("Array.from(document.querySelectorAll('*')).filter(n => ['auto','scroll'].includes(getComputedStyle(n).overflowX)).every(n => n.scrollWidth <= n.clientWidth)")
             page.screenshot(path=str(evidence / f"guide-open-{width}-d{density}.png"), full_page=True)
             page.get_by_role("button", name="Voltar", exact=True).click()
-            assert page.evaluate("Object.values(window.__kofNodes).filter(n => n.tagName === 'IMG' && n.src.includes('/font-')).length") == images
+            assert page.evaluate("Object.values(window.__kofNodes).filter(n => n.tagName === 'IMG' && n.src.includes('/font-')).length") == 0
             context.close()
-            print(f"PASS native glyph pixels, single image load, 16px padding/216px content and closed Special at {width}px density{density}")
+            print(f"PASS 16px smooth text, complete credits/email at zoom100%, no bitmap fonts, guide padding/216px and closed Special at {width}px density{density}")
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -633,14 +648,12 @@ def main():
                 page.goto(url)
                 overlay = page.get_by_role("button", name="Ativar teclado do jogo")
                 assert page.locator("input").count() == 0
-                assert page.locator("canvas").count() == 1
-                assert overlay.bounding_box()["width"] == 176
-                assert overlay.bounding_box()["height"] == 220
+                assert page.locator("canvas:visible").count() == 1
+                assert overlay.bounding_box()["width"] == 262
+                assert overlay.bounding_box()["height"] == 260
                 for label in ("↑", "←", "→", "↓"):
                     zone = page.get_by_role("button", name=label, exact=True)
-                    assert zone.bounding_box()["width"] == 56
-                    assert zone.bounding_box()["height"] == 56
-                    assert zone.is_disabled()
+                    assert not zone.is_visible()
                 page.keyboard.press("Tab")
                 assert overlay.evaluate("node => document.activeElement === node")
                 assert overlay.locator("..").evaluate("node => getComputedStyle(node).outlineStyle") == "solid"
@@ -720,18 +733,18 @@ def main():
                 page.keyboard.up("Enter")
                 page.get_by_role("button", name="Pausar").click()
                 wait_for(lambda: page.get_by_role("button", name="Continuar").count() == 1, page)
-                paused = page.locator("canvas").screenshot()
+                paused = page.locator("canvas:visible").screenshot()
                 page.wait_for_timeout(160)
-                assert page.locator("canvas").screenshot() == paused
+                assert page.locator("canvas:visible").screenshot() == paused
                 page.get_by_role("button", name="Continuar").click()
                 wait_for(lambda: page.get_by_role("button", name="Pausar").count() == 1, page)
                 page.goto(result_url)
                 for life in range(3):
                     page.get_by_role("button", name="Hit ship", exact=True).click()
                 wait_for(lambda: page.get_by_role("button", name="Voltar ao menu").count() == 1, page)
-                result = page.locator("canvas").screenshot()
+                result = page.locator("canvas:visible").screenshot()
                 page.wait_for_timeout(100)
-                assert page.locator("canvas").screenshot() != result
+                assert page.locator("canvas:visible").screenshot() != result
                 page.get_by_role("button", name="Voltar ao menu").focus()
                 page.keyboard.down("Enter")
                 page.keyboard.down("Enter")

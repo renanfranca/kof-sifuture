@@ -111,26 +111,35 @@ test "menu navigation clamps repeats and controls return preserves selection" {
     assert(g.screen == Screen.Play)
 }
 
-test "credits count arrival among fifty frames and keep terminal frame before menu260" {
+test "credits enter exactly at twelve wait six seconds and leave one empty frame" {
     var g = Game()
-    assert(g.credits.x == -134 && g.credits.firstY == 110 && g.credits.secondY == 141)
+    assert(g.credits.x == -262 && g.credits.firstY == 40 && g.credits.secondY == 136)
     g.step()
-    assert(g.credits.x == -129 && g.credits.waitSteps == 0)
-    for (var i = 0; i < 35; i++) { g.step() }
-    assert(g.credits.x == 46 && g.credits.firstY == 110)
-    for (var i = 0; i < 49; i++) { g.step() }
-    assert(g.credits.waitSteps == 50 && g.credits.firstY == 110 && g.credits.secondY == 141)
+    assert(g.credits.x == -257 && g.credits.waitSteps == 0)
+    for (var i = 0; i < 53; i++) { g.step() }
+    assert(g.credits.x == 8 && g.credits.waitSteps == 0)
     g.step()
-    assert(g.credits.firstY == 111 && g.credits.secondY == 140)
-    for (var i = 0; i < 172; i++) { g.step() }
-    assert(g.screen == Screen.Credits && g.credits.firstY == 283 && g.credits.secondY == -32)
+    assert(g.credits.x == 12 && g.credits.waitSteps == 0)
+    for (var i = 0; i < 199; i++) { g.step() }
+    assert(g.credits.waitSteps == 199 && g.credits.firstY == 40 && g.credits.secondY == 136)
     g.step()
-    assert(g.screen == Screen.Credits && g.credits.exitComplete && g.credits.firstY == 283 && g.credits.secondY == -32)
+    assert(g.credits.waitSteps == 200 && g.credits.firstY == 40 && g.credits.secondY == 136)
+    g.step()
+    assert(g.credits.firstY == 41 && g.credits.secondY == 135)
+    for (var i = 0; i < 206; i++) { g.step() }
+    assert(g.credits.firstY == 247 && g.credits.secondY == -71 && !g.credits.exitComplete)
+    g.step()
+    assert(g.credits.firstY == 248 && g.credits.secondY == -72 && !g.credits.exitComplete)
+    for (var i = 0; i < 11; i++) { g.step() }
+    assert(g.credits.firstY == 259 && g.credits.secondY == -83 && !g.credits.exitComplete)
+    g.step()
+    assert(g.screen == Screen.Credits && g.credits.firstY == 260 && g.credits.secondY == -84)
+    g.step()
+    assert(g.screen == Screen.Credits && g.credits.exitComplete && g.credits.firstY == 260 && g.credits.secondY == -84)
     g.step()
     assert(g.screen == Screen.Menu && g.menuEntrance.x == -30)
-    var x = g.credits.x
     g.step()
-    assert(g.credits.x == x && g.credits.firstY == 283)
+    assert(g.credits.x == 12 && g.credits.firstY == 260)
 }
 
 test "application opens with credits and confirmation skips only to menu once" {
