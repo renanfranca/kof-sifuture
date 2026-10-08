@@ -624,3 +624,323 @@ Partir de `controls-alignment`, preservando os aceites anteriores como históric
 Execução por `primary`, neste chat, com papéis e leases serializados. Validação e revisão compartilham o contexto da implementação. Sonar, Habit e mutation testing permanecem excluídos por ausência de configuração. Plano literal, ledger e evidências locais: `.agent/tmp/special-vertical.*`.
 
 Gate de entrega deste ciclo: repetir todos os onze checks no complemento documental; o ledger e a descrição do PR #17 registrarão o head final, resultado do gate e execução específica de CI antes da entrega.
+
+
+# Próximo ciclo: créditos, Controles e navegação da pausa
+
+## Purpose and success
+
+**Sim: o núcleo das mecânicas já está implementado e aceito nos ciclos de gameplay, incluindo subchefe e boss final. A v1 completa continua aberta.** A própria [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:3) registra:
+
+> subchief and final boss combat slices implemented. Full v1 remains open.
+
+Nesta releitura, executei as suítes JVM/JS e o percurso principal do Chrome no commit `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`, todos com saída 0:
+
+```text
+0 failed of 103 tests
+1 passed, 0 failed
+PASS menu, Enter and Space, conservative confirmation, pause, result and menu in Chrome
+```
+
+As regras da partida têm evidência automatizada. Ainda faltam requisitos da aplicação completa e a comparação visual com o vídeo histórico.
+
+O próximo ciclo escolhido entregará **abertura com créditos animados → menu navegável → Controles → partida → pausa com Continuar, Reiniciar e Menu principal**.
+
+## Context and limits
+
+- Preservar a animação histórica dos créditos. A frequência será a determinada pela [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:148):
+
+  > Credits MUST appear once when the application opens. Enter or touch MUST skip them. They MUST NOT recur within the same running application instance.
+
+- Opções e os controles de Música ficam para o ciclo de áudio, conforme a escolha feita nesta conversa. Continuam obrigatórios para concluir a v1.
+- Pausa automática, escala adaptável, entrada fora da árvore de controles e execução Android ficam para ciclos posteriores. Neste ciclo, o teclado mantém a ativação por clique ou Tab.
+- Consultar o histórico em `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, sem executar seu JAR como oráculo. Kof consultado: `317d9f6b1c3e27032cc955a05f859f6c627d9338`; instalação executada: `0.5.0-beta`.
+
+## Milestones
+
+1. **Adicionar abertura e navegação ao modelo.** Acrescentar Credits e Controls às telas existentes. Os créditos aparecem na criação da aplicação; iniciar, reiniciar e voltar ao menu nunca os reativam. Manter `Game.start(seed)`, `step()` e `stagePosition()`. Acrescentar ações explícitas para abrir Controles, navegar entre opções, reiniciar com seed injetável e abandonar a partida.
+
+2. **Integrar telas e controles Kof.** Reutilizar a composição atual, com botões acessíveis para toque direto. Menu: Novo Jogo e Controles. Pausa: Continuar, Reiniciar e Menu principal. Cima/Baixo selecionam sem ultrapassar as extremidades; confirmação executa a seleção. Controles explica teclado, foco, diagonais, opostos, arrasto, soltura e especial, com ação Voltar. Preservar os bloqueios de teclas mantidas e a deduplicação do clique nativo.
+
+3. **Preservar apresentação e responsabilidades.** Copiar `copyright0.png`, `copyright1.png` e os sprites de menu utilizados sem transformação; preservar NOTICE. Animações avançam somente nos passos de 30 ms; desenho apenas consulta estado. O estado mutável dos créditos pertence a uma classe, seguindo o [idioma Kof](/home/renanfranca/projects/kof/training/idioms/classes.md:35):
+
+   > for **mutable state** use explicit fields + `constructor(...)`.
+
+   Isso mantém posição e relógios da animação juntos, permitindo redesenhar sem acelerar sua execução.
+
+4. **Consolidar testes e documentação.** Ampliar as jornadas existentes e promover as três provas complementares do boss já [registradas](/home/renanfranca/projects/kof-sifuture/.agent/validation/stage-hud-result.md:837) à suíte permanente. Atualizar a especificação, o EXECPLAN e os registros de aceite existentes, preservando a história dos ciclos anteriores.
+
+## Progress
+
+- [x] Especificação, implementação, testes e aceites relidos.
+- [x] Base atual verificada em JVM, JS e no percurso principal do Chrome.
+- [x] Recorte e animação histórica escolhidos pelo usuário.
+- [ ] Implementação e aceite do novo ciclo. Nenhum arquivo versionado foi alterado nesta preparação.
+
+## Validation
+
+As verificações abaixo são **planejadas**, ainda não resultados do novo ciclo.
+
+| Critério e fonte | Contexto, ação e resultado esperado | Prova prevista |
+|---|---|---|
+| Créditos — [histórico](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:192) | Abertura começa em x=-134; primeiro avanço mostra x=-129. Preservar chegada, 50 quadros de espera e saída vertical histórica. Redesenhar não avança a animação. | JVM/JS nas transições; Chrome com relógio controlado e comparação dos sprites. |
+| Exibição única — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:148) | Enter focado ou toque pula somente para Menu. Manter Enter pressionado não inicia a partida. Retornos de Controles, pausa e resultado não repetem créditos. | Ampliar `browser.py`, observando também o evento seguinte à transição. |
+| Navegação — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:144) | Seleção inicial Novo Jogo; Baixo seleciona Controles; repetição mantida não navega novamente. Toque executa diretamente a opção tocada. Voltar de Controles conserva essa seleção. | Modelo e Chrome em 320/1200; nomes acessíveis, foco e ausência de Carregar/Opções neste recorte. |
+| Continuar — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:150) | Pausar uma partida com movimento e projéteis ativos congela estado. Continuar conserva a partida; o primeiro passo avança uma vez, sem recuperar movimento mantido. | Reutilizar provas de pausa e acrescentar a navegação pela nova tela. |
+| Reiniciar — mesma fonte | Reiniciar uma partida evoluída restaura nave em `(0,100)`, três vidas, score zero, posição 5, arma básica, zero cargas e chefes inativos. Uma seed fixa reproduz a nova partida. | JVM/JS pelo comando de reinício; Chrome pela ação real, verificando também o primeiro passo. |
+| Menu principal — mesma fonte | Abandonar durante combate retorna ao menu com Novo Jogo selecionado; passos seguintes não retomam a tentativa. Novo Jogo começa uma partida limpa, sem créditos. | Modelo e Chrome, incluindo teclas e contatos mantidos durante a saída. |
+| Regressões | Resultado mantém suas duas confirmações; combate, controles e geometria atuais continuam aceitos. As três provas complementares do boss tornam-se permanentes. | Suíte completa e sete jornadas existentes. |
+
+Executar:
+
+```bash
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 tests/browser.py
+python3 tests/browser_controls.py
+python3 tests/browser_meteor.py
+python3 tests/browser_weapons.py
+python3 tests/browser_stage.py
+python3 tests/browser_subchief.py
+python3 tests/browser_boss.py
+python3 -m unittest discover -s tests -p 'test_kof_project.py'
+PATH="$PWD/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh
+```
+
+Antes da entrega, conferir separadamente **se cada expectativa corresponde às fontes** e **se suas assertions demonstram o comportamento**. Registrar por critério comando, resultado, assertion/captura, SHA, identidade Kof, navegador e links de CI. Guardar evidência gerada em `.agent/tmp/` e resumos versionados em `.agent/validation/`.
+
+Falhas, cobertura ausente, comparação com vídeo e Android real devem permanecer explicitamente pendentes; uma suíte verde não encerra esses critérios.
+
+
+### Execução confirmada — créditos e navegação
+
+Branch `credits-pause-navigation`, checkout atual sem worktree, base `main` fixa `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`. Worker `primary`, chat `01a113e4-c500-76c1-850c-191a12bc6f41`, título `sifuture-navigation-primary`, `gpt-6.1-sol`/`medium`. Os sete papéis compartilham contexto e usam leases serializados; revisão e validação não são independentes. Onze checks locais e Resolve/JVM/JS no CI confirmados. Sonar, Habit e mutação excluídos por ausência de configuração, sem atribuir pass. Plano literal, ledger, inventário, coletores e logs em `.agent/tmp/credits-pause-navigation.*`.
+
+Implementação e checkpoints comportamentais: Credits/Controls no modelo; créditos em classe mutável avançada por step; seleção limitada e deduplicada; reinício com seed e abandono; telas, botões e explicação Kof. Três provas do boss promovidas à suíte permanente. JVM/JS: 112 casos; Chrome: créditos, navegação e reinício nos percursos existentes em 320/1200. Gates completos e auditorias serão registrados no aceite antes da entrega.
+
+
+- [x] Gate inicial 11/11 no SHA `50affe515aeeec0f6ee9776a4d774feb8c7cf469`, 236,96 s; JVM/JS 112/112, sete percursos Chrome e infraestrutura.
+- [x] Expectativas históricas e qualidade das assertions auditadas separadamente; oito sprites idênticos, NOTICE preservado, capturas320/1200 inspecionadas.
+- [x] Revisão estrutural com consolidação do protocolo dos callbacks direcionais; registros de fase/resultado e controles atualizados, história preservada.
+- [ ] Gate final no commit revisado/documentado e entrega PR/CI (serão registrados no ledger e no PR).
+- [ ] V1: vídeo, Android, áudio/Opções/Música, escala e lifecycle posteriores continuam abertos.
+
+Revisão complementar: estilos de navegação agora são construídos uma vez, evitando registros KofJS a cada tick; sonda19→19 em1000 ticks e percurso público preservado. Correção adicional `6daccf42529c19e5f69d1cef1b84b04959b1e193` voltou pelo fluxo de implementação; gate completo11/11 passou em237,27s,112 testes por alvo e sete jornadas Chrome. Revisão estrutural reconferida no mesmo contexto, sem nova alteração comportamental. Consolidação final de documentação será validada novamente antes do PR; links posteriores no ledger/PR e registro de aceite.
+
+- [x] Gate final local11/11 no head `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`,237,94s,112 testes por alvo.
+- [x] [PR18](https://github.com/renanfranca/kof-sifuture/pull/18) criado pronto para revisão, sem merge; [CI37558500360](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360) com Resolve/JVM/JS success,112 testes por alvo. Links e identidade do merge sintético registrados no aceite.
+- [ ] Commit documental com estes links: repetir gates e acompanhar CI do novo head antes da entrega; registros posteriores no ledger e PR. Código do ciclo concluído; v1 permanece aberta.
+
+
+## Complemento aprovado — menu, entrada e contato (07/10/2026)
+
+$implement-approved-plan # Melhorar o menu, restaurar a entrada da nave e atualizar os créditos
+
+## Resultado esperado
+
+Este plano substitui o anterior e mantém as correções R1/R2. Entregar:
+
+- Uma única ação **Confirmar (Enter)** abaixo do menu e da pausa, executando a seleção atual.
+- Toque direto nas opções desenhadas, sem repetir a lista abaixo.
+- Entrada da nave com propulsores somente na primeira abertura do Menu, inclusive após pular créditos.
+- Contato **renan.andradefranca@gmail.com** como texto Kof no bloco animado dos créditos.
+- Espera de50 quadros e término histórico dos créditos, com Menu no quadro260.
+
+Incorporar este complemento ao `EXECPLAN.md` durante a execução, preservando os registros anteriores.
+
+## Menu e confirmação
+
+Atualmente, tocar na ação principal força a primeira opção, conforme [GameControls.kf:174](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameControls.kf:174):
+
+```kof
+if (game.screen == Screen.Menu) { game.menuSelection = 0 }
+if (game.screen == Screen.Pause) { game.pauseSelection = 0 }
+game.confirm()
+```
+
+O novo botão Confirmar removerá essas atribuições: focá-lo, tocá-lo ou pressionar Space executará a seleção existente, assim como Enter. Selecionar Controles e confirmar abrirá Controles imediatamente.
+
+- Reaproveitar `Button` e `Style` Kof para criar áreas transparentes sobre as opções, com nomes acessíveis e indicação de foco. Toque executa diretamente a opção tocada.
+- Menu conserva as posições atuais. Na pausa, mostrar Continuar, Reiniciar e Menu principal nas linhas y80/99/118; conservar o sprite de Continuar e desenhar os outros dois rótulos em Kof.
+- Cima/Baixo continuam limitados às opções; foco numa opção atualiza a seleção. Focar Confirmar conserva a seleção.
+- Construir widgets e estilos uma vez, reutilizando-os nas atualizações.
+- Validar seleção e ativação pela tela atual. Opções anteriores retidas para receber solturas ficam fora da área visível, sem receber toque, e não podem confirmar outra tela.
+- Preservar bloqueios de Enter/Space mantidos e descarte do clique nativo. Soltar a tecla continua funcionando após uma transição.
+- Pular créditos, Voltar, Pausar e as duas confirmações de resultado mantêm suas ações específicas.
+
+## Entrada da nave
+
+O histórico usa o sprite com propulsores e avanço de dez unidades, em [MenuCanvas.java:123](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:123):
+
+```java
+g.drawImage(this.arrow[1], this.iMenu, Midlet.height/2, 0);
+this.iMenu += 10;
+```
+
+Depois troca para o sprite normal e recua três unidades. Preservar essas velocidades e adaptar o percurso à composição atual, cuja posição final é x18:
+
+| Passo desde a abertura do Menu | x | Apresentação |
+|---|---:|---|
+| 0 / 1 | -30 / -20 | `3lives.png`, com propulsores |
+| 11 | 80 | Último quadro com propulsores |
+| 12 / 13 | 87 / 84 | `2lives.png`, desaceleração |
+| 35 / 36 | 18 / 18 | Posição final, sem quadro vazio |
+
+- Acrescentar uma classe mutável `MenuEntrance`, com posição e fases Entrada/Frenagem/Pronta. Somente `Game.step()` avança essa animação, a cada30ms.
+- Desenhar a nave na linha da seleção atual. Navegação e confirmação permanecem disponíveis durante a entrada; nenhuma ação fica esperando a animação terminar.
+- Sair para uma partida ou Controles encerra definitivamente a entrada. Retornos de Controles, abandono e resultado apresentam o seletor pronto, conservando as regras de seleção.
+- A animação não avança os relógios da partida nem reaparece na pausa.
+
+O estado permanece em uma classe, conforme o [idioma Kof](/home/renanfranca/projects/kof/training/idioms/classes.md:36):
+
+> for **mutable state** use explicit fields + `constructor(...)`.
+
+Isso mantém a atualização temporal separada do desenho, como explicado em [Learn Kof](/home/renanfranca/projects/kof/learn/07-classes-and-objects.md:65).
+
+## Créditos e novo contato
+
+Preservar o término histórico escolhido:
+
+| Quadro | Resultado esperado |
+|---|---|
+| 0 / 1 | x=-134 / -129; y0=110, y1=141 |
+| 36–85 | Exatamente50 quadros em46/110/141 |
+| 86 / 87 |46/111/140 e46/112/139 |
+| 258 | Última atualização:46/283/-32 |
+| 259 | Credits, sem sprites ou texto |
+| 260 | Menu, começando a entrada da nave |
+
+- Contar a chegada como primeiro quadro de espera.
+- Acrescentar `exitComplete` em `Credits`: marcado no259; `advance()` retorna true no260. Desenho não altera esses estados.
+- Conservar `copyright0.png`, com autor e anos. Substituir somente a apresentação de `copyright1.png` por três linhas Kof: `contact:`, `renan.andradefranca@gmail.com` e `Inc. All rights reserved.`.
+- O texto acompanha x/y1, usa azul RGB(0,128,255) e ocupa o bloco existente de30 unidades de altura. Desenhar com escala0,75, reduzida apenas se a largura medida ultrapassar130 unidades; baselines locais10/22/34.
+- Usar `save`/`restore` para isolar a transformação e a cor, seguindo o [idioma Canvas](/home/renanfranca/projects/kof/training/idioms/ui.md:266). Isso impede que o ajuste dos créditos afete desenhos posteriores.
+- Preservar os PNGs históricos e NOTICE. A mudança de apresentação do contato é uma exceção explicitamente escolhida; o e-mail antigo não aparece nos créditos.
+
+## Testes e entrega
+
+Ampliar as jornadas existentes, sem criar testes de helpers internos:
+
+- **Confirmação:** selecionar cada opção e executar com Enter, Confirmar/Space e toque direto. Demonstrar que focar Confirmar não volta à primeira opção.
+- **Transições:** confirmar Reiniciar, Menu principal e Controles com Enter mantido; tocar na antiga área e tentar Space no controle retido. Nenhuma ação indevida ocorre. Após solturas, uma nova confirmação funciona uma vez.
+- **Entrada:** verificar os passos da tabela em JVM/JS e os sprites no Chrome320/1200; redesenhar não avança. Confirmar durante a entrada funciona imediatamente; retornos não repetem a animação.
+- **Créditos:** verificar chegada, último quadro de espera, primeira saída, intervalo terminal e Menu260. Enter mantido ao pular não inicia uma partida.
+- **Contato:** observar o texto literal e sua transformação no Canvas, conferir ausência do desenho antigo e inspecionar capturas320/1200 quanto a corte e legibilidade.
+- **Regressões:** conservar reset com seed, pausa, movimento, resultado e combate.
+
+As novas regressões devem demonstrar falha antes das correções. Executar os [onze comandos previstos](/home/renanfranca/projects/kof-sifuture/EXECPLAN.md:696), exigindo saída zero e nenhuma falha.
+
+Atualizar especificação, README e aceites existentes com fontes, expectativas, assertions, resultados, SHA, identidade Kof, navegador e CI disponível. Evidências ficam em `.agent/tmp/`. Auditar separadamente a expectativa correta e a suficiência da prova.
+
+Áudio, Android, escala, lifecycle e comparação integral com o vídeo permanecem fora deste complemento. Nenhuma alteração de implementação foi realizada neste planejamento.
+
+Execução: worker primary neste chat 01a11641-92f1-7902-9c41-c3aaa6668c66, título menu-credits-primary, gpt-6.1-sol/medium. Branch menu-entrance-credits em worktree limpo, base fixa 7e35430837571ab11fa1d94e7f16abfd8097ed3f. Revisão e validação compartilham contexto. Onze checks locais e três CI confirmados; Sonar/Habit/mutação sem configuração, excluídos. Registros anteriores preservados.
+
+
+### Progresso do complemento
+
+- [x] Contrato incorporado sem apagar registros anteriores; worktree e ledger v6 separados.
+- [x] TDD: créditos50/terminal260, entrada única, confirmação, retenção por tela e contato literal.
+- [x] Provas JVM/JS 113 casos e jornadas Chrome320/1200; sonda de reutilização137 nodes/26 styles estáveis em1000 ticks.
+- [x] Especificação, README e aceites existentes ampliados; auditorias de expectativa e suficiência separadas.
+- [ ] Checkpoint e gates completos iniciais/finais; revisão estrutural; entrega PR/CI.
+- [ ] Áudio/Android/escala/lifecycle/vídeo integral: fora do complemento, pendentes na v1.
+
+
+Gate inicial no complemento: `b6a46355b0e4b31d0a0511452344733fc7abc6f2`,11/11 comandos com exit0,113 casos por alvo,253,37s. O primeiro checkpoint `4ab9cf78` teve duas expectativas de teste corrigidas em commit adicional; nenhum gate foi aceito para ele. Revisão estrutural no mesmo contexto sem delta de produção; auditorias separadas e imagens inspecionadas. PR18 recebe o complemento; CI do checkpoint [37622526346](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346). Aceites existentes preservam fonte, assertions, comandos, SHA, Kof e navegador. Gate final no commit documental e CI do head entregue permanecem pendentes e serão registrados no ledger/PR.
+
+
+- [x] CI do checkpoint: [37622526346](https://github.com/renanfranca/kof-sifuture/actions/runs/37622526346), Resolve/JVM/JS success,113 testes por alvo; identidade do merge sintético/Kof e links dos jobs no aceite versionado.
+- [x] Revisão estrutural concluída no contexto primary, sem refactor de produção; somente consolidação documental após checkpoint.
+- [ ] Final-validating e CI do head final: resultados posteriores no ledger/PR, mantendo os SHAs deste registro explícitos.
+
+
+## Ciclo aprovado: textos, seleção e guia de controles — 2026-10-07
+
+Plano aprovado pelo usuário e confirmação de execução recebida neste chat. Distribuição: `primary`, `gpt-6.1-sol` / `medium`, com os sete papéis atribuídos e leases serializados. Mutation Analyst e Habit Curator inativos, sem configuração local. Validação e revisão compartilham o contexto da implementação. Checkout atual, branch `credits-pause-navigation`, base `main` no SHA `2322d90f6d98e1cdd4a9d209efeb216c1182b8e4`. O [PR #18](https://github.com/renanfranca/kof-sifuture/pull/18) permanece aberto.
+
+O plano literal e o estado do fluxo ficam em `.agent/tmp/controls-guide.md` e `.agent/tmp/controls-guide.workflow.json`; este registro permanece legível sem esses arquivos locais.
+
+$implement-approved-plan # Melhorar textos, seleção e guia de controles
+
+## Resultado desejado
+
+Conforme suas escolhas: texto Kof uniforme nos créditos e menus, nave como indicador de seleção, guia curto de controles e remoção da instrução fixa no rodapé.
+
+Hoje existe uma mistura de imagem e texto. Em [GameView.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameView.kf:88):
+
+```kof
+canvas.drawImage(copyright0, game.credits.x, game.credits.firstY)
+drawContact(game.credits)
+```
+
+O copyright vem do PNG; o contato é desenhado separadamente. Usar a mesma renderização, cor e escala nos dois blocos corrigirá a diferença visual.
+
+## Créditos e menus
+
+- Desenhar copyright, nome completo e contato com `Canvas.fillText`, mantendo `renan.andradefranca@gmail.com` e a cor azul `RGB(0,128,255)`.
+- Aplicar uma escala compartilhada aos dois blocos, calculada pela linha mais larga, com limite de 130 pixels. Preservar conteúdo, posições e duração da animação.
+- Desenhar as opções em português, com fonte sans-serif uniforme de aproximadamente 12 pixels: **Novo Jogo**, **Controles**, **Continuar**, **Reiniciar** e **Menu principal**. Alinhar todas em `x=48`, dentro das áreas de toque existentes.
+- Remover o retângulo azul da seleção. A nave continuará apontando a opção escolhida, inclusive durante sua entrada animada.
+- Mostrar foco do teclado com contorno neutro de 1 pixel no perímetro da área do jogo; botões externos terão seu próprio contorno discreto. Nenhum retângulo acompanhará as linhas do menu.
+- Manter confirmação direta por Enter e toque, nomes acessíveis e proteção contra ações duplicadas.
+
+Para ajustar texto no Canvas, seguir a orientação do [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277):
+
+> `measureText` returns a `Double` (width in px) for text layout.
+
+A largura medida determinará o ajuste; `save()` e `restore()` isolarão as transformações para não alterar desenhos posteriores.
+
+## Guia de controles
+
+Substituir o parágrafo extenso por dois blocos em uma coluna, com fonte sans-serif de 14 pixels, entrelinha de 20 pixels e títulos de 16 pixels. Usar texto claro sobre fundo escuro, largura máxima de 248 pixels e espaçamento de 12 pixels.
+
+**Teclado**
+
+Introdução: “Na partida, clique na área do jogo ou use Tab até ‘Ativar teclado do jogo’.”
+
+| Tecla | Ação |
+|---|---|
+| Setas | Mover a nave na partida |
+| ↑ / ↓ | Escolher uma opção nos menus |
+| Enter | Confirmar nos menus; pausar na partida |
+| 1 | Usar o especial quando disponível |
+
+**Toque**
+
+- “Toque em uma opção do menu para abri-la.”
+- “Segure as setas para mover. Combine duas para fazer diagonal.”
+- “Solte todas as setas para parar.”
+- “Especial: uma tentativa por pressão, quando disponível.”
+- “Pausar: abrir o menu da pausa.”
+
+Adicionar **Mais detalhes**, inicialmente fechado, com regras de direções opostas, arrasto, soltura independente, cancelamento, prioridade do direcional, disponibilidade do especial e foco dos botões. Explicar que Espaço ativa o botão focado e que Enter/Espaço sobre **Especial** tentam o especial.
+
+Na tela Controles, recolher o direcional e o botão Especial e substituir o canvas vazio por um cabeçalho compacto de 44 pixels. Preservar o elemento que recebe teclado e a retenção temporária de foco durante teclas mantidas. Manter **Voltar** e fechar os detalhes ao entrar novamente no guia.
+
+Remover completamente a instrução fixa do rodapé.
+
+## Verificação e limites
+
+- Ampliar os testes existentes em `tests/browser.py`: conferir textos dos créditos, cor e escala compartilhadas; nave indicando a seleção; foco independente; guia fechado/aberto; ausência do rodapé e de rolagem horizontal.
+- Verificar abertura e retorno de Controles por Enter, Espaço, clique e toque. Abrir detalhes não poderá confirmar o jogo; manter uma tecla não poderá provocar uma segunda transição.
+- Preservar os testes dos quadros dos créditos, entrada da nave, seleção limitada, pausa, reinício e opções antigas retidas durante uma pressão.
+- Executar testes Kof em JVM/JS e os sete percursos existentes no navegador.
+- Inspecionar capturas de créditos, menu, pausa e guia em larguras de 320 e 1200 pixels. Aprovação funcional e aprovação visual serão registradas separadamente.
+- Atualizar documentação e registro em `.agent/validation/`, com SHA, comandos, navegador e resultados; capturas e logs ficarão em `.agent/tmp/`. Registrar qualquer critério ainda não comprovado.
+
+O ciclo altera apresentação e orientação. Logo, sprites, HUD e mecânicas permanecem preservados. A implementação usará o checkout atual e as APIs existentes de Kof, sem alterações no compilador.
+
+### Implementação e evidências deste ciclo
+
+- Créditos e cinco opções desenhados com `Canvas.fillText`; uma escala determinada pela maior largura dos dois blocos; transformações isoladas por `save`/`restore`. Conteúdo dos créditos transcrito do PNG preservando os anos 2006-2007 e o nome sem alteração do asset.
+- Nave indica seleção durante entrada e retornos; foco neutro de 1 px no perímetro da área ou no botão externo, sem retângulos nas opções.
+- `ControlsGuide` compõe tabela, lista de toque e detalhes com widgets Kof existentes. Cabeçalho de 44 px, direcional/Especial recolhidos, receptor de teclado preservado. Detalhes usam a proteção de uma ação por pressão e fecham na saída.
+- A janela acompanha o conteúdo: a inspeção revelou que a antiga altura fixa deixava o guia fora da moldura; a largura fixa também causava rolagem horizontal interna quando havia scrollbar vertical. O canvas mantém 176×220 e os controles mantêm 248 px.
+- Testes mantêm quadros dos créditos, entrada da nave, seleção limitada, pausa, reinício e opções retidas. No guia compacto, após tocar a antiga coordenada sobre texto informativo, o teste devolve foco explicitamente ao receptor antes de soltar a tecla: a soltura deve ser observada na árvore de controles, conforme o contrato existente. A retenção efetiva de foco também é verificada antes desse toque.
+- Registros RED/GREEN e capturas locais: `.agent/tmp/controls-guide-*.json` e `.agent/tmp/navigation-browser/`. Suíte principal e checkpoint do percurso de fase passaram durante implementação; gates completos e revisão estrutural serão registrados em [controls-guide.md](.agent/validation/controls-guide.md).
+
+
+### Gate inicial e revisão do ciclo de apresentação
+
+No SHA `e1025afc61397ea01a6bb8c40aa61520bd299743`, os onze comandos aprovados passaram em 263,43 s: JVM/JS 113 testes por alvo sem falhas; sete percursos Chrome; 8 testes Python; contrato CI. Capturas em 320/1200 px de créditos/menu/pausa/guia fechado e aberto, incluindo fim dos detalhes, inspecionadas separadamente. Revisão estrutural no mesmo contexto: nenhum refactor necessário. O registro completo, com comandos, trechos, limites e links persistentes, está em [controls-guide.md](.agent/validation/controls-guide.md). A versão documental será comprometida antes de repetir os onze comandos no gate final e atualizar o PR #18 com SHA/resultados/CI.

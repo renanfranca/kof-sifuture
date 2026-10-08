@@ -15,7 +15,7 @@ EVIDENCE = ROOT / ".agent/tmp/stage-browser"
 
 
 def bitmap(page):
-    return Image.open(io.BytesIO(page.locator("canvas").screenshot())).convert("RGB")
+    return Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
 
 
 def sprite(page, name, x, y, *, occluded=(), background_offset=None):
@@ -93,7 +93,7 @@ def hud_and_pause(page, width):
     page.get_by_role("button", name="Continuar", exact=True).click()
     advance(page)
     assert state(page)["steps"] == 11
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"hud-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"hud-{width}.png"))
 
 
 def right_input_clearing(page, width):
@@ -109,7 +109,7 @@ def right_input_clearing(page, width):
         advance(page)
         assert state(page)["shipX"] == 45
         sprite(page, "Middle.png", 45, 150)
-        page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-cleared-{action}-{width}.png"))
+        page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"right-cleared-{action}-{width}.png"))
 
 
 def right_held_result(page, width):
@@ -123,7 +123,7 @@ def right_held_result(page, width):
     assert page.get_by_role("button", name="Concluir contagem", exact=True).count() == 1
     assert state(page)["shipX"] == 50 and state(page)["shipY"] == 150
     sprite(page, "Middle.png", 50, 150)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-result-entry-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"right-result-entry-{width}.png"))
     page.keyboard.up("ArrowRight")
     for expected in (5, 10, 15, 17):
         advance(page)
@@ -131,7 +131,7 @@ def right_held_result(page, width):
         assert state(page)["shipX"] == 50 and state(page)["shipY"] == 150
         sprite(page, "Middle.png", 50, 150)
     assert state(page)["steps"] == 1710 and state(page)["score"] == 17
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"right-result-release-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"right-result-release-{width}.png"))
 
 
 def moving_result(page, width):
@@ -167,7 +167,7 @@ def moving_result(page, width):
     assert final["lives"] == initial["lives"] and final["charges"] == 2 and final["level"] == 3
     assert final["position"] == 176 and final["explosion"] == 30
     assert page.get_by_role("button", name="Voltar ao menu", exact=True).count() == 1
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"result-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"result-{width}.png"))
     page.keyboard.up("Enter")
     page.keyboard.press("Enter")
     assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
@@ -203,7 +203,8 @@ def native_confirmation(page):
     assert action.inner_text() == "Voltar ao menu"
     page.keyboard.up("Enter")
     page.keyboard.press("Enter")
-    assert action.inner_text() == "Novo Jogo"
+    assert action.inner_text() == "Confirmar (Enter)"
+    assert page.get_by_role("button", name="Novo Jogo", exact=True).is_visible()
 
 
 def vertical_and_full_journey(page):
@@ -256,7 +257,7 @@ def defeat_projectiles(page, width):
     for name, x, y in (("laser00.png", 15, 140), ("ylwBlaster00.png", 0, 65),
                        ("e0.png", 0, 40), ("e3.png", 0, 160), ("e6.png", 0, 190)):
         sprite(page, name, x, y, occluded=overlay)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-flight-entry-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-flight-entry-{width}.png"))
     advance(page)
     for name, x, y in (("laser00.png", 20, 140), ("ylwBlaster00.png", 5, 65),
                        ("e0.png", 5, 40), ("e3.png", 6, 160), ("e6.png", 5, 190)):
@@ -269,7 +270,7 @@ def defeat_projectiles(page, width):
         advance(page)
     current = state(page)
     assert (current["lasers"], current["blaster"], current["beams"]) == (0, 0, 0)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-flight-finished-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-flight-finished-{width}.png"))
     page.get_by_role("button", name="Voltar ao menu", exact=True).click()
     page.get_by_role("button", name="Novo Jogo", exact=True).click()
     advance(page)
@@ -286,7 +287,7 @@ def defeat_effects(page, width):
     sprite(page, "laser03.png", 25, 140)
     sprite(page, "ylwBlaster04.png", 0, 180)
     sprite(page, "e4.png", 0, 40)
-    page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-effects-entry-{width}.png"))
+    page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-effects-entry-{width}.png"))
     for step in range(1, 7):
         advance(page)
         current = state(page)
@@ -298,7 +299,7 @@ def defeat_effects(page, width):
                    background_offset=current["background"])
         if step < 6:
             sprite(page, "e4.png" if step < 3 else "e5.png", 0, 40)
-        page.locator("canvas").screenshot(path=str(EVIDENCE / f"defeat-effects-{step}-{width}.png"))
+        page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"defeat-effects-{step}-{width}.png"))
     for _ in range(52):
         advance(page)
         current = state(page)
@@ -318,6 +319,69 @@ def boundaries(page):
         assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
 
 
+def pause_navigation(page, width):
+    overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+    overlay.focus()
+    page.keyboard.down("ArrowRight")
+    advance(page, 13)
+    evolved = state(page)
+    assert evolved["lasers"] > 0 and evolved["shipX"] > 40
+    page.keyboard.press("Enter")
+    advance(page, 10)
+    frozen = state(page)
+    assert frozen["steps"] == evolved["steps"] and frozen["shipX"] == evolved["shipX"]
+    page.keyboard.press("ArrowDown")
+    page.keyboard.press("ArrowUp")
+    page.keyboard.press("Enter")
+    advance(page)
+    continued = state(page)
+    assert continued["steps"] == frozen["steps"] + 1 and continued["shipX"] == frozen["shipX"]
+    page.keyboard.down("ArrowRight")
+    advance(page)
+    assert state(page)["shipX"] == continued["shipX"]
+    page.keyboard.press("Enter")
+    page.keyboard.press("ArrowDown")
+    page.keyboard.down("Enter")
+    page.keyboard.down("Enter")
+    page.get_by_role("button", name="Observe", exact=True).click()
+    reset = state(page)
+    expected = {"steps": 0, "position": 5, "score": 0, "displayed": 0, "lives": 3,
+                "shipX": 0, "shipY": 100, "level": 0, "charges": 0, "restartFrame": 0,
+                "fireSteps": 0, "bossActive": 0, "subchiefActive": 0,
+                "lasers": 0, "blaster": 0, "beams": 0}
+    assert {key: reset[key] for key in expected} == expected
+    assert page.get_by_role("button", name="Pausar", exact=True).count() == 1
+    overlay.focus()
+    page.keyboard.down("Enter")
+    assert page.get_by_role("button", name="Pausar", exact=True).count() == 1
+    page.keyboard.up("Enter")
+    advance(page)
+    first = state(page)
+    assert first["steps"] == 1 and first["restartFrame"] == 1 and first["shipX"] == 0
+    page.keyboard.up("ArrowRight")
+    page.keyboard.press("ArrowRight")
+    advance(page)
+    assert state(page)["shipX"] == 0
+    page.keyboard.down("ArrowRight")
+    page.keyboard.press("Enter")
+    page.get_by_role("button", name="Menu principal", exact=True).tap()
+    advance(page, 20)
+    ended = state(page)
+    assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
+    assert ended["steps"] == 2
+    sprite(page, "2lives.png", 63, 120)
+    page.get_by_role("button", name="Novo Jogo", exact=True).tap()
+    advance(page)
+    assert state(page)["steps"] == 1 and state(page)["shipX"] == 0
+    page.keyboard.up("ArrowRight")
+    page.get_by_role("button", name="Pausar", exact=True).tap()
+    page.get_by_role("button", name="Reiniciar", exact=True).tap()
+    page.get_by_role("button", name="Observe", exact=True).click()
+    assert state(page)["steps"] == 0 and state(page)["shipX"] == 0 and state(page)["lives"] == 3
+    page.screenshot(path=str(EVIDENCE / f"navigation-reset-{width}.png"), full_page=True)
+    print(f"PASS pause freezes active combat, navigation continues once, Restart resets and held input cannot leak through Main Menu at {width}px")
+
+
 def main():
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     with served_build(fixture=ROOT / "tests/stage.kf") as url, served_build() as app_url:
@@ -326,7 +390,7 @@ def main():
                                         args=["--no-sandbox", "--headless=new"])
             try:
                 for width in (320, 1200):
-                    for journey in (hud_and_pause, moving_result, right_held_result, right_input_clearing, defeat_projectiles, defeat_effects):
+                    for journey in (pause_navigation, hud_and_pause, moving_result, right_held_result, right_input_clearing, defeat_projectiles, defeat_effects):
                         page = open_scene(browser, url, width)
                         errors = []
                         page.on("pageerror", lambda error: errors.append(str(error)))
@@ -341,10 +405,11 @@ def main():
                         assert not errors, errors
                         page.close()
                     page = open_scene(browser, app_url, width)
+                    page.get_by_role("button", name="Pular créditos", exact=True).click()
                     page.get_by_role("button", name="Novo Jogo", exact=True).click()
                     advance(page, 10)
                     sprite(page, "3lives.png", 6, 9, occluded=((0, 0, 8, 30),))
-                    assert page.locator("canvas").bounding_box()["width"] == 176
+                    assert page.locator("canvas:visible").bounding_box()["width"] == 176
                     page.screenshot(path=str(EVIDENCE / f"app-{width}.png"))
                     page.close()
                 print("PASS stage HUD, vertical impacts, full journey, moving result, exact count, boundaries and two confirmations")

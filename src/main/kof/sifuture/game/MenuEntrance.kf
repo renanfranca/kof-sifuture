@@ -1,0 +1,26 @@
+package sifuture.game
+
+enum MenuEntrancePhase { Entry, Braking, Ready }
+
+class MenuEntrance {
+    Int x = -30
+    MenuEntrancePhase phase = MenuEntrancePhase.Entry
+
+    public constructor() { }
+
+    advance() {
+        if (phase == MenuEntrancePhase.Ready) { return }
+        if (phase == MenuEntrancePhase.Entry) {
+            if (x < 80) { x = x + 10; return }
+            x = x + 10
+            phase = MenuEntrancePhase.Braking
+        }
+        x = x - 3
+        if (x <= 18) { finish() }
+    }
+
+    finish() {
+        x = 18
+        phase = MenuEntrancePhase.Ready
+    }
+}

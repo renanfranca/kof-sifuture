@@ -24,7 +24,7 @@ JET_SAMPLES = [(x, y, SHIP_RIGHT.getpixel((x, y))[:3]) for y in range(20) for x 
 
 
 def ship_observation(page):
-    canvas = Image.open(io.BytesIO(page.locator("canvas").screenshot())).convert("RGB")
+    canvas = Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
     pixels = canvas.load()
     anchor_x, anchor_y, anchor_rgb = SAMPLES[0]
     candidates = []
@@ -387,7 +387,7 @@ class TouchContacts:
 def touch_on_canvas_axis(browser, url):
     for width in (320, 1200):
         with control_page(browser, url, touch=True, width=width) as (page, run):
-            canvas = page.locator("canvas").bounding_box()
+            canvas = page.locator("canvas:visible").bounding_box()
             north = page.get_by_role("button", name="↑", exact=True).bounding_box()
             point = (canvas["x"] + canvas["width"] / 2, north["y"] + north["height"] / 2)
             target = page.evaluate("p => document.elementFromPoint(p[0], p[1]).textContent", point)
@@ -492,25 +492,44 @@ def simultaneous_direction_events(browser, url):
 def touch_pause_clears_diagonal(browser, url):
     with control_page(browser, url, touch=True) as (page, run):
         touch = TouchContacts(page)
+        touch.press("↓")
+        run(11)
+        touch.release("↓")
+        run(1)
+        assert ship_observation(page) == (60, 155, False)
         touch.press("→", "↑")
         run(1)
-        assert ship_observation(page) == (65, 95, True)
+        assert ship_observation(page) == (65, 150, True)
         page.get_by_role("button", name="Pausar", exact=True).click()
         run(3)
-        assert ship_observation(page) == (65, 95, False)
+        assert ship_observation(page) == (65, 150, False)
         page.get_by_role("button", name="Continuar", exact=True).click()
         run(2)
-        assert ship_observation(page) == (65, 95, False)
+        assert ship_observation(page) == (65, 150, False)
         touch.release("↑")
         touch.release("→")
         run(1)
-        assert ship_observation(page) == (65, 95, False)
+        assert ship_observation(page) == (65, 150, False)
         touch.press("↓")
         run(1)
-        assert ship_observation(page) == (65, 100, False)
+        assert ship_observation(page) == (65, 155, False)
         touch.release("↓")
+        touch.press("→", "↑")
+        run(1)
+        page.get_by_role("button", name="Pausar", exact=True).click()
+        page.get_by_role("button", name="Menu principal", exact=True).click()
+        run(2)
+        assert page.get_by_role("button", name="Novo Jogo", exact=True).count() == 1
+        assert page.get_by_role("button", name="Pular créditos", exact=True).count() == 0
+        page.get_by_role("button", name="Novo Jogo", exact=True).click()
+        run(1)
+        assert ship_observation(page) == (0, 100, False)
+        touch.release("→")
+        touch.release("↑")
+        run(1)
+        assert ship_observation(page) == (0, 100, False)
         TOUCH_EVIDENCE.append({"case": "pause", "events": touch.events()})
-    print("PASS pause with two held fingers clears both axes; continue stays still until a new press")
+    print("PASS pause with two held fingers clears both axes; Continue and Main Menu keep held contacts from moving the resumed or new ship")
 
 
 def cross_layout(browser, url):
@@ -536,7 +555,7 @@ def cross_layout(browser, url):
             special = page.get_by_role("button", name="Especial", exact=True).bounding_box()
             assert (special["width"], special["height"]) == (56, 220)
             assert page.get_by_role("button", name="Especial", exact=True).evaluate("button => getComputedStyle(button).writingMode") == "vertical-rl"
-            canvas = page.locator("canvas").bounding_box()
+            canvas = page.locator("canvas:visible").bounding_box()
             assert (canvas["width"], canvas["height"]) == (176, 220)
             canvas_center = canvas["x"] + canvas["width"] / 2
             for label in ("↑", "↓"):

@@ -19,6 +19,7 @@ main() {
     var status = Label("")
     status.setId("stage-status")
     var repaint = Button("Repaint", () -> { drawing.render(game) })
+    var observe = Button("Observe", () -> { refresh(game, drawing, controls, status) })
     var prepareRightFinish = Button("Prepare right finish", () -> {
         game.start(908)
         game.ship.phase = ShipPhase.Normal
@@ -155,7 +156,7 @@ main() {
     })
     var window = Window("SiFuture fase e resultado")
     window.size(296, 850)
-    window.bind(Column(listOf(controls.root, status, repaint, prepareRightFinish, oneLife, twoLives, fourLives, finish, defeat, defeatFlight, defeatEffects, zero, vertical, journey, score1499, score1500, score2199, score2200, score3299, score3300)))
+    window.bind(Column(listOf(controls.root, status, repaint, observe, prepareRightFinish, oneLife, twoLives, fourLives, finish, defeat, defeatFlight, defeatEffects, zero, vertical, journey, score1499, score1500, score2199, score2200, score3299, score3300)))
     window.show()
     refresh(game, drawing, controls, status)
     time.interval(Rules.STEP_MS, () -> { game.step(); refresh(game, drawing, controls, status) })
@@ -170,7 +171,7 @@ refresh(Game game, GameView drawing, GameControls controls, Label status) {
     if (game.weapons.blaster.active) { blaster = 1 }
     var beams = 0
     for (var beam in game.weapons.beams) { if (beam.active) { beams = beams + 1 } }
-    status.text = "background:" + game.background.offset + ":lasers:" + lasers + ":blaster:" + blaster + ":beams:" + beams + ":steps:" + game.steps + ":position:" + game.stagePosition() + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":explosion:" + game.ship.explosionSteps + ":shipX:" + game.ship.x + ":shipY:" + game.ship.y
+    status.text = "background:" + game.background.offset + ":lasers:" + lasers + ":blaster:" + blaster + ":beams:" + beams + ":steps:" + game.steps + ":position:" + game.stagePosition() + ":score:" + game.score + ":displayed:" + game.displayedScore + ":lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":explosion:" + game.ship.explosionSteps + ":shipX:" + game.ship.x + ":shipY:" + game.ship.y + ":restartFrame:" + game.ship.restartFrame + ":fireSteps:" + game.weapons.fireSteps + ":bossActive:" + bossActive(game) + ":subchiefActive:" + subchiefActive(game)
 }
 
 prepareDefeat(Game game) {
@@ -186,4 +187,14 @@ prepareDefeat(Game game) {
     game.weapons.laserAttempts = 6
     for (var meteor in game.meteors) { meteor.active = false; meteor.x = 10000; meteor.y = -100 }
     for (var item in game.items) { item.x = 10000 }
+}
+
+bossActive(Game game): Int {
+    if (game.boss.phase == BossPhase.Inactive) { return 0 }
+    return 1
+}
+
+subchiefActive(Game game): Int {
+    if (game.subchief.phase == SubchiefPhase.Inactive) { return 0 }
+    return 1
 }

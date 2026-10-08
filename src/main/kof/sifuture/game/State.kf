@@ -1,6 +1,6 @@
 package sifuture.game
 
-enum Screen { Menu, Play, Pause, Result }
+enum Screen { Credits, Menu, Controls, Play, Pause, Result }
 enum ShipPhase { Normal, Explosion, Restart, Hidden }
 enum Direction { Left, Right, Up, Down }
 enum MeteorMotion { Horizontal, Vertical }

@@ -4,6 +4,11 @@ class Rules {
     static final Int STEP_MS = 30
     static final Int WORLD_WIDTH = 176
     static final Int WORLD_HEIGHT = 220
+    static final Int CREDITS_WIDTH = 262
+    static final Int CREDITS_HEIGHT = 260
+    static final Int CREDITS_MARGIN = 12
+    static final Int CREDITS_BLOCK_HEIGHT = 72
+    static final Int CREDITS_WAIT_STEPS = 6000 / STEP_MS
     static final Int HEADER_HEIGHT = 30
     static final Int START_LIVES = 3
     static final Int SHIP_START_Y = 100

@@ -5,8 +5,8 @@ import kof.ui.*
 
 class GameView {
     Canvas canvas
+    Canvas creditsCanvas
     Image title
-    Image menu
     Image ship
     Image subchief
     List<Image> bossFrames
@@ -40,8 +40,8 @@ class GameView {
 
     public constructor(Canvas canvas) {
         this.canvas = canvas
+        creditsCanvas = Canvas(Rules.CREDITS_WIDTH, Rules.CREDITS_HEIGHT)
         title = Image("assets/sifuture.png")
-        menu = Image("assets/menu0.png")
         ship = Image("assets/Middle.png")
         subchief = Image("assets/subchief.png")
         subchiefShot = Image("assets/laser0.png")
@@ -75,14 +75,26 @@ class GameView {
     }
 
     render(Game game) {
+        if (game.screen == Screen.Credits) {
+            creditsCanvas.clearRect(0, 0, Rules.CREDITS_WIDTH, Rules.CREDITS_HEIGHT)
+            creditsCanvas.setFill(Palette.white)
+            if (!game.credits.exitComplete) {
+                drawCredits(game.credits)
+            }
+            return
+        }
         canvas.clearRect(0, 0, Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
         canvas.setFill(Palette.white)
         if (game.screen == Screen.Menu) {
             canvas.drawImage(title, 11, 30)
-            canvas.drawImage(menu, 48, 120)
-            canvas.fillText("Novo Jogo", 56, 174)
+            drawMenuLabel("Novo Jogo", 120)
+            drawMenuLabel("Controles", 139)
+            var selector = lifeShips[1]
+            if (game.menuEntrance.phase == MenuEntrancePhase.Entry) { selector = lifeShips[2] }
+            canvas.drawImage(selector, game.menuEntrance.x, 120 + game.menuSelection * 19)
             return
         }
+        if (game.screen == Screen.Controls) { return }
         for (var y = Rules.HEADER_HEIGHT; y < Rules.WORLD_HEIGHT; y = y + 60) {
             for (var x = -game.background.offset; x < Rules.WORLD_WIDTH; x = x + 60) {
                 canvas.drawImage(background, x, y)
@@ -142,7 +154,37 @@ class GameView {
         }
         drawHud(game)
         if (game.screen == Screen.Result) { drawResult(game) }
-        if (game.screen == Screen.Pause) { canvas.fillText("PAUSADO", 60, 100) }
+        if (game.screen == Screen.Pause) {
+            drawMenuLabel("Continuar", 80)
+            drawMenuLabel("Reiniciar", 99)
+            drawMenuLabel("Menu principal", 118)
+            canvas.drawImage(lifeShips[1], 18, 80 + game.pauseSelection * 19)
+        }
+    }
+
+    private drawMenuLabel(String text, Int y) {
+        drawText(canvas, text, 48, y + 14, Palette.white)
+    }
+
+    private drawCredits(Credits credits) {
+        drawCreditBlock(listOf("Copyright (c) 2006-2007", "Renan Meneses", "de Andrade Franca"), credits.x, credits.firstY)
+        drawCreditBlock(listOf("contact:", "renan.andradefranca@gmail.com", "Inc. All rights reserved."), credits.x, credits.secondY)
+    }
+
+    private drawCreditBlock(List<String> lines, Int x, Int y) {
+        var baseline = y + 16
+        for (var line in lines) {
+            drawText(creditsCanvas, line, x, baseline, Color(0, 128, 255))
+            baseline = baseline + 24
+        }
+    }
+
+    private drawText(Canvas target, String text, Int x, Int baseline, Color color) {
+        target.save()
+        target.setFill(color)
+        target.transform(1.6, 0.0, 0.0, 1.6, x * 1.0, baseline * 1.0)
+        target.fillText(text, 0, 0)
+        target.restore()
     }
 
     private drawHud(Game game) {

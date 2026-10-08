@@ -19,7 +19,7 @@ from browser_controls import TouchContacts
 
 
 def canvas_image(page):
-    return Image.open(io.BytesIO(page.locator("canvas").screenshot())).convert("RGB")
+    return Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
 
 
 def sprite_matches(actual, name, x, y):
@@ -396,7 +396,7 @@ def simultaneous_touch(browser, url):
         with scene(browser, url) as page:
             collect(page, 5)
             page.get_by_role("button", name="Center ship", exact=True).click()
-            page.locator("canvas").scroll_into_view_if_needed()
+            page.locator("canvas:visible").scroll_into_view_if_needed()
             advance(page)
             assert (status(page)["x"], status(page)["y"], status(page)["charges"]) == (60, 100, 2)
             touch = TouchContacts(page)
@@ -425,7 +425,7 @@ def simultaneous_touch(browser, url):
     with scene(browser, url) as page:
         collect(page, 5)
         page.get_by_role("button", name="Center ship", exact=True).click()
-        page.locator("canvas").scroll_into_view_if_needed()
+        page.locator("canvas:visible").scroll_into_view_if_needed()
         touch = TouchContacts(page)
         touch.press("→", "↑")
         touch.press("Especial")
@@ -464,10 +464,10 @@ def special_touch_extent(browser, url):
         for region, offset in (("top", 8), ("middle", 110), ("bottom", 212)):
             with scene(browser, url, width) as page:
                 collect(page, 5)
-                page.locator("canvas").scroll_into_view_if_needed()
+                page.locator("canvas:visible").scroll_into_view_if_needed()
                 special = page.get_by_role("button", name="Especial", exact=True)
                 presentation = special_presentation(special)
-                canvas = page.locator("canvas").bounding_box()
+                canvas = page.locator("canvas:visible").bounding_box()
                 point = {"x": canvas["x"] + 176 + 16 + 28, "y": canvas["y"] + offset}
                 assert status(page)["charges"] == 2 and special.is_enabled()
                 assert page.evaluate("p => document.elementFromPoint(p.x, p.y).id", point) == "game-special"
@@ -511,7 +511,7 @@ def layout_and_indicator(browser, url):
             for label in ("↑", "←", "→", "↓", "Especial", "Pausar"):
                 page.keyboard.press("Tab")
                 assert page.get_by_role("button", name=label, exact=True).evaluate("node => node === document.activeElement"), label
-            canvas = page.locator("canvas").bounding_box()
+            canvas = page.locator("canvas:visible").bounding_box()
             assert (box["width"], box["height"]) == (56, 220)
             assert presentation["writing_mode"] == "vertical-rl"
             assert presentation["text"] == "Especial" and presentation["id"] == "game-special"
@@ -598,6 +598,7 @@ def main():
                     page.clock.install(time=datetime(2026, 1, 1))
                     page.clock.pause_at(datetime(2026, 1, 1))
                     page.goto(url)
+                    page.get_by_role("button", name="Pular créditos", exact=True).click()
                     advance(page)
                     page.get_by_role("button", name="Novo Jogo", exact=True).click()
                     advance(page, 45)

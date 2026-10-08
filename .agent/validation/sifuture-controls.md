@@ -360,3 +360,21 @@ Kof consultado: `training/idioms/ui.md:405` — “the compiler owns the parse (
 O complemento documental será comprometido antes do gate final, que repete os mesmos onze checks. Resultados do head final serão associados ao ledger e à descrição do [PR #17](https://github.com/renanfranca/kof-sifuture/pull/17). Links persistentes: [checks atuais do PR](https://github.com/renanfranca/kof-sifuture/pull/17/checks) e [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml). Resolve verified Kof e Kof tests (jvm/js) são selecionados no CI; Build/Publish Pages só executam em push na main. Sonar, Habit e mutation testing não configurados e excluídos, sem alegar pass dessas ferramentas.
 
 Evidências locais opcionais: `.agent/tmp/validation/20261006T193226-8moxx5m5/`, `.agent/tmp/special-vertical.*`, `.agent/tmp/sifuture-controls/`, `.agent/tmp/background-items-weapons/` e `.agent/tmp/special-key-release/`. Capturas `application-320.png`, `application-1200.png`, layouts e estados revisados; conteúdo essencial acima dispensa esses arquivos. Exclusão local `/.agent/tmp/` conferida exatamente uma vez. Conforto no celular físico permanece pendente até verificação real; este ciclo não encerra o aceite Android/v1.
+
+
+## Controles e saída da pausa — ciclo de créditos e navegação, 06/10/2026
+
+Gate inicial `50affe515aeeec0f6ee9776a4d774feb8c7cf469`: onze checks com exit0, JVM/JS112/112 e sete jornadas Chrome139.0.7258.154. Touch simulado em320/1200: setas navegam com seleção limitada, Controles/Voltar conserva seleção, e Menu principal com dois dedos mantidos limpa a tentativa. Novo Jogo começa nave(0,100) parada; soltar esses contatos não recupera movimento. Diagonais, opostos, arrasto capturado e especial continuam cobertos. Resultado do percurso:
+
+```text
+PASS pause with two held fingers clears both axes; Continue and Main Menu keep held contacts from moving the resumed or new ship
+```
+
+Comando: `python3 tests/browser_controls.py`, classes reais da fixture controls.kf. O teste `touch_pause_clears_diagonal` observa sprite/posição antes e depois da soltura na nova tentativa. Gate final e CI serão associados ao mesmo ciclo; [registro por critério, fontes, assertions e limites](stage-hud-result.md#créditos-controles-e-navegação-da-pausa--06102026). Android físico/conforto continuam pendentes. O arquivo mantém os ciclos anteriores como históricos.
+
+Entrega do ciclo: [PR18](https://github.com/renanfranca/kof-sifuture/pull/18), head `b8ceb17123b16cd4ee3b29dc3a7c44677715a632`; gate local final11/11, incluindo browser_controls e abandono com contatos mantidos. [CI37558500360](https://github.com/renanfranca/kof-sifuture/actions/runs/37558500360) Resolve/JVM/JS success,112 testes por alvo. CI demonstra modelo; contatos/foco continuam evidência Chrome local. Detalhes, checksums, merge sintético e links individuais no registro stage-hud-result. Inclusão documental será validada novamente antes da entrega.
+
+
+### Complemento de confirmação — 07/10/2026
+
+O menu/pausa têm um único Confirmar abaixo da composição; os nomes acessíveis das opções ficam em Buttons transparentes sobre os rótulos do Canvas. Focar Confirmar preserva a seleção. Os callbacks de cada opção validam a tela de origem; durante uma tecla mantida, o foco antigo é conservado fora do viewport com pointer-events:none para receber a soltura sem ativar outra tela. O [registro da fase/HUD/resultado](stage-hud-result.md#complemento--confirmação-entrada-e-contato-07102026) preserva auditorias separadas de expectativa/prova, RED/GREEN, identidade e gates completos. `tests/browser.py::confirmation_journeys` cobre os cinco comandos por quatro modos; `retained_options` cobre Enter/Space mantidos, toque na área anterior e rearme em320/1200. Os percursos anteriores de direcional, especial e pausa continuam parte dos onze checks.
