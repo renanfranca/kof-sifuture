@@ -1,4 +1,5 @@
 import argparse
+import base64
 from contextlib import contextmanager
 from datetime import datetime
 import io
@@ -20,7 +21,8 @@ from browser_controls import TouchContacts
 
 
 def canvas_image(page):
-    return Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
+    encoded = page.locator("canvas:visible").evaluate("n => n.toDataURL().split(',')[1]")
+    return Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
 
 
 def sprite_matches(actual, name, x, y):

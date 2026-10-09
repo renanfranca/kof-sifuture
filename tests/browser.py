@@ -20,7 +20,8 @@ def keyboard_hint(page, visible):
     assert hint.count() == 1
     assert hint.is_visible() == visible
     overlay = page.locator("#game-keyboard")
-    assert overlay.inner_text() == ("Ativar teclado do jogo" if visible else "Teclado ativo")
+    name = "Ativar teclado do jogo" if visible else "Teclado ativo"
+    assert page.get_by_role("button", name=name, exact=True).get_attribute("id") == "game-keyboard"
     assert overlay.is_visible() and not overlay.is_disabled()
     canvas = page.locator("canvas:visible")
     rendered = Image.open(io.BytesIO(canvas.screenshot(scale="css"))).convert("RGB").crop((12, 88, 164, 108))
