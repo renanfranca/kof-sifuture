@@ -579,6 +579,10 @@ Evidência local opcional do gate: `.agent/tmp/validation/20261008T154737-2n0fr6
 
 ## Aceite: aviso de teclado acompanha o foco real — 09/10/2026
 
+Registro histórico: a orientação descrita nesta seção foi removida por decisão
+posterior do usuário. O comportamento vigente está na seção “Decisão final:
+remover mensagens de ativação do teclado”, abaixo.
+
 Complemento aprovado e autorizado na branch `keyboard-menu-focus`, atualizando o [PR #19](https://github.com/renanfranca/kof-sifuture/pull/19), sem worktree. Base imutável: `82c6972da6bb446b2fc4cd2c2125ffaa733f26c4`. Worker único `primary`, chat `01a120d1-783e-7500-9984-818389e65b1a`, `gpt-6.1-sol`/`medium`, título `keyboard-focus-primary`. Implementação, conferência semântica, validação e revisão estrutural compartilham contexto; não são independentes.
 
 ### Contrato e realização
@@ -662,3 +666,135 @@ Chrome `139.0.7258.154`, Linux, Playwright/Pillow, mouse/Tab e touch via CDP. Ca
 Revisão estrutural: **No action** nos riscos examinados: lifecycle/montagem única, projeção sem estado duplicado, responsabilidade de apresentação nos controles, elegibilidade compartilhada, eventos síncronos e observações de canvas/composição separadas. Nenhum refactor material necessário; rubrica e justificativas em `.agent/tmp/keyboard-focus.structural-review.md` (suporte opcional). O gate final repetirá os mesmos onze checks após o commit deste registro. O SHA final, resumo do executor e CI serão registrados no ledger e na descrição do [PR #19](https://github.com/renanfranca/kof-sifuture/pull/19). CI-only selecionado: Resolve verified Kof e Kof tests(jvm/js) no [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml?query=branch%3Akeyboard-menu-focus). Sonar, mutation runner e Habit não configurados/excluídos; nenhum passed atribuído. Build/Publish Pages requerem push em main, sem publicação alegada neste complemento.
 
 Limite da reprodução original: neste Chrome, antes da mudança, o receptor tinha texto “Ativar teclado do jogo”, mas color transparent mesmo após clique. O aviso visual permanente relatado pelo usuário não foi reproduzido aqui. O novo contrato aprovado de orientação condicional foi demonstrado diretamente. Outros navegadores, Android físico, troca de aba/janela e leitura com leitor de tela real não foram verificados; a prova acessível cobre o nome no DOM/role do Chrome. Touch simulado não equivale a dispositivo físico. Os cinco critérios aprovados têm as provas locais descritas; gate final e CI só são concluídos por seus registros efetivamente observados.
+
+### Reteste em Chrome atualizado e Vivaldi no WSL2 — 09/10/2026
+
+Pedido adicional: atualizar o Chrome Linux, instalar o Vivaldi Linux e investigar
+relato de falha no Vivaldi Windows 8.2.4133.84. Código testado sem alterações:
+`5fdba59172db1f9c556e70edbf807b8e19d7837c`. Ubuntu 22.04.5, WSL2/WSLg,
+janelas gráficas, perfis de teste sem extensões do usuário. Chrome atualizado de
+139.0.7258.154 para 155.0.8059.39; Vivaldi stable instalado em 8.2.4133.84,
+com Chromium 152.0.0.0 informado pelo protocolo DevTools. Pacotes obtidos dos
+sites oficiais. A simulação do apt selecionou somente atualização do Chrome e
+instalação do Vivaldi, sem outras dependências ou remoções; instalação exit0.
+A documentação atual do Vivaldi declara suporte a Ubuntu 24.04+, portanto este
+reteste no Ubuntu 22.04 não afirma suporte oficial a essa distribuição.
+
+Comandos de execução, com ferramentas e evidências locais opcionais:
+
+```bash
+google-chrome --version
+vivaldi-stable --version
+python3 -u .agent/tmp/keyboard-focus/browsers/compare.py
+python3 -u .agent/tmp/keyboard-focus/browsers/vivaldi-cdp.py
+python3 -u .agent/tmp/keyboard-focus/browsers/vivaldi-public.py
+```
+
+Chrome com janela gráfica: 320/1200 px × densidade 1/2, zoom100%, matriz de
+clique/Tab com pixels compostos, ocultação antes de avançar o relógio,
+foco game-keyboard, x0→30→60, blur restaura orientação e botão principal
+oculta orientação. `confirmation_journeys` passou nas duas larguras por Enter,
+Espaço, clique e toque para iniciar/continuar/reiniciar. Também passaram
+`keyboard_hint_follows_focus`, `tab_keeps_lost_release_blocked` e
+`click_rearms_held_arrow`, usando a fixture controls.kf.
+
+A chamada direta do Playwright ao Vivaldi falhou em BrowserContext.new_page
+antes de testar o jogo, tanto em janela gráfica quanto headless. Conectar ao
+navegador completo via connect_over_cdp também expirou. Esses resultados não
+são defeitos demonstrados do jogo. O primeiro script compare.py terminou
+exit1 por essa falha após concluir as verificações do Chrome.
+
+O reteste do Vivaldi usou uma janela completa iniciada normalmente e conexão
+DevTools direta à aba, com websocket-client 1.9.2 instalado no usuário. Somente
+o intervalo do jogo de30ms foi controlado, permitindo verificar foco e pixels
+antes do passo seguinte. Eventos de mouse e teclado foram enviados pelo
+protocolo do navegador. A matriz local e a matriz no mesmo link público dado
+ao usuário passaram, ambas exit0, em320/1200 px × densidade1/2. Antes do
+clique há orientação; depois há foco game-keyboard, nome “Teclado ativo” e
+pixels iguais aos do canvas na região do aviso. Direita por seis passos move
+x0→30. Blur com Direita mantida mostra orientação e para emx30; retorno por
+Tab oculta orientação, repetição continua bloqueada; soltura e nova pressão
+movem x30→60. Foco no botão principal e continuar por clique ocultam aviso.
+
+Excertos reais dos logs finais:
+
+```text
+PASS chrome graphical 320px density1: click/Tab hide pixels immediately; x0->30->60; blur restores hint; primary focus hides hint
+PASS Vivaldi full UI 320 1 pixels absent immediately; click x0->30; blur stops; Tab blocks held key; fresh press x30->60; primary/continue focus hide hint
+```
+
+Uma tentativa intermediária de comparar capturas de densidade2 ao canvas
+redimensionado por nearest-neighbor falhou pela escala do raster. O harness
+foi corrigido para capturar em pixels CSS, como o helper Playwright existente;
+a comparação integral passou nas quatro configurações. Não é apresentada
+como regressão do jogo. Logs dessa tentativa foram preservados.
+
+Evidências opcionais em `.agent/tmp/keyboard-focus/browsers/`: install.log,
+compare.log, results.json, vivaldi-full-final.log, vivaldi-full-results.json,
+vivaldi-public.log, vivaldi-public-results.json, scripts e capturas
+chrome-*, vivaldi-full-* e vivaldi-public-* antes/depois. Link testado:
+https://podcast-arbitrary-broadcast-reputation.trycloudflare.com/?v=5fdba59
+(túnel temporário, não substitui evidência persistente).
+
+Limites: a falha no Windows não foi reproduzida no Linux, mesmo com a mesma
+versão do Vivaldi. Não foram testados o perfil/extensões/configurações do
+Vivaldi do usuário nem a plataforma Windows. A matriz Vivaldi deste reteste
+não executou os sete percursos completos, nem todas as combinações de
+confirmação de menu; o gate completo anterior permanece registrado acima.
+Nenhuma correção adicional do jogo foi inferida desses resultados.
+
+
+## Decisão final: remover mensagens de ativação do teclado — 09/10/2026
+
+Após confirmar que a falha persistia no Vivaldi Windows, o usuário substituiu
+explicitamente a orientação condicional por sua remoção completa, junto dos
+testes dedicados às mensagens. SHA de aplicação e testes verificado:
+`81f8fdecb40fb06572f18ea166f235b57ade9d0b` (`fix: remove keyboard activation messages`). O diff de src/tests
+foi comparado integralmente com o executado antes do commit; seu SHA-256 é
+`ee19eaff6c4327ba1816f201c2704e959c5d7ebdc0a5dc9f850a86ace07117c3`.
+
+Removidos rótulo, estilo, campos, atualização por foco e troca de texto do
+receptor. O receptor usa `Button("", ...)`: nenhum texto de ativação é
+materializado no botão. Dimensões, clique, Tab, handlers de teclado, blur,
+memória das teclas, especial e prioridade do direcional permanecem. A área
+sem texto também fica sem nome acessível próprio; as opções retidas mantêm o
+nome funcional existente “Teclado do jogo”. Não foi criada API nova no Kof.
+README atualizado. Removidos keyboard_hint, keyboard_hint_presentation,
+keyboard_hint_follows_focus e suas assertions; os percursos de foco/movimento,
+menu e combate continuam. Seletores de armas/subchefe/chefe que dependiam da
+mensagem foram substituídos por seletores do receptor, sem apagar esses testes.
+
+Onze checks executados, todos exit0; nenhuma etapa omitida. Mesmos comandos
+completos do gate anterior: suítes JVM e JS (114 testes, zero falhas em cada),
+Python unittest (8 testes, OK), browser.py, browser_controls.py,
+browser_meteor.py, browser_weapons.py, browser_stage.py,
+browser_subchief.py, browser_boss.py e tests/ci-contract.sh. Os casos negativos
+internos de unittest produzem falhas deliberadas de Kof: o resultado agregado
+foi OK. Execução paralela de quatro comandos, com logs separados e saídas
+individuais registradas em `.agent/tmp/remove-keyboard-messages/summary.json`.
+Não houve nova execução completa após commit: igualdade do diff comprova que
+os arquivos de aplicação/testes executados são os mesmos do SHA informado.
+
+Chrome 155.0.8059.39: os sete percursos completos passaram. Vivaldi Linux
+8.2.4133.84, janela gráfica WSLg: quatro combinações 320/1200 px × densidade1/2,
+clique e Tab focam game-keyboard; Direita por seis passos a cada entrada move
+x0→30→60. Capturas mostram a partida sem o aviso. Excerto do reteste:
+
+```text
+PASS Vivaldi graphical 320px density1: click/Tab focus, six steps per press x0->30->60
+```
+
+Evidências opcionais em `.agent/tmp/remove-keyboard-messages/`: logs de cada
+comando, tested.diff, summary.json, vivaldi-final.log e vivaldi-*.png. O primeiro
+reteste Vivaldi expirou em Page.enable antes de carregar o jogo. Foi repetido
+com o perfil de teste já inicializado; terminou exit0 nas quatro combinações.
+A falha inicial foi preservada em vivaldi-initial-failure.log. Um erro de aspas
+na alteração Python foi detectado por py_compile e corrigido antes do gate.
+
+Limites: Windows continua sem prova direta. O plugin Computer Use foi tentado,
+reiniciado e falhou ao validar sandboxCwd da pasta WSL, antes de controlar a
+janela. A remoção da mensagem está demonstrada no código e no Linux; não se
+alega correção da causa original de renderização no Windows. Não foram
+reexecutados os sete percursos no Vivaldi, apenas o percurso gráfico acima.
+Os requisitos históricos do aviso e seus probes deixaram de ser critérios
+vigentes. Este reteste não introduz testes permanentes dessas mensagens.
