@@ -74,12 +74,12 @@ class GameControls {
         this.game = game
         this.drawing = drawing
         hiddenStyle = Style("display: none")
-        optionStyle = Style("display: block; width: 128; height: 19; padding: 0; pointer-events: auto; border: 0; background: transparent; color: transparent; outline: none")
+        optionStyle = Style("display: block; width: 128; height: 19; padding: 0; pointer-events: auto; border: 0; background: transparent; color: transparent; opacity: 0; outline: none")
         actionStyle = Style("display: block; outline: none")
         focusedActionStyle = Style("display: block; outline: 1px solid gray")
         surfaceStyle = Style("position: relative; width: 176; height: 220; padding: 0; align-self: center; outline: none")
         focusedSurfaceStyle = Style("position: relative; width: 176; height: 220; padding: 0; align-self: center; outline: 1px solid gray")
-        retainedOptionStyle = Style("position: absolute; left: -10000; top: 0; width: 1; height: 1; padding: 0; pointer-events: none")
+        retainedOptionStyle = Style("position: absolute; left: -10000; top: 0; width: 1; height: 1; padding: 0; pointer-events: none; opacity: 0")
         guide = ControlsGuide()
         guideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: none")
         focusedGuideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: 1px solid gray")

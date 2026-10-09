@@ -1,12 +1,15 @@
 """Exercise the generated KofJS game in Chrome with observable waits."""
 
 import argparse
+import base64
+import io
 from datetime import datetime
 import sys
 from contextlib import nullcontext
 import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from PIL import Image, ImageChops, ImageColor
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from kof_project import served_build
@@ -122,6 +125,19 @@ def menu_lines(page, labels, positions):
         assert text["y"] - text["ascent"] >= y and text["y"] + text["descent"] <= y + 19
 
 
+def menu_pixels(page, positions):
+    canvas = page.locator("canvas:visible")
+    rendered = Image.open(io.BytesIO(canvas.screenshot(scale="css"))).convert("RGB")
+    encoded = canvas.evaluate("n => n.toDataURL().split(',')[1]")
+    drawing = Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGBA")
+    background = canvas.evaluate("n => { for (let node = n; node; node = node.parentElement) { const color = getComputedStyle(node).backgroundColor; if (color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent') return color; } return 'white'; }")
+    drawing = Image.alpha_composite(Image.new("RGBA", drawing.size, ImageColor.getrgb(background)), drawing).convert("RGB")
+    for y in positions:
+        region = (48, y, 176, y + 19)
+        difference = ImageChops.difference(rendered.crop(region), drawing.crop(region))
+        assert all(maximum <= 1 for minimum, maximum in difference.getextrema()), (y, difference.getextrema())
+
+
 def selected_line(page, name, y):
     assert page.evaluate("menuShips.slice(-1)[0][2]") == y
     assert page.get_by_role("button", name=name, exact=True).evaluate("n => getComputedStyle(n).outlineStyle") == "none"
@@ -136,9 +152,13 @@ def menu_presentation(browser, url):
         page.goto(url)
         page.get_by_role("button", name="Pular créditos", exact=True).click()
         menu_lines(page, ["Novo Jogo", "Controles"], [120, 139])
+        page.add_style_tag(content="#game-new, #game-controls, #game-continue, #game-restart, #game-menu { -webkit-text-fill-color: #eeeeee; }")
+        menu_pixels(page, [120, 139])
         page.clock.run_for(36 * 30)
         page.get_by_role("button", name="Controles", exact=True).focus()
         selected_line(page, "Controles", 139)
+        page.get_by_role("button", name="Controles", exact=True).hover()
+        menu_pixels(page, [120, 139])
         sprite(page, "2lives.png", 18, 139)
         surface = page.locator("#game-keyboard").locator("..")
         assert surface.evaluate("n => [getComputedStyle(n).outlineWidth, getComputedStyle(n).outlineColor]") == ["1px", "rgb(128, 128, 128)"]
@@ -149,8 +169,12 @@ def menu_presentation(browser, url):
         page.get_by_role("button", name="Novo Jogo", exact=True).click()
         page.get_by_role("button", name="Pausar", exact=True).click()
         menu_lines(page, ["Continuar", "Reiniciar", "Menu principal"], [80, 99, 118])
+        menu_pixels(page, [80, 99, 118])
         page.get_by_role("button", name="Menu principal", exact=True).focus()
         selected_line(page, "Menu principal", 118)
+        page.get_by_role("button", name="Menu principal", exact=True).hover()
+        page.clock.run_for(30)
+        menu_pixels(page, [80, 99, 118])
         sprite(page, "2lives.png", 18, 118)
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.close()
