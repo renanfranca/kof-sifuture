@@ -1,4 +1,5 @@
 import argparse
+import base64
 from contextlib import contextmanager
 from datetime import datetime
 import io
@@ -12,7 +13,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from kof_project import served_build
-from browser import record_keyboard, tab_to
+from browser import keyboard_hint, record_keyboard, tab_to
 
 TOUCH_EVIDENCE = []
 
@@ -25,7 +26,8 @@ JET_SAMPLES = [(x, y, SHIP_RIGHT.getpixel((x, y))[:3]) for y in range(20) for x 
 
 
 def ship_observation(page):
-    canvas = Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
+    encoded = page.locator("canvas:visible").evaluate("n => n.toDataURL().split(',')[1]")
+    canvas = Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
     pixels = canvas.load()
     anchor_x, anchor_y, anchor_rgb = SAMPLES[0]
     candidates = []
@@ -74,9 +76,31 @@ def control_page(browser, url, *, touch=False, width=800):
         context.close()
 
 
+def keyboard_hint_follows_focus(browser, url):
+    with control_page(browser, url) as (page, run):
+        overlay = page.locator("#game-keyboard")
+        keyboard_hint(page, True)
+        assert overlay.get_attribute("id") != page.evaluate("document.activeElement.id")
+
+        overlay.focus()
+        keyboard_hint(page, False)
+        assert overlay.inner_text() == "Teclado ativo"
+        assert page.evaluate("document.activeElement.id") == "game-keyboard"
+
+        page.get_by_role("button", name="↓", exact=True).focus()
+        keyboard_hint(page, True)
+        assert overlay.inner_text() == "Ativar teclado do jogo"
+
+        page.locator("#game-action").focus()
+        keyboard_hint(page, False)
+        assert overlay.inner_text() == "Teclado ativo"
+        assert page.evaluate("document.activeElement.id") == "game-action"
+    print("PASS keyboard hint follows area/action focus and blur with clock paused")
+
+
 def keyboard_origin_and_release(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         page.get_by_role("button", name="↓", exact=True).focus()
         page.keyboard.down("ArrowRight")
         run(4)
@@ -110,9 +134,11 @@ def keyboard_origin_and_release(browser, url):
 
                 page.keyboard.press("Shift+Tab" if reverse else "Tab")
                 assert page.evaluate("document.activeElement.id") != "game-action"
+                keyboard_hint(page, True)
                 run(6)
                 assert ship_observation(page) == (90, 100, False)
                 tab_to(page, "game-action", reverse=not reverse)
+                keyboard_hint(page, False)
                 page.keyboard.down("ArrowRight")
                 run(6)
                 assert ship_observation(page) == (90, 100, False)
@@ -131,7 +157,7 @@ def keyboard_origin_and_release(browser, url):
 
 def opposing_arrows(browser, url):
     with control_page(browser, url) as (page, run):
-        page.get_by_role("button", name="Ativar teclado do jogo").click()
+        page.locator("#game-keyboard").click()
         page.keyboard.down("ArrowRight")
         run(3)
         assert ship_observation(page) == (75, 100, True)
@@ -151,18 +177,20 @@ def opposing_arrows(browser, url):
 
 def tab_keeps_lost_release_blocked(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.click()
         page.keyboard.down("ArrowRight")
         run(4)
         assert ship_observation(page) == (80, 100, True)
 
         page.mouse.click(500, 500)
+        keyboard_hint(page, True)
         run(4)
         assert ship_observation(page) == (80, 100, False)
 
         page.keyboard.up("ArrowRight")
         page.keyboard.press("Tab")
+        keyboard_hint(page, False)
         assert overlay.evaluate("node => document.activeElement === node")
         page.keyboard.down("ArrowRight")
         run(4)
@@ -180,13 +208,14 @@ def tab_keeps_lost_release_blocked(browser, url):
 
 def click_rearms_held_arrow(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.click()
         page.keyboard.down("ArrowRight")
         run(4)
         assert ship_observation(page) == (80, 100, True)
 
         page.mouse.click(500, 500)
+        keyboard_hint(page, True)
         run(4)
         assert ship_observation(page) == (80, 100, False)
 
@@ -205,7 +234,7 @@ def click_rearms_held_arrow(browser, url):
 
 def click_rearms_after_external_release(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.click()
         page.keyboard.down("ArrowRight")
         run(4)
@@ -258,7 +287,7 @@ def mouse_pad_exit_and_cancel(browser, url):
 
 def pad_owns_movement(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         east = page.get_by_role("button", name="→", exact=True)
         box = east.bounding_box()
         overlay.click()
@@ -329,7 +358,7 @@ def touch_pad_drag_release_and_cancel(browser, url):
 
 def touch_click_rearms_arrow(browser, url):
     with control_page(browser, url, touch=True) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("ArrowRight")
         run(4)
@@ -618,6 +647,7 @@ def main():
                 args=["--no-sandbox", "--headless=new"]
             )
             try:
+                keyboard_hint_follows_focus(browser, url)
                 touch_on_canvas_axis(browser, url)
                 cross_layout(browser, url)
                 touch_diagonals(browser, url)

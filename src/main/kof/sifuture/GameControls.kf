@@ -19,6 +19,8 @@ class GameControls {
     View creditsBitmap
     Row movementControls
     Label controlsHeading
+    private Label keyboardHint
+    private Style keyboardHintStyle
     Column pad
     Column specialColumn
     Column gameColumn
@@ -83,6 +85,7 @@ class GameControls {
         guide = ControlsGuide()
         guideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: none")
         focusedGuideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: 1px solid gray")
+        keyboardHintStyle = Style("position: absolute; top: 88; left: 12; right: 12; padding: 0; font-family: sans-serif; font-size: 14; line-height: 20px; text-align: center; background: #121212; color: #eeeeee; pointer-events: none")
         keyboardStyle = overlayStyle()
         guideKeyboardStyle = Style("position: absolute; top: 0; left: 0; width: 248; height: 44; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
         canvasStyle = Style("display: block; width: 176; height: 220; padding: 0")
@@ -145,8 +148,8 @@ class GameControls {
         action = Button("Novo Jogo", () -> { this.activateAction() })
         action.setId("game-action")
         action.on("pointerdown", (e: Event) -> { this.discardEnterClick = false })
-        action.on("focus", (e: Event) -> { this.actionFocused = true; action.setStyle(focusedActionStyle) })
-        action.on("blur", (e: Event) -> { game.clearKeyboard(); this.actionFocused = false; this.discardEnterClick = false; action.setStyle(actionStyle) })
+        action.on("focus", (e: Event) -> { this.actionFocused = true; action.setStyle(focusedActionStyle); this.updateKeyboardHint() })
+        action.on("blur", (e: Event) -> { game.clearKeyboard(); this.actionFocused = false; this.discardEnterClick = false; action.setStyle(actionStyle); this.updateKeyboardHint() })
         root = Column(listOf(movementControls, guide.root, action))
         root.setStyle(rootStyle)
         root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
@@ -171,6 +174,10 @@ class GameControls {
         controlsHeading.setStyle(hiddenStyle)
         surface.bind(controlsHeading)
         surface.bind(overlay)
+        keyboardHint = Label("Ativar teclado do jogo")
+        keyboardHint.setId("game-keyboard-hint")
+        keyboardHint.setStyle(hiddenStyle)
+        surface.bind(keyboardHint)
         newGame = menuOption(surface, Screen.Menu, 0, "game-new", "Novo Jogo", Style("position: absolute; left: 48; top: 120; width: 128; height: 19; padding: 0; pointer-events: none"))
         controlsOption = menuOption(surface, Screen.Menu, 1, "game-controls", "Controles", Style("position: absolute; left: 48; top: 139; width: 128; height: 19; padding: 0; pointer-events: none"))
         continueOption = menuOption(surface, Screen.Pause, 0, "game-continue", "Continuar", Style("position: absolute; left: 48; top: 80; width: 128; height: 19; padding: 0; pointer-events: none"))
@@ -195,7 +202,15 @@ class GameControls {
         return Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
     }
 
+    private updateKeyboardHint() {
+        var playing = game.screen == Screen.Play
+        var focused = (keyboardFocused && keyboardReceiver("game-keyboard")) || (actionFocused && keyboardReceiver("game-action")) || keyboardReceiver(focusedOption)
+        keyboardHint.setStyle(if (playing && !focused) keyboardHintStyle else hiddenStyle)
+        overlay.text = if (playing && focused) "Teclado ativo" else "Ativar teclado do jogo"
+    }
+
     private updateSurfaceFocus() {
+        updateKeyboardHint()
         var focused = keyboardFocused || optionTarget(focusedOption)
         if (game.screen == Screen.Controls) {
             if (focused) { surface.setStyle(focusedGuideSurfaceStyle) }
@@ -240,8 +255,8 @@ class GameControls {
                 if (screen == Screen.Menu) { game.menuSelection = option }
                 else { game.pauseSelection = option }
                 drawing.render(game)
-                this.update()
             }
+            this.update()
         })
         button.on("blur", (e: Event) -> {
             game.clearKeyboard()

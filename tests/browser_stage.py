@@ -1,4 +1,5 @@
 from datetime import datetime
+import base64
 import io
 import re
 import sys
@@ -15,7 +16,8 @@ EVIDENCE = ROOT / ".agent/tmp/stage-browser"
 
 
 def bitmap(page):
-    return Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
+    encoded = page.locator("canvas:visible").evaluate("n => n.toDataURL().split(',')[1]")
+    return Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
 
 
 def sprite(page, name, x, y, *, occluded=(), background_offset=None):
@@ -99,7 +101,7 @@ def hud_and_pause(page, width):
 def right_input_clearing(page, width):
     for action in ("Pausar", "Repaint"):
         page.get_by_role("button", name="Prepare right finish", exact=True).click()
-        page.get_by_role("button", name="Ativar teclado do jogo").click()
+        page.locator("#game-keyboard").click()
         page.keyboard.down("ArrowRight")
         advance(page)
         sprite(page, "Middle2.png", 45, 150)
@@ -114,7 +116,7 @@ def right_input_clearing(page, width):
 
 def right_held_result(page, width):
     page.get_by_role("button", name="Prepare right finish", exact=True).click()
-    page.get_by_role("button", name="Ativar teclado do jogo").click()
+    page.locator("#game-keyboard").click()
     page.keyboard.down("ArrowRight")
     advance(page)
     assert state(page)["shipX"] == 45
@@ -148,7 +150,7 @@ def moving_result(page, width):
     assert state(page)["displayed"] == 5 and state(page)["explosion"] == 30
     sprite(page, "5.png", 106, 86)
     assert bitmap(page).tobytes() != initial_pixels
-    page.get_by_role("button", name="Ativar teclado do jogo").click()
+    page.locator("#game-keyboard").click()
     page.keyboard.down("ArrowRight")
     page.keyboard.down("1")
     page.keyboard.up("1")
@@ -320,7 +322,7 @@ def boundaries(page):
 
 
 def pause_navigation(page, width):
-    overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+    overlay = page.locator("#game-keyboard")
     overlay.focus()
     page.keyboard.down("ArrowRight")
     advance(page, 13)

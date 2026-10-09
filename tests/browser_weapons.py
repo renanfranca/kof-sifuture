@@ -242,7 +242,7 @@ def keyboard_edges(browser, url):
             print(f"PASS 1 on {receiver}: two charges→one, three beam sprites, held/repeat through availability stays one, fresh press→zero; zero pointerdowns at {width}px")
     with scene(browser, url) as page:
         collect(page, 5)
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("ArrowRight")
         page.keyboard.down("1")
@@ -310,7 +310,7 @@ def keyboard_edges(browser, url):
             page.keyboard.up("Space")
     with scene(browser, url) as page:
         collect(page, 6)
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("1")
         advance(page)
@@ -327,7 +327,7 @@ def keyboard_edges(browser, url):
         assert status(page)["charges"] == 1
         page.keyboard.up("1")
     with scene(browser, url) as page:
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("1")
         collect(page, 4)
@@ -343,7 +343,7 @@ def keyboard_edges(browser, url):
     with scene(browser, url) as page:
         collect(page, 4)
         page.get_by_role("button", name="Make restarting", exact=True).click()
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("1")
         advance(page, 45)
