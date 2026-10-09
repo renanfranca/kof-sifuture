@@ -798,3 +798,13 @@ alega correção da causa original de renderização no Windows. Não foram
 reexecutados os sete percursos no Vivaldi, apenas o percurso gráfico acima.
 Os requisitos históricos do aviso e seus probes deixaram de ser critérios
 vigentes. Este reteste não introduz testes permanentes dessas mensagens.
+
+CI da remoção concluída com sucesso sobre
+`19e25b26f3b6c987f89514af3cbd83a6fa71b233`, que acrescenta apenas o registro
+documental ao SHA de código testado: [execução 37946396314](https://github.com/renanfranca/kof-sifuture/actions/runs/37946396314).
+Resolve verified Kof e Kof tests (jvm/js) passaram; Build/Publish Pages foram
+omitidos conforme a condição do workflow para esta branch. O link temporário
+`/sem-avisos/?v=19e25b2` também passou no Chrome: clique no receptor seguido de
+seis passos de Direita moveu x0→30. Captura public.png e ci-result.json são
+suportes opcionais no mesmo diretório local. Este acréscimo altera somente o
+registro documental; não representa outra execução das suítes locais.
