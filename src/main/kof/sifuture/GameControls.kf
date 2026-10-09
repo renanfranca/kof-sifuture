@@ -74,12 +74,12 @@ class GameControls {
         this.game = game
         this.drawing = drawing
         hiddenStyle = Style("display: none")
-        optionStyle = Style("display: block; width: 128; height: 19; padding: 0; pointer-events: auto; border: 0; background: transparent; color: transparent; outline: none")
+        optionStyle = Style("display: block; width: 128; height: 19; padding: 0; pointer-events: auto; border: 0; background: transparent; color: transparent; opacity: 0; outline: none")
         actionStyle = Style("display: block; outline: none")
         focusedActionStyle = Style("display: block; outline: 1px solid gray")
         surfaceStyle = Style("position: relative; width: 176; height: 220; padding: 0; align-self: center; outline: none")
         focusedSurfaceStyle = Style("position: relative; width: 176; height: 220; padding: 0; align-self: center; outline: 1px solid gray")
-        retainedOptionStyle = Style("position: absolute; left: -10000; top: 0; width: 1; height: 1; padding: 0; pointer-events: none")
+        retainedOptionStyle = Style("position: absolute; left: -10000; top: 0; width: 1; height: 1; padding: 0; pointer-events: none; opacity: 0")
         guide = ControlsGuide()
         guideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: none")
         focusedGuideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: 1px solid gray")
@@ -146,7 +146,7 @@ class GameControls {
         action.setId("game-action")
         action.on("pointerdown", (e: Event) -> { this.discardEnterClick = false })
         action.on("focus", (e: Event) -> { this.actionFocused = true; action.setStyle(focusedActionStyle) })
-        action.on("blur", (e: Event) -> { this.actionFocused = false; this.discardEnterClick = false; action.setStyle(actionStyle) })
+        action.on("blur", (e: Event) -> { game.clearKeyboard(); this.actionFocused = false; this.discardEnterClick = false; action.setStyle(actionStyle) })
         root = Column(listOf(movementControls, guide.root, action))
         root.setStyle(rootStyle)
         root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
@@ -155,7 +155,7 @@ class GameControls {
     }
 
     View keyboardSurface(Canvas canvas) {
-        overlay = Button("Ativar teclado do jogo", () -> {
+        overlay = Button("", () -> {
             if (game.screen == Screen.Credits) { this.activateAction() }
         })
         configureOverlay()
@@ -196,7 +196,7 @@ class GameControls {
     }
 
     private updateSurfaceFocus() {
-        var focused = keyboardFocused || optionAvailable(focusedOption)
+        var focused = keyboardFocused || optionTarget(focusedOption)
         if (game.screen == Screen.Controls) {
             if (focused) { surface.setStyle(focusedGuideSurfaceStyle) }
             else { surface.setStyle(guideSurfaceStyle) }
@@ -240,10 +240,15 @@ class GameControls {
                 if (screen == Screen.Menu) { game.menuSelection = option }
                 else { game.pauseSelection = option }
                 drawing.render(game)
-                this.update()
             }
+            this.update()
         })
-        button.on("blur", (e: Event) -> { this.focusedOption = ""; this.discardOptionClick = ""; this.updateSurfaceFocus() })
+        button.on("blur", (e: Event) -> {
+            game.clearKeyboard()
+            this.focusedOption = ""
+            this.discardOptionClick = ""
+            this.update()
+        })
         slot.bind(button)
         surface.bind(slot)
         return button
@@ -263,6 +268,10 @@ class GameControls {
         if (game.screen == Screen.Menu) { return id == "game-new" || id == "game-controls" }
         if (game.screen == Screen.Pause) { return id == "game-continue" || id == "game-restart" || id == "game-menu" }
         return false
+    }
+
+    keyboardReceiver(String id): Bool {
+        return id == "game-keyboard" || id == "game-action" || optionAvailable(id) || (optionTarget(id) && focusedOption == id)
     }
 
     optionTarget(String id): Bool {
@@ -289,7 +298,7 @@ class GameControls {
         if (key == "1") {
             var freshPress = pressed && !oneHeld
             oneHeld = pressed
-            if (freshPress && (target == "game-keyboard" || target == "game-special")) { activateSpecial() }
+            if (freshPress && (keyboardReceiver(target) || target == "game-special")) { activateSpecial() }
             if (!pressed) { updateSpecial() }
             return
         }
@@ -304,7 +313,7 @@ class GameControls {
             if (freshPress) {
                 if (target == "game-details" && game.screen == Screen.Controls) { guide.toggle() }
                 else if (target == "game-special") { activateSpecial() }
-                else if (target == "game-action" || (key == "Enter" && target == "game-keyboard") || optionAvailable(target)) {
+                else if (target == "game-action" || (key == "Enter" && keyboardReceiver(target)) || optionAvailable(target)) {
                     game.confirm()
                     drawing.render(game)
                     update()
@@ -316,7 +325,7 @@ class GameControls {
             }
             return
         }
-        var movementAllowed = target == "game-keyboard" || optionAvailable(target) || (target == "game-action" && (game.screen == Screen.Menu || game.screen == Screen.Pause))
+        var movementAllowed = keyboardReceiver(target)
         if (key == "ArrowLeft") { game.keyboard(Direction.Left, pressed, movementAllowed) }
         if (key == "ArrowRight") { game.keyboard(Direction.Right, pressed, movementAllowed) }
         if (key == "ArrowUp") { game.keyboard(Direction.Up, pressed, movementAllowed) }
@@ -335,12 +344,12 @@ class GameControls {
         special.setDisabled(!available && !preserveFocus)
     }
 
-    setOptionStyle(Button button, String id, Bool visible) {
+    setOptionStyle(Button button, String id, String name, Bool visible) {
         if (!visible) {
-            if (focusedOption == id && (enterHeld || spaceHeld)) { button.setStyle(retainedOptionStyle) }
+            if (focusedOption == id) { button.text = "Teclado do jogo"; button.setStyle(retainedOptionStyle) }
             else { button.setStyle(hiddenStyle) }
         }
-        else { button.setStyle(optionStyle) }
+        else { button.text = name; button.setStyle(optionStyle) }
     }
 
     update() {
@@ -353,11 +362,11 @@ class GameControls {
         west.setDisabled(!playing)
         east.setDisabled(!playing)
         south.setDisabled(!playing && !navigating)
-        setOptionStyle(newGame, "game-new", menu)
-        setOptionStyle(controlsOption, "game-controls", menu)
-        setOptionStyle(continueOption, "game-continue", pause)
-        setOptionStyle(restartOption, "game-restart", pause)
-        setOptionStyle(mainMenu, "game-menu", pause)
+        setOptionStyle(newGame, "game-new", "Novo Jogo", menu)
+        setOptionStyle(controlsOption, "game-controls", "Controles", menu)
+        setOptionStyle(continueOption, "game-continue", "Continuar", pause)
+        setOptionStyle(restartOption, "game-restart", "Reiniciar", pause)
+        setOptionStyle(mainMenu, "game-menu", "Menu principal", pause)
         if (actionFocused) { action.setStyle(focusedActionStyle) }
         else { action.setStyle(actionStyle) }
         updateSurfaceFocus()

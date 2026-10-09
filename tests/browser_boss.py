@@ -147,7 +147,7 @@ def journey(page, width):
     assert state(page)["score"] == 0 and state(page)["hp"] == 100
     page.locator("canvas:visible").screenshot(path=str(EVIDENCE / f"absorbed-{width}.png"))
     button(page, "Player special")
-    button(page, "Ativar teclado do jogo")
+    page.locator("#game-keyboard").click()
     page.keyboard.down("1")
     page.keyboard.down("1")
     advance(page, 40)

@@ -1,4 +1,5 @@
 import argparse
+import base64
 from contextlib import contextmanager
 from datetime import datetime
 import io
@@ -10,6 +11,7 @@ import sys
 
 from PIL import Image
 from playwright.sync_api import sync_playwright
+from browser import record_keyboard, tab_to
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / ".agent/tmp/background-items-weapons"
@@ -19,7 +21,8 @@ from browser_controls import TouchContacts
 
 
 def canvas_image(page):
-    return Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
+    encoded = page.locator("canvas:visible").evaluate("n => n.toDataURL().split(',')[1]")
+    return Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
 
 
 def sprite_matches(actual, name, x, y):
@@ -76,6 +79,7 @@ def scene(browser, url, width=800):
     context = browser.new_context(viewport={"width": width, "height": 1000}, has_touch=True)
     try:
         page = context.new_page()
+        record_keyboard(page)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.clock.install(time=datetime(2026, 1, 1))
@@ -188,9 +192,59 @@ def weapon_frames(browser, url):
 
 
 def keyboard_edges(browser, url):
+    for width in (320, 1200):
+        for receiver in ("game-action", "game-continue"):
+            with scene(browser, url, width) as page:
+                evolution = page.get_by_role("button", name="Collect evolution", exact=True)
+                for _ in range(24):
+                    page.keyboard.press("Tab")
+                    if evolution.evaluate("n => n === document.activeElement"):
+                        break
+                assert evolution.evaluate("n => n === document.activeElement")
+                for _ in range(5):
+                    page.keyboard.press("Space")
+                advance(page)
+                assert status(page)["charges"] == 2
+                tab_to(page, "game-action")
+                if receiver == "game-continue":
+                    page.keyboard.press("Enter")
+                    tab_to(page, receiver)
+                    page.keyboard.down("1")
+                    page.keyboard.press("Enter")
+                    assert page.locator("#game-continue").inner_text() == "Teclado do jogo"
+                    page.keyboard.down("1")
+                    advance(page)
+                    assert status(page)["charges"] == 2
+                    page.keyboard.up("1")
+                assert page.evaluate("document.activeElement.id") == receiver
+                page.keyboard.down("1")
+                advance(page)
+                assert status(page)["charges"] == 1, receiver
+                page.keyboard.down("1")
+                advance(page, 69)
+                actual = canvas_image(page)
+                sprite_matches(actual, "e0.png", -288, 40)
+                sprite_matches(actual, "e3.png", 101, 94)
+                sprite_matches(actual, "e6.png", -288, 160)
+                page.screenshot(path=str(EVIDENCE / f"keyboard-{receiver}-{width}.png"), full_page=True)
+                page.keyboard.down("1")
+                advance(page, 100)
+                assert status(page)["charges"] == 1
+                assert page.get_by_role("button", name="Especial", exact=True).is_enabled()
+                page.keyboard.down("1")
+                advance(page)
+                assert status(page)["charges"] == 1
+                page.keyboard.up("1")
+                page.keyboard.down("1")
+                advance(page)
+                assert status(page)["charges"] == 0
+                page.keyboard.up("1")
+                assert page.evaluate("pointerdowns") == 0
+                assert page.evaluate("keyboardEvents.filter(e => e[1] === '1').every(e => e[2] === '" + receiver + "')")
+            print(f"PASS 1 on {receiver}: two charges→one, three beam sprites, held/repeat through availability stays one, fresh press→zero; zero pointerdowns at {width}px")
     with scene(browser, url) as page:
         collect(page, 5)
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("ArrowRight")
         page.keyboard.down("1")
@@ -238,7 +292,7 @@ def keyboard_edges(browser, url):
             advance(page)
             assert status(page)["charges"] == 0, key
             page.keyboard.up(key)
-    for destination in ("Ativar teclado do jogo", "→"):
+    for destination in ("#game-keyboard", 'button:has-text("→")'):
         with scene(browser, url) as page:
             collect(page, 5)
             special = page.get_by_role("button", name="Especial", exact=True)
@@ -247,7 +301,7 @@ def keyboard_edges(browser, url):
             advance(page)
             assert status(page)["charges"] == 1
 
-            page.get_by_role("button", name=destination, exact=True).focus()
+            page.locator(destination).focus()
             assert special.is_disabled()
             page.keyboard.up("Space")
             advance(page, 170)
@@ -258,7 +312,7 @@ def keyboard_edges(browser, url):
             page.keyboard.up("Space")
     with scene(browser, url) as page:
         collect(page, 6)
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("1")
         advance(page)
@@ -275,7 +329,7 @@ def keyboard_edges(browser, url):
         assert status(page)["charges"] == 1
         page.keyboard.up("1")
     with scene(browser, url) as page:
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("1")
         collect(page, 4)
@@ -291,7 +345,7 @@ def keyboard_edges(browser, url):
     with scene(browser, url) as page:
         collect(page, 4)
         page.get_by_role("button", name="Make restarting", exact=True).click()
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("1")
         advance(page, 45)

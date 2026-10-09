@@ -1,4 +1,5 @@
 import argparse
+import base64
 from contextlib import contextmanager
 from datetime import datetime
 import io
@@ -12,6 +13,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from kof_project import served_build
+from browser import record_keyboard, tab_to
 
 TOUCH_EVIDENCE = []
 
@@ -24,7 +26,8 @@ JET_SAMPLES = [(x, y, SHIP_RIGHT.getpixel((x, y))[:3]) for y in range(20) for x 
 
 
 def ship_observation(page):
-    canvas = Image.open(io.BytesIO(page.locator("canvas:visible").screenshot())).convert("RGB")
+    encoded = page.locator("canvas:visible").evaluate("n => n.toDataURL().split(',')[1]")
+    canvas = Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
     pixels = canvas.load()
     anchor_x, anchor_y, anchor_rgb = SAMPLES[0]
     candidates = []
@@ -51,6 +54,7 @@ def control_page(browser, url, *, touch=False, width=800):
     context = browser.new_context(viewport={"width": width, "height": 700}, has_touch=touch, is_mobile=touch)
     try:
         page = context.new_page()
+        record_keyboard(page)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.clock.install(time=datetime(2026, 1, 1))
@@ -74,8 +78,8 @@ def control_page(browser, url, *, touch=False, width=800):
 
 def keyboard_origin_and_release(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
-        page.get_by_role("button", name="Pausar").focus()
+        overlay = page.locator("#game-keyboard")
+        page.get_by_role("button", name="↓", exact=True).focus()
         page.keyboard.down("ArrowRight")
         run(4)
         assert ship_observation(page) == (60, 100, False)
@@ -85,7 +89,7 @@ def keyboard_origin_and_release(browser, url):
         run(4)
         assert ship_observation(page) == (60, 100, False)
 
-        page.get_by_role("button", name="Pausar").focus()
+        page.get_by_role("button", name="↓", exact=True).focus()
         page.keyboard.up("ArrowRight")
         overlay.focus()
         page.keyboard.down("ArrowRight")
@@ -97,9 +101,39 @@ def keyboard_origin_and_release(browser, url):
         assert ship_observation(page) == (80, 100, False)
 
 
+    for width in (320, 1200):
+        for reverse in (False, True):
+            with control_page(browser, url, width=width) as (page, run):
+                page.evaluate("window.pointerdowns = 0; window.keyboardEvents = []")
+                tab_to(page, "game-action")
+                page.keyboard.down("ArrowRight")
+                run(6)
+                assert ship_observation(page) == (90, 100, True)
+
+                page.keyboard.press("Shift+Tab" if reverse else "Tab")
+                assert page.evaluate("document.activeElement.id") != "game-action"
+                run(6)
+                assert ship_observation(page) == (90, 100, False)
+                tab_to(page, "game-action", reverse=not reverse)
+                page.keyboard.down("ArrowRight")
+                run(6)
+                assert ship_observation(page) == (90, 100, False)
+
+                page.keyboard.up("ArrowRight")
+                page.keyboard.down("ArrowRight")
+                run(6)
+                assert ship_observation(page) == (120, 100, True)
+                page.keyboard.up("ArrowRight")
+                run(6)
+                assert ship_observation(page) == (120, 100, False)
+                assert page.evaluate("pointerdowns") == 0
+                assert page.evaluate("keyboardEvents.filter(e => e[1] === 'ArrowRight').every(e => e[2] === 'game-action')")
+        print(f"PASS primary blur stops x90, Tab/Shift+Tab return/repeat stays x90, observed release/fresh press reaches x120, zero pointerdowns at {width}px")
+
+
 def opposing_arrows(browser, url):
     with control_page(browser, url) as (page, run):
-        page.get_by_role("button", name="Ativar teclado do jogo").click()
+        page.locator("#game-keyboard").click()
         page.keyboard.down("ArrowRight")
         run(3)
         assert ship_observation(page) == (75, 100, True)
@@ -119,7 +153,7 @@ def opposing_arrows(browser, url):
 
 def tab_keeps_lost_release_blocked(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.click()
         page.keyboard.down("ArrowRight")
         run(4)
@@ -148,7 +182,7 @@ def tab_keeps_lost_release_blocked(browser, url):
 
 def click_rearms_held_arrow(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.click()
         page.keyboard.down("ArrowRight")
         run(4)
@@ -173,7 +207,7 @@ def click_rearms_held_arrow(browser, url):
 
 def click_rearms_after_external_release(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.click()
         page.keyboard.down("ArrowRight")
         run(4)
@@ -226,7 +260,7 @@ def mouse_pad_exit_and_cancel(browser, url):
 
 def pad_owns_movement(browser, url):
     with control_page(browser, url) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         east = page.get_by_role("button", name="→", exact=True)
         box = east.bounding_box()
         overlay.click()
@@ -297,7 +331,7 @@ def touch_pad_drag_release_and_cancel(browser, url):
 
 def touch_click_rearms_arrow(browser, url):
     with control_page(browser, url, touch=True) as (page, run):
-        overlay = page.get_by_role("button", name="Ativar teclado do jogo")
+        overlay = page.locator("#game-keyboard")
         overlay.focus()
         page.keyboard.down("ArrowRight")
         run(4)

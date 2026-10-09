@@ -378,3 +378,511 @@ Entrega do ciclo: [PR18](https://github.com/renanfranca/kof-sifuture/pull/18), h
 ### Complemento de confirmação — 07/10/2026
 
 O menu/pausa têm um único Confirmar abaixo da composição; os nomes acessíveis das opções ficam em Buttons transparentes sobre os rótulos do Canvas. Focar Confirmar preserva a seleção. Os callbacks de cada opção validam a tela de origem; durante uma tecla mantida, o foco antigo é conservado fora do viewport com pointer-events:none para receber a soltura sem ativar outra tela. O [registro da fase/HUD/resultado](stage-hud-result.md#complemento--confirmação-entrada-e-contato-07102026) preserva auditorias separadas de expectativa/prova, RED/GREEN, identidade e gates completos. `tests/browser.py::confirmation_journeys` cobre os cinco comandos por quatro modos; `retained_options` cobre Enter/Space mantidos, toque na área anterior e rearme em320/1200. Os percursos anteriores de direcional, especial e pausa continuam parte dos onze checks.
+## Investigação: teclado sem clicar na área do jogo — 08/10/2026
+
+Investigação solicitada pelo usuário, com `plan-behavioral-acceptance`: explicar por que as setas funcionam no menu sem clicar no receptor transparente e comprovar se a partida pode dispensar esse clique. Esta execução observa o comportamento atual e uma experiência isolada; não entrega uma alteração de produção.
+
+### Revisões, ambiente e procedimento
+
+Aplicação local testada: `02eb48e55102b5f0cafd85020b77f37da07060fa`. O [deployment 6937190874](https://github.com/renanfranca/kof-sifuture/actions/runs/37786185171/job/113342992632) associa o mesmo SHA ao [site público](https://renanfranca.github.io/kof-sifuture/) e tem estado `success`; o [workflow](https://github.com/renanfranca/kof-sifuture/actions/runs/37786185171) também terminou com sucesso. A API foi consultada nesta investigação. O navegador executou as mesmas observações no build local e no site público.
+
+Chrome `139.0.7258.154`, Playwright, alvo JS, larguras 320/1200 px, altura 900 px, densidade 1. O relógio virtual avança os intervalos reais de 30 ms; os eventos de teclado são enviados pelo navegador. Cada cenário usa um contexto novo. Não se usa `.focus()` para preparar os percursos: o foco chega aos elementos por Tab/Shift+Tab. Um observador conta `pointerdown` e registra alvo de `keydown`/`keyup`; todos os percursos terminaram com zero pressões de ponteiro. Enter pode gerar o clique nativo de um botão, o que não representa um clique de mouse ou toque na área do jogo.
+
+Compilador instalado: Kof `0.5.0-beta`, launcher `/home/renanfranca/.local/share/kof/kof-0.5.0-beta-linux-x86_64/bin/kof`; SHA-256 do JAR `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`. Checkout Kof consultado: `317d9f6b1c3e27032cc955a05f859f6c627d9338`. O JAR não informa o commit de origem em `dev/kof/version.properties`; não se atribui a ele o SHA do checkout consultado. Essa lacuna de proveniência não deve ser apresentada como resolvida.
+
+Comandos concluídos com exit 0:
+
+```bash
+python3 .agent/tmp/keyboard-no-click/probe.py
+python3 .agent/tmp/keyboard-no-click/probe.py --prototype-only
+```
+
+A primeira execução bem-sucedida obteve 28 observações; a segunda repetiu quatro observações do protótipo e acrescentou duas de perda de foco: 30 observações distintas, 34 contando repetições. O script agora inclui os limites de foco também na execução completa. Fontes de produção permaneceram sem alteração, confirmado por `git diff -- src`. Evidência local opcional: `.agent/tmp/keyboard-no-click/`, com script, logs, `results.json`, `summary.txt`, capturas, identidade do compilador e respostas das APIs. As conclusões essenciais estão transcritas abaixo.
+
+### Por que menu e partida diferem
+
+O [contrato atual](../specifications/port-sifuture-to-kof.md:34) limita o movimento ao receptor:
+
+> Arrows move the ship only when they originate at the overlay.
+
+O [training de eventos](../../../kof/training/idioms/ui.md:380) explica a origem:
+
+> `target()` returns the **id** of the node that originated the event
+
+O [Learn Kof 35](../../../kof/learn/35-kof-ui.md:5) delimita a prova visual:
+
+> only the JS target draws
+
+Em [GameControls.kf](../../src/main/kof/sifuture/GameControls.kf:150), o observador pertence à coluna que contém a área, o guia e o botão principal:
+
+```kof
+root = Column(listOf(movementControls, guide.root, action))
+root.setStyle(rootStyle)
+root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
+root.on("keyup", (e: Event) -> { this.keyChanged(e.key(), e.target(), false) })
+```
+
+O evento nasce no elemento focado e chega ao ancestral pelo DOM. `e.target()` continua identificando o elemento de origem. No runtime consultado, `JsRuntimeUiComponents.java:103` chama `node.addEventListener(type, fn)`, e `JsRuntimeUiEvents.java:31` lê `raw.target.id`. `KofJsBrowserE2ETest.java:1083` verifica `t=campo-main` para a origem do evento. A [especificação W3C de keydown](https://www.w3.org/TR/uievents/#event-type-keydown) estabelece o elemento focado como alvo; sem um elemento focado, usa `body` ou a raiz do documento. Um evento originado no `body` não atravessa a coluna interna dos controles.
+
+Em [GameControls.kf](../../src/main/kof/sifuture/GameControls.kf:319), o filtro decide quais origens podem mover ou navegar:
+
+```kof
+var movementAllowed = target == "game-keyboard" || optionAvailable(target) || (target == "game-action" && (game.screen == Screen.Menu || game.screen == Screen.Pause))
+```
+
+`game-action` é o mesmo botão que exibe Confirmar no menu e Pausar na partida. O último termo permite as setas nesse botão somente em Menu/Pause. Portanto, o menu pode funcionar porque Confirmar ou uma opção já tem foco; isso não demonstra ausência de foco. Na partida, com foco em Pausar, o último termo fica falso. O filtro pertence à aplicação, não é uma exigência do navegador ou uma regra geral da linguagem Kof.
+
+### Resultados observados
+
+| Contexto e ação real | Resultado no código atual, local e Pages, em 320/1200 px |
+| --- | --- |
+| Abertura nova, foco em BODY; Enter durante créditos; esperar os 477 passos; Baixo/Enter no menu | Enter não pula créditos; depois a seleção permanece em Novo Jogo, y=120, e a partida não inicia. |
+| Tab até o receptor; Enter para pular créditos; Baixo/Enter abre Controles; Enter volta; Cima/Enter inicia; Direita por seis passos | Foco permanece em `game-keyboard`; a nave vai de `(0,100)` a `(30,100)`, sem clique. |
+| Soltar Direita; seis passos; Cima por seis passos; soltar; pausar/continuar por Enter; seis passos | Soltar mantém x=30; Cima leva a y=70; pausa/retomada não reinicia movimento. |
+| Tab até Pular créditos; Enter; Baixo com foco em Confirmar | Seleção passa de Novo Jogo, y=120, para Controles, y=139, sem clicar no receptor. |
+| Cima/Enter inicia com foco ainda em `game-action`; Direita por seis passos | Nave permanece `(0,100)`. |
+| Após soltar Direita, Tab até o receptor; nova Direita por seis passos | Nave vai a `(30,100)`, ainda sem clique. |
+
+O deslocamento é comparado a coordenadas literais e conferido pelos pixels opacos de `Middle.png` no canvas real, reutilizando `sprite` de `tests/browser_stage.py`. A imagem inicial é observada antes da seta; seis passos mantêm um quadro visível durante a animação de reinício. O controle negativo usa a mesma nave, capaz de se mover, e a mesma duração. Assim, imobilidade não é confundida com um limite do mundo, explosão, pausa ou falta de atualização.
+
+Trechos literais de `summary.txt`, obtidos de `results.json` pelo comando Python de sumarização, JS/Chrome, site público, 320 px:
+
+```text
+pages-320-menu-action-arrows: focus=game-action; action=Confirmar (Enter); selection_y=139; pointerdowns=0
+pages-320-play-action-blocked: focus=game-action; action=Pausar; ship_x=0; ship_y=100; pointerdowns=0
+pages-320-play-tab-recovery: focus=game-keyboard; action=Pausar; ship_x=30; ship_y=100; pointerdowns=0
+```
+
+Essas três observações demonstram a diferença entre telas e que Tab já elimina a necessidade de clicar. O percurso completo por teclado também passou. Nenhuma dessas observações demonstra captura automática de teclas desde BODY.
+
+### Viabilidade experimental e limite encontrado
+
+Uma cópia descartável das fontes, preparada por `prepared_sources()`, recebeu somente esta substituição no filtro: `(target == "game-action" && (game.screen == Screen.Menu || game.screen == Screen.Pause))` por `target == "game-action"`. Essa cópia foi compilada com `kof build ... --target js --output ...` e executada em Chrome. O arquivo experimental e o build ficam em `.agent/tmp/`; não substituem as fontes canônicas.
+
+Com Tab até Pular créditos e dois Enter, a partida iniciou com foco em Pausar. Direita por seis passos levou x=0 a x=30; sua soltura conservou x=30. Isso demonstra viabilidade de continuar jogando com o foco já adquirido no botão principal, sem tocar a área e sem transferir o foco ao receptor.
+
+O limite seguinte também foi verificado: mantendo Direita e usando Shift+Tab para sair de Pausar, a nave continuou até x=60. O `blur` desse botão não limpa movimento, enquanto o `blur` do receptor o limpa. Portanto, a alteração de uma linha não satisfaz o contrato de perda de foco.
+
+```text
+prototype-320-action-moving: focus=game-action; action=Pausar; ship_x=30; ship_y=100; pointerdowns=0
+prototype-320-action-release: focus=game-action; action=Pausar; ship_x=30; ship_y=100; pointerdowns=0
+prototype-320-blur-gap: focus=BUTTON; action=Pausar; ship_x=60; ship_y=100; pointerdowns=0
+```
+
+As três observações se repetiram em 1200 px. A marca PASS na sonda do último caso significa que a falha prevista foi reproduzida; não significa aceite do protótipo. A experiência não cobre o Especial com foco em Pausar, saída da árvore, soltura externa, mudanças de aba/janela ou todas as transições de tela. Navegar até Novo Jogo e entrar por uma opção, em vez de Confirmar, também requer prova própria, pois a opção fica oculta na partida e pode devolver o foco a BODY.
+
+### Handoff e lacunas
+
+O [plano existente](../../EXECPLAN.md) recebeu critérios separados de observações para uma eventual mudança. A investigação está concluída. O contrato atual continua sendo receptor por clique ou Tab; extensão para o botão principal e ativação automática desde a abertura são propostas distintas. A pergunta do usuário não foi convertida silenciosamente em autorização para captura global ou em escolha de API de foco que não foi demonstrada no Kof.
+
+Não houve alteração de produção, commit, PR, merge ou publicação nesta investigação. Safari, Firefox, Android físico e captura de teclas com o navegador em segundo plano não foram testados. A suite completa não foi reexecutada: a comprovação usa os percursos focados acima, sem atribuir aos demais testes um resultado novo.
+
+## Aceite: jogar com o foco adquirido no menu — 08/10/2026
+
+Plano aprovado pelo usuário e executado na mesma pasta, branch `keyboard-menu-focus`, sem worktree. A investigação acima permanece histórica: o protótipo não era aceite; este ciclo corrige a perda de foco antes da entrega. Base da execução: `27dcc29f5b7e617249e6381824401e99fee85d5d`, commit preparatório que preserva aquela investigação.
+
+### Expectativas conferidas
+
+O escopo aprovado permite setas/1 no receptor transparente, botão principal e opção com foco retido. Preserva aquisição inicial por Tab/clique, Enter como ação principal, Espaço como ação do botão funcional, memória de teclas e prioridade do direcional. Uma opção fora da tela original se chama “Teclado do jogo”; Espaço não confirma ali. Blur limpa movimento efetivo e encerra a retenção. Abertura automática, captura global, API nova e pausa em segundo plano continuam fora deste ciclo.
+
+A classificação em `GameControls.keyboardReceiver` deriva dos identificadores, disponibilidade e `focusedOption` existentes. Nenhum segundo receptor ativo é armazenado. O mecanismo segue o training `idioms/ui.md:380`: `target()` retorna o id da origem real. `learn/35-kof-ui.md:5` explica que a prova de desenho exige JS. O runtime consultado `js/JsRuntimeUiEvents.java:31` lê `raw.target.id`; `KofJsBrowserE2ETest.java:1083` verifica `t=campo-main`. Essas fontes fundamentam o uso existente de eventos, sem propor uma API de foco.
+
+O [filtro da aplicação](../../src/main/kof/sifuture/GameControls.kf:273) consulta o estado existente:
+
+```kof
+keyboardReceiver(String id): Bool {
+    return id == "game-keyboard" || id == "game-action" || optionAvailable(id) || (optionTarget(id) && focusedOption == id)
+}
+```
+
+O último termo permite a opção cujo id continua em `focusedOption`, mesmo fora da tela original. A [limpeza no modelo](../../src/main/kof/sifuture/game/Game.kf:46) conserva o direcional:
+
+```kof
+clearKeyboard() {
+    if (!padPressed()) { ship.clearInput() }
+}
+```
+
+Essa operação não atribui os campos `heldLeft/Right/Up/Down`; limpa apenas a entrada efetiva, quando o pad não a controla. As provas de retorno com tecla mantida e de prioridade do direcional demonstram a consequência no alvo JS. O [training](../../../kof/training/anti-patterns/duplicate-state.md:72) orienta a classificação derivada:
+
+> If a value can be derived from another, derive it (method or function).
+> Do not store projections.
+
+### Qualidade das assertions conferida separadamente
+
+As ampliações permanecem em `tests/browser.py::confirmation_journeys`, abertura do `main`, `tests/browser_controls.py::keyboard_origin_and_release` e `tests/browser_weapons.py::keyboard_edges`. Cada novo cenário de entrada por opção usa contexto novo e relógio pausado. Tab/Shift+Tab obtêm o foco; não se usa `.focus()` nas novas provas exclusivamente por teclado. O observador registra origem de keydown/keyup e pointerdown desde antes da abertura. O observador de desenho lê o quadro completo; limpar apenas a faixa do HUD não apaga a observação da nave. Coordenadas esperadas são literais e os pixels opacos do sprite real são comparados com o canvas.
+
+A primeira expectativa de `Middle2.png` durante Restart foi corrigida após consultar `GameView.kf:150`: a propulsão desenhada à direita exige fase Normal. Essa assertion incorreta não conta como RED válido. Com a expectativa corrigida para `Middle.png`, o filtro antigo falhou em x30 e o novo passou. As etapas de movimento/soltura usam seis passos; o percurso final de retorno termina com42 passos do reinício, antes de colisões aleatórias em Normal poderem confundir a prova de teclado.
+
+Sondas em fontes temporárias, reutilizando a jornada real, demonstram sensibilidade a dois erros plausíveis:
+
+```text
+EXPECTED REJECTION release-ends-retention
+assert page.evaluate("document.activeElement.id") == "game-new"
+AssertionError
+EXPECTED REJECTION option-blur-keeps-moving
+AssertionError: {'name': 'Middle.png', 'x': 90, 'y': 100}
+```
+
+No segundo caso a assertion exigia x60, após seis passos sem o receptor original. Também houve RED válido para movimento no principal, blur do principal e 1 no principal com duas cargas. Essas sondas não são um mutation runner configurado nem um score de mutação. Sonar, Habit e mutation runner permanecem excluídos por ausência de configuração.
+
+### Critérios e resultados no checkpoint `9643f4e5ddb104334bfe43f83603781cf58ea8cd`
+
+| Critério | Assertion e observação demonstradas | Jornada | Resultado |
+| --- | --- | --- | --- |
+| Créditos/Enter mantido | Tab até principal; dois keydown Enter abrem somente menu; soltura e nova pressão iniciam; BODY inicial sem foco automático. | `browser.py::main`, 320/1200 | PASS em320/1200px |
+| Principal sem clique | Foco `game-action`; Direita seis passos x0→30; soltura conserva x30 por seis passos; origem real; zero pointerdown. | `browser.py::main`, 320/1200 | PASS em320/1200px |
+| Opção por teclado/clique/toque | Novo Jogo por Enter/Space conserva foco após soltura e tem zero pointerdown; clique/toque conserva foco e conta exatamente uma pressão na opção, nenhuma na área. Direita fresca x0→30; soltura conserva x30. | `confirmation_journeys`, quatro modos, 320/1200 | PASS em320/1200px |
+| Continuar/Reiniciar | Continuar conserva x30 e nova seta vai a60; Reiniciar limpa x60→0 e nova seta vai a30; repetir seta mantida conserva posição após ambas as transições. | `confirmation_journeys`, 320/1200 | PASS em320/1200px |
+| Blur/retenção | Principal: x90 para após Tab/Shift+Tab; retorno/repetição mantém x90; soltura/nova pressão vai a120. Opção: x60 para após Tab/Shift+Tab; desaparece imediatamente; retorno/repetição conserva x60; nova pressão vai a90. | `keyboard_origin_and_release` e `confirmation_journeys` | PASS em320/1200px |
+| 1 disponível | Nave normal, duas cargas; principal/Continuar retido deixam uma carga e desenham e0/e3/e6. Repetições por170 passos e após disponibilidade não gastam outra; soltura/nova pressão gasta a última. 1 mantido desde pausa não dispara ao continuar. Zero pointerdown inclusive na preparação por teclado. | `keyboard_edges`, 320/1200 | PASS em320/1200px |
+| Ações próprias e foco | Espaço retido não pausa; Enter retido pausa; nome Continuar restaurado na pausa. Tab para direcional retira contorno da área; Shift+Tab para overlay conserva o contorno corretamente. Guia, detalhes, Especial, captura de toque, prioridade do direcional e deduplicação continuam nos percursos existentes. | Três jornadas ampliadas e regressões existentes | PASS em320/1200px |
+
+Chrome139.0.7258.154, Playwright, JS, larguras320/1200px, densidade1, relógio de30ms. Suítes Kof JVM/JS complementam a prova; JVM não demonstra desenho. Compilador0.5.0-beta, launcher `/home/renanfranca/.local/share/kof/kof-0.5.0-beta-linux-x86_64/bin/kof`, JAR SHA-256 `78e5ab9b65994889b8e593378aeabfbb6d5d71862e28a96f186085cabe404334`. Checkout Kof consultado `317d9f6b1c3e27032cc955a05f859f6c627d9338`; o SHA de origem do binário continua desconhecido.
+
+Gate inicial: onze checks passaram no SHA comprometido acima, incluindo todos os critérios da tabela. A revisão estrutural, no mesmo contexto, não encontrou defeito ou risco material que exigisse refactor. O gate final repetirá os mesmos onze comandos; seu SHA e resultados ficam no ledger e na descrição do PR, evitando atribuir um resultado ainda não executado à documentação. Evidência local opcional: `.agent/tmp/keyboard-menu-focus*.log`, `.agent/tmp/keyboard-menu-focus-audits.md`, `.agent/tmp/credits-text-browser/keyboard-retained-*.png` e `.agent/tmp/background-items-weapons/keyboard-*.png`. Este resumo preserva os critérios e limites sem depender desses arquivos. A execução e revisão compartilham o contexto de implementação; não são avaliações independentes. Outros navegadores, Android físico e troca de aba/janela não são critérios demonstrados aqui.
+
+### Gate inicial e revisão estrutural
+
+SHA testado: `9643f4e5ddb104334bfe43f83603781cf58ea8cd`. Executor determinístico: `run_validation.py`, phase `initial-validating`, role `validator`, inventário e collectors confirmados em `.agent/tmp/keyboard-menu-focus.*`. Onze comandos selecionados e executados, zero bloqueados, todos exit0; duração461,82s. Comandos:
+
+```bash
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 tests/browser_stage.py
+python3 tests/browser_weapons.py
+python3 tests/browser_subchief.py
+python3 tests/browser.py
+python3 tests/browser_controls.py
+python3 tests/browser_meteor.py
+python3 tests/browser_boss.py
+python3 -m unittest discover -s tests -p 'test_kof_project.py'
+PATH="/home/renanfranca/projects/kof-sifuture/.agent/tmp/tools:$PATH" bash tests/ci-contract.sh
+```
+
+Kof:114 testes por alvo, zero falhas. Chrome: sete jornadas completas aprovadas. Python:8 testes, OK; os diagnósticos de parse aparecem no teste que exige rejeitar uma fonte inválida, não são falha omitida. Contrato CI: cenários positivos e rejeições esperadas aprovados. Trechos literais dos logs JVM/JS e das jornadas de controles/armas:
+
+```text
+0 failed of 114 tests
+PASS retained Enter option start x0→30, Continue x30→60, Restart x60→0→30, blur/held lock x60, fresh x90; pointerdowns=0 at 320px
+PASS retained touch option start x0→30, Continue x30→60, Restart x60→0→30, blur/held lock x60, fresh x90; pointerdowns=1 at 1200px
+PASS primary blur stops x90, Tab/Shift+Tab return/repeat stays x90, observed release/fresh press reaches x120, zero pointerdowns at 320px
+PASS 1 on game-action: two charges→one, three beam sprites, held/repeat through availability stays one, fresh press→zero; zero pointerdowns at 320px
+PASS 1 on game-continue: two charges→one, three beam sprites, held/repeat through availability stays one, fresh press→zero; zero pointerdowns at 1200px
+```
+
+Os modos Enter/Space têm zero pointerdown nas duas larguras; clique/toque têm exatamente uma pressão na opção, nenhuma na área. A origem é comprovada pelas assertions sobre `document.activeElement.id` e `keyboardEvents`, além da posição/pixels observados. A transição por tecla mantida é conferida antes da soltura/nova pressão, não inferida apenas da posição final.
+
+Revisão `refactor-design`: filtro compartilhado deriva o receptor; foco/blur delimitam retenção; nomes/estilos permanecem na UI; o modelo mantém memória, disponibilidade do especial e prioridade do direcional. Bloqueios são registrados antes das ações. A rubrica completa não identificou risco material ou API nova. Dividir a longa jornada ou alterar visibilidade de helpers seria organização, sem necessidade demonstrada; nenhuma fonte foi alterada na revisão. Capturas do contorno no principal e do guia fechado em320px inspecionadas pelo agente; assertions de texto/geometria cobrem ambas as larguras. Isso não é revisão independente nem aprovação visual humana.
+
+Evidência local opcional do gate: `.agent/tmp/validation/20261008T154737-2n0fr6m1/summary.json`; revisão em `.agent/tmp/keyboard-menu-focus.structural-review.md`. CI-only: [workflow Kof CI and GitHub Pages nesta branch](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml?query=branch%3Akeyboard-menu-focus), jobs Resolve verified Kof e Kof tests(jvm/js). A CI será acompanhada no PR; esta branch não publica Pages. Nenhum critério de teclado aprovado permanece sem prova local; CI e gate final ainda precisam concluir antes da entrega.
+
+## Aceite: aviso de teclado acompanha o foco real — 09/10/2026
+
+Registro histórico: a orientação descrita nesta seção foi removida por decisão
+posterior do usuário. O comportamento vigente está na seção “Decisão final:
+remover mensagens de ativação do teclado”, abaixo.
+
+Complemento aprovado e autorizado na branch `keyboard-menu-focus`, atualizando o [PR #19](https://github.com/renanfranca/kof-sifuture/pull/19), sem worktree. Base imutável: `82c6972da6bb446b2fc4cd2c2125ffaa733f26c4`. Worker único `primary`, chat `01a120d1-783e-7500-9984-818389e65b1a`, `gpt-6.1-sol`/`medium`, título `keyboard-focus-primary`. Implementação, conferência semântica, validação e revisão estrutural compartilham contexto; não são independentes.
+
+### Contrato e realização
+
+O aviso é uma orientação da partida sem foco válido. Não é um modo adicional de teclado. O receptor transparente permanece montado e recebe foco por clique e Tab; o rótulo separado não intercepta ponteiros. Foco da área, botão principal ou opção retida do menu oculta o rótulo imediatamente e muda o nome acessível do receptor para “Teclado ativo”. Perder esses focos restaura “Ativar teclado do jogo” e a orientação durante Play. Nas demais telas ela permanece ausente.
+
+O [helper de apresentação](../../src/main/kof/sifuture/GameControls.kf:205) consulta os campos existentes e a mesma elegibilidade que autoriza as teclas:
+
+```kof
+var playing = game.screen == Screen.Play
+var focused = (keyboardFocused && keyboardReceiver("game-keyboard")) || (actionFocused && keyboardReceiver("game-action")) || keyboardReceiver(focusedOption)
+keyboardHint.setStyle(if (playing && !focused) keyboardHintStyle else hiddenStyle)
+overlay.text = if (playing && focused) "Teclado ativo" else "Ativar teclado do jogo"
+```
+
+`focused` é local, recalculado; nenhum campo “teclado ativado” foi introduzido. O aviso e o nome são duas apresentações da mesma condição. Focus/blur dos receptores atualizam a apresentação, e `update()` cobre transições de tela. A opção retida também atualiza ao ganhar foco fora da sua tela original. Movimento, especial, confirmação, bloqueios de teclas mantidas e prioridade do direcional conservaram a implementação.
+
+O [training de eventos](../../../kof/training/idioms/ui.md:380) explica a origem do foco:
+
+> `Event.key()/value()/x()/y()/target()/relatedTarget()` read the real DOM event
+
+O [anti-pattern de estado duplicado](../../../kof/training/anti-patterns/duplicate-state.md:73) prescreve:
+
+> If a value can be derived from another, derive it (method or function).
+
+Consultados também [Learn Kof 35](../../../kof/learn/35-kof-ui.md:191), parser Style, runtime JS de widgets/eventos, testes UiStyleCssE2ETest, classes/idiomas, referência de classes e training CLI. A implementação usa apenas APIs existentes; nenhum arquivo do Kof foi alterado. Kof instalado `0.5.0-beta`; essas fontes locais não identificam o SHA do pacote instalado. A prova de UI foi executada no alvo JS em Chrome, não inferida da compilação JVM.
+
+### Conferência semântica dos critérios
+
+A conferência parte dos critérios aprovados, separadamente da leitura das assertions. “Ativo” significa receptor elegível realmente com foco, inclusive a opção que mantém foco após uma confirmação. A aquisição não deve esperar o intervalo de 30 ms. Perda de foco não autoriza limpar a memória física das teclas nem retomar movimento automaticamente. O texto oculto não deve ser substituído por outra mensagem visível.
+
+| Critério | Observação executada |
+|---|---|
+| Iniciar, continuar e reiniciar por Enter, Espaço, clique e toque | Em 320/1200 px, os ids game-new/continue/restart mantêm foco; antes de avançar o relógio, o rótulo está oculto e a região composta coincide com o canvas. Pressão nova de Direita move x0→30, x30→60 ou x0→30 em seis passos; tecla mantida permanece bloqueada. |
+| Clique no aviso e Tab para a área | Aplicação normal, 320/1200 px × densidades 1/2: hit testing encontra game-keyboard sob o rótulo. Clique no centro e Tab focam esse receptor; ocultação e nome acessível conferidos antes do próximo passo. Nave x0→30→60, seis passos por entrada. |
+| Botão principal com área sem foco | Foco em game-action oculta o aviso com o relógio parado; nome acessível “Teclado ativo”. Jornada existente verifica setas e soltura nesse botão. |
+| Sair com Direita mantida e retornar por Tab | Blur mostra o aviso imediatamente; movimento para. Retorno por Tab oculta o aviso, mas repetição de Direita continua bloqueada; soltura observada e pressão nova permitem movimento. Tab/Shift+Tab e perda de soltura preservam regressões existentes. |
+| Créditos, menu, pausa, Controles e resultado | Rótulo ausente nas cinco telas. Resultado provocado por três colisões determinísticas, sem esperar derrota espontânea. Sete percursos preservam dimensões, ações, direcional, especial, sprites, fases e contagem. |
+| Aparência e layout | Rótulo 152×20 em (12,88) relativo ao canvas 176×220; sans-serif 14px, entrelinha20px, fundo RGB18, texto RGB238, pointer-events none. Bounds de canvas e ação iguais antes/depois. Sem scroll horizontal. |
+
+### Força das observações e falhas preservadas
+
+O primeiro RED falhou em `assert hint.is_visible()` porque a orientação separada não existia. O GREEN do percurso de controles demonstrou focus/blur com o relógio parado. `keyboard_hint` usa o nome acessível do botão, visibilidade, geometria, estilos efetivos, hit testing e os pixels compostos na faixa (12,88)..(164,108). Com aviso, exige pixels do fundo escuro e texto claro, além de diferença do canvas. Sem aviso, exige igualdade integral com os pixels do canvas nessa região. Não basta mudar o texto do botão ou declarar display none.
+
+Três probes dirigidos em cópias temporárias foram rejeitados por assertions: remover atualização no focus; aplicar opacity0 mantendo o texto/estilo; ignorar a opção retida na condição de foco. O terceiro probe inicialmente chamou um percurso que não conferia o aviso e não detectou o defeito; a seleção foi corrigida para `confirmation_journeys`, que falhou na ocultação logo após iniciar pelo menu. Essa falha do harness não é apresentada como sucesso. Não há runner de mutação configurado, nem escore ou cobertura completa de mutantes alegados.
+
+O primeiro gate, no SHA `326068ed2211457cbd29d9d64faa2524c92c991a`, executou 11 checks: dez passaram e armas falhou ao comparar effect0.png em (49,84), 8/29 amostras, porque o novo rótulo sobrepunha parte do sprite. A correção lê os pixels reais do canvas para os sprites de armas, como nos helpers de controles/fase. As capturas compostas continuam sendo a prova visual da orientação; pixels do canvas isolados não demonstram ausência de uma sobreposição DOM. Seletores antigos que precisavam reutilizar o receptor agora usam seu id estável, pois seu nome acessível muda legitimamente.
+
+O executor de commit recusou linhas de corpo acima de100 caracteres antes de chamar Git; as mensagens foram refluídas e novos attempts registraram os commits. Uma validação final iniciada prematuramente depois da recusa do commit documental foi cancelada; nenhum resultado dela foi aproveitado, e a execução final foi reiniciada após commit confirmado. Nenhum commit foi amendado/rebaseado nem hook ignorado. Logs das recusas/probes/gates permanecem em `.agent/tmp/keyboard-focus*` como suporte opcional.
+
+### Gates, capturas e limites
+
+SHA do checkpoint corrigido e testado: `7c0e912a3f986b581128ca968211bf2b16d42b82`. Gate inicial: 11 selecionados/executados, zero bloqueados, todos exit0, duração289,81s; evidência opcional `.agent/tmp/validation/20261009T134017-ab8pxjl1/summary.json`. Comandos, todos selecionados localmente:
+
+```bash
+python3 scripts/kof_project.py test --target jvm
+python3 scripts/kof_project.py test --target js
+python3 -m unittest discover -s tests -p 'test_*.py'
+python3 tests/browser.py
+python3 tests/browser_controls.py
+python3 tests/browser_meteor.py
+python3 tests/browser_weapons.py
+python3 tests/browser_stage.py
+python3 tests/browser_subchief.py
+python3 tests/browser_boss.py
+bash tests/ci-contract.sh
+```
+
+Trechos efetivos dos comandos de Kof (JVM/JS), unittest Python, Chrome controles/aplicação:
+
+```text
+0 failed of 114 tests
+Ran 8 tests in 16.422s
+OK
+PASS keyboard hint follows area/action focus and blur with clock paused
+PASS hint pixels/style/hit target, immediate click/Tab focus, x0→30→60, unchanged layout, other screens at 320px density1 zoom100%
+```
+
+Chrome `139.0.7258.154`, Linux, Playwright/Pillow, mouse/Tab e touch via CDP. Capturas antes/depois em `.agent/tmp/keyboard-focus/before-{unfocused,focused}-{320,1200}-d{1,2}.png` e `after-{unfocused,focused}-{click,Tab}-{320,1200}-d{1,2}.png`, zoom100% demonstrado por visualViewport.scale1 e densidades por devicePixelRatio. Imagens da apresentação foram inspecionadas; o texto é compacto e a área reaparece ao focar. Nenhum arquivo de evidência local é necessário para compreender os resultados acima; exclude local contém `/.agent/tmp/` exatamente uma vez.
+
+Revisão estrutural: **No action** nos riscos examinados: lifecycle/montagem única, projeção sem estado duplicado, responsabilidade de apresentação nos controles, elegibilidade compartilhada, eventos síncronos e observações de canvas/composição separadas. Nenhum refactor material necessário; rubrica e justificativas em `.agent/tmp/keyboard-focus.structural-review.md` (suporte opcional). O gate final repetirá os mesmos onze checks após o commit deste registro. O SHA final, resumo do executor e CI serão registrados no ledger e na descrição do [PR #19](https://github.com/renanfranca/kof-sifuture/pull/19). CI-only selecionado: Resolve verified Kof e Kof tests(jvm/js) no [workflow configurado](https://github.com/renanfranca/kof-sifuture/actions/workflows/kof-ci-and-pages.yml?query=branch%3Akeyboard-menu-focus). Sonar, mutation runner e Habit não configurados/excluídos; nenhum passed atribuído. Build/Publish Pages requerem push em main, sem publicação alegada neste complemento.
+
+Limite da reprodução original: neste Chrome, antes da mudança, o receptor tinha texto “Ativar teclado do jogo”, mas color transparent mesmo após clique. O aviso visual permanente relatado pelo usuário não foi reproduzido aqui. O novo contrato aprovado de orientação condicional foi demonstrado diretamente. Outros navegadores, Android físico, troca de aba/janela e leitura com leitor de tela real não foram verificados; a prova acessível cobre o nome no DOM/role do Chrome. Touch simulado não equivale a dispositivo físico. Os cinco critérios aprovados têm as provas locais descritas; gate final e CI só são concluídos por seus registros efetivamente observados.
+
+### Reteste em Chrome atualizado e Vivaldi no WSL2 — 09/10/2026
+
+Pedido adicional: atualizar o Chrome Linux, instalar o Vivaldi Linux e investigar
+relato de falha no Vivaldi Windows 8.2.4133.84. Código testado sem alterações:
+`5fdba59172db1f9c556e70edbf807b8e19d7837c`. Ubuntu 22.04.5, WSL2/WSLg,
+janelas gráficas, perfis de teste sem extensões do usuário. Chrome atualizado de
+139.0.7258.154 para 155.0.8059.39; Vivaldi stable instalado em 8.2.4133.84,
+com Chromium 152.0.0.0 informado pelo protocolo DevTools. Pacotes obtidos dos
+sites oficiais. A simulação do apt selecionou somente atualização do Chrome e
+instalação do Vivaldi, sem outras dependências ou remoções; instalação exit0.
+A documentação atual do Vivaldi declara suporte a Ubuntu 24.04+, portanto este
+reteste no Ubuntu 22.04 não afirma suporte oficial a essa distribuição.
+
+Comandos de execução, com ferramentas e evidências locais opcionais:
+
+```bash
+google-chrome --version
+vivaldi-stable --version
+python3 -u .agent/tmp/keyboard-focus/browsers/compare.py
+python3 -u .agent/tmp/keyboard-focus/browsers/vivaldi-cdp.py
+python3 -u .agent/tmp/keyboard-focus/browsers/vivaldi-public.py
+```
+
+Chrome com janela gráfica: 320/1200 px × densidade 1/2, zoom100%, matriz de
+clique/Tab com pixels compostos, ocultação antes de avançar o relógio,
+foco game-keyboard, x0→30→60, blur restaura orientação e botão principal
+oculta orientação. `confirmation_journeys` passou nas duas larguras por Enter,
+Espaço, clique e toque para iniciar/continuar/reiniciar. Também passaram
+`keyboard_hint_follows_focus`, `tab_keeps_lost_release_blocked` e
+`click_rearms_held_arrow`, usando a fixture controls.kf.
+
+A chamada direta do Playwright ao Vivaldi falhou em BrowserContext.new_page
+antes de testar o jogo, tanto em janela gráfica quanto headless. Conectar ao
+navegador completo via connect_over_cdp também expirou. Esses resultados não
+são defeitos demonstrados do jogo. O primeiro script compare.py terminou
+exit1 por essa falha após concluir as verificações do Chrome.
+
+O reteste do Vivaldi usou uma janela completa iniciada normalmente e conexão
+DevTools direta à aba, com websocket-client 1.9.2 instalado no usuário. Somente
+o intervalo do jogo de30ms foi controlado, permitindo verificar foco e pixels
+antes do passo seguinte. Eventos de mouse e teclado foram enviados pelo
+protocolo do navegador. A matriz local e a matriz no mesmo link público dado
+ao usuário passaram, ambas exit0, em320/1200 px × densidade1/2. Antes do
+clique há orientação; depois há foco game-keyboard, nome “Teclado ativo” e
+pixels iguais aos do canvas na região do aviso. Direita por seis passos move
+x0→30. Blur com Direita mantida mostra orientação e para emx30; retorno por
+Tab oculta orientação, repetição continua bloqueada; soltura e nova pressão
+movem x30→60. Foco no botão principal e continuar por clique ocultam aviso.
+
+Excertos reais dos logs finais:
+
+```text
+PASS chrome graphical 320px density1: click/Tab hide pixels immediately; x0->30->60; blur restores hint; primary focus hides hint
+PASS Vivaldi full UI 320 1 pixels absent immediately; click x0->30; blur stops; Tab blocks held key; fresh press x30->60; primary/continue focus hide hint
+```
+
+Uma tentativa intermediária de comparar capturas de densidade2 ao canvas
+redimensionado por nearest-neighbor falhou pela escala do raster. O harness
+foi corrigido para capturar em pixels CSS, como o helper Playwright existente;
+a comparação integral passou nas quatro configurações. Não é apresentada
+como regressão do jogo. Logs dessa tentativa foram preservados.
+
+Evidências opcionais em `.agent/tmp/keyboard-focus/browsers/`: install.log,
+compare.log, results.json, vivaldi-full-final.log, vivaldi-full-results.json,
+vivaldi-public.log, vivaldi-public-results.json, scripts e capturas
+chrome-*, vivaldi-full-* e vivaldi-public-* antes/depois. Link testado:
+https://podcast-arbitrary-broadcast-reputation.trycloudflare.com/?v=5fdba59
+(túnel temporário, não substitui evidência persistente).
+
+Limites: a falha no Windows não foi reproduzida no Linux, mesmo com a mesma
+versão do Vivaldi. Não foram testados o perfil/extensões/configurações do
+Vivaldi do usuário nem a plataforma Windows. A matriz Vivaldi deste reteste
+não executou os sete percursos completos, nem todas as combinações de
+confirmação de menu; o gate completo anterior permanece registrado acima.
+Nenhuma correção adicional do jogo foi inferida desses resultados.
+
+
+## Decisão final: remover mensagens de ativação do teclado — 09/10/2026
+
+Após confirmar que a falha persistia no Vivaldi Windows, o usuário substituiu
+explicitamente a orientação condicional por sua remoção completa, junto dos
+testes dedicados às mensagens. SHA de aplicação e testes verificado:
+`81f8fdecb40fb06572f18ea166f235b57ade9d0b` (`fix: remove keyboard activation messages`). O diff de src/tests
+foi comparado integralmente com o executado antes do commit; seu SHA-256 é
+`ee19eaff6c4327ba1816f201c2704e959c5d7ebdc0a5dc9f850a86ace07117c3`.
+
+Removidos rótulo, estilo, campos, atualização por foco e troca de texto do
+receptor. O receptor usa `Button("", ...)`: nenhum texto de ativação é
+materializado no botão. Dimensões, clique, Tab, handlers de teclado, blur,
+memória das teclas, especial e prioridade do direcional permanecem. A área
+sem texto também fica sem nome acessível próprio; as opções retidas mantêm o
+nome funcional existente “Teclado do jogo”. Não foi criada API nova no Kof.
+README atualizado. Removidos keyboard_hint, keyboard_hint_presentation,
+keyboard_hint_follows_focus e suas assertions; os percursos de foco/movimento,
+menu e combate continuam. Seletores de armas/subchefe/chefe que dependiam da
+mensagem foram substituídos por seletores do receptor, sem apagar esses testes.
+
+Onze checks executados, todos exit0; nenhuma etapa omitida. Mesmos comandos
+completos do gate anterior: suítes JVM e JS (114 testes, zero falhas em cada),
+Python unittest (8 testes, OK), browser.py, browser_controls.py,
+browser_meteor.py, browser_weapons.py, browser_stage.py,
+browser_subchief.py, browser_boss.py e tests/ci-contract.sh. Os casos negativos
+internos de unittest produzem falhas deliberadas de Kof: o resultado agregado
+foi OK. Execução paralela de quatro comandos, com logs separados e saídas
+individuais registradas em `.agent/tmp/remove-keyboard-messages/summary.json`.
+Não houve nova execução completa após commit: igualdade do diff comprova que
+os arquivos de aplicação/testes executados são os mesmos do SHA informado.
+
+Chrome 155.0.8059.39: os sete percursos completos passaram. Vivaldi Linux
+8.2.4133.84, janela gráfica WSLg: quatro combinações 320/1200 px × densidade1/2,
+clique e Tab focam game-keyboard; Direita por seis passos a cada entrada move
+x0→30→60. Capturas mostram a partida sem o aviso. Excerto do reteste:
+
+```text
+PASS Vivaldi graphical 320px density1: click/Tab focus, six steps per press x0->30->60
+```
+
+Evidências opcionais em `.agent/tmp/remove-keyboard-messages/`: logs de cada
+comando, tested.diff, summary.json, vivaldi-final.log e vivaldi-*.png. O primeiro
+reteste Vivaldi expirou em Page.enable antes de carregar o jogo. Foi repetido
+com o perfil de teste já inicializado; terminou exit0 nas quatro combinações.
+A falha inicial foi preservada em vivaldi-initial-failure.log. Um erro de aspas
+na alteração Python foi detectado por py_compile e corrigido antes do gate.
+
+Limites: Windows continua sem prova direta. O plugin Computer Use foi tentado,
+reiniciado e falhou ao validar sandboxCwd da pasta WSL, antes de controlar a
+janela. A remoção da mensagem está demonstrada no código e no Linux; não se
+alega correção da causa original de renderização no Windows. Não foram
+reexecutados os sete percursos no Vivaldi, apenas o percurso gráfico acima.
+Os requisitos históricos do aviso e seus probes deixaram de ser critérios
+vigentes. Este reteste não introduz testes permanentes dessas mensagens.
+
+CI da remoção concluída com sucesso sobre
+`19e25b26f3b6c987f89514af3cbd83a6fa71b233`, que acrescenta apenas o registro
+documental ao SHA de código testado: [execução 37946396314](https://github.com/renanfranca/kof-sifuture/actions/runs/37946396314).
+Resolve verified Kof e Kof tests (jvm/js) passaram; Build/Publish Pages foram
+omitidos conforme a condição do workflow para esta branch. O link temporário
+`/sem-avisos/?v=19e25b2` também passou no Chrome: clique no receptor seguido de
+seis passos de Direita moveu x0→30. Captura public.png e ci-result.json são
+suportes opcionais no mesmo diretório local. Este acréscimo altera somente o
+registro documental; não representa outra execução das suítes locais.
+
+
+## Texto nativo duplicado nas opções de menu — 09/10/2026
+
+O usuário identificou a piscada como “Novo Jogo” e “Controles” com tipografia
+de botão nativo, além do texto correto do canvas. O relato direcionou a
+correção aos receptores sobrepostos das opções, e não à orientação de teclado
+já removida. Código/testes verificados: `cedf4875abe101d8fd85012dbfb30ef20bf5406c`
+(`fix: keep menu hit targets invisible`). Diff integral de src/tests executado
+antes do commit, SHA-256 `b6b7662d06b97c55a1a42b5c2f30563af3b71d50fa582079cf9b525822c04254`;
+comparação confirmou igualdade com o commit.
+
+optionStyle e retainedOptionStyle passaram a incluir `opacity: 0`. O
+receptor continua montado com as mesmas dimensões, nomes acessíveis e eventos;
+clique, toque e Tab permanecem disponíveis. A opacidade impede a pintura do
+botão inteiro, enquanto o texto visível continua sendo desenhado no canvas.
+Nenhum aviso de ativação ou teste dedicado a ele foi reintroduzido. Sem API
+nova do Kof. Consultados training/idioms/ui.md (eventos e Style), parser atual
+KofStyleParser (opacity é propriedade numérica), JsRuntimeUiWidgets
+(kofUiApplyStyle aplica cssText), anti-pattern duplicate-state e Learn35.
+A aplicação efetiva do estilo foi comprovada no alvo JS, não pela suíte JVM.
+
+A regressão em menu_presentation compara a captura composta com o canvas
+composto sobre o fundo real da página. Na faixa de cada opção, exige diferença
+máxima de1 por canal, tolerância do arredondamento de alfa do canvas transparente.
+Uma stylesheet diagnóstica força -webkit-text-fill-color claro nos cinco
+receptores, expondo texto nativo mesmo se color continuar transparente. São
+verificados menu e pausa, foco, hover e atualização, preservando também as
+assertions anteriores de fonte/posição do canvas, nomes acessíveis e ações.
+A stylesheet existe apenas no teste. É uma condição controlada; não prova
+que a configuração Windows do usuário contém essa regra.
+
+RED confirmado contra a compilação anterior c5ad6df servida no endereço raiz,
+com o helper final: diferença máxima198/196/184 na primeira faixa. GREEN no
+código corrigido em320/1200 px. Excerto real do RED:
+
+```text
+AssertionError: (120, ((0, 198), (0, 196), (0, 184)))
+```
+
+O primeiro helper convertia alfa em preto e falhou mesmo com opacidade0. Foi
+corrigido para compor sobre o fundo RGB40/42/54; a comparação exata ainda falhou
+por diferença observada de1 no arredondamento. Essa foi a origem da tolerância,
+e não uma supressão de pixels duplicados. Um gate iniciado antes dessa correção
+teve dez checks verdes e browser.py vermelho; foi preservado e substituído por
+uma execução completa depois do GREEN focal. Um script diagnóstico chamado
+inspect.py também colidiu com o módulo Python inspect e foi renomeado.
+
+Gate final: onze checks completos, todos exit0. Mesmos comandos integrais
+registrados na remoção das mensagens: JVM/JS114 testes cada, Python8 testes,
+os sete scripts browser*.py e contrato de CI. Evidência opcional:
+`.agent/tmp/menu-native-text/final/summary.json`, logs e tested.diff. Nenhum
+resultado do gate inicial foi reaproveitado como passe do gate final.
+
+Compilação publicada em /menu-corrigido/ e comparada byte a byte com index.html,
+Default.mjs e kof-runtime.mjs remotos. Chrome155.0.8059.39 e Vivaldi8.2.4133.84
+Linux gráfico WSLg: 320/1200 px × densidade1/2, capturas CSS e pixels sem
+sobreposição nativa sob a regra diagnóstica. Chrome comprovou hover/foco e
+clique em Controles; Vivaldi também retorno de Controles, início, Direita
+x0→30 em seis passos e pausa. Excerto do reteste Vivaldi:
+
+```text
+PASS Vivaldi menu/pause 320px density1: no native pixels under text-fill override; controls return, start and x0->30
+```
+
+Na primeira tentativa Vivaldi, o helper de clique não rolou até Voltar, abaixo
+da janela do guia em320px. A captura continuou mostrando Controles e a
+comparação falhou. O helper passou a scrollIntoView antes do clique; o reteste
+completo das quatro configurações passou. Ambos os logs foram preservados.
+Capturas public-menu-*, public-forced-menu-* e vivaldi-{menu,return,pause}-*,
+RED/GREEN e vivaldi-final.log estão em `.agent/tmp/menu-native-text/`.
+Link temporário: https://pets-include-deck-ignored.trycloudflare.com/menu-corrigido/
+
+Limites: o Windows continua sem teste direto. A duplicação foi demonstrada sob
+uma cor nativa imposta no Linux; a causa da piscada específica do Windows não
+foi determinada. A proteção foi verificada nos navegadores Linux acima, com
+implementação e validação no mesmo contexto. O usuário ainda precisa confirmar
+no seu Windows. O Vivaldi não executou os sete percursos completos.
