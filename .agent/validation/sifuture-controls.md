@@ -886,3 +886,45 @@ uma cor nativa imposta no Linux; a causa da piscada específica do Windows não
 foi determinada. A proteção foi verificada nos navegadores Linux acima, com
 implementação e validação no mesmo contexto. O usuário ainda precisa confirmar
 no seu Windows. O Vivaldi não executou os sete percursos completos.
+
+
+## Merge, publicação e retorno a main — 09/10/2026
+
+O usuário confirmou “Resolvido” depois de verificar o link com a proteção dos
+receptores do menu e autorizou explicitamente push, merge, acompanhamento do
+GitHub Pages e atualização do checkout local de main. Essa confirmação é um
+relato manual do usuário; não representa controle automatizado do Windows.
+A limitação anterior de confirmação pelo usuário fica encerrada por esse relato.
+
+Push de keyboard-menu-focus confirmou Everything up-to-date. PR19 estava
+MERGEABLE/CLEAN com checks verdes e foi integrado por merge commit, sem apagar
+branches, amend, rebase ou reset: [PR19](https://github.com/renanfranca/kof-sifuture/pull/19),
+SHA `5609febbc76cc2dd5d0f52c90349dae3ef1f5057`, mergedAt2026-10-09T15:09:56Z.
+Comando: gh pr merge19 --merge --match-head-commit854a4833d013a86b275897372584b5563d9ed43a
+(com espaços entre argumentos na execução). Main foi atualizado em seguida
+com git switch main e git pull --ff-only origin main, sem descartar alterações.
+
+[Publicação 37949665153](https://github.com/renanfranca/kof-sifuture/actions/runs/37949665153)
+concluiu SUCCESS sobre o SHA do merge. Resolve verified Kof, Kof tests(jvm/js),
+Build complete Pages site e Publish current main passaram. Acompanhamento:
+gh run watch37949665153 --interval20 --exit-status (argumentos separados por
+espaços na execução). O artefato pages-37949665153-1 foi obtido por gh run download.
+
+Todos os113 arquivos publicados foram comparados byte a byte com o conteúdo
+do artefato dessa CI, incluindo HTML, módulos/runtime e assets. Resultado:
+
+```text
+PASS published Pages matches CI artifact: 113 files
+```
+
+O menu publicado foi percorrido no Chrome155.0.8059.39 com
+menu_presentation em320/1200px: pixels compostos, fonte e posição do canvas,
+hover/foco, seleção, início e pausa, inclusive sob a cor nativa imposta no teste.
+O URL oficial é https://renanfranca.github.io/kof-sifuture/.
+Evidências locais opcionais em `.agent/tmp/menu-native-text/merge-pages/`:
+pr.json, run.json, watch.log, artefato e public-inventory.json.
+
+O checkout ficou em main, sincronizado com origin/main. Este acréscimo registra
+a publicação já verificada e altera somente documentação; o push documental
+subsequente conserva os arquivos de aplicação/testes do merge. Não houve
+limpeza de branches nem dos links temporários de teste.
