@@ -900,15 +900,16 @@ Push de keyboard-menu-focus confirmou Everything up-to-date. PR19 estava
 MERGEABLE/CLEAN com checks verdes e foi integrado por merge commit, sem apagar
 branches, amend, rebase ou reset: [PR19](https://github.com/renanfranca/kof-sifuture/pull/19),
 SHA `5609febbc76cc2dd5d0f52c90349dae3ef1f5057`, mergedAt2026-10-09T15:09:56Z.
-Comando: gh pr merge19 --merge --match-head-commit854a4833d013a86b275897372584b5563d9ed43a
-(com espaços entre argumentos na execução). Main foi atualizado em seguida
+Comando: `gh pr merge 19 --merge --match-head-commit 854a4833d013a86b275897372584b5563d9ed43a`.
+Main foi atualizado em seguida
 com git switch main e git pull --ff-only origin main, sem descartar alterações.
 
 [Publicação 37949665153](https://github.com/renanfranca/kof-sifuture/actions/runs/37949665153)
 concluiu SUCCESS sobre o SHA do merge. Resolve verified Kof, Kof tests(jvm/js),
 Build complete Pages site e Publish current main passaram. Acompanhamento:
-gh run watch37949665153 --interval20 --exit-status (argumentos separados por
-espaços na execução). O artefato pages-37949665153-1 foi obtido por gh run download.
+`gh run watch 37949665153 --interval 20 --exit-status`. O artefato
+`pages-37949665153-1` foi obtido por
+`gh run download 37949665153 -n pages-37949665153-1 -D .agent/tmp/menu-native-text/merge-pages/artifact`.
 
 Todos os113 arquivos publicados foram comparados byte a byte com o conteúdo
 do artefato dessa CI, incluindo HTML, módulos/runtime e assets. Resultado:
