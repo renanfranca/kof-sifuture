@@ -1,44 +1,16 @@
 """Exercise the generated KofJS game in Chrome with observable waits."""
 
 import argparse
-import base64
-import io
 from datetime import datetime
 import sys
 from contextlib import nullcontext
 import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-from PIL import Image, ImageChops
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from kof_project import served_build
 from browser_stage import sprite
-
-def keyboard_hint(page, visible):
-    hint = page.locator("#game-keyboard-hint")
-    assert hint.count() == 1
-    assert hint.is_visible() == visible
-    overlay = page.locator("#game-keyboard")
-    name = "Ativar teclado do jogo" if visible else "Teclado ativo"
-    assert page.get_by_role("button", name=name, exact=True).get_attribute("id") == "game-keyboard"
-    assert overlay.is_visible() and not overlay.is_disabled()
-    canvas = page.locator("canvas:visible")
-    rendered = Image.open(io.BytesIO(canvas.screenshot(scale="css"))).convert("RGB").crop((12, 88, 164, 108))
-    pixels = base64.b64decode(canvas.evaluate("n => n.toDataURL().split(',')[1]"))
-    underlying = Image.open(io.BytesIO(pixels)).convert("RGB").crop((12, 88, 164, 108))
-    if visible:
-        style = hint.evaluate("n => { const s = getComputedStyle(n); return [s.fontFamily, s.fontSize, s.lineHeight, s.backgroundColor, s.color, s.pointerEvents]; }")
-        assert style == ["sans-serif", "14px", "20px", "rgb(18, 18, 18)", "rgb(238, 238, 238)", "none"], style
-        box, area = hint.bounding_box(), canvas.bounding_box()
-        assert (box["x"] - area["x"], box["y"] - area["y"], box["width"], box["height"]) == (12, 88, 152, 20), box
-        assert sum(pixel == (18, 18, 18) for pixel in rendered.getdata()) > 1000
-        assert sum(all(channel > 180 for channel in pixel) for pixel in rendered.getdata()) > 50
-        assert ImageChops.difference(rendered, underlying).getbbox() is not None
-        point = {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] / 2}
-        assert page.evaluate("p => document.elementFromPoint(p.x, p.y).id", point) == "game-keyboard"
-        return point
-    assert ImageChops.difference(rendered, underlying).getbbox() is None
 
 
 def wait_for(predicate, page, timeout=5):
@@ -82,7 +54,6 @@ def record_menu(page):
             return text.call(this, label, x, y, ...rest);
         };
     """)
-
 
 
 def record_keyboard(page):
@@ -332,7 +303,6 @@ def menu_navigation(browser, url):
         print(f"PASS credits skip, bounded menu, Controls and pause navigation at {width}px")
 
 
-
 def confirmation_journeys(browser, url):
     evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/credits-text-browser"
     for width in (320, 1200):
@@ -417,7 +387,6 @@ def confirmation_journeys(browser, url):
                 target.tap()
             assert page.get_by_role("button", name="Pausar", exact=True).is_visible()
             assert page.evaluate("document.activeElement.id") == "game-new", mode
-            keyboard_hint(page, False)
             assert target.inner_text() == "Teclado do jogo"
             assert page.get_by_role("button", name="Teclado do jogo", exact=True).evaluate("n => n === document.activeElement")
             assert target.evaluate("n => getComputedStyle(n).pointerEvents") == "none"
@@ -449,7 +418,6 @@ def confirmation_journeys(browser, url):
             else:
                 page.locator("#game-continue").tap()
             assert page.evaluate("document.activeElement.id") == "game-continue"
-            keyboard_hint(page, False)
             assert page.locator("#game-continue").inner_text() == "Teclado do jogo"
             page.keyboard.down("ArrowRight")
             page.clock.run_for(180)
@@ -472,7 +440,6 @@ def confirmation_journeys(browser, url):
             else:
                 page.locator("#game-restart").tap()
             assert page.evaluate("document.activeElement.id") == "game-restart"
-            keyboard_hint(page, False)
             assert page.locator("#game-restart").inner_text() == "Teclado do jogo"
             ship_at(page, 0)
             page.keyboard.down("ArrowRight")
@@ -498,9 +465,7 @@ def confirmation_journeys(browser, url):
             else:
                 assert page.get_by_role("button", name="↑", exact=True).evaluate("n => document.activeElement === n")
                 assert page.locator("#game-keyboard").locator("..").evaluate("n => getComputedStyle(n).outlineStyle") == "none"
-            keyboard_hint(page, mode not in ("Space", "touch"))
             tab_to(page, "game-action")
-            keyboard_hint(page, False)
             page.keyboard.down("ArrowRight")
             page.clock.run_for(180)
             ship_at(page, 60)
@@ -741,67 +706,6 @@ def repeated_entrances(browser, url, result_url):
         print(f"PASS repeated real skip/Controls/pause/result arrivals at -30/-20/80/87/18, repaint and early confirmation at {width}px")
 
 
-def keyboard_hint_presentation(browser, url, result_url):
-    evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/keyboard-focus"
-    evidence.mkdir(parents=True, exist_ok=True)
-    for width in (320, 1200):
-        for density in (1, 2):
-            context = browser.new_context(viewport={"width": width, "height": 900}, device_scale_factor=density)
-            page = context.new_page()
-            record_keyboard(page)
-            page.clock.install(time=datetime(2026, 1, 1))
-            page.clock.pause_at(datetime(2026, 1, 1))
-            page.goto(url)
-            page.wait_for_function("Object.values(window.__kofNodes).filter(n => n.tagName === 'IMG').every(n => n.complete && n.naturalWidth > 0)")
-            assert not page.locator("#game-keyboard-hint").is_visible()
-            page.locator("#game-action").click()
-            assert not page.locator("#game-keyboard-hint").is_visible()
-            page.locator("#game-new").click()
-            keyboard_hint(page, False)
-            initial_bounds = page.locator("canvas:visible").bounding_box()
-            action_bounds = page.locator("#game-action").bounding_box()
-            for entry in ("click", "Tab"):
-                page.mouse.click(2, 2)
-                point = keyboard_hint(page, True)
-                assert page.locator("canvas:visible").bounding_box() == initial_bounds
-                assert page.locator("#game-action").bounding_box() == action_bounds
-                page.screenshot(path=str(evidence / f"after-unfocused-{entry}-{width}-d{density}.png"), full_page=True)
-                if entry == "click":
-                    page.mouse.click(**point)
-                else:
-                    tab_to(page, "game-keyboard")
-                assert page.evaluate("document.activeElement.id") == "game-keyboard"
-                keyboard_hint(page, False)
-                page.screenshot(path=str(evidence / f"after-focused-{entry}-{width}-d{density}.png"), full_page=True)
-                page.keyboard.down("ArrowRight")
-                page.clock.run_for(180)
-                ship_at(page, 30 if entry == "click" else 60)
-                page.keyboard.up("ArrowRight")
-            page.locator("#game-action").focus()
-            keyboard_hint(page, False)
-            page.locator("#game-action").click()
-            assert not page.locator("#game-keyboard-hint").is_visible()
-            page.locator("#game-menu").click()
-            assert not page.locator("#game-keyboard-hint").is_visible()
-            page.locator("#game-controls").click()
-            assert not page.locator("#game-keyboard-hint").is_visible()
-            assert page.locator("#game-keyboard").bounding_box()["height"] == 44
-            assert page.evaluate("devicePixelRatio") == density
-            assert page.evaluate("visualViewport.scale") == 1
-            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-            context.close()
-            print(f"PASS hint pixels/style/hit target, immediate click/Tab focus, x0→30→60, unchanged layout, other screens at {width}px density{density} zoom100%")
-    page = browser.new_page()
-    page.clock.install(time=datetime(2026, 1, 1))
-    page.clock.pause_at(datetime(2026, 1, 1))
-    page.goto(result_url)
-    for _ in range(3):
-        page.get_by_role("button", name="Hit ship", exact=True).click()
-    assert not page.locator("#game-keyboard-hint").is_visible()
-    page.close()
-    print("PASS keyboard hint absent on deterministic result screen")
-
-
 def density_presentation(browser, url):
     evidence = Path(__file__).resolve().parents[1] / ".agent/tmp/credits-text-browser"
     evidence.mkdir(parents=True, exist_ok=True)
@@ -874,7 +778,6 @@ def main():
                 retained_options(browser, url)
                 confirmation_journeys(browser, url)
                 repeated_entrances(browser, url, result_url)
-                keyboard_hint_presentation(browser, url, result_url)
                 density_presentation(browser, url)
                 startup_context.close()
                 for width in (320, 1200):

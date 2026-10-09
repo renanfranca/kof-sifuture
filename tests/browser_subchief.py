@@ -77,7 +77,7 @@ def journey(page, width):
     assert state(page)["shipExplosion"] == 0 and state(page)["hp"] == 30
 
     button(page, "Prepare special")
-    button(page, "Ativar teclado do jogo")
+    page.locator("#game-keyboard").click()
     page.keyboard.down("1")
     page.keyboard.down("1")
     assert page.get_by_role("button", name="Especial", exact=True).count() == 1

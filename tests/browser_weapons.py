@@ -292,7 +292,7 @@ def keyboard_edges(browser, url):
             advance(page)
             assert status(page)["charges"] == 0, key
             page.keyboard.up(key)
-    for destination in ("Ativar teclado do jogo", "→"):
+    for destination in ("#game-keyboard", 'button:has-text("→")'):
         with scene(browser, url) as page:
             collect(page, 5)
             special = page.get_by_role("button", name="Especial", exact=True)
@@ -301,7 +301,7 @@ def keyboard_edges(browser, url):
             advance(page)
             assert status(page)["charges"] == 1
 
-            page.get_by_role("button", name=destination, exact=True).focus()
+            page.locator(destination).focus()
             assert special.is_disabled()
             page.keyboard.up("Space")
             advance(page, 170)

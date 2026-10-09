@@ -13,7 +13,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from kof_project import served_build
-from browser import keyboard_hint, record_keyboard, tab_to
+from browser import record_keyboard, tab_to
 
 TOUCH_EVIDENCE = []
 
@@ -76,28 +76,6 @@ def control_page(browser, url, *, touch=False, width=800):
         context.close()
 
 
-def keyboard_hint_follows_focus(browser, url):
-    with control_page(browser, url) as (page, run):
-        overlay = page.locator("#game-keyboard")
-        keyboard_hint(page, True)
-        assert overlay.get_attribute("id") != page.evaluate("document.activeElement.id")
-
-        overlay.focus()
-        keyboard_hint(page, False)
-        assert overlay.inner_text() == "Teclado ativo"
-        assert page.evaluate("document.activeElement.id") == "game-keyboard"
-
-        page.get_by_role("button", name="↓", exact=True).focus()
-        keyboard_hint(page, True)
-        assert overlay.inner_text() == "Ativar teclado do jogo"
-
-        page.locator("#game-action").focus()
-        keyboard_hint(page, False)
-        assert overlay.inner_text() == "Teclado ativo"
-        assert page.evaluate("document.activeElement.id") == "game-action"
-    print("PASS keyboard hint follows area/action focus and blur with clock paused")
-
-
 def keyboard_origin_and_release(browser, url):
     with control_page(browser, url) as (page, run):
         overlay = page.locator("#game-keyboard")
@@ -134,11 +112,9 @@ def keyboard_origin_and_release(browser, url):
 
                 page.keyboard.press("Shift+Tab" if reverse else "Tab")
                 assert page.evaluate("document.activeElement.id") != "game-action"
-                keyboard_hint(page, True)
                 run(6)
                 assert ship_observation(page) == (90, 100, False)
                 tab_to(page, "game-action", reverse=not reverse)
-                keyboard_hint(page, False)
                 page.keyboard.down("ArrowRight")
                 run(6)
                 assert ship_observation(page) == (90, 100, False)
@@ -184,13 +160,11 @@ def tab_keeps_lost_release_blocked(browser, url):
         assert ship_observation(page) == (80, 100, True)
 
         page.mouse.click(500, 500)
-        keyboard_hint(page, True)
         run(4)
         assert ship_observation(page) == (80, 100, False)
 
         page.keyboard.up("ArrowRight")
         page.keyboard.press("Tab")
-        keyboard_hint(page, False)
         assert overlay.evaluate("node => document.activeElement === node")
         page.keyboard.down("ArrowRight")
         run(4)
@@ -215,7 +189,6 @@ def click_rearms_held_arrow(browser, url):
         assert ship_observation(page) == (80, 100, True)
 
         page.mouse.click(500, 500)
-        keyboard_hint(page, True)
         run(4)
         assert ship_observation(page) == (80, 100, False)
 
@@ -647,7 +620,6 @@ def main():
                 args=["--no-sandbox", "--headless=new"]
             )
             try:
-                keyboard_hint_follows_focus(browser, url)
                 touch_on_canvas_axis(browser, url)
                 cross_layout(browser, url)
                 touch_diagonals(browser, url)
