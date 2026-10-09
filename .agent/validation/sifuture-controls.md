@@ -808,3 +808,81 @@ omitidos conforme a condição do workflow para esta branch. O link temporário
 seis passos de Direita moveu x0→30. Captura public.png e ci-result.json são
 suportes opcionais no mesmo diretório local. Este acréscimo altera somente o
 registro documental; não representa outra execução das suítes locais.
+
+
+## Texto nativo duplicado nas opções de menu — 09/10/2026
+
+O usuário identificou a piscada como “Novo Jogo” e “Controles” com tipografia
+de botão nativo, além do texto correto do canvas. O relato direcionou a
+correção aos receptores sobrepostos das opções, e não à orientação de teclado
+já removida. Código/testes verificados: `cedf4875abe101d8fd85012dbfb30ef20bf5406c`
+(`fix: keep menu hit targets invisible`). Diff integral de src/tests executado
+antes do commit, SHA-256 `b6b7662d06b97c55a1a42b5c2f30563af3b71d50fa582079cf9b525822c04254`;
+comparação confirmou igualdade com o commit.
+
+optionStyle e retainedOptionStyle passaram a incluir `opacity: 0`. O
+receptor continua montado com as mesmas dimensões, nomes acessíveis e eventos;
+clique, toque e Tab permanecem disponíveis. A opacidade impede a pintura do
+botão inteiro, enquanto o texto visível continua sendo desenhado no canvas.
+Nenhum aviso de ativação ou teste dedicado a ele foi reintroduzido. Sem API
+nova do Kof. Consultados training/idioms/ui.md (eventos e Style), parser atual
+KofStyleParser (opacity é propriedade numérica), JsRuntimeUiWidgets
+(kofUiApplyStyle aplica cssText), anti-pattern duplicate-state e Learn35.
+A aplicação efetiva do estilo foi comprovada no alvo JS, não pela suíte JVM.
+
+A regressão em menu_presentation compara a captura composta com o canvas
+composto sobre o fundo real da página. Na faixa de cada opção, exige diferença
+máxima de1 por canal, tolerância do arredondamento de alfa do canvas transparente.
+Uma stylesheet diagnóstica força -webkit-text-fill-color claro nos cinco
+receptores, expondo texto nativo mesmo se color continuar transparente. São
+verificados menu e pausa, foco, hover e atualização, preservando também as
+assertions anteriores de fonte/posição do canvas, nomes acessíveis e ações.
+A stylesheet existe apenas no teste. É uma condição controlada; não prova
+que a configuração Windows do usuário contém essa regra.
+
+RED confirmado contra a compilação anterior c5ad6df servida no endereço raiz,
+com o helper final: diferença máxima198/196/184 na primeira faixa. GREEN no
+código corrigido em320/1200 px. Excerto real do RED:
+
+```text
+AssertionError: (120, ((0, 198), (0, 196), (0, 184)))
+```
+
+O primeiro helper convertia alfa em preto e falhou mesmo com opacidade0. Foi
+corrigido para compor sobre o fundo RGB40/42/54; a comparação exata ainda falhou
+por diferença observada de1 no arredondamento. Essa foi a origem da tolerância,
+e não uma supressão de pixels duplicados. Um gate iniciado antes dessa correção
+teve dez checks verdes e browser.py vermelho; foi preservado e substituído por
+uma execução completa depois do GREEN focal. Um script diagnóstico chamado
+inspect.py também colidiu com o módulo Python inspect e foi renomeado.
+
+Gate final: onze checks completos, todos exit0. Mesmos comandos integrais
+registrados na remoção das mensagens: JVM/JS114 testes cada, Python8 testes,
+os sete scripts browser*.py e contrato de CI. Evidência opcional:
+`.agent/tmp/menu-native-text/final/summary.json`, logs e tested.diff. Nenhum
+resultado do gate inicial foi reaproveitado como passe do gate final.
+
+Compilação publicada em /menu-corrigido/ e comparada byte a byte com index.html,
+Default.mjs e kof-runtime.mjs remotos. Chrome155.0.8059.39 e Vivaldi8.2.4133.84
+Linux gráfico WSLg: 320/1200 px × densidade1/2, capturas CSS e pixels sem
+sobreposição nativa sob a regra diagnóstica. Chrome comprovou hover/foco e
+clique em Controles; Vivaldi também retorno de Controles, início, Direita
+x0→30 em seis passos e pausa. Excerto do reteste Vivaldi:
+
+```text
+PASS Vivaldi menu/pause 320px density1: no native pixels under text-fill override; controls return, start and x0->30
+```
+
+Na primeira tentativa Vivaldi, o helper de clique não rolou até Voltar, abaixo
+da janela do guia em320px. A captura continuou mostrando Controles e a
+comparação falhou. O helper passou a scrollIntoView antes do clique; o reteste
+completo das quatro configurações passou. Ambos os logs foram preservados.
+Capturas public-menu-*, public-forced-menu-* e vivaldi-{menu,return,pause}-*,
+RED/GREEN e vivaldi-final.log estão em `.agent/tmp/menu-native-text/`.
+Link temporário: https://pets-include-deck-ignored.trycloudflare.com/menu-corrigido/
+
+Limites: o Windows continua sem teste direto. A duplicação foi demonstrada sob
+uma cor nativa imposta no Linux; a causa da piscada específica do Windows não
+foi determinada. A proteção foi verificada nos navegadores Linux acima, com
+implementação e validação no mesmo contexto. O usuário ainda precisa confirmar
+no seu Windows. O Vivaldi não executou os sete percursos completos.
