@@ -1,11 +1,36 @@
-# Texto dos créditos e menus
+<a id="texto-dos-créditos-e-menus"></a>
 
-Créditos, menu principal e pausa usam a fonte padrão `10px sans-serif` do Canvas do navegador com transformação de escala `1.6`, resultando em tamanho efetivo de 16 px. O desenho compartilhado em `GameView.drawText` usa `save`, `setFill`, `transform`, `fillText` e `restore`: a escala e a cor temporárias não alteram sprites ou desenhos seguintes. A suavização é realizada pelo navegador; a família sans-serif concreta depende do ambiente.
+# Credits and menu text
 
-Os créditos têm superfície exclusiva de 262 × 260 px, fundo #121212, margens de 12 px e linhas separadas por 24 px. Todos os textos usam RGB(0,128,255), inclusive `renan.andradefranca@gmail.com`, inteiro em uma linha. O nome ocupa “Renan Meneses” e “de Andrade Franca”. Os blocos começam em y40/136, com linhas de base locais16/40/64.
+[English](README.md) | [Português (Brasil) — pt-BR](README.pt_BR.md)
 
-Menus usam branco, x48 e linha de base `y da opção + 14`, preservando áreas de toque128 × 19 px e a nave indicadora. O canvas do jogo permanece176 × 220 px. A animação dos créditos chega a x12 no passo55, espera 200 passos de30ms e move blocos de72px até saírem completamente. O passo476 fica vazio; o passo477 abre o menu.
+Credits, the main menu, and pause screen use the browser Canvas default
+`10px sans-serif` font with a `1.6` scale transform, for an effective size of
+16 px. Shared drawing in `GameView.drawText` uses `save`, `setFill`,
+`transform`, `fillText`, and `restore`: temporary scale and color do not affect
+subsequent sprites or drawing. The browser performs smoothing; the concrete
+sans-serif family depends on the environment.
 
-A antiga composição por glifos PNG, seu gerador e suas métricas deixaram de ter consumidores. Imagens históricas, números do HUD e NOTICE são preservados. Os textos de licença [LIBERATION-LICENSE.txt](LIBERATION-LICENSE.txt) e [GPL-2.txt](GPL-2.txt) permanecem como registro da referência Liberation Serif usada pela antiga fonte; não descrevem a sans-serif atual do navegador.
+Credits use a dedicated 262 × 260 px surface, #121212 background, 12 px
+margins, and 24 px line spacing. All text uses RGB(0,128,255), including
+`renan.andradefranca@gmail.com` on one line. The name is split as “Renan
+Meneses” and “de Andrade Franca”. Blocks begin at y40/136, with local
+baselines 16/40/64.
 
-`python3 tests/browser.py` verifica texto, tamanho efetivo, cor, limites, áreas de toque, restauração do Canvas e animação, em Chrome nas larguras320/1200px e densidades1/2, com zoom100%. Capturas e inspeção visual do agente são registradas separadamente da aprovação visual do usuário em `.agent/validation/controls-guide.md`.
+Menus use white text at x48 and a baseline of `option y + 14`, preserving
+128 × 19 px touch areas and the ship indicator. The game canvas remains
+176 × 220 px. The credits animation reaches x12 at step55, waits 200 steps of
+30ms, and moves blocks by72px until they have fully left the screen. Step476
+is empty; step477 opens the menu.
+
+The former composition from PNG glyphs, its generator, and its metrics no
+longer have consumers. Historical images, HUD numbers, and NOTICE are
+preserved. The license texts [LIBERATION-LICENSE.txt](LIBERATION-LICENSE.txt)
+and [GPL-2.txt](GPL-2.txt) remain as records for Liberation Serif used by the
+old font; they do not describe the browser's current sans-serif.
+
+`python3 tests/browser.py` checks text, effective size, color, bounds, touch
+areas, Canvas restoration, and animation in Chrome at widths 320/1200px and
+densities 1/2, with 100% zoom. Captures and the agent's visual inspection are
+recorded separately from the user's visual approval in
+[controls-guide.md](../.agent/validation/controls-guide.md).
