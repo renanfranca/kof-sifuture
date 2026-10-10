@@ -208,3 +208,30 @@ A verificação dos pares retornou `PASS`; o validador de links e `git diff
 --check` retornaram código `0`; a exclusão local de `.agent/tmp/` aparece
 exatamente uma vez. Não foi executado teste do produto nem feita nova
 publicação. Evidência auxiliar opcional está em `.agent/tmp/documentacao/`.
+
+## Merge e publicação — 10/10/2026
+
+O [PR #20](https://github.com/renanfranca/kof-sifuture/pull/20) foi integrado
+em `main` pelo commit `b92d015b6d0d56f5c5941ed948394366ab016f27`. O
+[workflow 38050626847](https://github.com/renanfranca/kof-sifuture/actions/runs/38050626847)
+executou nesse SHA: resolução verificada de Kof, testes JVM e JS, build
+completo do Pages e publicação de `main` foram aprovados. Não houve jobs
+ignorados na execução de push. A publicação atualiza
+<https://renanfranca.github.io/kof-sifuture/>.
+
+Após o deploy, `curl -sSIL https://renanfranca.github.io/kof-sifuture/`
+retornou HTTP/2 200; a resposta indicou `last-modified: Sat, 10 Oct 2026
+12:07:00 GMT`. O percurso automatizado contra o site publicado passou:
+
+```bash
+python3 tests/browser.py https://renanfranca.github.io/kof-sifuture/
+```
+
+O Chrome 155.0.8059.39 verificou créditos e animação, menus e seleção,
+abertura de Controles, entrada e movimento, pausa, continuação, reinício,
+resultado e retorno ao menu por teclado, clique e toque quando aplicável. Os
+percursos passaram nas larguras 320 e 1200 px e densidades 1 e 2. A saída
+terminou com `PASS menu, Enter and Space, conservative confirmation, pause,
+result and menu in Chrome`. A execução foi automatizada; não houve revisão
+visual manual do usuário nem aceite em aparelho Android físico. As lacunas de
+portabilidade e aprovação visual anteriores continuam abertas.
