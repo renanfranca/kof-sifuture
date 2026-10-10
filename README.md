@@ -1,243 +1,145 @@
-# SiFuture em Kof: créditos, navegação e combate
+<a id="sifuture-em-kof-créditos-navegação-e-combate"></a>
 
-Este recorte executa **créditos → menu com Novo Jogo e Controles → partida → pausa com Continuar, Reiniciar e Menu principal → resultado → menu** no navegador. É parte da [especificação do port](.agent/specifications/port-sifuture-to-kof.md), sem representar a versão completa. O mundo lógico mede 176 × 220; cada atualização avança 30 ms. Na abertura, use Tab ou clique em um controle para obter foco. Ao iniciar ou retomar pelo menu, esse foco já permite jogar: setas e **1** funcionam no botão principal e na opção que conserva foco. A área desenhada continua disponível como receptor do teclado por clique ou Tab, sem mensagens de ativação. Um clique na área rearma as setas: se a soltura de uma seta ocorreu fora dos controles, a próxima pressão pode mover imediatamente; o clique sozinho não move. Retornar por Tab conserva a memória das setas e pode exigir uma soltura observada antes da próxima pressão. Enter aciona a ação principal uma vez por pressão quando o foco está na área, no botão principal ou em uma opção retida; uma nova ação exige que a soltura de Enter seja observada nos controles. Soltar Enter fora e clicar na área não libera esse bloqueio. Clique e Espaço no botão principal continuam funcionando, inclusive enquanto Enter está pressionado. Na abertura, Enter focado ou toque no canvas/botão **Pular créditos** pula somente para o menu. Manter Enter não inicia a partida. Os créditos aparecem uma vez por instância; retornos de Controles, pausa e resultado não os repetem. Depois da abertura, clicar no canvas ativa o teclado. Um contorno neutro de 1 pixel no perímetro da área do jogo indica o foco do teclado; os botões externos têm seu próprio contorno discreto. Perder o foco limpa o movimento do teclado sem pausar automaticamente.
+# SiFuture em Kof
 
-No menu e na pausa, Cima/Baixo selecionam sem ultrapassar as extremidades; cada pressão navega uma vez. Enter ou **Confirmar (Enter)** executam a seleção atual. Focar Confirmar conserva a seleção; Space e clique também confirmam. Toque diretamente nas opções desenhadas; seus nomes acessíveis permitem a ativação direta, e a nave indica a seleção. Nenhum retângulo acompanha as linhas do menu. **Controles** apresenta uma tabela curta de teclado e uma lista de toque, em um painel preto de 248 pixels, com margem interna de 16 nos quatro lados e conteúdo de 216 pixels, com texto sans-serif de 14 pixels, entrelinha de 20 e títulos de 16. A seção **Especial** aparece antes de **Mais detalhes** e explica sua posição, três feixes, consumo de carga, tecla 1, pressão sem repetição e obtenção de cargas após a potência máxima. **Mais detalhes**, inicialmente fechado, explica foco, direções opostas, arrasto, soltura, cancelamento, prioridade do direcional e disponibilidade do especial; aberto, o botão passa a **Menos detalhes**. Espaço ativa o botão funcional focado; Enter/Espaço sobre Especial tentam o especial. Abrir detalhes não confirma o jogo. Um cabeçalho de 44 pixels substitui o canvas; o direcional e Especial ficam recolhidos. O receptor do teclado permanece disponível. As opções antigas conservam foco até perderem foco, inclusive após soltar Enter/Espaço; fora da tela original, seu nome acessível passa a **Teclado do jogo**. Enter executa a ação principal da tela, e Espaço nessa opção retida não confirma. Ao voltar à tela original, o nome da opção é restaurado. Sair do receptor limpa apenas o movimento do teclado e encerra imediatamente a retenção; o direcional pressionado mantém prioridade. **Voltar** conserva a seleção Controles, e a próxima entrada fecha os detalhes. A janela acompanha a altura do conteúdo e não há instrução fixa no rodapé. **Continuar** mantém a partida e exige novas pressões para mover; **Reiniciar** limpa nave, score, fase, armamento e chefes; **Menu principal** encerra a tentativa e seleciona Novo Jogo. Opções e Música serão entregues no ciclo de áudio.
+## Por que trazer o SiFuture para Kof
 
-Toda chegada real ao Menu, após créditos, Controles, pausa ou resultado, reinicia a nave em x=-30 com propulsores: avança dez unidades por passo, troca para o sprite normal na frenagem e recua três até x=18. É possível selecionar e confirmar durante a entrada; redesenhar ou permanecer no Menu não reinicia a sequência. Voltar de Controles conserva sua seleção; pausa e resultado selecionam Novo Jogo. Os créditos continuam exclusivos da abertura, em superfície escura de 262 × 260 px. Entram de x=-262 até x=12, ficam parados por 6 segundos e saem em sentidos verticais opostos, preservando um quadro vazio antes do menu. Todos os textos dos créditos usam sans-serif suave de 16 px em RGB(0,128,255); o nome ocupa “Renan Meneses” e “de Andrade Franca”, e o e-mail **renan.andradefranca@gmail.com** fica inteiro em uma linha. Durante os créditos, apenas o receptor de teclado e Pular créditos permanecem disponíveis. Novo Jogo, Controles, Continuar, Reiniciar e Menu principal usam texto branco de 16 px em x=48, com linha de base 14 px abaixo do topo de cada opção. O jogo continua em 176 × 220 px. A [documentação das fontes](fonts/README.md) descreve o desenho compartilhado por Canvas. Os botões e o corpo do guia mantêm sua tipografia atual; os PNGs históricos e NOTICE permanecem preservados.
+Comecei a desenvolver o SiFuture no segundo semestre de 2006, quando estava
+no quarto período do bacharelado em Ciência da Computação. No curso, havia
+aprendido Portugol e estava começando a estudar Turbo Pascal. Para criar meu
+jogo de nave em Java ME (J2ME), aprendi Java diretamente pela documentação
+oficial da Sun. Ela foi minha única fonte para aprender a linguagem e
+construir o jogo.
 
-O direcional abaixo do jogo tem quatro setas de 56 × 56 pixels em uma cruz de 168 × 168, com centro e cantos vazios. Cada botão mantém sua própria pressão: direita + cima forma uma diagonal. Entre direções opostas, vence a última pressionada; soltá-la retoma a outra ainda mantida. Soltar uma seta conserva a outra; soltar a última para o movimento. Sair de uma seta com o mouse encerra aquela pressão. Arrastar o dedo mantém a direção original até a soltura ou cancelamento; deslizar não troca de direção neste ciclo. Enquanto o direcional está pressionado, ele tem prioridade sobre as setas. Depois de soltá-lo, uma seta já mantida não assume o movimento sozinha. Setas pressionadas em outros controles são acompanhadas, mas não movem a nave ao retornar ao canvas por Tab; uma soltura observada libera a próxima pressão. Se essa soltura ocorrer fora da árvore de controles, o retorno por Tab conserva o bloqueio até uma soltura observada. Um clique no canvas libera apenas as setas, sem mover a nave por si só. O direcional fica desabilitado fora da partida. A pausa congela a simulação, inclusive tiros, meteoros e contadores; **Continuar** conserva a partida e requer nova pressão para mover. Este recorte implementa a [issue #3](https://github.com/renanfranca/kof-sifuture/issues/3); as necessidades restantes estão relacionadas à [issue #4](https://github.com/renanfranca/kof-sifuture/issues/4).
+Foi nessa documentação que conheci a promessa **“write once, run anywhere”**:
+escreva uma vez e rode em qualquer lugar. Como iniciante, imaginei que o jogo
+também funcionaria em outros ambientes. Quando o terminei, em **1º de agosto
+de 2007**, veio a decepção: ele rodava no celular, mas eu precisava de um
+emulador no computador. Meu jogo não rodava diretamente no desktop nem na web.
 
-- **Direita, soltura fora e retorno por clique:** o clique no canvas não move; a primeira nova pressão de Direita move.
-- **Direita, soltura fora e retorno por Tab:** a primeira pressão pode continuar bloqueada; solte Direita dentro dos controles e pressione novamente para mover.
-- **Enter, soltura fora e retorno por clique:** o clique no canvas conserva o bloqueio de Enter; solte Enter dentro dos controles e pressione novamente para confirmar.
+A motivação está preservada no [README do projeto original, na revisão
+`6f59817`](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/README.md#L17):
 
-## Fase e resultado
+> That documentation was where I discovered Java's slogan: "Write once, run anywhere".
 
-A fase vai da posição 5 à 176, com entrada do subchefe em 88. A entrada avança o marcador para 89; combate e explosão suspendem a trilha. Depois, a miniatura retoma um avanço a cada dez passos. Portanto, a duração depende do combate. A pausa congela todos os relógios e redesenhar apenas consulta o modelo. O boss final entra em 146, avança o marcador para 147 e também suspende a trilha durante combate e explosão. Após o término, faltam 290 passos para o resultado.
+Agora quero retomar aquela expectativa usando Kof: ampliar os ambientes em
+que o SiFuture pode ser jogado, preservando suas regras e sua apresentação
+reconhecível. A versão de navegador já permite jogar. Portabilidade continua
+sendo um objetivo que precisa ser demonstrado em cada ambiente.
 
-A posição é derivada em [Game.kf](src/main/kof/sifuture/game/Game.kf):
+<a id="percurso-no-navegador"></a>
 
-```kof
-var position = 5 + stageSteps / 10
-if (position > Rules.WORLD_WIDTH) { return Rules.WORLD_WIDTH }
-return position
-```
+## Jogue no navegador
 
-`steps` conta atualizações da partida; `stageSteps` conta o avanço da trilha e o incremento histórico da entrada. Durante combate e explosão, apenas o primeiro continua. A consulta evita guardar outra cópia da posição. O [training de estado duplicado](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73) orienta:
+**[Jogar SiFuture](https://renanfranca.github.io/kof-sifuture/)**
 
-> If a value can be derived from another, derive it (method or function).
+Toque ou clique em **Pular créditos**, depois em **Novo Jogo**. Pelo teclado,
+use Tab para obter foco, Enter para pular os créditos e uma nova pressão de
+Enter para confirmar Novo Jogo. Mova a nave com as setas ou com o direcional
+abaixo do jogo. A opção **Controles** no menu explica teclado, toque e especial;
+o [guia de jogo](docs/jogar.md) acompanha o percurso completo.
 
-O subchefe tem resistência 30, deslocamento de uma unidade por eixo e três tiros próprios, com tentativa a cada 12 passos normais. Laser retira uma unidade; blaster aplica sua resistência restante. O especial conserva os marcadores históricos de seis passos, incluindo reaplicação quando outro feixe inicia contato. Contato corporal explode uma nave normal; durante reinício invulnerável, não altera nenhuma das duas entidades, exceção explícita ao original. O golpe fatal dá 600, 300 ou 150 pontos conforme `lifeTime` ≤30, ≤60 ou >60; esse contador avança a cada 36 passos normais, sem representar segundos. Os dez quadros de explosão duram três passos cada. Os itens recorrentes continuam sem duplicação ou reposicionamento por prêmio.
+Após cada merge em `main`, o workflow publica automaticamente a nova versão
+neste mesmo endereço quando os testes, o build e a publicação terminam com
+sucesso. **A URL permanece a mesma; seu conteúdo é atualizado.** Uma revisão
+superada por outro avanço de `main` pula a publicação. Os detalhes estão no
+[guia de CI e publicação](docs/ci-e-publicacao.md#atualização-do-site).
 
-O boss final tem resistência 100 e cinco níveis de ataques, com intervalos normais de 13/31/31/24/24 passos. Contatos não fatais de armas evoluem abaixo de 80/70/45/20; contato corporal não evolui o armamento e ocorre somente no estado normal do boss. O especial inimigo prepara seis quadros de três passos e só se move e colide no quadro 6. Fúria usa `bos1.png`; frenesi alterna `bos.png`, `bos1.png` e `bos2.png` a cada quatro passos. O prêmio é 1650/1100/550/275 para `lifeTime` ≤30/≤60/≤120/>120. O golpe fatal preserva movimento, interrompe disparo e incremento desse relógio e inicia explosão: quadro 0 por um passo, demais por três, término no passo 28. Meteoros absorvidos não causam dano nem pontos. Reinício invulnerável não causa contato corporal, exceção registrada ao original.
+<a id="escopo-e-fontes"></a>
 
-[browser_boss.py](tests/browser_boss.py) compila [boss.kf](tests/boss.kf) com modelo, desenho e controles reais e verifica entrada, fases, tiros, contatos, HUD, explosão, pausa, redesenhos, resultado e repetição com a mesma seed em 320/1200 pixels. Os quatorze assets novos são cópias byte a byte dos arquivos históricos; `NOTICE` continua aplicável. A comparação com o vídeo histórico permanece pendente.
+## Estado do projeto
 
-Os seis meteoros horizontais mantêm seus índices. Dois verticais entram quando a posição ultrapassa 30, descem uma unidade por passo e mostram três quadros de impacto, um passo por quadro. O par relança quando ambos ficam inativos e ambos os chefes estão inativos; os já lançados terminam seu percurso durante o combate. As colisões preservam nave → laser → blaster → especial, com prêmio único por meteoro. Os dois corações continuam circulando desde o início; vidas podem ultrapassar três.
+O recorte entregue inclui créditos, menu com Novo Jogo e Controles, partida,
+pausa com Continuar/Reiniciar/Menu principal, fundo, itens, evolução das armas,
+meteoros, subchefe, boss final, indicadores e resultado. A v1 completa ainda
+está aberta. A [especificação do port](.agent/specifications/port-sifuture-to-kof.md)
+distingue essas entregas da meta:
 
-O HUD usa os sprites históricos sem transformação: trilha, miniatura conforme uma, duas ou três vidas ou mais, escore à direita, contador de vidas abaixo e indicador de especial em `(50, 21)`. Os indicadores são desenhados depois das entidades para ficarem visíveis sobre os feixes. O mundo continua 176 × 220 e a nave conserva o limite superior `y = 30`.
+> Full v1 remains open.
 
-Ao concluir a fase ou perder a última vida, o escore definitivo fica preservado e a contagem exibida começa em zero. Cada passo acrescenta cinco pontos, limitado ao total exato. A avaliação só aparece ao terminar, nas faixas `<1500`, `1500–2199`, `2200–3299` e `≥3300`. **Concluir contagem** ou Enter mostra o total imediatamente; uma nova confirmação em **Voltar ao menu** retorna ao menu. Escore zero já começa concluído. Segurar Enter não confirma duas vezes.
-
-Durante o resultado, fundo, meteoros, itens, chefes, tiros automáticos visuais e efeitos continuam. Colisões, coleta e comandos da nave ficam encerrados; vidas, nível, cargas e posição da fase permanecem estáveis. A explosão pendente termina sem nova perda de vida e fica oculta, sem tentar desenhar um quadro de índice 10. Escore e avaliação ficam centralizados sobre a cena.
-
-[GameJourney.kf](src/test/kof/sifuture/game/GameJourney.kf) prova as regras em JVM e JS. [browser_stage.py](tests/browser_stage.py) exercita o modelo, desenho e controles reais no Chrome em 320 e 1200 pixels, com relógio determinístico, comparação de sprites, percurso completo e redesenhos sem avanço. [browser_subchief.py](tests/browser_subchief.py) verifica encontro, tiros, especial, explosão, pausa, retomada e nova partida com os mesmos componentes reais em 320/1200 pixels. O registro de aceite fica em [stage-hud-result.md](.agent/validation/stage-hud-result.md). A apresentação e o guia têm registro separado em [controls-guide.md](.agent/validation/controls-guide.md). Música, Android, menus completos e outros controles seguem fora deste ciclo. O direcional de quatro setas está implementado; conforto no Chrome de um Android real ainda exige aceite manual.
-
-A limpeza de comandos também restaura o quadro normal da nave na entrada do resultado, em pausa e na perda de foco do teclado. Os meteoros verticais reiniciam entre −153 e 0 na criação ou após impacto; após sair pelo fundo, usam a faixa histórica de −171 até 0, mantendo a espera pelo par. As regressões e o aceite visual estão em [ship-meteor-reset.md](.agent/validation/ship-meteor-reset.md).
-
-## Coleta e evolução
-
-Há sempre um coração de evolução e um de vida em circulação. Os dois conservam os sprites originais: o coração de evolução percorre os **cinco quadros `iten`**; o coração de vida pulsa pelos **onze quadros `life`, avançando e voltando**. A animação diferencia os itens: evolução melhora os tiros; vida acrescenta uma vida, inclusive acima das três iniciais. Cada coleta concede dez pontos uma única vez e exibe três quadros de efeito antes do relançamento. A nave precisa estar no estado normal para coletar; o piscar inicial e a explosão não permitem coleta.
-
-| Coletas de evolução | Armamento |
+| Ambiente | Resultado demonstrado e limite |
 | --- | --- |
-| Nenhuma | Laser básico, um ativo por vez. |
-| Primeira | Laser animado; um lançamento por tentativa e até três em circulação. |
-| Segunda | Acrescenta o blaster no gatilho de seis ciclos do laser. |
-| Terceira | Mantém o laser e aumenta a frequência do blaster. |
-| Seguintes | Guardam cargas de especial, mantendo a terceira evolução. |
+| Navegador | Jogo publicado na URL acima. Em 09/10/2026, a revisão `5609febbc76cc2dd5d0f52c90349dae3ef1f5057` teve publicação, comparação dos 113 arquivos e percurso do menu no Chrome 155.0.8059.39 em 320/1200 px, conforme o [registro de publicação](.agent/validation/sifuture-controls.md). |
+| Modelo em JVM e JS | O checkpoint `cedf4875abe101d8fd85012dbfb30ef20bf5406c` registra 114 testes por alvo e sete percursos completos no Chrome. São provas diferentes: testes do modelo não demonstram desenho ou interação gráfica em JVM. Consulte os [resultados e limites](docs/desenvolvimento.md#o-que-as-verificações-demonstram). |
+| Android | Meta da v1, com execução em emulador ou aparelho. A tentativa de 06/10/2026 na revisão `8edf5ebbb28391b5e7de5a905513c5e9a55e5ccd`, usando Kof 0.5.0-beta, falhou com `RNG001`, sem gerar APK. SDK não configurado naquele ambiente; veja o [registro dos bloqueios](.agent/validation/android-apk-blockers.md). |
+| JVM e Native gráficos | Alvos de pesquisa de portabilidade. A especificação não exige o port gráfico nesses alvos para aceitar a v1. Não há aceite gráfico do jogo nesses ambientes nos registros citados. |
 
-O laser tenta disparar a cada 13 passos normais. O blaster suporta dois impactos; cada feixe do especial suporta dez. Na morte, a vida diminui ao terminar a explosão: perde-se uma carga guardada ou, sem carga, um nível de tiro, até o básico. Os projéteis lançados continuam seu movimento e efeitos. Ao chegar a zero vidas, a nave deixa de criar disparos durante o resultado; lasers, blaster e especial já lançados terminam normalmente. A conclusão da fase com vidas restantes mantém os disparos visuais atuais. A pausa congela também fundo, itens e animações.
+O [registro de 09/10/2026](.agent/validation/sifuture-controls.md)
+contém a prova de entrega da revisão publicada:
 
-O botão **Especial**, de 56 × 220 pixels, fica à direita do canvas, separado por 16 pixels, com topo e base alinhados ao jogo. A palavra “Especial” fica centralizada e é lida verticalmente de cima para baixo. O jogo e a cruz ficam na coluna esquerda; ↑ e ↓ têm o mesmo centro horizontal do canvas. O conjunto mede 248 pixels, sem quebra na janela de 296 pixels; centro e cantos da cruz ficam vazios. Pressione-o com mouse ou toque; dois dedos podem manter uma diagonal enquanto um terceiro tenta disparar. A tecla **1**, com foco no jogo ou no botão Especial, faz a mesma tentativa. Enter e Espaço no botão Especial também o ativam. Segurar a tecla ou o botão não repete o disparo. Uma tentativa recusada não fica pendente para depois: solte e pressione novamente. O botão fica desabilitado sem carga, durante outro especial, na pausa ou quando a nave não está normal. A exceção é **preservar foco até registrar a soltura; depois desabilitar normalmente**: enquanto o Especial estiver focado e alguma tecla de especial continuar mantida, o botão permanece habilitado nativamente, com opacidade `0.5` quando indisponível. Isso permite observar a soltura sem autorizar outro disparo. A última soltura ou a saída do botão reaplica imediatamente a disponibilidade; se os feixes terminarem antes da soltura e ainda houver carga, o botão fica disponível com opacidade `1`, mas outra tentativa exige soltar e pressionar novamente. Soltar **1**, Enter ou Espaço em qualquer controle do jogo libera o bloqueio; soltar fora dos controles conserva-o. Setas + **1** continuam disponíveis com foco na área do jogo. O cabeçalho mostra apenas o ícone original enquanto houver alguma carga, inclusive durante indisponibilidade temporária; não mostra sua quantidade.
-
-A regra de coleta está em [Game.kf](src/main/kof/sifuture/game/Game.kf):
-
-```kof
-if (item.collect(ship)) {
-    score = score + 10
-    if (item.kind == ItemKind.Life) { ship.lives = ship.lives + 1 }
-    else { weapons.evolve() }
-}
+```text
+PASS published Pages matches CI artifact: 113 files
 ```
 
-`collect` retorna verdadeiro somente na primeira coleta. Por isso os dez pontos e o benefício são concedidos juntos uma vez. `ship.lives + 1` não limita a vida a três; o teste de percurso observa a passagem de 3 para 4 em JVM, JS e Chrome.
+Esse resultado compara arquivos. O mesmo registro descreve o percurso do menu
+no Chrome; não atribui uma partida completa nessa publicação aos 113 arquivos.
 
-O estado mutável segue o [training de classes](/home/renanfranca/projects/kof/training/language/classes.md:11):
+<a id="aceite-dos-controles-no-chrome-do-android"></a>
 
-> For **mutable state**, use fields + `constructor(...)`
+Continuam pendentes Opções/Música, áudio com os MIDIs originais, pausa
+automática, escala adaptável, entrada fora da árvore de controles, execução e
+conforto em Android físico e comparação visual com o vídeo histórico. Toque
+simulado no navegador não encerra o aceite em aparelho. O [guia de jogo](docs/jogar.md#android-e-limites-do-aceite)
+explica esse limite; a [issue #4](https://github.com/renanfranca/kof-sifuture/issues/4)
+acompanha necessidades restantes. Os registros de cada revisão conservam suas
+próprias lacunas, inclusive aprovação visual humana quando ainda pendente.
 
-O [Learn Kof, Classes and Objects](/home/renanfranca/projects/kof/learn/07-classes-and-objects.md:65) ensina campos que podem ser alterados diretamente. `Weapons` concentra nível, cargas, cadência e projéteis; `Game.step()` avança o modelo, e `GameView.render()` consulta os quadros. Assim, redesenhar sem avançar a partida não acelera animações. Os testes de pausa e redesenho exercitam esse comportamento no Chrome.
+## Documentação
 
-**Correção histórica dos assets:** os três grupos do especial usam `e0`–`e2`, `e3`–`e5` e `e6`–`e8`, respectivamente laranja, azul-claro e azul-escuro. `AirShipEspecialShoot.java` tentava carregar `especial0`–`especial8` e usava índices 3–8 em um vetor de três posições para as cores azuis. A cena Kof usa os arquivos existentes em grupos por cor. Isso corrige o carregamento sem substituir os desenhos; o [NOTICE](NOTICE) continua aplicável.
+Os guias públicos estão em português. Escolha o percurso que precisa:
 
-O percurso [browser_weapons.py](tests/browser_weapons.py) compila a fixture Kof com modelo, desenho e controles reais, injeta posições determinísticas e verifica os pixels dos itens, efeitos, lasers, blaster e nove quadros do especial. Verifica vida 4, indicador, pausa, repetição de teclas, tentativas recusadas, cancelamento de toque e as duas ordens de soltura dos dedos. Também abre a aplicação normal em 320 e 1200 pixels. As regressões de soltura verificam foco preservado para `1`, Enter e Espaço, soltura em outro controle, teclas simultâneas e bloqueio conservado quando a soltura ocorre fora dos controles. Evidências locais ficam em `.agent/tmp/`; os registros versionados de aceite ficam em [background-items-weapons.md](.agent/validation/background-items-weapons.md) e [special-key-release.md](.agent/validation/special-key-release.md).
+| Quero… | Começar por… |
+| --- | --- |
+| Jogar e entender os comandos | [Como jogar](docs/jogar.md): abertura, menus, teclado, toque, pausa, especial e recuperação de comandos. |
+| Entender o comportamento do jogo | [Regras do jogo](docs/regras-do-jogo.md): tempo, fase, pontuação, vidas, evolução, meteoros, chefes e resultado. |
+| Compilar, testar ou colaborar | [Desenvolvimento](docs/desenvolvimento.md): requisitos, receitas locais, código e workaround das fontes. |
+| Acompanhar checks ou recuperar uma publicação | [CI e publicação](docs/ci-e-publicacao.md): distribuição, integridade, atualização do site e diagnósticos. |
 
-## Kof instalado
+<a id="fase-e-resultado"></a>
+<a id="coleta-e-evolução"></a>
 
-Use a instalação de Kof disponível no `PATH`. Confirme que o comando está acessível:
+As explicações de [fase e resultado](docs/regras-do-jogo.md#fase) e de
+[coleta e evolução](docs/regras-do-jogo.md#coleta-e-evolução) incluem as regras,
+exemplos e evidências antes concentrados aqui.
 
-```bash
-kof version
-```
+<a id="kof-instalado"></a>
+<a id="compilar-a-aplicação-com-o-workaround"></a>
+<a id="regras-módulos-e-testes"></a>
 
-O build e os testes abaixo passaram com a instalação Linux de **Kof 0.5.0-beta** encontrada no `PATH`. O checkout local do código-fonte de Kof é usado para consultar a implementação e sua documentação, sem ser necessário para compilar o SiFuture. Os resultados anteriores com o checkout no SHA `317d9f6b1c3e27032cc955a05f859f6c627d9338` permanecem no [histórico de validação](EXECPLAN.md).
+Para colaborar, confira [Kof instalado](docs/desenvolvimento.md#requisitos),
+[compilação local](docs/desenvolvimento.md#compilar-e-abrir-a-aplicação) e
+[organização e testes](docs/desenvolvimento.md#organização-do-código).
+O workaround e seus diagnósticos têm uma única explicação no guia.
 
-## Compilar a aplicação com o workaround
+<a id="ci-kof-e-github-pages"></a>
+<a id="uma-distribuição-por-resolução"></a>
+<a id="publicação-e-atualização-de-main"></a>
+<a id="diagnóstico-reprodução-e-reexecução"></a>
 
-Execute estes comandos **na raiz do SiFuture**. `build --output` é o comando para compilar a aplicação deste projeto; passe a ele o diretório onde deseja receber a página pronta:
+Para manter a entrega, consulte [checks](docs/ci-e-publicacao.md#checks),
+[distribuição por resolução](docs/ci-e-publicacao.md#uma-distribuição-por-resolução),
+[atualização de main](docs/ci-e-publicacao.md#atualização-do-site) e
+[diagnóstico, reprodução e reexecução](docs/ci-e-publicacao.md#diagnóstico-reprodução-e-reexecução).
 
-```bash
-cd /home/renanfranca/projects/kof-sifuture
-python3 scripts/kof_project.py build --output /tmp/sifuture-game
-```
+A [tipografia](fonts/README.md) tem documentação própria. Especificações,
+[EXECPLAN.md](EXECPLAN.md) e [registros de validação](.agent/validation/)
+preservam requisitos, decisões e evidências das respectivas revisões.
 
-Ao terminar sem erro, abra `/tmp/sifuture-game/index.html` por um servidor HTTP local, pois a página carrega o módulo JS e os sprites de `assets/`:
+## Projeto original e recursos
 
-```bash
-python3 -m http.server 8766 --directory /tmp/sifuture-game
-```
+O [SiFuture original](https://github.com/renanfranca/sifuture) preserva o jogo
+em J2ME. O [vídeo histórico](https://youtu.be/1xMKYEy7Jqw?si=oF48Zq7EeNTLTb3J)
+mostra sua apresentação e serve à comparação ainda pendente neste port.
 
-Visite `http://127.0.0.1:8766/`. Encerre o servidor com `Ctrl+C`. Para usar outra instalação do compilador, passe `--kof /caminho/para/kof` ao comando `build` ou defina `KOF`. A escolha é `--kof`, depois `KOF`, depois `kof` do `PATH`. Se uma sessão de terminal ainda tiver `KOF` definido pelo procedimento antigo, use `unset KOF` para voltar ao `kof` instalado no `PATH`.
+O código de autoria de Renan Franca está sob a **Apache License 2.0**;
+consulte [LICENSE](LICENSE) e [NOTICE](NOTICE). O NOTICE distingue esse código
+das imagens e dos MIDIs de terceiros:
 
-**WORKAROUND:** o script copia `src/main/kof` para uma pasta temporária fora do projeto, cria ali uma entrada `import sifuture.*`, chama `kof build ... --target js` e só copia o resultado e os assets para `--output` depois de verificar `index.html` e `Default.mjs`. A pasta de fontes temporárias é removida automaticamente. Não é preciso mover fontes, copiar assets ou criar a entrada manualmente. Se aparecer um erro sobre `TMPDIR` ou `kof.toml` ancestral, configure `TMPDIR` para um diretório temporário fora de qualquer projeto Kof e repita o comando. Os imports de pacote e arquivo usados nessa entrada seguem a [referência de módulos](/home/renanfranca/projects/kof/docs/language-reference/modules.md).
+> Essas imagens estão excluídas da Apache License 2.0, inclusive quando
+> incorporadas aos arquivos de distribuição .jar.
 
-**Estado da [issue Kof #708](https://github.com/KofLang/Kof4j/issues/708):** no branch `lab`, o Kof já corrigiu o encaminhamento de `moduleRoot` na API Java, passou a usar a raiz informada ao executar testes de uma única árvore e passou a falhar explicitamente quando build ou test não encontram fontes. Ainda não há interface no CLI para compilar e testar diretamente com `src/main/kof` e `src/test/kof` juntos. Por isso, a suíte deste jogo, que importa a implementação da outra árvore, ainda precisa da preparação acima. A instalação `kof 0.5.0-beta` usada nesta documentação precede essas correções; a verificação dos artefatos pelo script continua necessária também após a atualização do compilador.
+> Seus títulos originais, autores e licenças não foram identificados. Eles
+> estão excluídos da Apache License 2.0.
 
-## Regras, módulos e testes
-
-[`src/main/kof/sifuture/game/Game.kf`](src/main/kof/sifuture/game/Game.kf) coordena cada passo lógico. [`src/main/kof/sifuture/game/Ship.kf`](src/main/kof/sifuture/game/Ship.kf) governa movimento, explosão, reinício e imagem da nave; [`src/main/kof/sifuture/game/Lasers.kf`](src/main/kof/sifuture/game/Lasers.kf), [`src/main/kof/sifuture/game/Shot.kf`](src/main/kof/sifuture/game/Shot.kf) e [`src/main/kof/sifuture/game/Meteor.kf`](src/main/kof/sifuture/game/Meteor.kf) governam seus próprios contadores, posições e animações. [`src/main/kof/sifuture/game/Rules.kf`](src/main/kof/sifuture/game/Rules.kf) nomeia limites, durações, intervalos de quadros e o limite usado para sortear a semente. Os limites direito e inferior da nave são calculados pelas dimensões do mundo e da nave. `Game.start(seed)` chama `rng.seed(seed)` para repetir partidas em testes.
-
-A ordem de `step()` preserva uma sutileza: a fase anterior ao passo decide se há movimento e tentativa de disparo; a fase após o avanço da nave decide se há colisão. Assim, no 45º passo de reinício a nave já pode colidir, mas o laser só volta a ser tentado no seguinte. Cada meteoro sobreposto à nave inicia sua animação, enquanto a colisão da nave rende cinco pontos uma única vez. O impacto de laser mostra `laser03.png` por um passo. A explosão dura 10 quadros de três passos; o reinício, 15 alternâncias de três passos. Os meteoros atingidos seguem avançando uma unidade por passo durante três quadros de dois passos.
-
-[`src/main/kof/sifuture/game/State.kf`](src/main/kof/sifuture/game/State.kf) usa enums para a tela, a fase da nave e as direções. `Ship.lastX` e `Ship.lastY` guardam a última direção pressionada como `Direction`, permitindo escolher entre duas setas opostas. Na versão Kof 0.5.0-beta verificada, enums são valores próprios: a [referência de classes](/home/renanfranca/projects/kof/docs/language-reference/classes.md) e os testes do compilador confirmam comparação entre constantes do mesmo enum. `training/language/types.md` ainda os descreve como strings; essa descrição diverge da implementação atual. Um campo mutável como `ship.phase` usa uma classe com campos explícitos, seguindo o [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md). O [manifesto](kof.toml) conserva o nome do projeto na raiz. **WORKAROUND:** o CLI Kof 0.5.0-beta verificado ainda não recebe duas raízes de fontes separadas para esta preparação. [`scripts/kof_project.py`](scripts/kof_project.py) copia os bytes das fontes canônicas para uma árvore temporária sem manifesto ancestral, gera uma entrada de import específica e remove a árvore após cada comando. Essa preparação é infraestrutura provisória do projeto, não uma regra ou um idioma da linguagem. A suíte [`GameJourney.kf`](src/test/kof/sifuture/game/GameJourney.kf) importa `sifuture.game.*` e usa a única implementação das regras em `src/main/kof`. Se `TMPDIR` ficar dentro do projeto ou sob outro `kof.toml`, escolha um diretório temporário externo.
-
-```bash
-cd /home/renanfranca/projects/kof-sifuture
-python3 scripts/kof_project.py test --target jvm
-python3 scripts/kof_project.py test --target js
-python3 scripts/kof_project.py test --target jvm --suite sifuture/game/GameJourney.kf
-```
-
-Cada execução da suíte deve mostrar **114 testes aprovados** (jornadas do jogo; texto e geometria são verificados no navegador). As suítes `.kf` em `src/test/kof` são descobertas recursivamente e executadas em ordem de caminho, cada uma em uma árvore temporária nova; falhas não interrompem as suítes seguintes. `--suite` seleciona uma delas, relativa à raiz de testes. `--kof CAMINHO` em cada comando prevalece sobre `KOF`, que prevalece sobre `kof` do PATH. **Experimento:** altere temporariamente `SHIP_SPEED` de `5` para `4` em `Rules.kf`, observe o teste de movimento falhar e restaure `5`.
-
-## Percurso no navegador
-
-[`src/main/kof/sifuture/Main.kf`](src/main/kof/sifuture/Main.kf) cria a janela e avança o relógio. [`src/main/kof/sifuture/GameControls.kf`](src/main/kof/sifuture/GameControls.kf) monta a área de foco, o direcional e o botão principal; usa `Event.key()` e `Event.target()` na árvore de controles para distinguir a origem do teclado. Os estilos da área de foco são criados na montagem e reutilizados. [`src/main/kof/sifuture/GameView.kf`](src/main/kof/sifuture/GameView.kf) desenha cada tela; `GameView.render()` apenas lê o estado, inclusive os quadros dos sprites históricos: `Middle.png` para o quadro normal e `Middle2.png` somente enquanto a direção horizontal efetiva é direita. Soltar a seta restaura `Middle.png` no próximo passo, mesmo com movimento vertical. Esta é uma exceção deliberada ao histórico, que mantinha o quadro de fogo após a soltura. O intervalo chama `step()` e depois `render()`. `Window.size(296, 510)` deixa o canvas exibido exatamente em 176 × 220 pixels no Chrome testado. O resultado permanece até Enter ou o botão **Voltar ao menu**. Uma partida normal recebe uma semente variável de `random.int(...)`; os testes passam semente fixa.
-
-```bash
-cd /home/renanfranca/projects/kof-sifuture
-python3 scripts/kof_project.py build --output /tmp/sifuture-game
-python3 -m http.server 8766 --directory /tmp/sifuture-game
-```
-
-Abra `http://127.0.0.1:8766/` no navegador. Use Tab até **Pular créditos** e Enter para abrir o menu. Solte Enter e pressione novamente em **Confirmar (Enter)**, ou ative **Novo Jogo** por teclado, clique ou toque. O foco adquirido permite mover imediatamente por setas, sem clicar na área; o receptor sobre o canvas continua disponível por clique ou Tab. O direcional também permanece disponível. Pressione Enter para pausar ou continuar, mova a nave com as setas e solte uma delas. Pressione duas direções opostas juntas e observe que a última pressionada vence; ao soltá-la, a outra volta a mover. Observe o piscar inicial, a explosão da nave e o meteoro atingido. Aguarde perder as três vidas; o resultado fica visível até Enter ou **Voltar ao menu** retornar ao menu. **Experimento:** troque a semente de `Game.start()` no teste e compare as posições iniciais dos meteoros; usando a mesma semente novamente, a sequência se repete.
-
-Para repetir a verificação automatizada no Chrome, instale Python Playwright e Pillow e rode os comandos abaixo. Cada teste compila, inicia um servidor em `127.0.0.1` com porta livre e limpa navegador, servidor e temporários. O teste da aplicação aceita uma URL opcional já servida (`python3 tests/browser.py URL`); os percursos com essa opção aceitam `--kof CAMINHO`:
-
-```bash
-python3 tests/browser.py
-python3 tests/browser_controls.py
-python3 tests/browser_meteor.py
-python3 tests/browser_weapons.py
-python3 tests/browser_stage.py
-python3 tests/browser_subchief.py
-python3 tests/browser_boss.py
-```
-
-O primeiro teste abre a aplicação normal e verifica créditos antes do primeiro passo, entrada/espera/saída dos créditos, texto/cor/tamanho/geometria, entrada em cada retorno e sprites em 320/1200 px, incluindo capturas em densidades 1/2, salto único, nave indicando a seleção, foco neutro independente, Controles compacto, detalhes fechados/abertos/reinicializados, Enter/Espaço/clique/toque, confirmação conservadora, ausência de instrução fixa e de rolagem horizontal inclusive no painel interno, e pausa congelada. Para derrota, resultado persistente, retorno ao menu e nova partida, usa a fixture Kof com o mesmo modelo, desenho e controles, provocando três colisões determinísticas. A coleta de vida e a evolução tornam a espera por uma derrota espontânea inadequada como critério de teste. O segundo compila a fixture [`tests/controls.kf`](tests/controls.kf) com o modelo, o desenho e os controles reais. Cada cenário abre um contexto novo no Chrome e avança o relógio em ciclos de 30 ms para verificar por pixels movimento, propulsão, foco, retorno por clique ou Tab, direcional com mouse e touch. O terceiro compila [`tests/meteor-motion.kf`](tests/meteor-motion.kf) com o pacote `sifuture.game` real e usa cliques para avançar exatamente um passo de cada vez no Chrome; verifica posição e quadro do meteoro atingido. Python também prepara build e suítes; Playwright é usado nos testes de navegador; Pillow confere os sprites históricos. A automação pode ser validada com `python3 -m unittest discover -s tests -p 'test_*.py'`. A aplicação e as fixtures visuais são escritas em Kof. O JavaScript e o CSS da saída são gerados por Kof.
-
-## Escopo e fontes
-
-O recorte atual inclui créditos históricos, menu navegável, Controles, pausa manual com Continuar/Reiniciar/Menu principal, fundo e itens recorrentes, armas, meteoros, subchefe, boss final, HUD e resultado. Os sprites copiados preservam seus bytes históricos e o NOTICE. Continuam pendentes para a v1: Opções/Música, áudio com os MIDIs originais, pausa automática, escala adaptável, entrada fora da árvore de controles, Android real e comparação visual com o vídeo histórico. O arrasto conserva a seta original até soltura/cancelamento, conforme o contrato atual. Durante a partida o teclado requer foco na área do jogo, no botão principal ou em uma opção retida. A abertura continua exigindo Tab ou clique em um controle; não há foco automático nem captura de teclado fora da árvore de controles.
-
-As regras usadas foram conferidas em `/home/renanfranca/projects/sifuture/src/AirShip.java`, `AirShipAllShoots.java`, `Meteor.java`, `MeteorArray.java` e `GameCanvas.java`. A sintaxe e o estado de Kof foram conferidos em `/home/renanfranca/projects/kof/training/language/syntax.md`, `training/language/types.md`, `training/idioms/classes.md`, `training/anti-patterns/sentinel-values.md`, `learn/07-classes-and-objects.md`, `learn/23-testing.md`, `learn/35-kof-ui.md`, `learn/37-kofjs.md`, `learn/39-stdlib.md`, `docs/language-reference/classes.md`, `docs/ui/PLAN-CANVAS-WIDGET.md`, `docs/development/DECISIONS.md`, implementação e testes do compilador. As aulas pertinentes de frontend e testes em `/home/renanfranca/projects/curso-completo-de-kof/` serviram de guia didático; o curso declara 0.3.7-beta, por isso o comportamento atual foi confirmado nas fontes Kof 0.5.0-beta do SHA acima. Planos de expansão da UI não são tratados como recursos já disponíveis.
-
-Os sprites em `assets/` vêm do jogo histórico. O [NOTICE](NOTICE) distingue o código licenciado dos recursos de terceiros cujos autores e licenças não foram identificados; este repositório não atribui uma licença nova a eles.
-
-## CI Kof e GitHub Pages
-
-O workflow [Kof CI and GitHub Pages](.github/workflows/kof-ci-and-pages.yml) executa em todo **PR destinado a `main`** e todo **push em `main`**, inclusive alterações apenas em documentação ou assets. Os checks **Kof tests (jvm)** e **Kof tests (js)** executam separadamente o comando completo `python3 scripts/kof_project.py test --target ALVO`. A matriz usa `fail-fast: false`: a falha de um alvo não cancela o outro e impede build e publicação. A descoberta recursiva inclui novas suítes aninhadas. Esse CI executa somente as suítes Kof; Python é o wrapper existente. Não instala nem executa testes Python, Playwright, navegadores ou Pillow.
-
-Os testes JS usam o engine embarcado, conforme o [treinamento de alvos Kof](/home/renanfranca/projects/kof/training/reference/targets.md:135):
-
-> ES Modules 2022+ via embedded GraalJS (KofJsRunner) — no Node.js
-
-O [capítulo de testes do Learn Kof](/home/renanfranca/projects/kof/learn/23-testing.md:42) registra:
-
-> Each test runs **in isolation** (one failing does not interrupt the others).
-
-Essa regra trata dos casos dentro de uma invocação Kof. A matriz do workflow preserva adicionalmente a independência entre JVM e JS. Ela não demonstra o funcionamento da interface publicada no navegador.
-
-### Uma distribuição por resolução
-
-[`scripts/kof_ci.sh`](scripts/kof_ci.sh) é um helper Bash com três operações. Requer Bash, `gh` autenticado, `jq`, `curl`, `sha256sum` e `tar`.
-
-- `resolve BUNDLE SHA`: percorre todas as páginas de releases e assets de `KofLang/Kof4j`, exclui `draft: true` e `prerelease: true` e escolhe o arquivo oficial Linux x86_64 de maior `published_at`. Um sufixo `beta` não exclui uma release elegível. Exige seu `SHA256SUMS`, exatamente uma entrada válida para o nome do arquivo, digest correto e tag resolvida até um commit, inclusive tags anotadas. Falhas e ambiguidades encerram a execução sem recorrer a outro compilador.
-- `install BUNDLE DIRETORIO SHA`: valida a revisão SiFuture do manifesto, confere novamente checksum e digest, extrai em diretório novo e valida `VERSION`, `kof version` e JVM embarcada. Em Actions, grava `KOF` em `GITHUB_ENV`; localmente, retorna JSON com o caminho do launcher.
-- `check-main OWNER/REPOSITORY SHA`: consulta o commit atual de `main` e retorna `fresh: true` ou `false`. Um SHA superado produz diagnóstico explícito e pula a publicação. Falha de API ou resposta inválida retorna erro; nunca autoriza deploy.
-
-A distribuição é completa, conforme o [treinamento de instalação](/home/renanfranca/projects/kof/training/distribution/install.md:13):
-
-> The official package contains: compiler, CLI, runtime, stdlib, tooling, editor
-> support, embedded OpenJDK and documentation.
-
-Por isso o CI instala o pacote oficial e exige a JVM embarcada, usando seu launcher por `KOF`. Não usa JAR avulso, compilação do checkout Kof ou cache de compilador. O job produtor transfere o arquivo original, `SHA256SUMS` e `manifest.json` em `kof-RUN_ID-TENTATIVA`. Testes e build baixam o nome recebido pelo output desse produtor e não consultam releases novamente.
-
-O manifesto, logs e resumos registram versão, release e tag, commit completo Kof, ID/nome/URL do arquivo, SHA-256 verificado e SHA completo SiFuture. Todos os checkouts usam explicitamente `github.sha`; em PR, essa é a revisão de merge testada pelo evento. Os logs de cada alvo e do build ficam nos respectivos jobs e em artefatos separados, retidos por 30 dias.
-
-### Publicação e atualização de main
-
-Antes da primeira publicação, habilite **Settings → Pages → Source: GitHub Actions**. O workflow usa `actions/configure-pages` com `enablement: false`: Pages desabilitado faz o deploy falhar e deve ser corrigido nas configurações do repositório. O endereço esperado é [https://renanfranca.github.io/kof-sifuture/](https://renanfranca.github.io/kof-sifuture/).
-
-Somente push em `main`, após ambos os checks aprovados, executa o build existente em diretório novo e vazio. `actions/upload-pages-artifact` recebe a raiz da saída inteira: HTML, módulos, runtimes e assets conservam os caminhos relativos. Não há uma pasta extra `kof-sifuture` dentro do pacote; o prefixo `/kof-sifuture/` pertence à URL de Pages. O [Learn Kof JS](/home/renanfranca/projects/kof/learn/37-kofjs.md:54) descreve esse modelo:
-
-> `kof build --target=js` generates `index.html` + modules: serve the
-> folder as a static web application (any HTTP server).
-
-Os jobs comuns têm somente `contents: read`. Apenas o deploy recebe `pages: write` e `id-token: write`, entra no ambiente `github-pages` e expõe a URL publicada. PRs não entram nesse ambiente nem produzem artefato Pages.
-
-O deploy inteiro mantém o grupo fixo `kof-sifuture-pages`, com `cancel-in-progress: false` e `queue: max`. Dentro dele, `check-main` compara o SHA construído com o `main` atual imediatamente antes de `actions/deploy-pages`. A [documentação de concorrência](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency) explica que a fila segue a chegada à exclusividade, que pode diferir da ordem dos commits. Assim, um build antigo concluído depois ou reexecutado pula publicação. Se `main` avançar durante um deploy já iniciado, a exclusividade continua até ele terminar; a publicação nova precisa aguardar e não pode ser substituída ao final pela antiga.
-
-### Diagnóstico, reprodução e reexecução
-
-Consulte primeiro **Resolve verified Kof** para erros de API, seleção, tag e integridade; depois o check do alvo para instalação/testes, **Build complete Pages site** para build e artefato, e **Publish current main** para Pages/freshness/deploy. Falhas anteriores ao deploy preservam o site existente. Falhas de deploy permanecem visíveis; não são registradas como publicação bem-sucedida.
-
-Para reproduzir exatamente uma distribuição selecionada, baixe o artefato `kof-...` indicado pelo job produtor, extraia seu conteúdo para um diretório e use o SHA do manifesto:
-
-```bash
-bundle=/caminho/para/bundle
-sha=$(jq -r .sifuture_sha "$bundle/manifest.json")
-scratch=$(mktemp -d)
-installation=$(bash scripts/kof_ci.sh install "$bundle" "$scratch/installation" "$sha")
-export KOF=$(jq -r .kof <<< "$installation")
-python3 scripts/kof_project.py test --target jvm
-python3 scripts/kof_project.py test --target js
-python3 scripts/kof_project.py build --output "$scratch/site"
-```
-
-Execute esses comandos num checkout desse mesmo SHA. Alternativamente, passe `--kof "$KOF"` aos comandos existentes. Para fazer uma nova resolução local, use `bash scripts/kof_ci.sh resolve "$scratch/bundle" "$(git rev-parse HEAD)"`; o destino ainda não pode existir. A resolução local também exige acesso autenticado de leitura ao GitHub.
-
-**Re-run failed jobs** reutiliza os outputs dos produtores bem-sucedidos, inclusive o nome do bundle ou pacote Pages original; o consumidor não calcula o nome usando sua nova tentativa. **Re-run all jobs** executa uma nova resolução e repete os testes e build com ela. Se os artefatos expiraram, reexecute todos os jobs; não substitua manualmente o compilador. Reexecutar um deploy antigo não restaura um site antigo: a atualização de `main` continua sendo obrigatória.
-
-As verificações locais de infraestrutura ficam em [`tests/ci-contract.sh`](tests/ci-contract.sh), com fixtures JSON e executáveis Bash para as APIs e downloads. Execute `bash tests/ci-contract.sh` com `yq` v4 disponível. Elas não fazem parte do workflow. O [registro de validação](.agent/validation/kof-ci-and-pages.md) distingue simulações locais, execução real do compilador e pendências de produção.
-
-O aceite de produção exige uma execução publicada e verificação manual de carregamento, módulos/runtimes, sprites, início da partida, movimento, pausa/continuação e retorno ao menu. Registre o navegador e o SHA publicado. Enquanto essas evidências não estiverem no registro, a página publicada não está validada.
-
-
-## Aceite dos controles no Chrome do Android
-
-A janela usa 296 pixels para caber em viewport de 320 pixels. As quatro setas não têm espaçamento interno; Especial permanece à direita, com 56 × 220 pixels, topo/base alinhados ao canvas, texto vertical e separação de 16 pixels. O navegador mantém o contato no botão inicial durante o arrasto; solte ou cancele para encerrar. O multitouch deste ciclo cobre dedos em botões distintos.
-
-Os testes em JVM/JS verificam posição nos dois eixos, opostos, duplicatas, pausa e memória do teclado. O percurso Chrome de controles verifica os sprites da nave fora de `y = 100`, as quatro diagonais nas duas ordens de pressão/soltura e o botão/contato de cada `pointerup`. O percurso de armas combina dois dedos no direcional com um terceiro no Especial e confere consumo de uma carga. Touch é simulado por CDP: conforto, alcance dos dedos e combate com subchefe no aparelho real permanecem pendentes. Consulte [o aceite deste ciclo](.agent/validation/sifuture-controls.md).
+O segundo trecho trata dos MIDIs. Este repositório não atribui uma licença
+nova a esses recursos nem concede direitos de reutilização ou redistribuição.
