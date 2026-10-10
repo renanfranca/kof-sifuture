@@ -1,83 +1,97 @@
-# Desenvolvimento
+<a id="desenvolvimento"></a>
 
-[Voltar à apresentação do projeto](../README.md) ·
-[Como jogar](jogar.md) ·
-[Comportamento esperado](regras-do-jogo.md) ·
-[CI e publicação](ci-e-publicacao.md)
+# Development
 
-Este guia concentra requisitos, comandos locais e a explicação da preparação
-temporária das fontes. Execute as receitas na raiz do checkout de SiFuture.
+[English](desenvolvimento.md) | [Português (Brasil) — pt-BR](desenvolvimento.pt_BR.md)
 
-## Requisitos
+[Back to the project overview](../README.md) ·
+[How to play](jogar.md) ·
+[Expected behavior](regras-do-jogo.md) ·
+[CI and publishing](ci-e-publicacao.md)
 
-Use Python 3 e uma instalação de Kof acessível no `PATH`. Confirme:
+This guide covers requirements, local commands, and how temporary source
+preparation works. Run the recipes from the SiFuture checkout root.
+
+<a id="requisitos"></a>
+
+## Requirements
+
+Use Python 3 and a Kof installation available on `PATH`. Check it with:
 
 ```bash
 kof version
 ```
 
-O ambiente examinado em 09/10/2026 informa `kof 0.5.0-beta`, Linux x86_64,
-Eclipse Adoptium 25.0.4.1 e JDK embarcado. A versão identifica a distribuição;
-não identifica sozinha seu commit de origem. O checkout consultado para a
-linguagem é `317d9f6b1c3e27032cc955a05f859f6c627d9338`; não se presume que esse
-SHA seja metadado da instalação no `PATH`. Os resultados anteriores permanecem
-em [EXECPLAN.md](../EXECPLAN.md) e nos registros de validação.
+The environment examined on 2026-10-09 reports `kof 0.5.0-beta`, Linux
+x86_64, Eclipse Adoptium 25.0.4.1, and an embedded JDK. The version identifies
+the distribution; it does not identify its source commit by itself. The Kof
+checkout consulted for language sources is
+`317d9f6b1c3e27032cc955a05f859f6c627d9338`; we do not assume this SHA is
+metadata for the installation on `PATH`. Previous results remain in
+[EXECPLAN.md](../EXECPLAN.md) and the validation records.
 
-O [training de instalação](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/distribution/install.md#L13)
-descreve o pacote:
+The [installation training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/distribution/install.md#L13)
+describes the package:
 
 > The official package contains: compiler, CLI, runtime, stdlib, tooling, editor
 > support, embedded OpenJDK and documentation.
 
-A JVM necessária ao launcher acompanha o pacote oficial. O checkout do
-código de Kof serve à consulta de implementação e documentação; não é um
-pré-requisito para compilar este jogo. Para obter e verificar a mesma
-distribuição de uma execução do CI, use a [receita de reprodução](ci-e-publicacao.md#reproduzir-uma-distribuição).
+The official package includes the JVM required by its launcher. A Kof source
+checkout is useful for consulting implementation and documentation; it is not
+required to compile this game. To obtain and verify the same distribution used
+by a CI run, follow the [reproduction recipe](ci-e-publicacao.md#reproduce-a-distribution).
 
-## Compilador escolhido
+<a id="compilador-escolhido"></a>
 
-`--kof CAMINHO` prevalece sobre a variável `KOF`; depois vem `kof` do `PATH`.
-O [script canônico](../scripts/kof_project.py#L30) expressa a ordem:
+## Choosing a compiler
+
+`--kof CAMINHO` takes precedence over the `KOF` environment variable, followed
+by `kof` from `PATH`. The [canonical script](../scripts/kof_project.py#L30)
+expresses that order:
 
 ```python
 def kof_executable(override=None):
     return override or os.environ.get("KOF") or shutil.which("kof") or "kof"
 ```
 
-O primeiro valor disponível ganha. Passe `--kof /caminho/para/kof` a `build`
-ou `test` para uma escolha explícita. Se uma sessão ainda tiver `KOF` definido
-por um procedimento anterior, execute `unset KOF` para voltar ao `PATH`.
+The first available value wins. Pass `--kof /path/to/kof` to `build` or
+`test` to select it explicitly. If `KOF` is still set from an earlier
+procedure, run `unset KOF` to return to the `PATH` version.
 
-## Compilar e abrir a aplicação
+<a id="compilar-e-abrir-a-aplicação"></a>
 
-`build --output` recebe o diretório da página pronta:
+## Build and open the app
+
+`build --output` takes the directory for the completed site:
 
 ```bash
 python3 scripts/kof_project.py build --output /tmp/sifuture-game
 python3 -m http.server 8766 --directory /tmp/sifuture-game
 ```
 
-Depois do build sem erro, visite `http://127.0.0.1:8766/`. O servidor HTTP é
-necessário porque a página carrega módulos JS e sprites de `assets/`.
-Encerre-o com `Ctrl+C`. Use o [percurso de jogo](jogar.md#começar-uma-partida)
-para verificar abertura, movimento, pausa e retorno.
+After a successful build, visit `http://127.0.0.1:8766/`. An HTTP server is
+needed because the page loads JS modules and sprites from `assets/`. Stop it
+with `Ctrl+C`. Use the [gameplay journey](jogar.md#start-a-game) to check the
+opening, movement, pause, and return flow.
 
-O [Learn Kof JS](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/37-kofjs.md#L54)
-descreve a entrega:
+[Learn Kof JS](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/37-kofjs.md#L54)
+describes the output:
 
 > `kof build --target=js` generates `index.html` + modules: serve the
 > folder as a static web application (any HTTP server).
 
-O wrapper produz esse conjunto e copia os assets do jogo. Compilar com sucesso
-não prova a apresentação gráfica ou os comandos no navegador; são verificações
-separadas.
+The wrapper produces that set and copies the game's assets. A successful
+compile does not prove graphical presentation or browser controls; those are
+separate checks.
 
-## Executar os testes de regras
+<a id="executar-os-testes-de-regras"></a>
 
-Uma **suíte** é um arquivo com casos de teste que exercitam comportamento.
-As suítes Kof canônicas ficam em `src/test/kof`; atualmente
-[GameJourney.kf](../src/test/kof/sifuture/game/GameJourney.kf) usa a implementação
-real de `src/main/kof`.
+## Run the rules tests
+
+A **suite** is a file containing test cases that exercise behavior. Canonical
+Kof suites live in `src/test/kof`; currently
+[GameJourney.kf](../src/test/kof/sifuture/game/GameJourney.kf) uses the real
+implementation in `src/main/kof`.
 
 ```bash
 python3 scripts/kof_project.py test --target jvm
@@ -85,13 +99,13 @@ python3 scripts/kof_project.py test --target js
 python3 scripts/kof_project.py test --target jvm --suite sifuture/game/GameJourney.kf
 ```
 
-Na revisão examinada `e38f5e0ccb98bfd443a0d57833b6be0b6bed6aee`, cada execução
-completa deve mostrar 114 testes aprovados. Essa contagem pertence à revisão;
-novos casos podem aumentá-la. Texto e geometria são verificados no navegador.
-`--suite` seleciona um arquivo relativo à raiz de testes. Sem essa opção,
-o wrapper descobre `.kf` recursivamente e executa em ordem de caminho, usando
-uma árvore temporária nova para cada suíte. Uma falha não impede as seguintes;
-o comando devolve a primeira falha observada. Em
+At examined revision `e38f5e0ccb98bfd443a0d57833b6be0b6bed6aee`, each full
+run should report 114 passing tests. That count belongs to that revision;
+additional cases can increase it. Text and geometry are checked in the
+browser. `--suite` selects a file relative to the test root. Without it, the
+wrapper recursively finds `.kf` files and runs them in path order, using a new
+temporary tree for each suite. A failure does not stop later suites; the
+command returns the first failure observed. In
 [scripts/kof_project.py](../scripts/kof_project.py#L146):
 
 ```python
@@ -105,50 +119,52 @@ for path in suites:
 return first_failure
 ```
 
-Cada chamada usa o runner oficial. O [Learn Kof, Testing](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/23-testing.md#L42)
-ensina:
+Each call uses the official runner. [Learn Kof: Testing](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/23-testing.md#L42)
+teaches:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
 
-Essa regra cobre os casos dentro de uma invocação Kof; o laço Python conserva
-também a independência entre arquivos. O [training do CLI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
-documenta `kof test` e `--target`; o wrapper organiza as fontes antes de chamar
-essa ferramenta.
+That rule applies to cases within one Kof invocation; the Python loop also
+keeps files independent. The [CLI training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
+documents `kof test` and `--target`; the wrapper prepares sources before
+calling that tool.
 
-**Experimento didático preservado:** altere temporariamente `SHIP_SPEED` de
-`5` para `4` em uma cópia de validação de `Rules.kf`, observe o teste de
-movimento falhar e restaure `5`. O histórico em [EXECPLAN.md](../EXECPLAN.md)
-registra esse tipo de prova; este guia não atribui uma execução nova ao
-experimento. Uma mudança controlada que faz o teste falhar demonstra que ele
-observa a velocidade esperada, além de simplesmente aceitar um processo sem erro.
+**Preserved teaching experiment:** temporarily change `SHIP_SPEED` from `5`
+to `4` in a validation copy of `Rules.kf`, observe the movement test fail,
+then restore `5`. [EXECPLAN.md](../EXECPLAN.md) records this type of proof;
+this guide does not claim that the experiment was rerun. A controlled change
+that makes the test fail demonstrates that the test observes the expected
+speed, beyond merely accepting a process that exits without error.
 
-## Raiz de fontes e workaround
+<a id="raiz-de-fontes-e-workaround"></a>
 
-Um **workaround** é um contorno provisório para uma limitação das ferramentas.
-Uma **raiz de fontes** é o diretório a partir do qual pacotes e imports
-localizam os arquivos. O projeto mantém aplicação em `src/main/kof`, testes
-em `src/test/kof` e [kof.toml](../kof.toml) na raiz, com `name = "sifuture"`.
+## Source root and workaround
 
-O [Learn Kof, Packages and Modules](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/19-packages-and-modules.md#L25)
-mostra imports de arquivo e diretório. A [referência de módulos](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/docs/language-reference/modules.md#L18)
-define:
+A **workaround** is a temporary detour around a tool limitation. A **source
+root** is the directory from which packages and imports locate files. This
+project keeps the app in `src/main/kof`, tests in `src/test/kof`, and
+[kof.toml](../kof.toml) at the root with `name = "sifuture"`.
+
+[Learn Kof: Packages and Modules](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/19-packages-and-modules.md#L25)
+shows file and directory imports. The [module reference](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/docs/language-reference/modules.md#L18)
+defines:
 
 > Kof's "module" is the **root directory** passed to the compiler (module root),
 > used to expand directory imports.
 
-Assim, `import sifuture.game.GameJourney` localiza a suíte relativa à raiz
-preparada; a própria suíte importa `sifuture.game.*` para alcançar as regras.
+So `import sifuture.game.GameJourney` finds the suite relative to the prepared
+root; the suite itself imports `sifuture.game.*` to reach the rules.
 
-**WORKAROUND de organização/build:** na instalação 0.5.0-beta examinada, os
-comandos do projeto preparam uma árvore descartável fora do checkout e sem
-`kof.toml` ancestral. Copiam os bytes das fontes canônicas, geram uma pequena
-entrada de import e chamam o CLI oficial. O build inclui somente a aplicação,
-com entrada `import sifuture.*`. Cada suíte recebe a aplicação e somente seu
-arquivo de testes, com uma entrada específica. A árvore é removida após o
-comando, inclusive em falha. Não é preciso preparar fontes ou assets à mão.
+**Build/source-root WORKAROUND:** with the examined 0.5.0-beta installation,
+project commands prepare a disposable tree outside the checkout and without
+an ancestor `kof.toml`. They copy canonical source bytes, generate a small
+import entry, and invoke the official CLI. The build includes only the app,
+with entry `import sifuture.*`. Each suite receives the app and only its own
+test file, with a specific entry. The tree is removed after the command,
+including on failure. There is no need to prepare sources or assets by hand.
 
-O wrapper verifica `index.html` e `Default.mjs` antes de copiar a saída e os
-assets para `--output`. Em [build](../scripts/kof_project.py#L109):
+The wrapper checks for `index.html` and `Default.mjs` before copying output
+and assets to `--output`. In [build](../scripts/kof_project.py#L109):
 
 ```python
 if code:
@@ -159,25 +175,26 @@ if missing:
 _publish(web, output)
 ```
 
-Essa verificação detecta um retorno zero sem produto de compilação. O
-[training de workarounds](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/anti-patterns/runtime-workarounds.md#L9)
-explica por que a preparação não é uma regra da linguagem:
+This catches a zero exit status without compiled output. The [workaround
+training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/anti-patterns/runtime-workarounds.md#L9)
+explains why this preparation is not a language rule:
 
 > The detour is legitimate — but it is **not an idiom**.
 
-A [investigação das fontes](../.agent/specifications/reorganizar-fontes-e-testes-kof.md)
-conserva os reproduzers executados em JVM/JS. Na distribuição daquele snapshot,
-o build direto podia informar `no .kf/.kof files found`, retornar zero e não
-gerar o módulo. Testes com raiz inadequada falhavam com `PKG004`; um import
-não resolvido apresentava `PKG006`. Esses são resultados de ferramentas
-daquela revisão, não restrições da sintaxe de pacotes.
+The [source investigation](../.agent/specifications/reorganizar-fontes-e-testes-kof.md)
+preserves reproducers run on JVM/JS. In that snapshot's distribution, a direct
+build could report `no .kf/.kof files found`, return zero, and produce no
+module. Tests with an unsuitable root failed with `PKG004`; an unresolved
+import showed `PKG006`. These are tool results from that revision, not syntax
+restrictions on packages.
 
-### Diagnosticar TMPDIR
+<a id="diagnosticar-tmpdir"></a>
 
-Se aparecer um erro sobre `TMPDIR` ou `kof.toml` ancestral, escolha um
-diretório temporário fora de qualquer projeto Kof e repita a receita.
-O [script](../scripts/kof_project.py#L34) recusa preparação dentro do projeto
-ou sob manifesto ancestral:
+### Diagnose TMPDIR
+
+If an error mentions `TMPDIR` or an ancestor `kof.toml`, choose a temporary
+directory outside any Kof project and retry. The [script](../scripts/kof_project.py#L34)
+refuses preparation inside the project or beneath an ancestor manifest:
 
 ```python
 if directory == project or project in directory.parents:
@@ -186,22 +203,24 @@ if any((ancestor / "kof.toml").exists() for ancestor in (directory, *directory.p
     raise PreparationError("temporary source has an ancestral kof.toml; set TMPDIR outside a Kof project")
 ```
 
-Um manifesto encontrado acima da preparação pode mudar a raiz usada para
-resolver os imports. Preparar em uma subpasta do checkout não oferece a
-mesma condição da árvore externa.
+A manifest above the prepared tree can change which root resolves imports.
+Preparing in a checkout subdirectory does not provide the same conditions as
+an external tree.
 
-### Evolução da issue Kof #708
+<a id="evolução-da-issue-kof-708"></a>
 
-A [issue #708](https://github.com/KofLang/Kof4j/issues/708) está fechada.
-Seu histórico registra em `lab` as correções de `moduleRoot`, raiz de testes
-e falha explícita sem fontes, seguidas da interface de duas raízes. A decisão
+### Kof issue #708 status
+
+[Kof issue #708](https://github.com/KofLang/Kof4j/issues/708) is closed. Its
+history records `moduleRoot`, test-root, and explicit no-source-failure fixes
+in `lab`, followed by a two-root interface. Decision
 [D-CLI-SOURCE-ROOTS](https://github.com/KofLang/Kof4j/blob/0e6a02f23d295d89e2ce4975b6d8b177240f5222/docs/development/DECISIONS.md#L4528)
-no commit `0e6a02f23d295d89e2ce4975b6d8b177240f5222` registra:
+in commit `0e6a02f23d295d89e2ce4975b6d8b177240f5222` says:
 
 > **State:** DECIDED (maintainer) + IMPLEMENTED (30/09) — tracker `#708` (case `renanfranca`/SiFuture #2).
 
-O [teste upstream](https://github.com/KofLang/Kof4j/blob/0e6a02f23d295d89e2ce4975b6d8b177240f5222/kof-cli/src/test/java/dev/kof/cli/TwoRootsCliE2ETest.java#L45)
-declara, dentro do manifesto do projeto de teste:
+The [upstream test](https://github.com/KofLang/Kof4j/blob/0e6a02f23d295d89e2ce4975b6d8b177240f5222/kof-cli/src/test/java/dev/kof/cli/TwoRootsCliE2ETest.java#L45)
+declares this in its test project manifest:
 
 ```toml
 [sources]
@@ -209,26 +228,27 @@ app = "src/main/kof"
 test = "src/test/kof"
 ```
 
-Esse é um excerto da configuração do teste upstream, não uma configuração já
-aplicada a SiFuture. O teste chama `kof build`/`kof test` sem argumento
-posicional e verifica os alvos JVM, Native e JS. As fontes dessa revisão
-upstream foram consultadas; esse teste não foi executado nesta reorganização.
-O checkout Kof local consultado permanece em `317d9f6`; o objeto mais novo
-não estava disponível nele e foi lido na revisão pública fixada acima.
+This excerpt is from upstream test configuration, not configuration already
+applied to SiFuture. The test calls `kof build`/`kof test` without a positional
+argument and verifies JVM, Native, and JS targets. That upstream test was
+consulted, not run in this documentation update. The consulted local Kof
+checkout remains at `317d9f6`; it did not have the newer object, which was
+read from the fixed public revision above.
 
-O manifesto atual do jogo ainda não declara `[sources]`. Os comandos deste
-guia conservam a preparação comprovada com a instalação examinada. Migrar
-esse fluxo requer verificar a distribuição com o suporte novo e validar
-build, testes e entradas de navegador antes de retirar o wrapper; a reorganização da
-documentação não realiza essa migração. Verificar os artefatos produzidos
-continua necessário após qualquer atualização do compilador.
+The game's current manifest still does not declare `[sources]`. These recipes
+keep the preparation proven with the examined installation. Migrating this
+flow requires checking a distribution with the new support and validating
+builds, tests, and browser entry points before removing the wrapper; this
+documentation update does not perform that migration. Checking produced
+artifacts remains necessary after any compiler update.
 
-## Modelo, desenho e controles
+<a id="modelo-desenho-e-controles"></a>
 
-O **modelo** é o estado e as regras que mudam a cada passo. O **desenho**
-consulta esse estado para apresentar a cena. Os **controles** traduzem as
-entradas do jogador em comandos do modelo. Em
-[Main.kf](../src/main/kof/sifuture/Main.kf#L15):
+## Model, drawing, and controls
+
+The **model** is the state and rules that change on each logical step.
+**Drawing** reads that state to present the scene. **Controls** translate
+player input into model commands. In [Main.kf](../src/main/kof/sifuture/Main.kf#L15):
 
 ```kof
 time.interval(Rules.STEP_MS, () -> {
@@ -238,21 +258,21 @@ time.interval(Rules.STEP_MS, () -> {
 })
 ```
 
-`step()` avança o estado antes de `render()`. Desenhar novamente sem `step()`
-não avança a partida. `Event.key()` e `Event.target()` distinguem origem e
-tecla na árvore de controles; estilos e widgets são montados uma vez e
-reutilizados. A geometria atual e as regras de foco estão no
-[guia de jogo](jogar.md); a [tipografia](../fonts/README.md) tem seu próprio dono.
+`step()` advances state before `render()`. Redrawing without `step()` does not
+advance the game. `Event.key()` and `Event.target()` distinguish the key and
+its source in the control tree; styles and widgets are created once and
+reused. Current geometry and focus rules are in the [gameplay guide](jogar.md);
+[typography](../fonts/README.md) has its own owner.
 
-O [training de UI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/language/ui.md#L73)
-e o [Learn Kof, UI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/35-kof-ui.md#L5)
-delimitam o alvo do desenho:
+The [UI training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/language/ui.md#L73)
+and [Learn Kof: UI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/35-kof-ui.md#L5)
+define the drawing target:
 
 > On the other targets the
 > handles are no-ops — the program runs without rendering.
 
-Na implementação JS, [kofUiCanvasNew](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/kof-compiler/src/main/java/dev/kof/compiler/js/JsRuntimeUiWidgets.java#L384)
-cria a superfície:
+In JS, [kofUiCanvasNew](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/kof-compiler/src/main/java/dev/kof/compiler/js/JsRuntimeUiWidgets.java#L384)
+creates the surface:
 
 ```javascript
 export function kofUiCanvasNew(w, h) {
@@ -262,10 +282,9 @@ export function kofUiCanvasNew(w, h) {
     canvas.height = h;
 ```
 
-Esse excerto JavaScript é código do runtime Kof, não aplicação escrita à mão.
-Ele exige o documento do navegador. Na implementação
-[JVM](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/kof-compiler/src/main/java/dev/kof/compiler/jvm/JvmRuntimeUi.java#L472),
-o mesmo construtor retorna apenas um identificador:
+This JavaScript excerpt is Kof runtime code, not hand-written application
+code. It requires a browser document. The [JVM implementation](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/kof-compiler/src/main/java/dev/kof/compiler/jvm/JvmRuntimeUi.java#L472)
+returns only an identifier from the same constructor:
 
 ```java
 public static int kof_ui_canvas_new(int width, int height) {
@@ -273,35 +292,39 @@ public static int kof_ui_canvas_new(int width, int height) {
 }
 ```
 
-A [realização Native](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/kof-compiler/src/main/java/dev/kof/compiler/runtime/RuntimeUi.java#L536)
-também retorna um handle sem criar superfície. A decisão
+The [Native implementation](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/kof-compiler/src/main/java/dev/kof/compiler/runtime/RuntimeUi.java#L536)
+also returns a handle without creating a surface. Decision
 [D-UI-SCOPE](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/docs/development/DECISIONS.md#L1675)
-delimita esse escopo. Compilar ou testar regras em JVM/JS não demonstra uma
-janela gráfica nesses outros alvos.
+defines this scope. Compiling or testing rules on JVM/JS does not demonstrate
+a graphical window on the other targets.
 
-## Organização do código
+<a id="organização-do-código"></a>
 
-| Caminho | Responsabilidade |
+## Code organization
+
+| Path | Responsibility |
 | --- | --- |
-| [Main.kf](../src/main/kof/sifuture/Main.kf) | Cria a janela e agenda o relógio. |
-| [Game.kf](../src/main/kof/sifuture/game/Game.kf) | Coordena cada passo, telas, colisões, fase e pontuação. |
-| [Ship.kf](../src/main/kof/sifuture/game/Ship.kf) | Movimento, explosão, reinício e quadro da nave. |
-| [Weapons.kf](../src/main/kof/sifuture/game/Weapons.kf) | Nível, cargas, cadência e projéteis; Lasers, Shot e demais classes cuidam de seus estados. |
-| [Meteor.kf](../src/main/kof/sifuture/game/Meteor.kf) | Posições, contadores, movimentos e quadros dos meteoros. |
-| [Rules.kf](../src/main/kof/sifuture/game/Rules.kf) | Limites, durações, intervalos e limite do sorteio inicial. |
-| [State.kf](../src/main/kof/sifuture/game/State.kf) | Tipos das telas, estados e direções. |
-| [GameView.kf](../src/main/kof/sifuture/GameView.kf) | Desenha as telas consultando o modelo. |
-| [GameControls.kf](../src/main/kof/sifuture/GameControls.kf) e [ControlsGuide.kf](../src/main/kof/sifuture/ControlsGuide.kf) | Montam controles, foco e guia dentro do jogo. |
+| [Main.kf](../src/main/kof/sifuture/Main.kf) | Creates the window and schedules the clock. |
+| [Game.kf](../src/main/kof/sifuture/game/Game.kf) | Coordinates each logical step, screens, collisions, stage, and score. |
+| [Ship.kf](../src/main/kof/sifuture/game/Ship.kf) | Movement, explosion, restart, and ship frame. |
+| [Weapons.kf](../src/main/kof/sifuture/game/Weapons.kf) | Level, charges, rate, and projectiles; Lasers, Shot, and other classes own their states. |
+| [Meteor.kf](../src/main/kof/sifuture/game/Meteor.kf) | Meteor positions, counters, movement, and frames. |
+| [Rules.kf](../src/main/kof/sifuture/game/Rules.kf) | Limits, durations, intervals, and initial random range. |
+| [State.kf](../src/main/kof/sifuture/game/State.kf) | Screen types, states, and directions. |
+| [GameView.kf](../src/main/kof/sifuture/GameView.kf) | Draws screens by reading the model. |
+| [GameControls.kf](../src/main/kof/sifuture/GameControls.kf) and [ControlsGuide.kf](../src/main/kof/sifuture/ControlsGuide.kf) | Build controls, focus, and the in-game guide. |
 
-### Entrada no menu e apresentação do guia
+<a id="entrada-no-menu-e-apresentação-do-guia"></a>
 
-Cada chegada real ao menu cria uma nova entrada animada da nave. Ela começa
-em `x = -30`, avança dez unidades por passo com propulsão e freia recuando
-três até `x = 18`. A troca para o sprite normal acontece na frenagem.
-Permanecer no menu ou redesenhar não reinicia a sequência; selecionar e
-confirmar continua possível durante a entrada. Voltar de Controles conserva
-a seleção; pausa e resultado retornam com Novo Jogo selecionado.
-Em [MenuEntrance.advance](../src/main/kof/sifuture/game/MenuEntrance.kf#L12):
+### Menu entry and guide presentation
+
+Each real arrival at the menu creates a new animated ship entrance. It starts
+at `x = -30`, moves forward ten units per logical step with thrust, then brakes
+backward by three to `x = 18`. The normal sprite begins during braking.
+Remaining in the menu or redrawing does not restart the sequence; selecting
+and confirming remain possible during entry. Returning from Controls keeps the
+selection; pause and results return with New Game selected. In
+[MenuEntrance.advance](../src/main/kof/sifuture/game/MenuEntrance.kf#L12):
 
 ```kof
 if (phase == MenuEntrancePhase.Entry) {
@@ -313,24 +336,26 @@ x = x - 3
 if (x <= 18) { finish() }
 ```
 
-Somente a atualização avança esses valores. O [documento de tipografia](../fonts/README.md)
-concentra textos, cores, margens e a animação dos créditos, incluindo a espera
-de seis segundos e o quadro vazio antes do menu.
+Only updates advance these values. The [typography guide](../fonts/README.md)
+owns text, colors, margins, and credits animation, including its six-second
+wait and the empty frame before the menu.
 
-O [painel Controles](../src/main/kof/sifuture/ControlsGuide.kf#L19) usa 248 pixels
-de largura, margem interna de 16 e conteúdo de 216, texto sans-serif de 14,
-entrelinha de 20 e títulos de 16. Seu cabeçalho de 44 pixels substitui a área
-desenhada; direcional e Especial ficam recolhidos. A seção Especial precede
-Mais detalhes. A janela acompanha o conteúdo, sem instrução fixa no rodapé.
-Os [comandos do painel](jogar.md) e a [prova de apresentação](../.agent/validation/controls-guide.md)
-ficam vinculados às mesmas regras, sem duplicar suas receitas neste guia.
+The [Controls panel](../src/main/kof/sifuture/ControlsGuide.kf#L19) is 248
+pixels wide, with 16-pixel internal margins and 216 pixels of content,
+14-pixel sans-serif text, 20-pixel line spacing, and 16-pixel headings. Its
+44-pixel header replaces the drawing area; the directional pad and Special
+are collapsed. The Special section precedes More details. The window follows
+its content and has no fixed footer instruction. The [panel commands](jogar.md)
+and [presentation evidence](../.agent/validation/controls-guide.md) follow the
+same rules; this guide does not duplicate their recipes.
 
-### Classes e estados em Kof
+<a id="classes-e-estados-em-kof"></a>
 
-Uma **classe mutável** possui campos que mudam ao longo da partida. Um
-**enum** representa um conjunto fechado de estados ou direções, permitindo
-comparar valores do mesmo tipo. [State.kf](../src/main/kof/sifuture/game/State.kf#L3)
-usa, por exemplo:
+### Classes and states in Kof
+
+A **mutable class** has fields that change during play. An **enum** represents
+a closed set of states or directions, allowing values of the same type to be
+compared. [State.kf](../src/main/kof/sifuture/game/State.kf#L3) uses, for example:
 
 ```kof
 enum Screen { Credits, Menu, Controls, Play, Pause, Result }
@@ -338,47 +363,50 @@ enum ShipPhase { Normal, Explosion, Restart, Hidden }
 enum Direction { Left, Right, Up, Down }
 ```
 
-`Ship.lastX` e `Ship.lastY` guardam a última direção pressionada como
-`Direction`, escolhendo entre setas opostas. `ship.phase` é um campo explícito
-da classe. O [idioma de classes](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/idioms/classes.md#L45)
-ensina campos e construtor para esse estado; o
-[Learn Kof 07](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/07-classes-and-objects.md#L65)
-explica a diferença em relação aos dados imutáveis.
+`Ship.lastX` and `Ship.lastY` store the most recently pressed direction as a
+`Direction`, choosing between opposing arrows. `ship.phase` is an explicit
+class field. The [class idiom](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/idioms/classes.md#L45)
+teaches fields and constructors for this state; [Learn Kof 07](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/07-classes-and-objects.md#L65)
+explains the difference from immutable data.
 
-Existe uma divergência documental no snapshot consultado. O
-[training de tipos](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/language/types.md#L106)
-ainda registra:
+There is a documentation discrepancy in the consulted snapshot. The [type
+training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/language/types.md#L106)
+still says:
 
 > Runtime representation: the constant name itself (String-backed).
 
-A [referência de classes](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/docs/language-reference/classes.md#L149)
-estabelece:
+The [class reference](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/docs/language-reference/classes.md#L149)
+says:
 
 > **An enum value is a real instance (D-ENUM207, issue #207)**
 
 [EnumIdentityE2ETest](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/kof-compiler/src/test/java/dev/kof/compiler/EnumIdentityE2ETest.java#L69)
-confirma comparação entre valores do mesmo enum. As jornadas do jogo também
-exercitam essas comparações em JVM e JS; o guia não ensina a descrição antiga
-de strings como comportamento atual.
+confirms comparisons between values of the same enum. The game's journeys
+also exercise these comparisons on JVM and JS; this guide does not teach the
+older string description as current behavior.
 
-### Semente
+<a id="semente"></a>
 
-Uma **semente** inicializa a sequência de números pseudoaleatórios.
-`Game.start(seed)` chama `rng.seed(seed)` para repetir partidas em testes;
-o jogo normal escolhe uma semente variável com `random.int(...)`.
-**Experimento didático preservado:** troque a semente passada a `Game.start()`
-no teste e compare as posições iniciais; repetir a mesma semente repete a
-sequência. O experimento é uma orientação, sem nova execução atribuída aqui.
+### Seed
 
-## Verificar o navegador
+A **seed** initializes a pseudo-random number sequence. `Game.start(seed)`
+calls `rng.seed(seed)` to repeat games in tests; normal play chooses a
+variable seed with `random.int(...)`. **Preserved teaching experiment:**
+change the seed passed to `Game.start()` in a test and compare starting
+positions; repeating the same seed repeats the sequence. This is guidance,
+not a new run claimed here.
 
-Uma **fixture** é uma entrada de teste que prepara uma situação determinística
-usando modelo, desenho e controles reais.
+<a id="verificar-o-navegador"></a>
 
-Instale Python Playwright e Pillow. Os scripts atuais abrem Chrome gráfico
-em `/usr/bin/google-chrome`; é necessário esse executável e uma sessão
-gráfica disponível. Uma instalação apenas do pacote Playwright não garante
-essas condições.
+## Check the browser
+
+A **fixture** is a test entry that prepares a deterministic situation using
+the real model, drawing, and controls.
+
+Install Python Playwright and Pillow. Current scripts open graphical Chrome at
+`/usr/bin/google-chrome`; that executable and an available graphical session
+are required. Installing only the Playwright package does not guarantee
+these conditions.
 
 ```bash
 python3 tests/browser.py
@@ -390,62 +418,60 @@ python3 tests/browser_subchief.py
 python3 tests/browser_boss.py
 ```
 
-Cada script compila, serve em `127.0.0.1` numa porta livre e limpa navegador,
-servidor e temporários. A aplicação e as fixtures são Kof. JavaScript e CSS da saída são gerados por Kof.
-Playwright envia interações e Pillow confere sprites.
+Each script compiles, serves on an available port at `127.0.0.1`, then cleans
+up the browser, server, and temporary files. The app and fixtures are Kof. Kof
+generates the JavaScript and CSS output. Playwright sends interactions and
+Pillow checks sprites.
 
-`python3 tests/browser.py URL` aceita uma aplicação já servida. Os scripts
-que oferecem `--kof CAMINHO` conservam essa opção: `browser.py`,
-`browser_controls.py`, `browser_meteor.py` e `browser_weapons.py`.
+`python3 tests/browser.py URL` accepts an already served app. Scripts that
+offer `--kof CAMINHO` keep that option: `browser.py`, `browser_controls.py`,
+`browser_meteor.py`, and `browser_weapons.py`.
 
-| Percurso | Observações |
+| Journey | Coverage |
 | --- | --- |
-| `browser.py` | Aplicação normal em 320/1200 px: créditos, espera/saída/quadro vazio, entrada no menu, textos, guia fechado/aberto, foco, teclado, clique/toque e pausa; capturas em densidades 1/2. Para derrota, resultado e nova partida usa fixture com três colisões determinísticas. |
-| `browser_controls.py` | Contextos novos com ciclos de 30 ms: posição, sprites, quatro diagonais, opostos, foco, clique/Tab, soltura e identidade do botão/contato. |
-| `browser_meteor.py` | Fixture do modelo real com um passo por clique: posição e quadros do meteoro atingido. |
-| `browser_weapons.py` | Pixels de itens, efeitos, lasers, blaster e nove quadros do especial; vida 4, indicador, pausa, teclas mantidas, recusas, cancelamento e ordens de soltura. Também abre a aplicação normal. |
-| `browser_stage.py` | Trilha, indicadores, sprites, percurso completo, resultado e redesenhos sem avanço. |
-| `browser_subchief.py` | Encontro, tiros, especial, explosão, pausa/retomada e repetição. |
-| `browser_boss.py` | Entrada, níveis, tiros, contatos, explosão, resultado e repetição. |
+| `browser.py` | Normal app at 320/1200 px: credits, wait/skip/empty frame, menu entry, text, closed/open guide, focus, keyboard, click/touch, and pause; captures at densities 1/2. Defeat, result, and new game use a fixture with three deterministic collisions. |
+| `browser_controls.py` | Fresh contexts with 30 ms cycles: position, sprites, four diagonals, opposites, focus, click/Tab, release, and button/contact identity. |
+| `browser_meteor.py` | Real-model fixture with one step per click: position and frames of a hit meteor. |
+| `browser_weapons.py` | Pixels for items, effects, lasers, blaster, and all nine special frames; life 4, indicator, pause, held keys, rejected attempts, cancellation, and release order. Also opens the normal app. |
+| `browser_stage.py` | Route, indicators, sprites, full journey, result, and redraws without advancing. |
+| `browser_subchief.py` | Encounter, attacks, special, explosion, pause/resume, and repeat play. |
+| `browser_boss.py` | Entry, levels, attacks, contacts, explosion, results, and repeat play. |
 
-Esperar uma derrota espontânea não é um critério determinístico: coleta de
-vida e evolução podem prolongar a tentativa. As três colisões preparadas
-permitem verificar o encerramento e as duas confirmações do resultado.
-Redesenhos sem avanço verificam a separação entre modelo e apresentação.
+Waiting for a spontaneous defeat is not deterministic: life pickups and
+upgrades can extend a run. Three prepared collisions let the scripts check
+ending and both result confirmations. Redraws without advancement check the
+separation between model and presentation.
 
-A automação Python pode ser verificada com:
+Python automation can be checked with:
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-O contrato local de infraestrutura de publicação fica no
-[guia de CI](ci-e-publicacao.md#verificações-locais-de-infraestrutura).
+The local publishing-infrastructure contract is in the [CI guide](ci-e-publicacao.md#local-infrastructure-checks).
 
-## O que as verificações demonstram
+<a id="o-que-as-verificações-demonstram"></a>
 
-O [registro de controles](../.agent/validation/sifuture-controls.md)
-associa o checkpoint `cedf4875abe101d8fd85012dbfb30ef20bf5406c` ao gate com
-114 testes por alvo, oito testes Python, sete percursos completos de navegador
-e contrato CI. No Chrome 155.0.8059.39, os percursos exercitaram o alvo JS;
-Vivaldi 8.2.4133.84 teve verificações específicas de apresentação e navegação,
-sem executar os sete percursos completos. O registro também distingue o
-relato manual “Resolvido” do usuário de um controle automatizado do Windows.
+## What the checks demonstrate
 
-Os [registros de fase](../.agent/validation/stage-hud-result.md),
-[armas](../.agent/validation/background-items-weapons.md),
-[soltura do especial](../.agent/validation/special-key-release.md),
-[reinício de sprites](../.agent/validation/ship-meteor-reset.md) e
-[créditos e guia](../.agent/validation/controls-guide.md) preservam provas
-anteriores e suas revisões. Publicação real e diferenças entre a aplicação
-remota e fixtures locais estão no [guia de CI](ci-e-publicacao.md#evidência-da-revisão-publicada).
+The [controls record](../.agent/validation/sifuture-controls.md) associates
+checkpoint `cedf4875abe101d8fd85012dbfb30ef20bf5406c` with a gate of 114 tests
+per target, eight Python tests, seven complete browser journeys, and the CI
+contract. The journeys exercised JS in Chrome 155.0.8059.39; Vivaldi
+8.2.4133.84 had specific presentation and navigation checks, but did not run
+all seven journeys. The record also distinguishes the user's manual “Resolved”
+report from an automated Windows control.
 
-Testes do modelo não demonstram UI gráfica em JVM/Native. Toque via CDP não
-encerra o [aceite Android](jogar.md#android-e-limites-do-aceite). Comparação
-com o vídeo histórico e aprovações visuais humanas ainda pendentes nos
-respectivos registros continuam separadas de inspeção do agente e automação.
+The [stage records](../.agent/validation/stage-hud-result.md), [weapons](../.agent/validation/background-items-weapons.md), [special-key release](../.agent/validation/special-key-release.md), [sprite restart](../.agent/validation/ship-meteor-reset.md), and [credits and guide](../.agent/validation/controls-guide.md)
+preserve earlier evidence and their revisions. Actual publication and the
+differences between the remote app and local fixtures are in the [CI guide](ci-e-publicacao.md#published-revision-evidence).
 
-A [validação desta reorganização](../.agent/validation/documentacao.md)
-registra os comandos repetidos e as provas apenas consultadas. Logs,
-capturas e arquivos intermediários locais ficam em `.agent/tmp/`; os resumos
-versionados contêm os resultados essenciais sem depender desses arquivos.
+Model tests do not demonstrate graphical UI on JVM/Native. Touch through CDP
+does not complete [Android acceptance](jogar.md#android-acceptance-limits).
+Comparison with the historical video and human visual approvals still pending
+in the relevant records remain separate from agent inspection and automation.
+
+The [validation record for this documentation update](../.agent/validation/documentacao.md)
+tracks repeated commands and evidence only consulted. Logs, captures, and
+intermediate local files stay in `.agent/tmp/`; tracked summaries contain the
+essential results without depending on those files.

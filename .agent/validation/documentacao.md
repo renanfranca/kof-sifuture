@@ -158,3 +158,53 @@ fontes upstream consultadas em `.agent/tmp/documentacao/`. O resumo acima
 contém resultados essenciais; os arquivos locais não são links necessários
 para compreender a validação. A exclusão local `/.agent/tmp/` é conferida
 exatamente uma vez, sem alterar arquivos de exclusão versionados.
+
+## Versões em inglês e português do Brasil — 10/10/2026
+
+Base examinada: revisão `6f72a4b0a6202a241b722f1474d79c310b7a306e`, branch
+`sifuture-documentation`. As alterações desta etapa ainda não foram commitadas
+nem publicadas. O escopo de escrita foi os seis guias públicos em inglês,
+suas seis cópias `.pt_BR.md` e este complemento do registro. Os arquivos
+protegidos definidos acima permanecem fora das edições.
+
+Os 12 documentos têm seletor logo após o título e apontam ao par do mesmo
+assunto. Os guias, retornos ao README e links de tipografia seguem o idioma
+escolhido; as versões portuguesas mantêm seus caminhos e fragmentos. O README
+informa que os guias estão nos dois idiomas. A abertura preserva a motivação
+em primeira pessoa e o quarto período. Os READMEs e o guia de jogo destacam
+a URL oficial `https://renanfranca.github.io/kof-sifuture/`; explicam que cada
+merge em `main` inicia o fluxo e que uma publicação bem-sucedida da revisão
+atual atualiza o mesmo endereço. Os procedimentos em inglês mantêm os rótulos
+reais “Pular créditos” e “Novo Jogo”, com suas explicações em inglês.
+
+A comparação da revisão-base identificou **67 fragmentos** formados por
+cabeçalhos e IDs explícitos nos seis caminhos ingleses anteriores. Todos
+continuam resolvíveis nos caminhos ingleses atuais e nas cópias portuguesas.
+Os 13 IDs explícitos de compatibilidade do README permanecem presentes nas
+duas versões; aliases adicionais preservam os fragmentos automáticos cujos
+títulos foram traduzidos. Os 32 blocos de código, comandos, saídas e excertos
+fenced têm conteúdo idêntico em cada par.
+
+Verificações deste conjunto:
+
+```text
+language pairs: 6 (12 documents)
+selectors: present directly after every H1 and resolve to paired files
+README compatibility IDs: 13 preserved; EN has 19 unique IDs including heading aliases
+fenced source/output blocks: identical across all 6 pairs
+legacy fragments preserved across both paths: 67
+legacy local fragment targets checked: 19
+PASS
+```
+
+```bash
+python3 .agent/tmp/documentacao/check_translation.py
+python3 /home/renanfranca/.agents/skills/restructure-documentation/scripts/check_markdown_links.py README.md README.pt_BR.md docs fonts/README.md fonts/README.pt_BR.md .agent/validation/documentacao.md
+git diff --check
+grep -Fxc '/.agent/tmp/' "$(git rev-parse --git-path info/exclude)"
+```
+
+A verificação dos pares retornou `PASS`; o validador de links e `git diff
+--check` retornaram código `0`; a exclusão local de `.agent/tmp/` aparece
+exatamente uma vez. Não foi executado teste do produto nem feita nova
+publicação. Evidência auxiliar opcional está em `.agent/tmp/documentacao/`.

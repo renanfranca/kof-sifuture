@@ -1,139 +1,158 @@
 <a id="sifuture-em-kof-créditos-navegação-e-combate"></a>
 
-# SiFuture em Kof
+<a id="sifuture-em-kof"></a>
 
-## Por que trazer o SiFuture para Kof
+# SiFuture in Kof
 
-Comecei a desenvolver o SiFuture no segundo semestre de 2006, quando estava
-no quarto período do bacharelado em Ciência da Computação. No curso, havia
-aprendido Portugol e estava começando a estudar Turbo Pascal. Para criar meu
-jogo de nave em Java ME (J2ME), aprendi Java diretamente pela documentação
-oficial da Sun. Ela foi minha única fonte para aprender a linguagem e
-construir o jogo.
+[English](README.md) | [Português (Brasil) — pt-BR](README.pt_BR.md)
 
-Foi nessa documentação que conheci a promessa **“write once, run anywhere”**:
-escreva uma vez e rode em qualquer lugar. Como iniciante, imaginei que o jogo
-também funcionaria em outros ambientes. Quando o terminei, em **1º de agosto
-de 2007**, veio a decepção: ele rodava no celular, mas eu precisava de um
-emulador no computador. Meu jogo não rodava diretamente no desktop nem na web.
+<a id="por-que-trazer-o-sifuture-para-kof"></a>
 
-A motivação está preservada no [README do projeto original, na revisão
-`6f59817`](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/README.md#L17):
+## Why bring SiFuture to Kof
+
+I started developing SiFuture in the second half of 2006, when I was in the
+fourth semester of my Computer Science bachelor's degree. I had learned
+Portugol in class and was beginning to study Turbo Pascal. To create my Java
+ME (J2ME) spaceship game, I learned Java directly from Sun's official
+documentation. It was my only source for learning the language and building
+the game.
+
+That documentation introduced me to Java's promise **“write once, run
+anywhere.”** As a beginner, I imagined the game would work in other
+environments too. When I finished it on **August 1, 2007**, I was disappointed:
+it ran on a phone, but I needed an emulator on my computer. My game did not
+run directly on desktop or on the web.
+
+The original motivation is preserved in the [original project's README at
+revision `6f59817`](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/README.md#L17):
 
 > That documentation was where I discovered Java's slogan: "Write once, run anywhere".
 
-Agora quero retomar aquela expectativa usando Kof: ampliar os ambientes em
-que o SiFuture pode ser jogado, preservando suas regras e sua apresentação
-reconhecível. A versão de navegador já permite jogar. Portabilidade continua
-sendo um objetivo que precisa ser demonstrado em cada ambiente.
+Now I want to revisit that expectation with Kof: make SiFuture playable in
+more environments while preserving its rules and recognizable presentation.
+The browser version is already playable. Portability remains a goal that must
+be demonstrated separately in each environment.
 
 <a id="percurso-no-navegador"></a>
 
-## Jogue no navegador
+<a id="jogue-no-navegador"></a>
 
-**[Jogar SiFuture](https://renanfranca.github.io/kof-sifuture/)**
+## Play in your browser
 
-Toque ou clique em **Pular créditos**, depois em **Novo Jogo**. Pelo teclado,
-use Tab para obter foco, Enter para pular os créditos e uma nova pressão de
-Enter para confirmar Novo Jogo. Mova a nave com as setas ou com o direcional
-abaixo do jogo. A opção **Controles** no menu explica teclado, toque e especial;
-o [guia de jogo](docs/jogar.md) acompanha o percurso completo.
+**[Play SiFuture](https://renanfranca.github.io/kof-sifuture/)**
 
-Após cada merge em `main`, o workflow publica automaticamente a nova versão
-neste mesmo endereço quando os testes, o build e a publicação terminam com
-sucesso. **A URL permanece a mesma; seu conteúdo é atualizado.** Uma revisão
-superada por outro avanço de `main` pula a publicação. Os detalhes estão no
-[guia de CI e publicação](docs/ci-e-publicacao.md#atualização-do-site).
+Tap or click **“Pular créditos” (Skip credits)**, then **“Novo Jogo” (New
+Game)**. With a keyboard, press Tab to focus a control, press Enter to skip
+the credits, then press Enter again to confirm New Game. Move the ship with
+the arrow keys or the directional pad below the game. **Controles** (Controls)
+in the menu explains the keyboard, touch, and special attack; the [gameplay
+guide](docs/jogar.md) walks through the full session.
+
+Each merge into `main` starts the workflow. When tests, the build, and
+publishing succeed for the current revision, the workflow updates this same
+address. **The URL stays the same; its content is updated.** If a newer
+revision has already advanced `main`, publication for the superseded revision
+is skipped. See the [CI and publishing guide](docs/ci-e-publicacao.md#site-updates).
 
 <a id="escopo-e-fontes"></a>
 
-## Estado do projeto
+<a id="estado-do-projeto"></a>
 
-O recorte entregue inclui créditos, menu com Novo Jogo e Controles, partida,
-pausa com Continuar/Reiniciar/Menu principal, fundo, itens, evolução das armas,
-meteoros, subchefe, boss final, indicadores e resultado. A v1 completa ainda
-está aberta. A [especificação do port](.agent/specifications/port-sifuture-to-kof.md)
-distingue essas entregas da meta:
+## Project status
+
+The delivered slice includes credits, a menu with New Game and Controls, a
+game session, pause with Continue/Restart/Main Menu, background, items, weapon
+upgrades, meteors, miniboss, final boss, indicators, and results. Full v1 is
+still open. The [port specification](.agent/specifications/port-sifuture-to-kof.md)
+distinguishes those delivered features from the goal:
 
 > Full v1 remains open.
 
-| Ambiente | Resultado demonstrado e limite |
+| Environment | Demonstrated result and limit |
 | --- | --- |
-| Navegador | Jogo publicado na URL acima. Em 09/10/2026, a revisão `5609febbc76cc2dd5d0f52c90349dae3ef1f5057` teve publicação, comparação dos 113 arquivos e percurso do menu no Chrome 155.0.8059.39 em 320/1200 px, conforme o [registro de publicação](.agent/validation/sifuture-controls.md). |
-| Modelo em JVM e JS | O checkpoint `cedf4875abe101d8fd85012dbfb30ef20bf5406c` registra 114 testes por alvo e sete percursos completos no Chrome. São provas diferentes: testes do modelo não demonstram desenho ou interação gráfica em JVM. Consulte os [resultados e limites](docs/desenvolvimento.md#o-que-as-verificações-demonstram). |
-| Android | Meta da v1, com execução em emulador ou aparelho. A tentativa de 06/10/2026 na revisão `8edf5ebbb28391b5e7de5a905513c5e9a55e5ccd`, usando Kof 0.5.0-beta, falhou com `RNG001`, sem gerar APK. SDK não configurado naquele ambiente; veja o [registro dos bloqueios](.agent/validation/android-apk-blockers.md). |
-| JVM e Native gráficos | Alvos de pesquisa de portabilidade. A especificação não exige o port gráfico nesses alvos para aceitar a v1. Não há aceite gráfico do jogo nesses ambientes nos registros citados. |
+| Browser | The game is published at the URL above. On 2026-10-09, revision `5609febbc76cc2dd5d0f52c90349dae3ef1f5057` was published, all 113 files were compared, and the menu journey was checked in Chrome 155.0.8059.39 at 320/1200 px, as recorded in the [publication record](.agent/validation/sifuture-controls.md). |
+| JVM and JS model | Checkpoint `cedf4875abe101d8fd85012dbfb30ef20bf5406c` records 114 tests per target and seven complete Chrome journeys. These are different kinds of evidence: model tests do not demonstrate graphical rendering or interaction on the JVM. See [verification results and limits](docs/desenvolvimento.md#what-the-checks-demonstrate). |
+| Android | A v1 goal, to run on an emulator or device. The 2026-10-06 attempt at revision `8edf5ebbb28391b5e7de5a905513c5e9a55e5ccd`, using Kof 0.5.0-beta, failed with `RNG001` and produced no APK. The SDK was not configured in that environment; see the [blocker record](.agent/validation/android-apk-blockers.md). |
+| Graphical JVM and Native | Portability research targets. The specification does not require graphical ports on these targets for v1 acceptance. The cited records contain no graphical acceptance for the game in these environments. |
 
-O [registro de 09/10/2026](.agent/validation/sifuture-controls.md)
-contém a prova de entrega da revisão publicada:
+The [2026-10-09 record](.agent/validation/sifuture-controls.md) contains the
+published revision's delivery evidence:
 
 ```text
 PASS published Pages matches CI artifact: 113 files
 ```
 
-Esse resultado compara arquivos. O mesmo registro descreve o percurso do menu
-no Chrome; não atribui uma partida completa nessa publicação aos 113 arquivos.
+This result compares files. The same record describes the menu journey in
+Chrome; it does not claim that a full game session was played in that
+publication based on those 113 files.
 
 <a id="aceite-dos-controles-no-chrome-do-android"></a>
 
-Continuam pendentes Opções/Música, áudio com os MIDIs originais, pausa
-automática, escala adaptável, entrada fora da árvore de controles, execução e
-conforto em Android físico e comparação visual com o vídeo histórico. Toque
-simulado no navegador não encerra o aceite em aparelho. O [guia de jogo](docs/jogar.md#android-e-limites-do-aceite)
-explica esse limite; a [issue #4](https://github.com/renanfranca/kof-sifuture/issues/4)
-acompanha necessidades restantes. Os registros de cada revisão conservam suas
-próprias lacunas, inclusive aprovação visual humana quando ainda pendente.
+Options/Music, audio with the original MIDI files, automatic pause, adaptive
+scaling, input outside the control tree, operation and comfort on a physical
+Android device, and visual comparison with the historical video remain open.
+Simulated touch in a browser does not complete acceptance on a device. The
+[gameplay guide](docs/jogar.md#android-acceptance-limits) explains this limit;
+[issue #4](https://github.com/renanfranca/kof-sifuture/issues/4) tracks the
+remaining work. Each revision's records retain their own gaps, including
+pending human visual approval where applicable.
 
-## Documentação
+<a id="documentação"></a>
 
-Os guias públicos estão em português. Escolha o percurso que precisa:
+## Documentation
 
-| Quero… | Começar por… |
+The public guides are available in English and Brazilian Portuguese. Choose
+the path that fits your goal:
+
+| I want to… | Start with… |
 | --- | --- |
-| Jogar e entender os comandos | [Como jogar](docs/jogar.md): abertura, menus, teclado, toque, pausa, especial e recuperação de comandos. |
-| Entender o comportamento do jogo | [Regras do jogo](docs/regras-do-jogo.md): tempo, fase, pontuação, vidas, evolução, meteoros, chefes e resultado. |
-| Compilar, testar ou colaborar | [Desenvolvimento](docs/desenvolvimento.md): requisitos, receitas locais, código e workaround das fontes. |
-| Acompanhar checks ou recuperar uma publicação | [CI e publicação](docs/ci-e-publicacao.md): distribuição, integridade, atualização do site e diagnósticos. |
+| Play and learn the controls | [How to play](docs/jogar.md): opening, menus, keyboard, touch, pause, special attack, and input recovery. |
+| Understand the game behavior | [Game rules](docs/regras-do-jogo.md): time, stage, score, lives, upgrades, meteors, bosses, and results. |
+| Build, test, or contribute | [Development](docs/desenvolvimento.md): requirements, local recipes, code, and the source-root workaround. |
+| Follow checks or recover a publication | [CI and publishing](docs/ci-e-publicacao.md): distribution, integrity, site updates, and diagnosis. |
 
 <a id="fase-e-resultado"></a>
 <a id="coleta-e-evolução"></a>
 
-As explicações de [fase e resultado](docs/regras-do-jogo.md#fase) e de
-[coleta e evolução](docs/regras-do-jogo.md#coleta-e-evolução) incluem as regras,
-exemplos e evidências antes concentrados aqui.
+The explanations of [stage and results](docs/regras-do-jogo.md#stage) and
+[item collection and upgrades](docs/regras-do-jogo.md#collection-and-upgrades)
+include the rules, examples, and evidence previously kept here.
 
 <a id="kof-instalado"></a>
 <a id="compilar-a-aplicação-com-o-workaround"></a>
 <a id="regras-módulos-e-testes"></a>
 
-Para colaborar, confira [Kof instalado](docs/desenvolvimento.md#requisitos),
-[compilação local](docs/desenvolvimento.md#compilar-e-abrir-a-aplicação) e
-[organização e testes](docs/desenvolvimento.md#organização-do-código).
-O workaround e seus diagnósticos têm uma única explicação no guia.
+To contribute, see [Kof installation](docs/desenvolvimento.md#requirements),
+[local builds](docs/desenvolvimento.md#build-and-open-the-app), and
+[code organization and tests](docs/desenvolvimento.md#code-organization). The
+workaround and its diagnostics have a single explanation in that guide.
 
 <a id="ci-kof-e-github-pages"></a>
 <a id="uma-distribuição-por-resolução"></a>
 <a id="publicação-e-atualização-de-main"></a>
 <a id="diagnóstico-reprodução-e-reexecução"></a>
 
-Para manter a entrega, consulte [checks](docs/ci-e-publicacao.md#checks),
-[distribuição por resolução](docs/ci-e-publicacao.md#uma-distribuição-por-resolução),
-[atualização de main](docs/ci-e-publicacao.md#atualização-do-site) e
-[diagnóstico, reprodução e reexecução](docs/ci-e-publicacao.md#diagnóstico-reprodução-e-reexecução).
+To maintain delivery, see [checks](docs/ci-e-publicacao.md#checks),
+[one distribution per resolution](docs/ci-e-publicacao.md#one-distribution-per-resolution),
+[site updates](docs/ci-e-publicacao.md#site-updates), and
+[diagnosis, reproduction, and reruns](docs/ci-e-publicacao.md#diagnosis-reproduction-and-reruns).
 
-A [tipografia](fonts/README.md) tem documentação própria. Especificações,
-[EXECPLAN.md](EXECPLAN.md) e [registros de validação](.agent/validation/)
-preservam requisitos, decisões e evidências das respectivas revisões.
+[Typography](fonts/README.md) has its own guide. Specifications,
+[EXECPLAN.md](EXECPLAN.md), and [validation records](.agent/validation/)
+preserve requirements, decisions, and evidence for their respective revisions.
 
-## Projeto original e recursos
+<a id="projeto-original-e-recursos"></a>
 
-O [SiFuture original](https://github.com/renanfranca/sifuture) preserva o jogo
-em J2ME. O [vídeo histórico](https://youtu.be/1xMKYEy7Jqw?si=oF48Zq7EeNTLTb3J)
-mostra sua apresentação e serve à comparação ainda pendente neste port.
+## Original project and resources
 
-O código de autoria de Renan Franca está sob a **Apache License 2.0**;
-consulte [LICENSE](LICENSE) e [NOTICE](NOTICE). O NOTICE distingue esse código
-das imagens e dos MIDIs de terceiros:
+The [original SiFuture project](https://github.com/renanfranca/sifuture)
+preserves the J2ME game. The [historical video](https://youtu.be/1xMKYEy7Jqw?si=oF48Zq7EeNTLTb3J)
+shows its presentation and informs the visual comparison that remains open
+for this port.
+
+Code authored by Renan Franca is licensed under the **Apache License 2.0**;
+see [LICENSE](LICENSE) and [NOTICE](NOTICE). NOTICE distinguishes this code
+from third-party images and MIDI files:
 
 > Essas imagens estão excluídas da Apache License 2.0, inclusive quando
 > incorporadas aos arquivos de distribuição .jar.
@@ -141,5 +160,6 @@ das imagens e dos MIDIs de terceiros:
 > Seus títulos originais, autores e licenças não foram identificados. Eles
 > estão excluídos da Apache License 2.0.
 
-O segundo trecho trata dos MIDIs. Este repositório não atribui uma licença
-nova a esses recursos nem concede direitos de reutilização ou redistribuição.
+The first excerpt concerns images; the second concerns MIDI files. This
+repository does not assign a new license to these resources or grant rights
+to reuse or redistribute them.

@@ -1,22 +1,28 @@
-# Regras do jogo
+<a id="regras-do-jogo"></a>
 
-[Voltar à apresentação do projeto](../README.md) ·
-[Como jogar](jogar.md) ·
-[Desenvolvimento e verificação](desenvolvimento.md)
+# Game rules
 
-Este guia explica o comportamento entregue e as diferenças aprovadas em
-relação ao original. A [especificação do port](../.agent/specifications/port-sifuture-to-kof.md)
-conserva os requisitos da v1 e os ciclos ainda pendentes.
+[English](regras-do-jogo.md) | [Português (Brasil) — pt-BR](regras-do-jogo.pt_BR.md)
 
-## Mundo lógico e passo
+[Back to the project overview](../README.md) ·
+[How to play](jogar.md) ·
+[Development and verification](desenvolvimento.md)
 
-O **mundo lógico** é o espaço de coordenadas em que o jogo calcula posições e
-colisões: 176 × 220 unidades. Um **passo** é uma atualização da simulação,
-programada a cada 30 ms. O tamanho da janela não redefine esse mundo.
-A nave avança cinco unidades por passo em cada eixo ativo, com limite
-superior `y = 30`; os limites direito e inferior consideram seu tamanho.
+This guide describes the delivered behavior and approved differences from the
+original. The [port specification](../.agent/specifications/port-sifuture-to-kof.md)
+keeps the v1 requirements and unfinished cycles.
 
-Em [Rules.kf](../src/main/kof/sifuture/game/Rules.kf#L4):
+<a id="mundo-lógico-e-passo"></a>
+
+## Logical world and logical step
+
+The **logical world** is the coordinate space in which the game calculates
+positions and collisions: 176 × 220 units. A **logical step** is one simulation
+update, scheduled every 30 ms. Window size does not redefine this world. The
+ship moves five units per logical step on each active axis, with an upper limit
+of `y = 30`; the right and bottom limits account for its size.
+
+In [Rules.kf](../src/main/kof/sifuture/game/Rules.kf#L4):
 
 ```kof
 static final Int STEP_MS = 30
@@ -24,24 +30,26 @@ static final Int WORLD_WIDTH = 176
 static final Int WORLD_HEIGHT = 220
 ```
 
-Esses valores separam tempo e espaço: mover uma vez aplica a velocidade de
-cinco unidades; esperar um segundo não é uma instrução direta de movimento.
-O limite superior e a velocidade são nomeados por `HEADER_HEIGHT` e
-`SHIP_SPEED` no mesmo arquivo. O relógio chama a atualização e depois o desenho, conforme o
-[guia de desenvolvimento](desenvolvimento.md#modelo-desenho-e-controles).
-Redesenhar apenas consulta o estado e não acelera animações. Pausar congela
-os contadores, incluindo fundo, itens, tiros e efeitos.
+These values separate time from space: one movement applies five units of
+speed; waiting one second is not itself a movement instruction. The upper
+limit and speed are named `HEADER_HEIGHT` and `SHIP_SPEED` in the same file.
+The clock updates the model and then draws it, as described in the
+[development guide](desenvolvimento.md#model-drawing-and-controls). Redrawing
+only reads the state and does not speed up animation. Pause freezes counters,
+including background, items, shots, and effects.
 
-## Fase
+<a id="fase"></a>
 
-A **fase** é o percurso da tentativa, representado por um marcador que vai
-da posição 5 à 176. O primeiro encontro prolongado entra em 88 e avança o
-marcador para 89; o último entra em 146 e avança o marcador para 147.
-Combate e explosão desses
-inimigos suspendem o avanço da trilha. Fora deles, a miniatura avança uma
-posição a cada dez passos. A duração total depende do combate.
+## Stage
 
-A posição é derivada em [Game.stagePosition](../src/main/kof/sifuture/game/Game.kf#L324):
+The **stage** is the attempt's route, represented by a marker from position 5
+to 176. The first extended encounter enters at 88 and advances the marker to
+89; the last enters at 146 and advances it to 147. Combat and the explosions
+of these enemies suspend route progress. Outside those encounters, the marker
+advances one position every ten logical steps. Total duration depends on
+combat.
+
+The position is derived in [Game.stagePosition](../src/main/kof/sifuture/game/Game.kf#L324):
 
 ```kof
 var position = 5 + stageSteps / 10
@@ -49,33 +57,35 @@ if (position > Rules.WORLD_WIDTH) { return Rules.WORLD_WIDTH }
 return position
 ```
 
-`steps` conta atualizações da partida; `stageSteps` conta o avanço da trilha e
-o incremento histórico da entrada. Durante combate e explosão, apenas o
-primeiro continua. Calcular a posição evita guardar outra cópia que teria de
-ser sincronizada. O [training de estado duplicado](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/anti-patterns/duplicate-state.md#L73)
-orienta:
+`steps` counts game updates; `stageSteps` counts route progress and the
+historical entry increment. During combat and explosions, only the first
+continues. Deriving the position avoids storing a duplicate value that would
+need synchronization. The [duplicate-state training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/anti-patterns/duplicate-state.md#L73)
+states:
 
 > If a value can be derived from another, derive it (method or function).
 
-Após o término do último encontro, faltam 290 passos para o encerramento. A pausa
-congela todos esses relógios.
+After the last encounter ends, 290 logical steps remain before the game ends.
+Pause freezes all these clocks.
 
-## Pontuação e vidas
+<a id="pontuação-e-vidas"></a>
 
-A **pontuação**, chamada `score` no código, acumula os prêmios da tentativa.
-**Vidas** são as oportunidades restantes: a nave começa com três, e uma vida
-é retirada ao terminar sua explosão. O estado **normal** da nave permite
-colisões; durante o reinício ela pisca e fica invulnerável.
+## Score and lives
 
-Uma colisão da nave com obstáculos concede cinco pontos uma única vez no passo,
-mesmo quando vários estão sobrepostos. Cada obstáculo sobreposto inicia sua
-animação. A explosão da nave dura dez quadros de três passos; o reinício tem
-15 alternâncias de três passos.
+**Score** accumulates the attempt's rewards. **Lives** are the remaining
+chances: the ship starts with three, and one is removed when its explosion
+ends. The ship's **normal** state permits collisions; during restart it blinks
+and is invulnerable.
 
-A ordem da atualização considera o estado antes e depois de avançar a nave:
-o estado anterior decide a tentativa de disparo; o estado depois decide as
-colisões. No 45º passo de reinício a nave já pode colidir, mas só volta a
-tentar o tiro normal no passo seguinte. Veja [Game.step](../src/main/kof/sifuture/game/Game.kf#L233):
+A ship collision with obstacles grants five points only once in that logical
+step, even if several overlap. Each overlapping obstacle starts its own
+animation. The ship's explosion lasts ten frames at three logical steps each;
+restart has 15 alternations at three steps each.
+
+Update order considers the state before and after advancing the ship: the
+previous state decides whether to attempt a shot; the new state decides
+collisions. On the 45th restart step the ship can already collide, but it only
+attempts a normal shot on the next step. See [Game.step](../src/main/kof/sifuture/game/Game.kf#L233):
 
 ```kof
 var normalBefore = ship.phase == ShipPhase.Normal
@@ -84,33 +94,37 @@ ship.advance()
 if (ship.lives < livesBefore) { weapons.loseOnDeath() }
 ```
 
-Mais adiante, na [mesma atualização](../src/main/kof/sifuture/game/Game.kf#L244):
+Later in the [same update](../src/main/kof/sifuture/game/Game.kf#L244):
 
 ```kof
 if (normalBefore) { weapons.attemptFire(ship) }
 ```
 
-`normalBefore` conserva a condição que valia no início do passo. A transição
-para normal dentro de `ship.advance()` não altera retroativamente essa condição.
+`normalBefore` keeps the condition from the start of the logical step. A
+transition to normal inside `ship.advance()` does not change that condition
+retroactively.
 
-## Coleta e evolução
+<a id="coleta-e-evolução"></a>
 
-**Coleta** é o contato de uma nave normal com um item disponível. Há sempre
-um coração de **evolução**, que melhora o armamento, e um de vida, que
-acrescenta uma vida. O de evolução percorre os cinco quadros `iten`; o de vida
-pulsa pelos onze quadros `life`, avançando e voltando. Cada coleta concede dez
-pontos uma única vez, mostra três quadros de efeito e depois relança o item.
-O piscar inicial e a explosão não permitem coleta. Vidas podem ultrapassar três.
+## Collection and upgrades
 
-| Coletas de evolução | Armamento |
+**Collection** occurs when a normal ship touches an available item. There is
+always one **upgrade** heart, which improves weapons, and one life heart,
+which adds a life. The upgrade item cycles through five `iten` frames; the
+life item pulses through eleven `life` frames, moving forward and back. Each
+pickup grants ten points once, displays three effect frames, then relaunches
+the item. Initial blinking and explosion do not allow collection. Lives can
+exceed three.
+
+| Upgrade pickups | Weapon |
 | --- | --- |
-| Nenhuma | Laser básico, um ativo por vez. |
-| Primeira | Laser animado; um lançamento por tentativa e até três em circulação. |
-| Segunda | Acrescenta o blaster no gatilho de seis ciclos do laser. |
-| Terceira | Mantém o laser e aumenta a frequência do blaster. |
-| Seguintes | Guardam cargas de especial, mantendo a terceira evolução. |
+| None | Basic laser, one active at a time. |
+| First | Animated laser; one launch per attempt and up to three in flight. |
+| Second | Adds the blaster on every sixth laser cycle. |
+| Third | Keeps the laser and increases blaster frequency. |
+| Further pickups | Store special-attack charges while retaining the third upgrade. |
 
-A regra está em [Game.kf](../src/main/kof/sifuture/game/Game.kf#L248):
+The rule is in [Game.kf](../src/main/kof/sifuture/game/Game.kf#L248):
 
 ```kof
 if (item.collect(ship)) {
@@ -120,35 +134,37 @@ if (item.collect(ship)) {
 }
 ```
 
-`collect` retorna verdadeiro somente na primeira coleta. Assim, o prêmio e o
-benefício são concedidos juntos uma vez. `ship.lives + 1` não limita a vida a
-três; os percursos registrados observaram a passagem de 3 para 4 em JVM, JS
-e Chrome, conforme [background-items-weapons.md](../.agent/validation/background-items-weapons.md).
+`collect` returns true only for the first pickup. The reward and benefit are
+therefore granted together, once. `ship.lives + 1` does not cap lives at three;
+recorded journeys observed a change from 3 to 4 on JVM, JS, and Chrome, as
+shown in [background-items-weapons.md](../.agent/validation/background-items-weapons.md).
 
-Essa escrita altera um campo de uma classe mutável. O [training de classes](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/language/classes.md#L11)
-orienta:
+This assignment changes a field on a mutable class. The [class training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/language/classes.md#L11)
+says:
 
 > For **mutable state**, use fields + `constructor(...)`
 
-O [Learn Kof, Classes and Objects](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/07-classes-and-objects.md#L65)
-ensina:
+[Learn Kof: Classes and Objects](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/07-classes-and-objects.md#L65)
+teaches:
 
 > To **mutate**, use explicit public fields:
 
-Aqui, `ship.lives` é o dado que muda. O guia de desenvolvimento explica como
-as [classes do modelo](desenvolvimento.md#classes-e-estados-em-kof) expressam
-essa intenção sem duplicar estado.
+Here, `ship.lives` is the value that changes. The development guide explains
+how the model's [classes](desenvolvimento.md#classes-and-states-in-kof)
+express this intent without duplicating state.
 
-## Armas e perda de evolução
+<a id="armas-e-perda-de-evolução"></a>
 
-O laser tenta disparar a cada 13 passos normais. O blaster suporta dois
-impactos; cada um dos três feixes do especial suporta dez. Na segunda
-evolução, o blaster usa o gatilho histórico de seis tentativas de laser;
-na terceira, sua frequência aumenta. `Weapons` concentra nível, cargas,
-cadência e projéteis.
+## Weapons and lost upgrades
 
-Na morte, perde-se uma carga guardada ou, sem carga, um nível de tiro, até o
-básico. Em [Weapons.loseOnDeath](../src/main/kof/sifuture/game/Weapons.kf#L26):
+The laser attempts to fire every 13 normal logical steps. The blaster takes
+two hits; each of the special attack's three beams takes ten. At the second
+upgrade, the blaster uses the historical trigger of every six laser attempts;
+at the third, its frequency increases. `Weapons` centralizes level, charges,
+rate, and projectiles.
+
+On death, the ship loses one stored charge or, when it has none, one weapon
+level down to the basic weapon. In [Weapons.loseOnDeath](../src/main/kof/sifuture/game/Weapons.kf#L26):
 
 ```kof
 loseOnDeath() {
@@ -157,50 +173,53 @@ loseOnDeath() {
 }
 ```
 
-Os ramos são exclusivos: ter carga preserva o nível naquele evento. Os
-projéteis já lançados continuam seus movimentos e efeitos. Com zero vidas,
-a nave deixa de criar disparos durante o encerramento; lasers, blaster e especial
-existentes terminam normalmente. Concluir a fase com vidas mantém os disparos
-visuais. O [guia de jogo](jogar.md#especial) concentra os comandos e a
-disponibilidade do especial.
+The branches are exclusive: if a charge exists, that event preserves the
+weapon level. Already launched projectiles keep moving and applying effects.
+When no lives remain, the ship stops creating shots during the ending; existing
+lasers, blaster, and special attack finish normally. Shots remain visible when
+the stage is completed with lives left. The [gameplay guide](jogar.md#special-attack)
+collects the special attack's controls and availability.
 
-## Meteoros
+<a id="meteoros"></a>
 
-Há seis meteoros horizontais, com índices preservados, e dois verticais que
-entram quando a posição da fase ultrapassa 30. Os verticais descem uma unidade
-por passo e mostram três quadros de impacto, um passo por quadro. O par
-relança quando ambos ficam inativos e ambos os chefes estão inativos. Os que
-já foram lançados terminam o percurso durante o combate.
+## Meteors
 
-As colisões conservam a ordem nave → laser → blaster → especial, com prêmio
-único por meteoro. O impacto de laser mostra `laser03.png` por um passo;
-meteoros horizontais atingidos continuam avançando uma unidade por passo
-durante três quadros de dois passos. Consulte a ordem em
-[Game.step](../src/main/kof/sifuture/game/Game.kf#L285) e os percursos
-[browser_meteor.py](../tests/browser_meteor.py) e
+There are six horizontal meteors with preserved indices, and two vertical
+ones that enter once the stage position passes 30. Vertical meteors descend
+one unit per logical step and show three impact frames, one step per frame.
+The pair relaunches when both are inactive and both bosses are inactive.
+Meteors already launched finish their route during combat.
+
+Collisions keep the order ship → laser → blaster → special attack, with one
+reward per meteor. A laser impact shows `laser03.png` for one logical step;
+hit horizontal meteors continue moving one unit per step for three frames of
+two steps each. See the order in [Game.step](../src/main/kof/sifuture/game/Game.kf#L285)
+and the journeys in [browser_meteor.py](../tests/browser_meteor.py) and
 [browser_stage.py](../tests/browser_stage.py).
 
-Os verticais reiniciam entre −153 e 0 na criação ou após impacto; depois de
-sair pelo fundo, usam a faixa histórica de −171 até 0, mantendo a espera pelo
-par. As regressões estão em [ship-meteor-reset.md](../.agent/validation/ship-meteor-reset.md).
+Vertical meteors reset between −153 and 0 when created or after impact; after
+leaving through the bottom, they use the historical range −171 to 0 and keep
+the pair wait. Regressions are recorded in [ship-meteor-reset.md](../.agent/validation/ship-meteor-reset.md).
 
-## Subchefe
+<a id="subchefe"></a>
 
-O **subchefe** é o inimigo do primeiro encontro prolongado. Tem resistência 30, deslocamento de uma unidade por eixo e três
-tiros próprios, com tentativa a cada 12 passos normais. Laser retira uma
-unidade; blaster aplica sua resistência restante. O especial conserva os
-marcadores históricos de seis passos, incluindo reaplicação quando outro
-feixe inicia contato. Contato corporal explode uma nave normal; durante o
-reinício invulnerável, não altera nenhuma das duas entidades, exceção explícita
-ao original.
+## Miniboss
 
-`lifeTime` é um contador de duração usado para escolher o prêmio; no subchefe
-avança a cada 36 passos normais e não representa segundos. O golpe fatal dá
-600, 300 ou 150 pontos para `lifeTime` ≤30, ≤60 ou >60. Os dez quadros de
-explosão duram três passos cada. Os itens recorrentes não são duplicados nem
-reposicionados pelo prêmio.
+The **miniboss** is the enemy in the first extended encounter. It has 30
+health, moves one unit per axis, and has three attacks of its own, attempting
+one every 12 normal logical steps. A laser removes one health; the blaster
+deals damage equal to its remaining resistance. The special attack preserves
+historical six-step markers, including reapplication when another beam begins
+contact. Body contact explodes a normal ship; during invulnerable restart it
+changes neither entity, an explicit exception to the original.
 
-[Subchief.reward](../src/main/kof/sifuture/game/Subchief.kf#L62) expressa as faixas:
+`lifeTime` is a duration counter used to choose the reward; for the miniboss
+it advances every 36 normal logical steps and does not represent seconds. The
+fatal hit awards 600, 300, or 150 points for `lifeTime` ≤30, ≤60, or >60. Its
+ten explosion frames last three logical steps each. Recurring items are not
+duplicated or repositioned by the reward.
+
+[Subchief.reward](../src/main/kof/sifuture/game/Subchief.kf#L62) defines the ranges:
 
 ```kof
 reward(): Int {
@@ -210,27 +229,31 @@ reward(): Int {
 }
 ```
 
-O primeiro limite que aceita o contador determina o prêmio. Portanto, 30 dá
-600 e 31 passa à faixa de 300. [browser_subchief.py](../tests/browser_subchief.py)
-verifica encontro, tiros, especial, explosão, pausa, retomada e nova partida
-com modelo, desenho e controles reais em 320/1200 pixels.
+The first matching limit determines the reward. Thus 30 gives 600, while 31
+moves to the 300 range. [browser_subchief.py](../tests/browser_subchief.py)
+checks the encounter, attacks, special, explosion, pause, resume, and new game
+with the real model, drawing, and controls at 320/1200 pixels.
 
-## Boss final
+<a id="boss-final"></a>
 
-O **boss final** é o chefe do último encontro. Tem resistência 100 e cinco níveis de ataques, com intervalos normais
-de 13/31/31/24/24 passos. Contatos não fatais de armas evoluem o ataque abaixo
-de 80/70/45/20; os limites exatos não evoluem. Contato corporal não evolui o
-armamento e exige o estado normal do boss. O especial inimigo prepara seis
-quadros de três passos e só se move e colide no quadro 6. Fúria usa `bos1.png`;
-frenesi alterna `bos.png`, `bos1.png` e `bos2.png` a cada quatro passos.
+## Final boss
 
-O prêmio é 1650/1100/550/275 para `lifeTime` ≤30/≤60/≤120/>120. O golpe fatal
-preserva o movimento, interrompe disparos e o incremento desse relógio e
-inicia a explosão: quadro 0 por um passo, demais por três, término no passo 28.
-Meteoros absorvidos não causam dano nem pontos. Reinício invulnerável não
-causa contato corporal, exceção aprovada ao original.
+The **final boss** appears in the last encounter. It has 100 health and five
+attack levels, with normal intervals of 13/31/31/24/24 logical steps.
+Nonfatal weapon hits advance its attack below 80/70/45/20; exact threshold
+values do not advance it. Body contact does not upgrade the weapon and
+requires the boss to be in its normal state. Its special attack prepares for
+six frames of three steps each, and only moves and collides on frame 6. Fury
+uses `bos1.png`; frenzy alternates `bos.png`, `bos1.png`, and `bos2.png` every
+four steps.
 
-[Boss.reward](../src/main/kof/sifuture/game/Boss.kf#L72) define esses prêmios:
+The reward is 1650/1100/550/275 for `lifeTime` ≤30/≤60/≤120/>120. The fatal
+hit preserves movement, stops attacks and increments to that clock, and starts
+the explosion: frame 0 for one step, later frames for three, ending at step 28.
+Absorbed meteors cause neither damage nor points. Invulnerable restart does
+not cause body contact, an approved exception to the original.
+
+[Boss.reward](../src/main/kof/sifuture/game/Boss.kf#L72) defines these rewards:
 
 ```kof
 reward(): Int {
@@ -241,39 +264,40 @@ reward(): Int {
 }
 ```
 
-Os limites escolhem a recompensa uma vez no golpe fatal;
-[browser_boss.py](../tests/browser_boss.py) verifica entrada, fases, tiros,
-contatos, indicadores, explosão, pausa, redesenhos, encerramento e repetição com
-a mesma semente em 320/1200 pixels. Os quatorze assets adicionados nesse ciclo
-são cópias byte a byte dos históricos, conforme o
-[aceite do boss](../.agent/validation/stage-hud-result.md).
+The thresholds choose one reward on the fatal hit. [browser_boss.py](../tests/browser_boss.py)
+checks entry, phases, attacks, contacts, indicators, explosion, pause,
+redraws, ending, and repeat play with the same seed at 320/1200 pixels. The
+fourteen assets added in that cycle are byte-for-byte copies of historical
+assets, as recorded in the [boss acceptance record](../.agent/validation/stage-hud-result.md).
 
 ## HUD
 
-**HUD** é o conjunto de indicadores sobre a cena. Usa os sprites históricos
-sem transformação: trilha, miniatura conforme uma, duas ou três vidas ou mais,
-pontuação à direita, contador de vidas abaixo e ícone de especial em `(50, 21)`.
-Os indicadores são desenhados depois das entidades para permanecerem visíveis
-sobre os feixes. O mundo continua 176 × 220 e a nave conserva o limite `y = 30`.
-O [renderizador](../src/main/kof/sifuture/GameView.kf) consulta o modelo;
-o [aceite de fase e resultado](../.agent/validation/stage-hud-result.md)
-registra as comparações de sprites.
+**HUD** means the indicators drawn over the scene. It uses historical sprites
+without transformation: the route, a marker based on one, two, or three or
+more lives, score at the right, a life counter below, and the special icon at
+`(50, 21)`. Indicators are drawn after entities so they stay visible over
+beams. The world remains 176 × 220 and the ship keeps the `y = 30` limit. The
+[renderer](../src/main/kof/sifuture/GameView.kf) reads the model; the [stage
+and result acceptance record](../.agent/validation/stage-hud-result.md)
+contains sprite comparisons.
 
-## Resultado
+<a id="resultado"></a>
 
-O **resultado** encerra a tentativa quando a fase termina ou a última vida
-é perdida. A pontuação definitiva é preservada; a contagem exibida começa
-em zero. Cada passo acrescenta cinco pontos, limitado ao total exato.
-A avaliação aparece apenas ao terminar:
+## Result
 
-| Pontuação | Índice da avaliação |
+The **result** ends an attempt when the stage finishes or the last life is
+lost. Final score is preserved; the displayed count starts at zero. Each
+logical step adds five points up to the exact total. The rating appears only
+when the count ends:
+
+| Score | Rating index |
 | --- | --- |
-| Menor que 1500 | 0 |
-| 1500 a 2199 | 1 |
-| 2200 a 3299 | 2 |
-| 3300 ou mais | 3 |
+| Below 1500 | 0 |
+| 1500 to 2199 | 1 |
+| 2200 to 3299 | 2 |
+| 3300 or more | 3 |
 
-Em [Game.resultIndex](../src/main/kof/sifuture/game/Game.kf#L331):
+In [Game.resultIndex](../src/main/kof/sifuture/game/Game.kf#L331):
 
 ```kof
 if (score < Rules.RESULT_GOOD) { return 0 }
@@ -282,57 +306,58 @@ if (score < Rules.RESULT_BEST) { return 2 }
 return 3
 ```
 
-Como os limites são estritos, exatamente 1500 pertence à segunda faixa e
-exatamente 2200 à terceira. Isso corrige os casos históricos sem mensagem
-nessas fronteiras. Pontuação zero já começa com a contagem concluída.
-Os [dois comandos do resultado](jogar.md#começar-uma-partida) permitem concluir
-a contagem e depois retornar ao menu, sem confirmação dupla por Enter mantido.
+Because the thresholds are strict, exactly 1500 belongs to the second range
+and exactly 2200 to the third. This fixes historical cases with no message at
+those boundaries. A zero score starts with the count already complete. The
+[two result commands](jogar.md#start-a-game) let the player finish the count
+and then return to the menu, without a double confirmation from holding Enter.
 
-Durante o resultado, fundo, meteoros, itens, chefes, tiros automáticos visuais
-e efeitos continuam. Colisões, coleta e comandos da nave ficam encerrados;
-vidas, nível, cargas e posição da fase permanecem estáveis. A explosão
-pendente termina sem nova perda de vida e fica oculta, sem tentar desenhar
-o quadro de índice 10. Pontuação e avaliação ficam centralizadas sobre a cena.
+During results, the background, meteors, items, bosses, visual automatic shots,
+and effects continue. Collisions, collection, and ship commands stop; lives,
+level, charges, and stage position remain stable. A pending explosion ends
+without another lost life and is hidden without trying to draw frame index 10.
+Score and rating are centered over the scene.
 
-## Diferenças aprovadas e correções históricas
+<a id="diferenças-aprovadas-e-correções-históricas"></a>
 
-Além dos controles modernos e das fronteiras de pontuação, a
-[especificação](../.agent/specifications/port-sifuture-to-kof.md#historical-gameplay)
-aprova o sprite `Middle2.png` somente enquanto a direção horizontal efetiva
-é direita. Soltar restaura `Middle.png` no próximo passo, inclusive com
-movimento vertical. Pausa, resultado e perda de foco limpam comandos e
-restauram o quadro normal. O histórico conservava o quadro de propulsão
-depois da soltura.
+## Approved differences and historical fixes
 
-As exceções de contato corporal durante reinício invulnerável estão nos
-ciclos aprovados de subchefe e boss. Os controles com arrasto que conserva
-a seta inicial são o contrato atual; não representam toda a v1 futura.
+In addition to modern controls and score boundaries, the [specification](../.agent/specifications/port-sifuture-to-kof.md#historical-gameplay)
+approves using `Middle2.png` only while the effective horizontal direction
+is right. Releasing restores `Middle.png` on the next logical step, including
+while moving vertically. Pause, result, and loss of focus clear commands and
+restore the normal frame. The original kept the thrust frame after release.
 
-Os três grupos do especial usam `e0`–`e2`, `e3`–`e5` e `e6`–`e8`,
-respectivamente laranja, azul claro e azul escuro. O histórico
+The approved miniboss and final-boss cycles include the body-contact exceptions
+during invulnerable restart. Controls where dragging keeps the initial arrow
+are the current contract; they do not represent the full future v1.
+
+The special attack's three groups use `e0`–`e2`, `e3`–`e5`, and `e6`–`e8`,
+for orange, light blue, and dark blue. Historical
 [AirShipEspecialShoot.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/AirShipEspecialShoot.java)
-tentava carregar `especial0`–`especial8` e usava índices 3–8 em vetores de
-três posições para as cores azuis. A cena Kof usa os arquivos existentes
-agrupados por cor, corrigindo o carregamento sem substituir os desenhos.
-[NOTICE](../NOTICE) continua aplicável; a
-[documentação das fontes](../fonts/README.md) concentra a tipografia atual.
+attempted to load `especial0`–`especial8` and used indices 3–8 in three-item
+arrays for the blue colors. The Kof scene uses the existing files grouped by
+color, fixing loading without replacing the drawings. [NOTICE](../NOTICE)
+still applies; current typography is covered in the [font guide](../fonts/README.md).
 
-## Fontes e limites das provas
+<a id="fontes-e-limites-das-provas"></a>
 
-Os trechos Kof acima são excertos do código existente. Sua execução pertence
-às revisões registradas, não a exemplos novos apresentados como executados.
-[GameJourney.kf](../src/test/kof/sifuture/game/GameJourney.kf) exercita as regras
-em JVM e JS. Os scripts de navegador usam os mesmos componentes reais e
-posições determinísticas para observar os pixels, o tempo e as interações.
-O [guia de desenvolvimento](desenvolvimento.md#o-que-as-verificações-demonstram)
-relaciona comandos, revisões e ambientes.
+## Sources and limits of evidence
 
-As regras históricas foram consultadas em
-[AirShip.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/AirShip.java),
+The Kof excerpts above come from existing source code. Their execution belongs
+to the recorded revisions; they are not new examples claimed to have been run.
+[GameJourney.kf](../src/test/kof/sifuture/game/GameJourney.kf) exercises rules
+on JVM and JS. Browser scripts use the same real components and deterministic
+positions to observe pixels, timing, and interactions. The [development
+guide](desenvolvimento.md#what-the-checks-demonstrate) lists commands,
+revisions, and environments.
+
+Historical rules were consulted in [AirShip.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/AirShip.java),
 [AirShipAllShoots.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/AirShipAllShoots.java),
 [Meteor.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/Meteor.java),
-[MeteorArray.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/MeteorArray.java)
-e [GameCanvas.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/GameCanvas.java).
-O [vídeo histórico](https://youtu.be/1xMKYEy7Jqw?si=oF48Zq7EeNTLTb3J) governa
-a comparação visual ainda pendente. Testes determinísticos não a substituem,
-nem demonstram execução gráfica em JVM/Native ou aceite em Android físico.
+[MeteorArray.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/MeteorArray.java),
+and [GameCanvas.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/GameCanvas.java).
+The [historical video](https://youtu.be/1xMKYEy7Jqw?si=oF48Zq7EeNTLTb3J)
+guides the visual comparison that remains open. Deterministic tests do not
+replace it, and do not demonstrate graphical execution on JVM/Native or
+acceptance on a physical Android device.
