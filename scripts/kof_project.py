@@ -6,6 +6,7 @@ The canonical application and test sources remain in separate project trees.
 
 import argparse
 import contextlib
+import json
 import os
 import shutil
 import subprocess
@@ -39,11 +40,28 @@ def _check_temporary_root(directory, project):
         raise PreparationError("temporary source has an ancestral kof.toml; set TMPDIR outside a Kof project")
 
 
+def _source_walk_error(exc):
+    raise exc
+
+
 def _copy_sources(source, destination):
-    for path in sorted(source.rglob("*.kf")):
+    if not source.is_dir():
+        raise PreparationError(f"source directory is missing: {source}")
+    try:
+        paths = []
+        for directory, _, names in os.walk(source, onerror=_source_walk_error):
+            paths.extend(Path(directory) / name for name in names if name.endswith(".kf"))
+        if not paths:
+            raise PreparationError(f"no Kof sources in {source}")
+    except OSError as exc:
+        raise PreparationError(f"cannot read Kof sources: {exc}") from exc
+    for path in sorted(paths):
         target = destination / path.relative_to(source)
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(path, target)
+        try:
+            shutil.copyfile(path, target)
+        except OSError as exc:
+            raise PreparationError(f"cannot read Kof source {path}: {exc}") from exc
 
 
 @contextlib.contextmanager
@@ -140,6 +158,60 @@ def test(*, target="jvm", suite=None, kof=None, root=ROOT):
     return first_failure
 
 
+def _check_report(output, code):
+    try:
+        report = json.loads(output)
+    except (ValueError, TypeError) as exc:
+        raise PreparationError("Kof check returned invalid JSON") from exc
+    if not isinstance(report, dict) or type(report.get("success")) is not bool:
+        raise PreparationError("Kof check requires an object with boolean success")
+    for name, minimum in (("filesChecked", 1), ("errorCount", 0)):
+        value = report.get(name)
+        if type(value) is not int or value < minimum:
+            raise PreparationError(f"Kof check has invalid {name}")
+    diagnostics = report.get("diagnostics")
+    if not isinstance(diagnostics, list):
+        raise PreparationError("Kof check requires diagnostics array")
+    for item in diagnostics:
+        if not isinstance(item, dict):
+            raise PreparationError("Kof check has invalid diagnostic")
+        for name in ("code", "file", "severity", "message"):
+            if not isinstance(item.get(name), str):
+                raise PreparationError(f"Kof check diagnostic has invalid {name}")
+        if item["severity"] not in ("ERROR", "WARNING", "NOTE", "INFO"):
+            raise PreparationError("Kof check diagnostic has invalid severity")
+        for name in ("line", "column", "length"):
+            if type(item.get(name)) is not int or item[name] < 0:
+                raise PreparationError(f"Kof check diagnostic has invalid {name}")
+    errors = sum(item["severity"] == "ERROR" for item in diagnostics)
+    if errors != report["errorCount"]:
+        raise PreparationError("Kof check errorCount contradicts diagnostics")
+    if report["success"] != (code == 0) or (report["success"] and errors):
+        raise PreparationError("Kof check success contradicts exit or errors")
+    return report
+
+
+def check(*, target="jvm", json_output=False, kof=None, root=ROOT):
+    with prepared_sources(root=root) as source:
+        try:
+            result = subprocess.run([str(kof_executable(kof)), "check", str(source / "Main.kf"),
+                                     "--target", target, "--json"], capture_output=True, text=True, check=False)
+        except OSError as exc:
+            raise PreparationError(f"cannot run Kof: {exc}") from exc
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
+        report = _check_report(result.stdout, result.returncode)
+        if json_output:
+            print(result.stdout, end="")
+        else:
+            for item in report["diagnostics"]:
+                print(f'{item["file"]}:{item["line"]}:{item["column"]}: {item["severity"]} '
+                      f'{item["code"]}: {item["message"]}')
+            if report["success"]:
+                print(f'checked {report["filesChecked"]} entry file(s), including resolved imports')
+        return result.returncode
+
+
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, _format, *_args):
         pass
@@ -167,18 +239,23 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kof", help="Kof executable (also accepted after subcommand)")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("build", "test"):
+    for name in ("build", "test", "check"):
         sub = commands.add_parser(name)
         sub.add_argument("--kof", dest="sub_kof")
         if name == "build":
             sub.add_argument("--output", required=True)
         else:
             sub.add_argument("--target", choices=("jvm", "js"), default="jvm")
-            sub.add_argument("--suite")
+            if name == "test":
+                sub.add_argument("--suite")
+            else:
+                sub.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.command == "build":
             return build(args.output, kof=args.sub_kof or args.kof)
+        if args.command == "check":
+            return check(target=args.target, json_output=args.json, kof=args.sub_kof or args.kof)
         return test(target=args.target, suite=args.suite, kof=args.sub_kof or args.kof)
     except PreparationError as exc:
         print(f"error: {exc}", file=sys.stderr)

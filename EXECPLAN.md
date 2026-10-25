@@ -992,3 +992,38 @@ Inventário confirmado: onze checks locais (Kof JVM/JS, sete jornadas Chrome, Py
 ### Checkpoint e revisão do foco do menu
 
 No SHA `9643f4e5ddb104334bfe43f83603781cf58ea8cd`, os onze checks passaram em461,82s: Kof JVM/JS114 testes por alvo, sete jornadas Chrome,8 testes Python e contrato CI. Resultados por critério, trechos, identidade, limitações e auditorias constam do aceite de controles. Duas sondas negativas nas cópias temporárias rejeitaram retenção encerrada na soltura e movimento após blur. Revisão estrutural no mesmo contexto: nenhum refactor necessário. A documentação do aceite será comprometida antes do gate final, que repete o inventário sobre o commit final; resultados finais e CI serão consolidados no ledger e PR.
+
+
+## Continuidade M1 dos sensores — 25/10/2026
+
+### Purpose and success
+
+Implementar o M1 aprovado: frontend oficial e CPD 7.17.0, check confiável e calibração medida com triagem de design. Não ativar sensores nem refatorar o jogo para contagens.
+
+### Context and limits
+
+Base `82111142c85f98b970ccd65fbf044e492d017729`, checkout inicialmente limpo, branch `sensor-calibration-m1`. KofMut fixado em `a40b20ac37afac302efc2a0dae7702e44720e166`; Kof instalado 0.6.6. Trabalho no checkout atual, sem workers, commits, PRs ou publicação. O histórico acima é preservado integralmente.
+
+### Milestones
+
+1. Conferir dependência em árvores descartáveis e registrar identidade, relatórios, exits e hashes.
+2. Acrescentar testes comportamentais antes do check em `scripts/kof_project.py` e do módulo Maven em `scripts/kof-sensors/`; provar métricas e CPD com limites literais e erros explícitos.
+3. Medir todo `src/main/kof` e `src/test/kof`; publicar inventário, distribuições, propostas e triagem em `.agent/validation/sensor-calibration.md`, aceitação em `sensors-adoption.md`.
+
+### Progress
+
+- [x] Fontes, histórico e ambiente inicial consultados; hashes de preservação capturados.
+- [x] KofMut detectado/sobrevivente e check JVM/JS comprovados.
+- [x] Métricas, CPD e calibração com triagem concluídos.
+
+### Validation
+
+Executar `python3 -m unittest discover -s tests -p 'test_*.py'`, `mvn -f scripts/kof-sensors/pom.xml test`, checks JSON e testes Kof JVM/JS pelo wrapper. Os critérios do plano aprovado exigem validar separadamente a expectativa e a suficiência das assertions: imports com erro, JSON/contagens inválidos, leitura e limpeza, nested functions, limites 19/20, clones 50 tokens/5 linhas e preservação de bytes. Registrar comando, resultado, assertion e lacunas por critério. M2–M5 e S1–S3 continuam pendentes.
+
+### Resultado observado do M1
+
+M1 concluído sobre a base registrada mais alterações locais não commitadas: 14 testes Python e 12 testes Maven aprovados; checks JSON JVM/JS aprovados; 114 testes Kof por alvo sem falhas. Provas adicionais: import com erro/restauração, leitura negada pelo sistema, JSON/contagens/exits inválidos, limpeza dos temporários, contagem/localização de funções aninhadas e clones no limite exato 50 tokens/5 linhas, com controles de 49 tokens/4 linhas. KofMut complete/0/Killed e complete/1/Survived em cópias descartáveis, UUID/baseline/contagens/hashes conferidos.
+
+Inventário: 25 arquivos esperados/analisados/tokenizados, 321 unidades e 45.443 tokens, sem falhas, 17 grupos CPD. Propostas de limites 150/25/16/4/3/17 (arquivo/função/complexidade/parâmetros/profundidade/statements), com provas do inteiro anterior e regra de menos de vinte findings. Os 5 findings de arquivo e 10 de função têm triagem completa; propostas não aprovam dívida. [Calibração e inventário](.agent/validation/sensor-calibration.md) e [aceitação por critério](.agent/validation/sensors-adoption.md) conservam resultados e limites sem depender dos logs opcionais.
+
+Os 44 arquivos originais em src/tests mantêm hashes, incluindo toda fonte e suíte do jogo. Esta continuidade e a atualização do plano externo são acrescentadas preservando os bytes históricos. M2–M5, S1–S3, ativação, novas jornadas de navegador e meta de desempenho histórica não estão concluídos por este marco. Não houve alteração de guia/severidade, refactor do jogo, worktree, worker, commit, PR ou publicação.

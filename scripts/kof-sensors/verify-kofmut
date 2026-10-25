@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import uuid
+
+revision = 'a40b20ac37afac302efc2a0dae7702e44720e166'
+tool = Path(sys.argv[1] if len(sys.argv) > 1 else '/home/renanfranca/projects/kof-mut').resolve()
+out = Path(sys.argv[2] if len(sys.argv) > 2 else '.agent/tmp/sensors-m1').resolve()
+out.mkdir(parents=True, exist_ok=True)
+actual = subprocess.check_output(['git', '-C', str(tool), 'rev-parse', 'HEAD'], text=True).strip()
+if actual != revision or subprocess.check_output(['git', '-C', str(tool), 'status', '--porcelain'], text=True):
+    raise SystemExit('KofMut revision differs or checkout is dirty; requalify dependency explicitly')
+summary = []
+for fixture, expected_exit, state in [('detected', 0, 'Killed'), ('survived', 1, 'Survived')]:
+    with tempfile.TemporaryDirectory(prefix='sifuture-mut-proof-') as temporary:
+        project = Path(temporary) / fixture
+        shutil.copytree(tool / 'fixtures' / fixture, project)
+
+        def hashes():
+            return {str(p.relative_to(project)): hashlib.sha256(p.read_bytes()).hexdigest()
+                    for p in sorted(project.rglob('*')) if p.is_file()}
+
+        before = hashes()
+        run_id = str(uuid.uuid4())
+        command = [str(tool / 'bin/kof-mut'), 'run', '--project', str(project), '--files',
+                   str(project / 'scope.json'), '--report-dir', str(out / 'mutation-reports'), '--run-id', run_id]
+        result = subprocess.run(command, capture_output=True, text=True)
+        (out / f'{fixture}-{run_id}.stdout').write_text(result.stdout)
+        (out / f'{fixture}-{run_id}.stderr').write_text(result.stderr)
+        announcements = [json.loads(line[len('reportPath='):]) for line in result.stdout.splitlines()
+                         if line.startswith('reportPath=')]
+        assert len(announcements) == 1, result.stdout + result.stderr
+        report_path = Path(announcements[0])
+        project_id = hashlib.sha256(str(project.resolve()).encode()).hexdigest()
+        assert report_path.is_absolute() and report_path.parent.parent == out / 'mutation-reports' / project_id
+        report = json.loads(report_path.read_text())
+        assert report['schemaVersion'] == 1 and report['toolVersion'] == '0.1.0'
+        assert report['runId'] == run_id and report['status'] == 'complete'
+        assert report['scope'] == ['src/math/Calc.kf']
+        assert report['kofVersion'] == subprocess.check_output(['kof', 'version'], text=True).strip().removeprefix('kof ')
+        baseline = report['baseline']
+        assert baseline['status'] == 'passed'
+        assert baseline['check']['exitCode'] == 0 and baseline['check']['filesChecked'] == 1
+        assert baseline['test']['exitCode'] == 0 and baseline['test']['executedTests'] == 1
+        assert baseline['test']['failedTests'] == 0
+        counts = dict(candidates=1, executed=1, killed=int(state == 'Killed'), survived=int(state == 'Survived'),
+                      compileError=0, timeout=0, testError=0, pending=0)
+        assert result.returncode == expected_exit and report['counts'] == counts
+        assert len(report['mutants']) == 1 and report['mutants'][0]['status'] == state
+        assert not report['discardedCandidates'] and not report['limitations']
+        assert before == hashes()
+        summary.append(dict(fixture=fixture, command=command, exit=result.returncode, report=str(report_path),
+                            runId=run_id, revision=revision, hashes=before, preserved=True, counts=counts))
+summary_path = out / f'mutation-summary-{uuid.uuid4()}.json'
+summary_path.write_text(json.dumps(summary, indent=2) + '\n')
+print(summary_path)
