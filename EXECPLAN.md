@@ -1027,3 +1027,39 @@ M1 concluído sobre a base registrada mais alterações locais não commitadas: 
 Inventário: 25 arquivos esperados/analisados/tokenizados, 321 unidades e 45.443 tokens, sem falhas, 17 grupos CPD. Propostas de limites 150/25/16/4/3/17 (arquivo/função/complexidade/parâmetros/profundidade/statements), com provas do inteiro anterior e regra de menos de vinte findings. Os 5 findings de arquivo e 10 de função têm triagem completa; propostas não aprovam dívida. [Calibração e inventário](.agent/validation/sensor-calibration.md) e [aceitação por critério](.agent/validation/sensors-adoption.md) conservam resultados e limites sem depender dos logs opcionais.
 
 Os 44 arquivos originais em src/tests mantêm hashes, incluindo toda fonte e suíte do jogo. Esta continuidade e a atualização do plano externo são acrescentadas preservando os bytes históricos. M2–M5, S1–S3, ativação, novas jornadas de navegador e meta de desempenho histórica não estão concluídos por este marco. Não houve alteração de guia/severidade, refactor do jogo, worktree, worker, commit, PR ou publicação.
+
+## Continuidade: assinaturas compostas e chamadas internas em construtores
+
+### Purpose and success
+
+Corrigir as duas regressões remanescentes observadas na revisão de `0f8de0670a57027145019305220d10fe8964ef65`: reconstrução de tipos de retorno genéricos/de array e localização de construtores cuja implementação chama a própria classe. Preservar os reparos já aceitos, o inventário do jogo, métricas, limites, guias e política de exceções.
+
+### Context and limits
+
+Executar na branch existente `sensor-calibration-m1`, sem worktree, subagentes, commits ou publicação. Usar lexer/parser oficiais e tokens balanceados; não criar gramática paralela. Uma medição sem intervalo determinável deve falhar explicitamente. A política para bloqueios por tamanho permanece no M2. Preservar os registros M1 e a evidência anterior em `.agent/tmp/`.
+
+### Milestones
+
+1. Acrescentar casos comportamentais públicos para as 12 combinações de `Int`, `List<Int>` e `Int[]`, retorno antes/depois dos parâmetros e cabeçalho em uma/duas linhas, além da chamada recursiva ao construtor e suas formas nomeadas. Validar os exemplos Kof com `check --target jvm --json`.
+2. Ajustar `Spans.java` para reconstruir o tipo de retorno como sufixo integral dos tokens da assinatura e delimitar o cabeçalho do construtor antes do corpo. Manter os testes anteriores de spans, JSON, declarações multilinha, construtores simples e falha explícita.
+3. Executar validação Python, Maven, check/test Kof JVM/JS e inventário SiFuture; comparar por arquivo/unidade contra 25 arquivos, 321 unidades, 45.443 tokens e 17 grupos CPD. Reconciliar este plano, o plano externo dos sensores e os registros de adoção/calibração com comandos, resultados, identidade dos bytes e gaps.
+
+### Progress
+
+- [x] Reproduzir primeiro as regressões em testes comportamentais e registrar a prova RED.
+- [x] Corrigir a localização sem alterar APIs, fontes do jogo, limites ou exceções.
+- [x] Reexecutar os gates e reconciliar os dois planos e os registros de aceitação.
+
+### Validation
+
+Executar `python3 -m unittest discover -s tests -p 'test_*.py'`, `mvn -f scripts/kof-sensors/pom.xml test`, `python3 scripts/kof_project.py check --target jvm --json`, o mesmo para JS, `python3 scripts/kof_project.py test --target jvm`, o mesmo para JS e `scripts/kof-sensors/run .`. Espera-se zero exits não nulos; check aprovado; testes completos sem falhas; inventário estável por arquivo e unidade. Guardar logs e comparações em diretório novo `.agent/tmp/`; registrar SHA de base e hash do jar carregado. Se o inventário mudar, explicar cada mudança com prova independente, sem ajustar expectativas para obter sucesso.
+
+### Resultado observado
+
+Provas RED: o teste da matriz falhou ao medir `List<Int>` com “Cannot locate declaration”; os testes dos construtores explícito e nomeado localizaram linha 3 em vez da declaração na linha 2. Com as correções, os três testes focados passaram. O check oficial aceitou as 12 assinaturas no JVM e JS; análise CLI com escopo explícito encontrou os 12 métodos e ambos os construtores recursivos, sem falhas. Construtores medem linhas 22–24 e 27–29 no probe, cada um com complexidade 2, um parâmetro, profundidade 1 e dois statements; `main` conserva linhas 31–34.
+
+Na branch `sensor-calibration-m1`, base de revisão `0f8de0670a57027145019305220d10fe8964ef65`, identidade efetivamente carregada: Kof 0.6.6, jar `/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/lib/kof.jar`, SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; fontes Kof consultadas em `7c237861a9035d84b1f7ec4cfddd89daef4c6ddd`; KofMut `a40b20ac37afac302efc2a0dae7702e44720e166`, checkout limpo e sem alteração. Java Temurin 25.0.2; Maven 3.9.5.
+
+Validação final: 16 testes Python; 18 testes Maven; checks wrapper JVM/JS com exit 0, `success=true`, uma entrada e zero ERROR; 114 testes Kof em cada alvo; inventário com 25/25 arquivos, 25 tokenizados, 321 unidades, 45.443 tokens, zero falhas e 17 grupos CPD. Comparação integral por arquivo/unidade com `.agent/tmp/sensors-m1-repair-20261025/inventory.json`: nenhuma chave adicionada/removida, nenhuma métrica alterada. O plano externo canônico recebeu seção append-only em `/home/renanfranca/.agents/skills/_temporary/codex-skills-ai-context/2026-10-15_FEATURE_sifuture-quality-sensors-exec-plan.md`; seu prefixo anterior está preservado no snapshot em `.agent/tmp/sensors-m1-repair-20261025-continuation/`. Os logs, probe, checksums e comparação desta continuidade estão no mesmo diretório.
+
+As regressões de localização estão corrigidas para os 12 formatos testados e para chamadas recursivas nos dois estilos de construtor. A prova não promete cobrir formas sintáticas futuras não representadas; elas continuam exigindo casos próprios. M2–M5 e S1–S3, ativação dos sensores e a decisão sobre bloqueios por tamanho continuam pendentes. Não houve mudança em fontes/suítes do jogo, métricas, limites, guias ou exceções; não houve worktree, subagente, commit ou publicação.

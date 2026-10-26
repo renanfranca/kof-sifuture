@@ -141,3 +141,31 @@ O inventário refeito é estruturalmente idêntico ao inventário M1 previamente
 Identidade da prova: SiFuture base `7798e7d6ec8aa31a9ebebe863f88b6bb17cf802d`; Kof `0.6.6`, executável `/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/bin/kof`; SHA-256 do `kof.jar` `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; fontes locais Kof `7c237861a9035d84b1f7ec4cfddd89daef4c6ddd`; Java Temurin 25.0.2; Maven 3.9.5. KofMut permanece no checkout limpo `a40b20ac37afac302efc2a0dae7702e44720e166`; a qualificação anterior não foi repetida porque esta mudança não alterou KofMut nem sua dependência.
 
 Logs completos, probe, inventário e hashes por arquivo estão opcionalmente em `.agent/tmp/sensors-m1-repair-20261025/`. Nenhum deles é necessário para entender este registro. M2–M5 e S1–S3 seguem pendentes. A política para findings de tamanho em código considerado coeso continua aguardando decisão do M2; este reparo não converte findings em avisos, aprova exceções, ativa sensores nem altera limites.
+
+## Continuidade: tipos compostos e construtores com chamadas internas — 25/10/2026
+
+Implementação local na branch existente `sensor-calibration-m1`, base revisada `0f8de0670a57027145019305220d10fe8964ef65`. Preserva os reparos anteriores de declaração multilinha com 26 linhas, construtores nomeados simples e protocolo JSON. O histórico e as reproduções anteriores foram preservados; nova evidência bruta está em `.agent/tmp/sensors-m1-repair-20261025-continuation/`.
+
+| Critério | Expectativa independente da prova | Asserção e observação | Resultado |
+| --- | --- | --- | --- |
+| Tipos de retorno | Kof declara retorno `Int`, `List<Int>` ou `Int[]` antes do nome ou depois dos parâmetros; o cabeçalho pode ocupar uma ou duas linhas. A localização inclui o tipo e o corpo. | `AnalyzerTest.compoundReturnTypesLocateTwelveDeclarationShapes` enumera as 12 combinações e fixa linhas de início/fim, quantidade de linhas, complexidade 1, zero parâmetros, profundidade 0 e um statement. Antes da correção, `List<Int>` falhou com `Cannot locate declaration`. | Passou após correção; check oficial JVM/JS aprovou o mesmo probe. A CLI inventariou cada método uma vez com as métricas literais esperadas. |
+| Construtor explícito recursivo | A declaração `constructor(Int depth)` na linha 2, chamada interna na 3 e fechamento na 4 inicia na linha 2, coluna 5, e termina na 4. Espera-se 3 linhas, um parâmetro, complexidade 2, profundidade 1 e dois statements. | `AnalyzerTest.constructorCallToItsClassDoesNotBecomeTheDeclarationStart` fixa cada valor e também espera `main` na linha 6, com fim na 6. Antes da correção, o começo era a chamada da linha 3. | Passou. CLI encontrou a assinatura, não a expressão `new Box(...)`; `main` reteve seu intervalo. |
+| Construtor nomeado recursivo | `Box(Int depth)` possui a mesma localização e contagens do construtor explícito. | `AnalyzerTest.namedConstructorCallToItsClassDoesNotBecomeTheDeclarationStart` usa os mesmos literais de linha, coluna, linhas e métricas. Antes da correção, também começava na linha 3. | Passou. Check oficial JVM/JS também aceitou a forma nomeada e sua instanciação. |
+| Inventário e reparos existentes | A mudança no localizador não altera métricas de arquivos/unidades não afetados, contadores, limites, exceções ou fontes do jogo. | Comparação do inventário JSON atual com `.agent/tmp/sensors-m1-repair-20261025/inventory.json`: conjuntos de arquivos iguais, 321 chaves de unidade iguais, zero chaves removidas/adicionadas e zero métricas alteradas. | Passou: 25 arquivos esperados/analisados/tokenizados, 45.443 tokens, 17 grupos CPD; limites 25/26 e testes de protocolo JSON continuam na suíte. |
+
+Expectativa e força da prova foram conferidas separadamente. O contrato de tipo vem da referência Kof: arrays são `type-ref , "[]"`, e a forma genérica `Set<Int> all()` está documentada e ensinada. O check oficial prova aceitação sintática/semântica dos probes, não a correção do medidor. Essa correção é comprovada pelos valores literais do `Analyzer.measure` e pela saída da CLI com o arquivo explicitamente incluído no escopo. As formas testadas não garantem cobertura de sintaxe futura.
+
+Resultados finais dos comandos na raiz SiFuture:
+
+| Comando | Exit e resultado |
+| --- | --- |
+| `mvn -f scripts/kof-sensors/pom.xml test` | 0; 18 testes, zero falhas/erros/skips |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | 0; 16 testes; os testes que verificam erros CLI os esperam, suíte encerrou `OK`; 114 casos Kof JVM executados dentro das verificações |
+| `python3 scripts/kof_project.py check --target jvm --json` e `--target js --json` | 0 em ambos; `success=true`, uma entrada, zero ERROR/diagnósticos |
+| `python3 scripts/kof_project.py test --target jvm` e `--target js` | 0 em ambos; 114/114 casos, zero falhas |
+| `scripts/kof-sensors/run .` | 0; inventário estável conforme acima, sem falhas |
+| `kof check /tmp/sifuture-sensors-official-signatures.kf --target jvm --json` e `--target js --json` | 0 em ambos; `success=true`, uma entrada, zero ERROR |
+
+Identidade dos bytes: Kof 0.6.6, jar `/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/lib/kof.jar`, SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; checkout de pesquisa Kof `7c237861a9035d84b1f7ec4cfddd89daef4c6ddd`. KofMut continuou limpo em `a40b20ac37afac302efc2a0dae7702e44720e166`; sua qualificação existente não foi repetida porque nenhuma dependência ou arquivo KofMut mudou. O plano externo canônico de sensores em `/home/renanfranca/.agents/skills/_temporary/codex-skills-ai-context/2026-10-15_FEATURE_sifuture-quality-sensors-exec-plan.md` foi atualizado em apêndice, com prefixo prévio preservado em `.agent/tmp/sensors-m1-repair-20261025-continuation/external-sensors-plan-before.md`. As fontes e suítes do jogo não mudaram. Nenhum worktree, subagente, commit ou publicação foi criado.
+
+M2–M5 e S1–S3 permanecem pendentes; sensores não ativados. O M2 ainda decidirá a política para findings de tamanho. Os testes cobrem exatamente as formas acima, não todas as extensões futuras do frontend.

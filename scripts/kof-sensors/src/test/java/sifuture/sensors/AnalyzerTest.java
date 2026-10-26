@@ -167,6 +167,92 @@ class AnalyzerTest {
         assertEquals(2, file.functions().get(3).parameters());
     }
 
+    @Test void compoundReturnTypesLocateTwelveDeclarationShapes() {
+        for (String type : List.of("Int", "List<Int>", "Int[]")) {
+            for (boolean afterParameters : List.of(false, true)) {
+                for (boolean multiline : List.of(false, true)) {
+                    String declaration = switch (type) {
+                        case "Int" -> "return 1";
+                        case "List<Int>" -> "return listOf(1)";
+                        case "Int[]" -> "return new Int[1]";
+                        default -> throw new IllegalStateException(type);
+                    };
+                    String header = afterParameters
+                            ? (multiline ? "value()\n: " + type : "value(): " + type)
+                            : (multiline ? type + "\nvalue()" : type + " value()");
+                    String source = "class Box {\n" + header + " { " + declaration + " }\n}\n";
+                    String context = type + ", after=" + afterParameters + ", multiline=" + multiline;
+                    assertAll(context, () -> {
+                        var function = measure(source).functions().getFirst();
+                        assertEquals(2, function.line());
+                        assertEquals(multiline ? 3 : 2, function.endLine());
+                        assertEquals(multiline ? 2 : 1, function.lines());
+                        assertEquals(1, function.complexity());
+                        assertEquals(0, function.parameters());
+                        assertEquals(0, function.depth());
+                        assertEquals(1, function.statements());
+                    });
+                }
+            }
+        }
+    }
+
+    @Test void constructorCallToItsClassDoesNotBecomeTheDeclarationStart() {
+        var file = measure("class Box {\n"
+                + "    constructor(Int depth) {\n"
+                + "        if (depth > 0) { var child = new Box(depth - 1) }\n"
+                + "    }\n"
+                + "}\n"
+                + "main() { var box = new Box(1) }\n");
+        var constructor = file.functions().stream().filter(f -> f.kind().equals("constructor")).findFirst().orElseThrow();
+        assertEquals(2, constructor.line());
+        assertEquals(5, constructor.column());
+        assertEquals(4, constructor.endLine());
+        assertEquals(3, constructor.lines());
+        assertEquals(1, constructor.parameters());
+        assertEquals(2, constructor.complexity());
+        assertEquals(1, constructor.depth());
+        assertEquals(2, constructor.statements());
+        var main = file.functions().stream().filter(f -> f.name().equals("main")).findFirst().orElseThrow();
+        assertEquals(6, main.line());
+        assertEquals(6, main.endLine());
+        assertEquals(1, main.lines());
+    }
+
+    @Test void namedConstructorCallToItsClassDoesNotBecomeTheDeclarationStart() {
+        var constructor = measure("class Box {\n"
+                + "    Box(Int depth) {\n"
+                + "        if (depth > 0) { var child = new Box(depth - 1) }\n"
+                + "    }\n"
+                + "}\n").functions().getFirst();
+        assertEquals(2, constructor.line());
+        assertEquals(5, constructor.column());
+        assertEquals(4, constructor.endLine());
+        assertEquals(3, constructor.lines());
+        assertEquals(1, constructor.parameters());
+        assertEquals(2, constructor.complexity());
+        assertEquals(1, constructor.depth());
+        assertEquals(2, constructor.statements());
+    }
+
+    @Test void overloadedConstructorsRemainAssociatedWithTheirOwnParametersAndBodies() {
+        var constructors = measure("class Box {\n"
+                + "    constructor() {}\n"
+                + "    constructor(Int depth) { if (depth > 0) { var child = new Box() } }\n"
+                + "}\n").functions().stream().filter(f -> f.kind().equals("constructor")).toList();
+        assertEquals(2, constructors.size());
+        assertEquals(2, constructors.get(0).line());
+        assertEquals(2, constructors.get(0).endLine());
+        assertEquals(0, constructors.get(0).parameters());
+        assertEquals(3, constructors.get(1).line());
+        assertEquals(5, constructors.get(1).column());
+        assertEquals(3, constructors.get(1).endLine());
+        assertEquals(1, constructors.get(1).parameters());
+        assertEquals(2, constructors.get(1).complexity());
+        assertEquals(1, constructors.get(1).depth());
+        assertEquals(2, constructors.get(1).statements());
+    }
+
     @Test void badSyntaxCannotProduceMetrics() {
         assertThrows(IllegalArgumentException.class, () -> measure("main() { var x = \"unterminated"));
         assertThrows(IllegalArgumentException.class, () -> measure("main() { if }"));

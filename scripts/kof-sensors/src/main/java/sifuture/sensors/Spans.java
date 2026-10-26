@@ -66,11 +66,14 @@ final class Spans {
                 String value = symbol(tokens.get(i));
                 if (List.of("{", "}", ";").contains(value)) break;
                 actual = value + actual;
-                if (actual.equals(expected)) {
-                    start = i;
+                if (expected.endsWith(actual)) {
+                    if (actual.equals(expected)) {
+                        start = i;
+                        break;
+                    }
+                } else {
                     break;
                 }
-                if (!expected.startsWith(actual)) break;
             }
             if (start == declaration && !returnType.equals("void")
                     && !symbol(tokens.get(matching(tokens, declaration + 1) + 1)).equals(":")) {
@@ -97,10 +100,31 @@ final class Spans {
         for (int i = Math.min(position, tokens.size() - 1); i >= 0; i--) {
             String value = symbol(tokens.get(i));
             boolean candidate = value.equals("constructor") || value.equals(function.name());
-            if (candidate && i + 1 < tokens.size() && symbol(tokens.get(i + 1)).equals("(")) return i;
+            if (!candidate || i + 1 >= tokens.size() || !symbol(tokens.get(i + 1)).equals("(")) continue;
+            int parametersEnd = matching(tokens, i + 1);
+            if (!constructorParametersMatch(tokens, i + 1, parametersEnd, function.parameters())) continue;
+            int body = parametersEnd + 1;
+            while (body < tokens.size() - 1 && !List.of("{", "}", ";").contains(symbol(tokens.get(body)))) body++;
+            if (!symbol(tokens.get(body)).equals("{")) continue;
+            int end = matching(tokens, body);
+            if (end <= position && tokens.get(end).offset() <= function.node().position().offset()) return i;
         }
         throw new IllegalArgumentException("Cannot locate constructor " + function.name()
                 + " at " + tokens.get(position));
+    }
+
+    static boolean constructorParametersMatch(List<Token> tokens, int opening, int closing, List<?> parameters) {
+        if (closing < 0 || parameters.size() == 0) return closing >= 0 && parameters.isEmpty();
+        int boundary = opening + 1;
+        for (var parameter : parameters) {
+            if (!(parameter instanceof FormalParameterNode formal)) return false;
+            int expected = at(tokens, formal.position().offset());
+            if (expected <= opening || expected > closing
+                    || !List.of(",", ")").contains(symbol(tokens.get(expected)))
+                    || boundary >= expected) return false;
+            boundary = expected + 1;
+        }
+        return boundary == closing + 1;
     }
 
     static int exclusiveEnd(Object object, List<Token> tokens) {
