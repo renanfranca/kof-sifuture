@@ -66,6 +66,45 @@ class CheckBehaviorTest(unittest.TestCase):
         with self.assertRaises(project.PreparationError):
             project.check(root=self.root, kof=self.fake(json.dumps({**valid, 'errorCount': 2}), 1))
 
+    def test_check_cli_enforces_signed_32_bit_counter_bounds(self):
+        wrapper = self.root / 'scripts/kof_project.py'
+        wrapper.parent.mkdir()
+        shutil.copy2(Path(project.__file__), wrapper)
+        accepted = dict(success=True, filesChecked=2147483647, errorCount=0, diagnostics=[])
+        fake = self.fake(json.dumps(accepted), 0)
+        result = subprocess.run([sys.executable, str(wrapper), 'check', '--target', 'jvm', '--json', '--kof', str(fake)],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), accepted)
+
+        for key in ('filesChecked', 'errorCount'):
+            report = {**accepted, key: 2147483648}
+            fake = self.fake(json.dumps(report), 0)
+            result = subprocess.run([sys.executable, str(wrapper), 'check', '--target', 'jvm', '--json', '--kof', str(fake)],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(f'invalid {key}', result.stderr)
+
+    def test_check_cli_rejects_success_false_without_error_diagnostics(self):
+        wrapper = self.root / 'scripts/kof_project.py'
+        wrapper.parent.mkdir(exist_ok=True)
+        shutil.copy2(Path(project.__file__), wrapper)
+        rejected_without_errors = dict(success=False, filesChecked=1, errorCount=0, diagnostics=[])
+        result = subprocess.run([sys.executable, str(wrapper), 'check', '--target', 'jvm', '--json',
+                                 '--kof', str(self.fake(json.dumps(rejected_without_errors), 1))],
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('positive ERROR diagnostics', result.stderr)
+
+        diagnostic = dict(code='SEM011', file='Answer.kf', line=1, column=1,
+                          length=1, severity='ERROR', message='Undefined variable')
+        coherent = dict(success=False, filesChecked=1, errorCount=1, diagnostics=[diagnostic])
+        result = subprocess.run([sys.executable, str(wrapper), 'check', '--target', 'jvm', '--json',
+                                 '--kof', str(self.fake(json.dumps(coherent), 1))],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(json.loads(result.stdout), coherent)
+
     def test_preserves_all_official_non_error_severities(self):
         for severity in ['WARNING', 'NOTE', 'INFO']:
             data = dict(success=True, filesChecked=1, errorCount=0, diagnostics=[dict(

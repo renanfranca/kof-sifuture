@@ -106,3 +106,38 @@ A primeira expectativa do teste de função local foi conferida e ajustada antes
 Não foram executadas jornadas de navegador neste marco porque apresentação e comportamento do jogo não foram modificados. Não houve nova medição do desempenho do KofMut no jogo nem prova de hooks reais. Esses itens pertencem aos marcos seguintes e às pendências históricas, não são gaps ocultos da medição entregue.
 
 Recuperação: as fontes do jogo não precisam ser restauradas. Para descontinuar esta infraestrutura, reverter somente o diff autorizado de scripts/testes/documentação após revisão. `scripts/kof-sensors/target/` e `.agent/tmp/` são descartáveis, mas preservar os relatórios se forem necessários à investigação. Não apagar evidência anterior ou alterar limites para obter aprovação artificial.
+
+## Continuidade: reparo das lacunas encontradas na revisão M1
+
+Reparo local executado em 25/10/2026 sobre a base revisada `7798e7d6ec8aa31a9ebebe863f88b6bb17cf802d`, na branch `sensor-calibration-m1`. Este SHA identifica a base testada; as alterações abaixo ainda não foram commitadas. Os registros históricos do M1 acima foram preservados. As reproduções originais continuam em `.agent/tmp/sensors-m1-review-repro-xd9hf9kx/`.
+
+| Lacuna | Expectativa e observação que distingue a falha | Resultado e evidência |
+| --- | --- | --- |
+| Tipo de retorno em cabeçalho multilinha | O método cujo tipo começa na linha 2 e cujo corpo fecha na 27 inicia na linha 2, mede 26 linhas e excede estritamente 25. Retirar uma chamada reduz a medição a 25 linhas e não excede o limite. | `AnalyzerTest.multilineReturnTypeBelongsToMethodSpanAndStrictSizeBoundary` verifica linhas e contagens literais nos dois lados da fronteira; antes da correção observou início 3 e 25 linhas para o caso que deve medir 26. O check oficial JVM aprovou o probe. |
+| Construtor nomeado pela classe | Construtores `constructor()`/`constructor(Int)` e `ClassName()`/`ClassName(Int, Int)` medem uma linha, iniciam e terminam em suas linhas próprias e conservam 0/1/0/2 parâmetros. | `AnalyzerTest.namedAndExplicitConstructorsHaveIsolatedSpansAndParameterCounts` verifica as linhas 2, 5, 8 e 11 e seus parâmetros. O caso original atribuía o segundo construtor à primeira ocorrência de `constructor`; o teste distingue cada classe. O check oficial JVM aprovou os quatro formatos. |
+| Coerência e faixa do protocolo JSON | `filesChecked` deve ser inteiro JSON em 1..2147483647; `errorCount`, em 0..2147483647. Aprovação exige `success=true`, exit 0 e zero ERROR. Rejeição exige `success=false`, exit 1 e ERROR positivo reconciliado. | Os testes públicos `check --json` preservam literalmente o relatório aprovado no máximo de `filesChecked`, rejeitam os dois campos em 2147483648 com campo inválido explícito, rejeitam `success=false` com zero ERROR e preservam uma rejeição coerente com exit 1. Booleanos, decimais, negativos e reconciliação continuam cobertos. |
+
+O critério segue o contrato consumido pelo KofMut, [CLI §Baseline](../../../kof-mut/docs/cli.md:116):
+
+> “A coherent rejection has `success: false`, exit 1 and a positive error count matching ERROR diagnostics.”
+
+Na prova RED do contador `errorCount=2147483648`, o código da base rejeitou apenas depois, com “errorCount contradicts diagnostics”; a regressão agora exige o diagnóstico específico de faixa inválida antes dessa reconciliação. As reproduções anteriores continuam disponíveis e não foram sobrescritas.
+
+Comandos e resultados desta continuidade, na raiz do repositório:
+
+| Comando | Exit e resultado |
+| --- | --- |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | 0; 16 testes, incluindo limites JSON e rejeição coerente |
+| `mvn -f scripts/kof-sensors/pom.xml test` | 0; 14 testes, sem falhas ou skips |
+| `python3 scripts/kof_project.py check --target jvm --json` | 0; aprovação, 1 entrada e zero ERROR |
+| `python3 scripts/kof_project.py check --target js --json` | 0; aprovação, 1 entrada e zero ERROR |
+| `python3 scripts/kof_project.py test --target jvm` | 0; 114 casos, zero falhas |
+| `python3 scripts/kof_project.py test --target js` | 0; 114 casos, zero falhas |
+| `scripts/kof-sensors/run .` | 0; 25 arquivos, 321 unidades, 45.443 tokens, zero falhas e 17 grupos CPD |
+| `kof check SensorsProbe.kf --target jvm --json` em `/tmp` | 0; probe de tipo multilinha e quatro construtores aceito pelo frontend instalado |
+
+O inventário refeito é estruturalmente idêntico ao inventário M1 previamente registrado: nenhum valor de arquivo ou função mudou neste projeto; a regressão foi demonstrada por probes focados. SHA-256 comparado contra a base: os 44 arquivos preexistentes em `src/` e `tests/`, exceto o teste Python intencionalmente atualizado `tests/test_kof_check.py`, permaneceram byte a byte iguais. O jogo e as suítes Kof não foram alterados.
+
+Identidade da prova: SiFuture base `7798e7d6ec8aa31a9ebebe863f88b6bb17cf802d`; Kof `0.6.6`, executável `/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/bin/kof`; SHA-256 do `kof.jar` `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; fontes locais Kof `7c237861a9035d84b1f7ec4cfddd89daef4c6ddd`; Java Temurin 25.0.2; Maven 3.9.5. KofMut permanece no checkout limpo `a40b20ac37afac302efc2a0dae7702e44720e166`; a qualificação anterior não foi repetida porque esta mudança não alterou KofMut nem sua dependência.
+
+Logs completos, probe, inventário e hashes por arquivo estão opcionalmente em `.agent/tmp/sensors-m1-repair-20261025/`. Nenhum deles é necessário para entender este registro. M2–M5 e S1–S3 seguem pendentes. A política para findings de tamanho em código considerado coeso continua aguardando decisão do M2; este reparo não converte findings em avisos, aprova exceções, ativa sensores nem altera limites.

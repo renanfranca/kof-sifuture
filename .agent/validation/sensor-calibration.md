@@ -1161,3 +1161,7 @@ exploding e restarting capturam a fase no começo do passo. A mudança de fase d
 ## Limites da análise
 
 As classificações são hipóteses fundamentadas para orientar M2 e revisão posterior, sem refactor do jogo, baseline de supressão, aprovação automática da dívida ou mudança de severidade. Não foi feito estudo de evolução por histórico para cada fronteira. Os testes comprovam adaptadores, contagens, limites e comportamentos exercitados; não comprovam coesão nem legitimam toda extração sugerida. Guias originais, M2–M5 e S1–S3 permanecem preservados/pendentes.
+
+## Continuidade após revisão M1
+
+O reparo das três lacunas de aceitação identificadas na revisão foi executado na base `7798e7d6ec8aa31a9ebebe863f88b6bb17cf802d`; os detalhes de expectativas, assertions literais, comandos, resultados e identidade do compilador estão no [registro de aceitação](sensors-adoption.md#continuidade-reparo-das-lacunas-encontradas-na-revisão-m1). O inventário foi refeito sem falhas e permaneceu idêntico ao inventário desta calibração: 25 arquivos, 321 unidades, 45.443 tokens e 17 grupos CPD. Os 44 arquivos preservados foram comparados por SHA-256 à base; as fontes e suítes Kof não mudaram. A decisão pendente sobre findings de tamanho em código considerado coeso continua fora deste reparo e pertence ao M2.

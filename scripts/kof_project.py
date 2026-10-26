@@ -167,7 +167,7 @@ def _check_report(output, code):
         raise PreparationError("Kof check requires an object with boolean success")
     for name, minimum in (("filesChecked", 1), ("errorCount", 0)):
         value = report.get(name)
-        if type(value) is not int or value < minimum:
+        if type(value) is not int or value < minimum or value > 2147483647:
             raise PreparationError(f"Kof check has invalid {name}")
     diagnostics = report.get("diagnostics")
     if not isinstance(diagnostics, list):
@@ -186,8 +186,11 @@ def _check_report(output, code):
     errors = sum(item["severity"] == "ERROR" for item in diagnostics)
     if errors != report["errorCount"]:
         raise PreparationError("Kof check errorCount contradicts diagnostics")
-    if report["success"] != (code == 0) or (report["success"] and errors):
-        raise PreparationError("Kof check success contradicts exit or errors")
+    if report["success"]:
+        if code != 0 or errors:
+            raise PreparationError("Kof check success contradicts exit or errors")
+    elif code != 1 or errors == 0:
+        raise PreparationError("Kof check rejection requires exit 1 and positive ERROR diagnostics")
     return report
 
 

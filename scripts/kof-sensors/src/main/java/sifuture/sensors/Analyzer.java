@@ -10,7 +10,7 @@ public final class Analyzer {
     public record FunctionMetrics(String name, String kind, int line, int column, int endLine,
                                   int lines, int complexity, int parameters, int depth, int statements) {}
     public record FileMetrics(String file, int lines, int tokens, List<FunctionMetrics> functions) {}
-    record Callable(AstNode node, String name, String kind, List<?> parameters, List<?> body) {}
+    record Callable(AstNode node, String name, String kind, String returnType, List<?> parameters, List<?> body) {}
 
     static List<Token> tokens(String file, String source) {
         var diagnostics = new DiagnosticCollector();
@@ -40,11 +40,11 @@ public final class Analyzer {
     static Callable callable(Object node) {
         return switch (node) {
             case null -> null;
-            case FunctionDeclarationNode f -> new Callable(f, f.name(), "function", f.parameters(), f.body());
-            case MethodDeclarationNode f -> new Callable(f, f.name(), "method", f.parameters(), f.body());
-            case ConstructorDeclarationNode f -> new Callable(f, f.name(), "constructor", f.parameters(), f.body());
-            case LambdaExpr f -> new Callable(f, "lambda", "lambda", f.parameters(), f.body());
-            case TestDeclarationNode f -> new Callable(f, f.name(), "test", List.of(), f.body());
+            case FunctionDeclarationNode f -> new Callable(f, f.name(), "function", null, f.parameters(), f.body());
+            case MethodDeclarationNode f -> new Callable(f, f.name(), "method", f.returnType(), f.parameters(), f.body());
+            case ConstructorDeclarationNode f -> new Callable(f, f.name(), "constructor", null, f.parameters(), f.body());
+            case LambdaExpr f -> new Callable(f, "lambda", "lambda", null, f.parameters(), f.body());
+            case TestDeclarationNode f -> new Callable(f, f.name(), "test", null, List.of(), f.body());
             default -> null;
         };
     }

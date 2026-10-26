@@ -15,18 +15,12 @@ final class Spans {
     }
 
     static int[] callable(Analyzer.Callable function, List<Token> tokens) {
-        int start = at(tokens, function.node().position().offset());
-        if (function.kind().equals("constructor")) {
-            while (start > 0 && !symbol(tokens.get(start)).equals("constructor")) start--;
-            start = declarationStart(tokens, start);
-        }
-        if (function.kind().equals("method")) {
-            if (!function.parameters().isEmpty()) {
-                start = at(tokens, ((AstNode) function.parameters().getFirst()).position().offset());
-            }
-            while (start > 0 && !symbol(tokens.get(start)).equals(function.name())) start--;
-            start = declarationStart(tokens, start);
-        }
+        int declaration = at(tokens, function.node().position().offset());
+        if (function.kind().equals("constructor")) declaration = constructorName(tokens, declaration, function);
+        if (function.kind().equals("method")) declaration = methodName(tokens, declaration, function.name());
+        int start = declaration;
+        if (function.kind().equals("constructor")) start = declarationStart(tokens, declaration, null);
+        if (function.kind().equals("method")) start = declarationStart(tokens, declaration, function.returnType());
         if (function.kind().equals("lambda")) {
             if (!function.parameters().isEmpty()) {
                 start = at(tokens, ((AstNode) function.parameters().getFirst()).position().offset());
@@ -48,10 +42,9 @@ final class Spans {
             while (brace < tokens.size() - 1 && !symbol(tokens.get(brace)).equals("{")) brace++;
             return new int[]{start, matching(tokens, brace)};
         }
-        int header = start;
-        if (!function.kind().equals("lambda")) {
-            String name = function.kind().equals("constructor") ? "constructor" : function.name();
-            while (header < tokens.size() - 1 && !symbol(tokens.get(header)).equals(name)) header++;
+        int header = function.kind().equals("lambda") ? start : declaration;
+        if (function.kind().equals("lambda") && !function.parameters().isEmpty()) {
+            while (header < tokens.size() - 1 && !symbol(tokens.get(header)).equals("(")) header++;
         }
         while (header < tokens.size() - 1 && !symbol(tokens.get(header)).equals("(")) header++;
         int after = matching(tokens, header) + 1;
@@ -64,14 +57,50 @@ final class Spans {
         return new int[]{start, end};
     }
 
-    static int declarationStart(List<Token> tokens, int name) {
-        int start = name;
-        int line = tokens.get(name).line();
-        while (start > 0 && tokens.get(start - 1).line() == line
-                && !List.of("{", "}", ";").contains(symbol(tokens.get(start - 1)))) start--;
+    static int declarationStart(List<Token> tokens, int declaration, String returnType) {
+        int start = declaration;
+        if (returnType != null) {
+            String expected = returnType.replaceAll("\\s+", "");
+            String actual = "";
+            for (int i = declaration - 1; i >= 0; i--) {
+                String value = symbol(tokens.get(i));
+                if (List.of("{", "}", ";").contains(value)) break;
+                actual = value + actual;
+                if (actual.equals(expected)) {
+                    start = i;
+                    break;
+                }
+                if (!expected.startsWith(actual)) break;
+            }
+            if (start == declaration && !returnType.equals("void")
+                    && !symbol(tokens.get(matching(tokens, declaration + 1) + 1)).equals(":")) {
+                throw new IllegalArgumentException("Cannot locate declaration "
+                        + symbol(tokens.get(declaration)) + " with return type " + returnType
+                        + " at " + tokens.get(declaration));
+            }
+        }
         while (start > 0 && List.of("public", "private", "protected", "static", "abstract", "final")
                 .contains(symbol(tokens.get(start - 1)))) start--;
         return start;
+    }
+
+    static int methodName(List<Token> tokens, int position, String name) {
+        for (int i = Math.min(position, tokens.size() - 1); i >= 0; i--) {
+            if (symbol(tokens.get(i)).equals(name) && i + 1 < tokens.size()
+                    && symbol(tokens.get(i + 1)).equals("(")) return i;
+            if (i < position && List.of("{", "}", ";").contains(symbol(tokens.get(i)))) break;
+        }
+        throw new IllegalArgumentException("Cannot locate method " + name + " at " + tokens.get(position));
+    }
+
+    static int constructorName(List<Token> tokens, int position, Analyzer.Callable function) {
+        for (int i = Math.min(position, tokens.size() - 1); i >= 0; i--) {
+            String value = symbol(tokens.get(i));
+            boolean candidate = value.equals("constructor") || value.equals(function.name());
+            if (candidate && i + 1 < tokens.size() && symbol(tokens.get(i + 1)).equals("(")) return i;
+        }
+        throw new IllegalArgumentException("Cannot locate constructor " + function.name()
+                + " at " + tokens.get(position));
     }
 
     static int exclusiveEnd(Object object, List<Token> tokens) {

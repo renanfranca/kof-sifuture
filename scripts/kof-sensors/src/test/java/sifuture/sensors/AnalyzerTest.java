@@ -131,6 +131,42 @@ class AnalyzerTest {
         assertEquals(1, twice.lines());
     }
 
+    @Test void multilineReturnTypeBelongsToMethodSpanAndStrictSizeBoundary() {
+        String body = "println(1)\n".repeat(22);
+        var over = measure("class Box {\nInt\nvalue() {\n" + body + "return 1\n}\n}\n")
+                .functions().getFirst();
+        assertEquals(2, over.line());
+        assertEquals(27, over.endLine());
+        assertEquals(26, over.lines());
+        assertTrue(Calibration.exceeds(over.lines(), 25));
+
+        var at = measure("class Box {\nInt\nvalue() {\n" + body.replaceFirst("println\\(1\\)\\n", "")
+                + "return 1\n}\n}\n").functions().getFirst();
+        assertEquals(2, at.line());
+        assertEquals(26, at.endLine());
+        assertEquals(25, at.lines());
+        assertFalse(Calibration.exceeds(at.lines(), 25));
+    }
+
+    @Test void namedAndExplicitConstructorsHaveIsolatedSpansAndParameterCounts() {
+        var file = measure("class First {\nconstructor() {}\n}\n"
+                + "class Second {\nconstructor(Int x) {}\n}\n"
+                + "class Third {\nThird() {}\n}\n"
+                + "class Fourth {\nFourth(Int x, Int y) {}\n}\n");
+        assertEquals(2, file.functions().get(0).line());
+        assertEquals(2, file.functions().get(0).endLine());
+        assertEquals(0, file.functions().get(0).parameters());
+        assertEquals(5, file.functions().get(1).line());
+        assertEquals(5, file.functions().get(1).endLine());
+        assertEquals(1, file.functions().get(1).parameters());
+        assertEquals(8, file.functions().get(2).line());
+        assertEquals(8, file.functions().get(2).endLine());
+        assertEquals(0, file.functions().get(2).parameters());
+        assertEquals(11, file.functions().get(3).line());
+        assertEquals(11, file.functions().get(3).endLine());
+        assertEquals(2, file.functions().get(3).parameters());
+    }
+
     @Test void badSyntaxCannotProduceMetrics() {
         assertThrows(IllegalArgumentException.class, () -> measure("main() { var x = \"unterminated"));
         assertThrows(IllegalArgumentException.class, () -> measure("main() { if }"));
