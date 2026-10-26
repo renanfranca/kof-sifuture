@@ -169,3 +169,123 @@ Resultados finais dos comandos na raiz SiFuture:
 Identidade dos bytes: Kof 0.6.6, jar `/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/lib/kof.jar`, SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; checkout de pesquisa Kof `7c237861a9035d84b1f7ec4cfddd89daef4c6ddd`. KofMut continuou limpo em `a40b20ac37afac302efc2a0dae7702e44720e166`; sua qualificação existente não foi repetida porque nenhuma dependência ou arquivo KofMut mudou. O plano externo canônico de sensores em `/home/renanfranca/.agents/skills/_temporary/codex-skills-ai-context/2026-10-15_FEATURE_sifuture-quality-sensors-exec-plan.md` foi atualizado em apêndice, com prefixo prévio preservado em `.agent/tmp/sensors-m1-repair-20261025-continuation/external-sensors-plan-before.md`. As fontes e suítes do jogo não mudaram. Nenhum worktree, subagente, commit ou publicação foi criado.
 
 M2–M5 e S1–S3 permanecem pendentes; sensores não ativados. O M2 ainda decidirá a política para findings de tamanho. Os testes cobrem exatamente as formas acima, não todas as extensões futuras do frontend.
+
+## Continuidade: compilador e medição da matriz de construtores — 25/10/2026
+
+Execução na branch `sensor-calibration-m1`, base revisada `47854206fab1c8868b3294062b1a198bf81e0f67`, com as alterações locais do reparo preservadas. O compilador efetivo foi Kof 0.6.6, jar `/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/lib/kof.jar`, SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`. KofMut permanece limpo em `a40b20ac37afac302efc2a0dae7702e44720e166`; a qualificação anterior foi reutilizada porque dependência e checkout não mudaram.
+
+Os bytes testados das fontes de teste são identificados por SHA-256: `AnalyzerTest.java` `dfc1704ca84a3059fefcce159ea2477f857dbd19194c4bf12aa9d74e02f82c07`; `Spans.java` `391f05274352cc80be3ee938687646a07027e8a8e1de30627d37ed3a15bc6d8d`. O inventário atual usa 25 fontes SiFuture esperadas/analisadas/tokenizadas. A fonte da matriz é montada uma vez e a mesma String é gravada para o compilador e enviada ao medidor:
+
+[Trecho de `AnalyzerTest.java` (assertions de métricas omitidas)](../../scripts/kof-sensors/src/test/java/sifuture/sensors/AnalyzerTest.java:347):
+
+```java
+String body = switch (bodyShape) {
+    case 0 -> "{}";
+    case 1 -> "{\n        println(1)\n    }";
+    default -> "{\n        var child = new Box(" + (parameterized ? "value" : "")
+            + ")\n        if (true) { println(child) }\n    }";
+};
+String source = "class Box {\n    " + signature + " " + body + "\n}\n";
+assertAll(context, () -> {
+    checkWithOfficialCompiler(source, "jvm");
+    checkWithOfficialCompiler(source, "js");
+    var constructor = measure(source).functions().getFirst();
+    ...
+});
+```
+
+O construtor parametrizado agora recebe `new Box(value)`; o caso sem parâmetros produz `new Box()`. A ordem dentro de `assertAll` verifica primeiro o frontend oficial nos dois alvos e depois as métricas sobre exatamente a mesma fonte. O helper exige exit 0, JSON com `success=true`, `filesChecked > 0`, `errorCount=0` e nenhum diagnóstico ERROR.
+
+Saída real do probe inválido antes do reparo e da fonte corrigida depois dele:
+
+```text
+$ kof check /tmp/kof-matrix-red-20261025/constructor-True-2.kf --target jvm --json
+exit 1
+{"success":false,"filesChecked":1,"errorCount":1,"diagnostics":[{"code":"SEM023","file":"constructor-True-2.kf","line":3,"column":21,"length":3,"severity":"ERROR","message":"no constructor of 'Box' with 0 argument(s) (expected 1)"}]}
+
+$ kof check /tmp/kof-matrix-green-20261025/constructor-True-2.kf --target jvm --json
+exit 0
+{"success":true,"filesChecked":1,"errorCount":0,"diagnostics":[]}
+```
+
+Os outros alvos e combinações estão no registro completo `.agent/tmp/sensors-m1-measurement-closeout-20261025/red-results.json` e `matrix-green-results.json`.
+
+A forma escolhida segue a documentação local de classes: `new` permanece sintaxe válida para instanciar uma classe, e a referência gradual de Learn Kof ensina classes mutáveis com campos e `constructor(...)` explícito. O check dos 12 exemplos é a evidência de implementação atual para estes argumentos concretos.
+
+[Trecho do idiom de classes](../../../../projects/kof/training/idioms/classes.md:58):
+
+```text
+`new User("Mel", 30)` remains valid, but `User("Mel", 30)` is the
+recommended form — the compiler treats both as instance construction.
+```
+
+[Trecho do capítulo de classes em Learn Kof](../../../../projects/kof/learn/07-classes-and-objects.md:83):
+
+```kof
+class Conta {
+    String titular
+    Double saldo
+
+    public constructor(String titular, Double saldo) {
+        this.titular = titular
+        this.saldo = saldo
+    }
+```
+
+| Critério | Expectativa independente da prova | Verificação e resultado | Limite da prova |
+| --- | --- | --- | --- |
+| Detecção da fonte inválida anterior | Quando a assinatura é `constructor(Int value)` ou `Box(Int value)`, o exemplo não pode construir `Box()` sem argumentos. | RED reproduzido antes da edição: as duas fontes com corpo chamando `new Box()` falharam em JVM e JS, exit 1, `success=false`, `errorCount=1`, diagnóstico `SEM023`: “no constructor of 'Box' with 0 argument(s) (expected 1)”. As outras dez combinações passaram nos dois alvos. Evidência local: `.agent/tmp/sensors-m1-measurement-closeout-20261025/red-results.json`. | O RED prova a detecção dessas duas formas inválidas pela versão e targets registrados; não prova detecção universal de qualquer erro Kof. |
+| Fontes válidas da matriz | Duas formas de declaração × zero/um parâmetro × três formas de corpo devem ser aceitas no frontend JVM e JS. | `constructorSpanMatrixCoversParameterCountsDeclarationStylesAndBodies` usa a mesma `source` na verificação e na medição. Após a correção, as 12 fontes passaram nos dois alvos: exit 0, `success=true`, `errorCount=0`, sem ERROR. Prova integrada: `mvn -f scripts/kof-sensors/pom.xml test`, 21 testes aprovados. | `kof check` demonstra aceitação e checagem semântica da fonte nesses alvos; as assertions do medidor demonstram separadamente os spans e contagens. |
+| Medição motivadora | O construtor sem parâmetros com chamada interna começa na linha 2, coluna 5, termina na linha 5 e conta quatro linhas. | `zeroParameterConstructorsStayAssociatedWithTheirOwnBodies` fixa cada valor para `constructor()` e `Box()`, chamadas `new Box()` e `new Box(1)`. | Os exemplos representam as duas chamadas e as duas grafias de construtor descritas; extensões futuras exigem casos próprios. |
+| Unidades separadas | Duas declarações de construtor e `main` devem ser publicadas como exatamente três unidades, com intervalos independentes. | O mesmo teste exige `file.functions().size() == 3`; o construtor principal é 2–5, coluna 5 e quatro linhas; o auxiliar é 6–6, coluna 5 e uma linha; `main` é 8–8, coluna 1 e uma linha. | O teste fixa estes três nós; não conclui que todas as combinações possíveis de sobrecarga estão cobertas. |
+| Compatibilidade | Assinaturas compostas, funções aninhadas/lambdas, erros e CPD devem conservar seus contratos. | Maven: 21 testes, zero falhas/erros/skips. Entre as assertions preservadas, `nestedFunctionsLambdasMethodsAndConstructorsOwnTheirCounts` fixa unidades e contagens aninhadas, `badSyntaxCannotProduceMetrics` exige rejeição de sintaxe inválida, e `cpdIncludesExactFiftyTokenFiveLineBoundary` fixa detecção e exclusão nos limites 50/49 tokens e cinco/quatro linhas. Python: 16 testes, exit 0. Kof: 114/114 em JVM e JS. | A saída de erro de uma fixture Kof negativa no suite Python é esperada; o comando terminou com `OK` e exit 0. |
+| Preservação da calibração | Arquivos e unidades devem permanecer idênticos, sem ajustar expectativas ou regras. | Comparação estrutural contra `.agent/tmp/sensors-m1-repair-20261025-continuation/inventory.json`: 25 arquivos iguais, 321 unidades iguais, nenhum arquivo/unidade adicionado ou removido e nenhuma métrica alterada; 45.443 tokens, 17 grupos CPD, zero falhas. | A comparação descreve o inventário medido neste checkout contra a calibração guardada. |
+
+Comandos finais na raiz SiFuture e resultados registrados: `python3 -m unittest discover -s tests -p 'test_*.py'` (exit 0, 16 testes); `mvn -f scripts/kof-sensors/pom.xml test` (exit 0, 21 testes); `python3 scripts/kof_project.py check --target jvm --json` e `--target js --json` (exit 0, ambos `success=true`, uma entrada e zero erros); `python3 scripts/kof_project.py test --target jvm` e `--target js` (exit 0, 114/114 cada); `scripts/kof-sensors/run .` (exit 0, medição aprovada e inventário preservado). Saídas completas e JSON de comparação estão em `.agent/tmp/sensors-m1-measurement-closeout-20261025/`; são evidência opcional, não requisito para interpretar este registro.
+
+## Retificação: divergência entre gramática, compilador e medidor
+
+A afirmação anterior deste registro, de que construtores explícitos sem corpo estão fora da sintaxe implementada, foi incorreta. O documento da gramática define expressamente seu papel:
+
+> “Therefore the grammar below is presented in EBNF as an extractive description of the real parser — not as the specification the parser follows.”
+
+[Racional da gramática Kof em `grammar.md`](../../../../projects/kof/docs/language-reference/grammar.md:15). Em outras palavras, a produção é uma descrição do parser, não um contrato que determine o comportamento que ele deveria ter. A produção consultada é:
+
+[Gramática Kof em `grammar.md`](../../../../projects/kof/docs/language-reference/grammar.md:144):
+
+```text
+constructor-declaration = [ "constructor" ] , "(" , [ parameter-list ] , ")" ,
+                          [ throws-clause ] , block ;
+```
+
+A evidência local `.agent/tmp/sensors-measurement-closeout-review-2v71lv9r/documentation-discrepancy.txt` registra os resultados distintos:
+
+```text
+constructor() sem corpo, check jvm: success=True, errorCount=0
+constructor() sem corpo, check js: success=True, errorCount=0
+constructor() sem corpo, sensor: success=False, Cannot locate constructor body end for Box
+```
+
+Portanto, `kof check` aceitou e checou o exemplo nos alvos JVM e JS, enquanto o medidor falhou ao localizar o fim do corpo. `check` não demonstra execução do programa. A intenção dessa aceitação pelo Kof ainda não foi determinada; não se conclui se é comportamento intencional ou discrepância do frontend. A identidade continua Kof 0.6.6, jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; como versão e hash não mudaram, a prova curta existente foi reutilizada.
+
+Não foram alteradas fontes/suítes do jogo, regras de contagem, limites, guias ou exceções. Não foram instalados gatilhos, ativados sensores ou convertidas contagens em bloqueios. M2–M5 e S1–S3 continuam pendentes; a próxima conversa decidirá quais resultados apenas informam e quais impedem avanço. Nenhum worktree, subagente, commit, PR ou publicação foi criado.
+
+## Continuidade: associação do corpo em construtores sem parâmetros — 25/10/2026
+
+Reparo executado sobre a base `47854206fab1c8868b3294062b1a198bf81e0f67`, branch `sensor-calibration-m1`, sem alterações prévias no checkout. `Spans.constructorName` agora exige que a assinatura candidata leve ao bloco cujo fechamento corresponde ao token imediatamente anterior à posição do node de construtor no AST oficial. Assim, `()` dentro de `new Box()` no corpo não pode satisfazer a busca como se fosse a assinatura; chamadas e blocos internos também não substituem o fechamento do construtor. Parâmetros continuam associados às posições dos nodes formais do AST.
+
+O RED focado falhou como esperado: para `constructor()` com `new Box()` seguido de `if`, a linha inicial observada era 3, mas a declaração começa na linha 2. Depois da correção, a API `Analyzer.measure` confirmou literalmente, para `constructor()` e `Box()` com chamadas `new Box()` e `new Box(1)`, a linha 2, coluna 5, fim 5, quatro linhas, zero parâmetros, complexidade 2, profundidade 1 e três statements. Os construtores auxiliares e `main` conservaram seus próprios intervalos. A matriz adicional cobre ambos os estilos, zero/um parâmetro e corpos vazio, chamada isolada e chamada seguida de `if` (12 combinações), com expectativas literais.
+
+| Prova | Resultado |
+| --- | --- |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | Exit 0; 16 testes, suíte `OK`; diagnósticos de compilação inválida pertencem às fixtures negativas esperadas |
+| `mvn -f scripts/kof-sensors/pom.xml test` | Exit 0; 21 testes, zero falhas/erros/skips |
+| Checks oficiais Kof 0.6.6 do probe de dois construtores em JVM e JS | Exit 0 em ambos; `success=true`, um arquivo, zero erros |
+| `python3 scripts/kof_project.py check --target jvm --json` e `--target js --json` | Exit 0 em ambos; `success=true`, uma entrada, zero ERROR |
+| `python3 scripts/kof_project.py test --target jvm` e `--target js` | Exit 0 em ambos; 114/114 casos, zero falhas |
+| `scripts/kof-sensors/run .` | Exit 0; 25 arquivos, 321 unidades, 45.443 tokens, zero falhas, 17 grupos CPD |
+| CLI do sensor com escopo explícito para o probe principal | `success=true`; construtor 2–5, coluna 5, quatro linhas, zero parâmetros, complexidade 2, profundidade 1, três statements; auxiliar na linha 6 e `main` na linha 8 |
+
+Comparação estrutural com `.agent/tmp/sensors-m1-repair-20261025-continuation/inventory.json`: os 25 arquivos e 321 unidades são idênticos, sem arquivos adicionados/removidos e sem métrica alterada. O protocolo de falhas explícitas permanece protegido pelos cenários públicos existentes de fonte inválida e falha de análise. A identidade do compilador permanece Kof 0.6.6, jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; KofMut não mudou e sua qualificação anterior foi reutilizada. Evidência bruta opcional: `.agent/tmp/sensors-m1-zero-arg-constructor-review/`.
+
+Fontes e suítes do jogo, limites, guias, exceções e a política pendente de bloqueio por tamanho permaneceram intactos. Não houve worktree, subagente, commit ou publicação. M2–M5 e S1–S3 continuam pendentes.

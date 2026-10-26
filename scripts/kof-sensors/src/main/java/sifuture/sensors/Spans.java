@@ -97,6 +97,12 @@ final class Spans {
     }
 
     static int constructorName(List<Token> tokens, int position, Analyzer.Callable function) {
+        int declarationEnd = at(tokens, function.node().position().offset()) - 1;
+        if (declarationEnd < 0 || !symbol(tokens.get(declarationEnd)).equals("}")) {
+            throw new IllegalArgumentException("Cannot locate constructor body end for " + function.name()
+                    + " at " + tokens.get(position));
+        }
+        int bodyOpening = opening(tokens, declarationEnd);
         for (int i = Math.min(position, tokens.size() - 1); i >= 0; i--) {
             String value = symbol(tokens.get(i));
             boolean candidate = value.equals("constructor") || value.equals(function.name());
@@ -105,9 +111,8 @@ final class Spans {
             if (!constructorParametersMatch(tokens, i + 1, parametersEnd, function.parameters())) continue;
             int body = parametersEnd + 1;
             while (body < tokens.size() - 1 && !List.of("{", "}", ";").contains(symbol(tokens.get(body)))) body++;
-            if (!symbol(tokens.get(body)).equals("{")) continue;
-            int end = matching(tokens, body);
-            if (end <= position && tokens.get(end).offset() <= function.node().position().offset()) return i;
+            if (body != bodyOpening || !symbol(tokens.get(body)).equals("{")) continue;
+            if (matching(tokens, body) == declarationEnd) return i;
         }
         throw new IllegalArgumentException("Cannot locate constructor " + function.name()
                 + " at " + tokens.get(position));

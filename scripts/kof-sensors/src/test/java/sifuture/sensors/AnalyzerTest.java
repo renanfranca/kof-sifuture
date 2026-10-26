@@ -1,10 +1,12 @@
 package sifuture.sensors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AnalyzerTest {
@@ -12,6 +14,29 @@ class AnalyzerTest {
 
     Analyzer.FileMetrics measure(String source) {
         return Analyzer.measure("Probe.kf", source);
+    }
+
+    void checkWithOfficialCompiler(String source, String target) throws Exception {
+        var sourceFile = root.resolve("Probe.kf");
+        Files.writeString(sourceFile, source);
+        var executable = System.getenv().getOrDefault("KOF", "kof");
+        var reportFile = root.resolve("check-" + target + ".json");
+        var process = new ProcessBuilder(executable, "check", sourceFile.toString(), "--target", target, "--json")
+                .redirectErrorStream(true).redirectOutput(reportFile.toFile()).start();
+        if (!process.waitFor(60, TimeUnit.SECONDS)) {
+            process.destroyForcibly();
+            fail("Kof check timed out for " + target);
+        }
+        var output = Files.readString(reportFile);
+        var report = new ObjectMapper().readTree(output);
+        assertEquals(0, process.exitValue(), output);
+        assertTrue(report.path("success").asBoolean(false), output);
+        assertEquals(0, report.path("errorCount").asInt(-1), output);
+        assertTrue(report.path("filesChecked").asInt(0) > 0, output);
+        assertTrue(report.path("diagnostics").isArray(), output);
+        for (var diagnostic : report.path("diagnostics")) {
+            assertNotEquals("ERROR", diagnostic.path("severity").asText(), output);
+        }
     }
 
     @Test void literalCountsIgnoreCommentsAndStringContents() {
@@ -251,6 +276,100 @@ class AnalyzerTest {
         assertEquals(2, constructors.get(1).complexity());
         assertEquals(1, constructors.get(1).depth());
         assertEquals(2, constructors.get(1).statements());
+    }
+
+    @Test void zeroParameterConstructorsStayAssociatedWithTheirOwnBodies() {
+        for (String declaration : List.of("constructor()", "Box()")) {
+            for (String call : List.of("new Box()", "new Box(1)")) {
+                var source = "class Box {\n"
+                        + "    " + declaration + " {\n"
+                        + "        var child = " + call + "\n"
+                        + "        if (true) { println(child) }\n"
+                        + "    }\n"
+                        + "    constructor(Int value) {}\n"
+                        + "}\n"
+                        + "main() { var box = new Box() }\n";
+                var file = measure(source);
+                assertEquals(3, file.functions().size(), declaration + " / " + call);
+                var constructor = file.functions().stream().filter(f -> f.kind().equals("constructor"))
+                        .filter(f -> f.parameters() == 0).findFirst().orElseThrow();
+                assertEquals(2, constructor.line(), declaration + " / " + call);
+                assertEquals(5, constructor.column(), declaration + " / " + call);
+                assertEquals(5, constructor.endLine(), declaration + " / " + call);
+                assertEquals(4, constructor.lines(), declaration + " / " + call);
+                assertEquals(2, constructor.complexity(), declaration + " / " + call);
+                assertEquals(1, constructor.depth(), declaration + " / " + call);
+                assertEquals(3, constructor.statements(), declaration + " / " + call);
+                var auxiliary = file.functions().stream().filter(f -> f.kind().equals("constructor"))
+                        .filter(f -> f.parameters() == 1).findFirst().orElseThrow();
+                assertEquals(6, auxiliary.line());
+                assertEquals(5, auxiliary.column());
+                assertEquals(6, auxiliary.endLine());
+                assertEquals(1, auxiliary.lines());
+                var main = file.functions().stream().filter(f -> f.name().equals("main")).findFirst().orElseThrow();
+                assertEquals(8, main.line());
+                assertEquals(1, main.column());
+                assertEquals(8, main.endLine());
+                assertEquals(1, main.lines());
+            }
+        }
+    }
+
+    @Test void zeroParameterConstructorSpanMatrixCoversBodiesAndDeclarationStyles() {
+        for (String declaration : List.of("constructor()", "Box()")) {
+            for (String body : List.of("{}", "{\n        println(1)\n    }",
+                    "{\n        var child = new Box()\n        if (true) { println(child) }\n    }")) {
+                var constructor = measure("class Box {\n    " + declaration + " " + body + "\n}\n")
+                        .functions().getFirst();
+                assertEquals(2, constructor.line(), declaration + " / " + body);
+                assertEquals(5, constructor.column(), declaration + " / " + body);
+                assertEquals(body.equals("{}") ? 2 : body.startsWith("{\n        println") ? 4 : 5,
+                        constructor.endLine(), declaration + " / " + body);
+                assertEquals(body.equals("{}") ? 1 : body.startsWith("{\n        println") ? 3 : 4,
+                        constructor.lines(), declaration + " / " + body);
+                assertEquals(0, constructor.parameters());
+                assertEquals(body.startsWith("{\n        var") ? 2 : 1, constructor.complexity());
+                assertEquals(body.startsWith("{\n        var") ? 1 : 0, constructor.depth());
+                assertEquals(body.equals("{}") ? 0 : body.startsWith("{\n        println") ? 1 : 3,
+                        constructor.statements());
+            }
+        }
+    }
+
+    @Test void constructorSpanMatrixCoversParameterCountsDeclarationStylesAndBodies() throws Exception {
+        for (String declaration : List.of("constructor", "Box")) {
+            for (boolean parameterized : List.of(false, true)) {
+                for (int bodyShape = 0; bodyShape < 3; bodyShape++) {
+                    String signature = declaration + (parameterized ? "(Int value)" : "()");
+                    String body = switch (bodyShape) {
+                        case 0 -> "{}";
+                        case 1 -> "{\n        println(1)\n    }";
+                        default -> "{\n        var child = new Box(" + (parameterized ? "value" : "")
+                                + ")\n        if (true) { println(child) }\n    }";
+                    };
+                    String source = "class Box {\n    " + signature + " " + body + "\n}\n";
+                    String context = declaration + ", parameterized=" + parameterized + ", body=" + bodyShape;
+                    int expectedEndLine = bodyShape == 0 ? 2 : bodyShape == 1 ? 4 : 5;
+                    int expectedLines = bodyShape == 0 ? 1 : bodyShape == 1 ? 3 : 4;
+                    int expectedComplexity = bodyShape == 2 ? 2 : 1;
+                    int expectedDepth = bodyShape == 2 ? 1 : 0;
+                    int expectedStatements = bodyShape == 0 ? 0 : bodyShape == 1 ? 1 : 3;
+                    assertAll(context, () -> {
+                        checkWithOfficialCompiler(source, "jvm");
+                        checkWithOfficialCompiler(source, "js");
+                        var constructor = measure(source).functions().getFirst();
+                        assertEquals(2, constructor.line());
+                        assertEquals(5, constructor.column());
+                        assertEquals(expectedEndLine, constructor.endLine());
+                        assertEquals(expectedLines, constructor.lines());
+                        assertEquals(parameterized ? 1 : 0, constructor.parameters());
+                        assertEquals(expectedComplexity, constructor.complexity());
+                        assertEquals(expectedDepth, constructor.depth());
+                        assertEquals(expectedStatements, constructor.statements());
+                    });
+                }
+            }
+        }
     }
 
     @Test void badSyntaxCannotProduceMetrics() {
