@@ -1081,3 +1081,47 @@ Esta entrega conclui a medição e sua verificação. Não instala gatilhos, nã
 ### Retificação documental: construtor explícito sem corpo
 
 Esta retificação substitui a afirmação imediatamente acima de que a gramática local exige bloco e de que construtores explícitos sem corpo estão fora da sintaxe implementada. A produção consultada em `grammar.md` realmente inclui `block`, mas o próprio documento se apresenta como descrição extrativa do parser real, não como especificação que o parser segue. A evidência local `.agent/tmp/sensors-measurement-closeout-review-2v71lv9r/documentation-discrepancy.txt` mostra `kof check` aceitando `constructor()` sem corpo em JVM e JS (`success=True`, `errorCount=0`), enquanto o sensor falha com `Cannot locate constructor body end for Box`. Check comprova aceitação/checagem, não execução; a intenção dessa aceitação pelo Kof permanece indeterminada. O Kof instalado segue na versão 0.6.6 e no SHA-256 registrado. A documentação oficial do Kof não foi alterada.
+
+## Continuidade: uso manual do KofMut — 26/10/2026
+
+### Purpose and success
+
+Preparar configuração, instruções bilíngues e aceitação para executar manualmente `check`, testes e mutação no SiFuture. O medidor de linhas/complexidade segue disponível à consulta manual; nenhum sensor ou gatilho automático será ativado.
+
+### Context and limits
+
+Usar KofMut do checkout `/home/renanfranca/projects/kof-mut`, revisão `a40b20ac37afac302efc2a0dae7702e44720e166`, sem atualização automática, e o `kof` efetivo do PATH através de `scripts/kof_project.py`. Mutação roda no alvo JVM; as verificações comuns cobrem JVM e JS. Reportar separadamente integração operacional e aprovação de qualidade. Nenhum wrapper de relatórios, hook, alteração em fonte/teste Kof do jogo, commit ou publicação faz parte deste marco.
+
+### Milestones
+
+1. Criar `kof-mut.json`, arquivo de escopo com caminho explícito e excluir `.agent/tmp/` localmente exatamente uma vez. Validar a configuração e escopo com a CLI fixada.
+2. Atualizar `docs/desenvolvimento.md` e `docs/desenvolvimento.pt_BR.md` com comandos atuais de check/test, execução manual, captura de saída/erro/exit e leitura somente do `reportPath` anunciado.
+3. Executar checks/testes JVM e JS e unittest Python; validar resultados KofMut detected/survived e baselines falhos em cópias descartáveis; executar o arquivo `Background.kf` completo no checkout real e conferir identidade, contagens, resultado e hashes de preservação.
+4. Atualizar a decisão preexistente e o registro de aceite com evidência por critério, incluindo a limitação de múltiplos resumos que o leitor atual de KofMut rejeita.
+
+### Progress
+
+- [x] Configuração, escopo e guia bilíngue prontos.
+- [x] Provas descartáveis e execução real concluídas.
+- [x] Expectativa, suficiência de prova, hashes, registros e lacunas auditados.
+
+### Validation
+
+Executar `python3 scripts/kof_project.py check --target jvm --json --kof kof` e JS; `python3 scripts/kof_project.py test --target jvm --kof kof` e JS; `python3 -m unittest discover -s tests -p 'test_*.py'`; duas provas canônicas (`sum(2, 3) == 5` detectada e `sum(5, 0) == 5` sobrevivente); erro de fonte e falha de teste separados com `baseline_failed/2`; mutação de `Background.kf` inteiro usando a configuração entregue. Espera-se preservar fontes/testes originais, UUID/escopo/baseline/contagens coerentes e correspondência entre relatório atual e exit code. Cada critério não demonstrado permanece pendente. Logs/relatórios locais ficam em `.agent/tmp/`.
+
+### Resultado observado
+
+Na branch `sensor-calibration-m1`, base `373ad9eaf99dbb3171a6503f630c23d2124a17bc` mais alterações deste marco, checkout inicialmente limpo. KofMut 0.1.0 permaneceu limpo em `a40b20ac37afac302efc2a0dae7702e44720e166`; Kof do PATH `/home/renanfranca/.local/bin/kof`, versão 0.6.6. A exclusão Git local `/.agent/tmp/` aparece exatamente uma vez.
+
+Checks JSON JVM/JS: ambos exit 0, `success=true`, `filesChecked=1`, `errorCount=0`. Testes JVM/JS: ambos 114/114, zero falhas e exit 0. `python3 -m unittest discover -s tests -p 'test_*.py'`: 16 testes, `OK`, exit 0. A suíte Kof atual é `GameJourney.kf`.
+
+| Critério | Procedimento e resultado observado | Auditoria e limite |
+| --- | --- | --- |
+| Alteração detectada | Fixture oficial `detected`, `sum(2, 3) == 5`: baseline passou, 1 caso/0 falhas, 1 candidato `Killed`, `complete/0`, UUID `4395f5d1-a0f9-462c-b883-6658a3cab362` | Assertion distingue `+` de `-`; prova uma mutação aritmética, não cobertura geral |
+| Alteração sobrevivente | Fixture oficial `survived`, `sum(5, 0) == 5`: baseline passou, 1 candidato `Survived`, `complete/1`, UUID `98586243-38ab-4165-9c9a-3ddd1b459607` | Demonstra que sobrevivente reprova; não justifica requisito ou teste artificial |
+| Erro de fonte | Expressão incompleta em cópia descartável: `baseline_failed/2`, check 1, teste não iniciado, zero mutantes, UUID `411d1e33-d4d3-4e37-9ee6-fae65814a1ce` | Falha de pré-requisito impede avaliar qualidade |
+| Teste reprovado | Assertion falsa em cópia inicialmente aprovada: check 0, teste 1 (1 executado/1 falho), `baseline_failed/2`, zero mutantes, UUID `1ea0d261-2a87-4255-b140-758c8903b25d` | Baseline de teste reprovado impede mutantes |
+| Integração real | Arquivo inteiro `Background.kf`: check JVM 0, 114 testes/0 falhas, 1 candidato aritmético `+`→`-`, linha 8 coluna 34, `Killed`, `complete/0`, UUID `3e698919-faaa-4ff4-9716-a62a09230bd3` | SHA-256 do JSON `9f3addc040deb5bc0a43176c0c6018ebbd14a12231ab75df7547756d7c50ca19`; integração e aprovação somente deste arquivo/execução, não de todo `src/main/kof` |
+| Identidade/preservação | UUID, scope, baseline, contagens, exits e relatório corrente reconciliados; KofMut limpo; 25 hashes de fontes/testes Kof iguais antes/depois | SHA-256 do manifesto ordenado antes/depois igual a `e3fe68ce7f029ad791bbf15253e17f4b285bbc6121b5179be042eec91e1a5676`; hashes cobrem arquivos `.kf`; evidência bruta opcional em `.agent/tmp/kof-mut-acceptance/` e `.agent/tmp/kof-mut-runs/` |
+
+A [aceitação](.agent/validation/sensors-adoption.md#continuidade-kofmut-manual--26102026) conserva critério, resultado e suficiência sem depender dos logs locais. Limitação: o wrapper emite um resumo final por arquivo de suíte; o leitor atual do KofMut rejeita um segundo. O catálogo presente tem uma suíte e passou inteiro. Se crescer, provar compatibilidade sem omitir suítes. A ferramenta funciona e `Background.kf` foi aprovado nesta avaliação; isso não instala gatilhos nem ativa sensores. O medidor continua disponível para consulta manual. M2–M5 e S1–S3 permanecem pendentes. Sem worktree, subagentes, commit, PR ou publicação.

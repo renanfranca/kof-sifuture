@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "sourceRoots": ["src/main/kof"],
+  "testRoots": ["src/test/kof"],
+  "inputs": ["kof.toml", "src", "scripts/kof_project.py"],
+  "checkCommand": [
+    "python3", "scripts/kof_project.py", "check",
+    "--target", "jvm", "--json", "--kof", "kof"
+  ],
+  "testCommand": [
+    "python3", "scripts/kof_project.py", "test",
+    "--target", "jvm", "--kof", "kof"
+  ],
+  "commandTimeoutMs": 10000,
+  "budgetMs": 0,
+  "maxParallelMutants": 1
+}

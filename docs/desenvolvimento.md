@@ -124,6 +124,73 @@ teaches:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
 
+## Check and mutate a source file manually
+
+Run the JSON check and complete test suite on both supported project targets:
+
+```bash
+python3 scripts/kof_project.py check --target jvm --json --kof kof
+python3 scripts/kof_project.py check --target js --json --kof kof
+python3 scripts/kof_project.py test --target jvm --kof kof
+python3 scripts/kof_project.py test --target js --kof kof
+```
+
+`kof-mut.json` configures KofMut to use the JVM versions through the same
+wrapper and the `kof` executable resolved from `PATH`. Each command has a ten
+second timeout; `budgetMs: 0` removes only the overall evaluation budget. The
+current explicit scope in [`kof-mut-scope.json`](../kof-mut-scope.json)
+selects the whole `Background.kf` file. Edit this JSON array to select other
+production `.kf` paths; entries are explicit paths, not globs. KofMut copies
+the configured inputs and evaluates this scope in isolated project copies.
+
+Run one evaluation directly from the KofMut checkout. This example captures
+stdout, stderr and the process exit under `.agent/tmp/`, gives the invocation
+a new UUID, and places its report beneath `.agent/tmp/kof-mut-reports/`:
+
+```bash
+mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports
+run_id=$(python3 -c 'import uuid; print(uuid.uuid4())')
+if /home/renanfranca/projects/kof-mut/bin/kof-mut run \
+  --project "$PWD" \
+  --files "$PWD/kof-mut-scope.json" \
+  --config kof-mut.json \
+  --report-dir "$PWD/.agent/tmp/kof-mut-reports" \
+  --run-id "$run_id" \
+  > ".agent/tmp/kof-mut-runs/$run_id.stdout" \
+  2> ".agent/tmp/kof-mut-runs/$run_id.stderr"; then
+  exit_code=0
+else
+  exit_code=$?
+fi
+printf 'exit=%s run_id=%s\n' "$exit_code" "$run_id"
+cat ".agent/tmp/kof-mut-runs/$run_id.stdout"
+cat ".agent/tmp/kof-mut-runs/$run_id.stderr" >&2
+```
+
+Read only the report path announced by this invocation's `reportPath=` line.
+Decode the value as JSON (it is a JSON string, so do not strip quotes by
+hand), then inspect that file. For example, with Python and `jq` installed:
+
+```bash
+report_path=$(python3 -c 'import json,sys; lines=[line for line in sys.stdin if line.startswith("reportPath=")]; assert len(lines)==1; print(json.loads(lines[0][len("reportPath="):]))' \
+  < ".agent/tmp/kof-mut-runs/$run_id.stdout")
+jq '{runId, scope, baseline, counts, status}' "$report_path"
+```
+
+Do not use a fixed `report.json` path or search for the newest report. The
+announced path identifies this invocation; its final JSON and exit code must
+agree. A `complete` result with exit 0 means all applicable mutations were
+detected for this scope. `complete` with exit 1 means at least one survived
+and fails quality acceptance. `baseline_failed` or `error` with exit 2 is
+unavailable/rejected; `incomplete`, `no_scope` or `no_mutants` with exit 3
+does not approve quality. Inspect survivors on their merits; do not invent a
+requirement or add an artificial test just to eliminate one.
+
+The wrapper currently discovers one Kof suite. If the catalog grows to
+multiple suite files, confirm compatibility before relying on mutation:
+KofMut's current test-output reader rejects a second final summary. Do not
+omit suites to work around that limitation.
+
 That rule applies to cases within one Kof invocation; the Python loop also
 keeps files independent. The [CLI training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
 documents `kof test` and `--target`; the wrapper prepares sources before

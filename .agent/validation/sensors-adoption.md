@@ -289,3 +289,47 @@ O RED focado falhou como esperado: para `constructor()` com `new Box()` seguido 
 Comparação estrutural com `.agent/tmp/sensors-m1-repair-20261025-continuation/inventory.json`: os 25 arquivos e 321 unidades são idênticos, sem arquivos adicionados/removidos e sem métrica alterada. O protocolo de falhas explícitas permanece protegido pelos cenários públicos existentes de fonte inválida e falha de análise. A identidade do compilador permanece Kof 0.6.6, jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; KofMut não mudou e sua qualificação anterior foi reutilizada. Evidência bruta opcional: `.agent/tmp/sensors-m1-zero-arg-constructor-review/`.
 
 Fontes e suítes do jogo, limites, guias, exceções e a política pendente de bloqueio por tamanho permaneceram intactos. Não houve worktree, subagente, commit ou publicação. M2–M5 e S1–S3 continuam pendentes.
+
+## Continuidade KofMut manual — 26/10/2026
+
+Este aceite cobre somente preparar o uso manual de check/test e mutação. “Bloquear” significa o comando terminar reprovado; nenhum hook ou gatilho intercepta edição ou commit. M2–M5 e S1–S3 não são concluídos por esta configuração. A decisão acrescentada ao [EXECPLAN](../../EXECPLAN.md#continuidade-uso-manual-do-kofmut--26102026) preserva o histórico anterior.
+
+### Identidade
+
+| Item | Identidade observada |
+| --- | --- |
+| SiFuture | Base `373ad9eaf99dbb3171a6503f630c23d2124a17bc`, branch `sensor-calibration-m1`, mais alterações locais deste marco |
+| KofMut | `0.1.0`, checkout limpo em `a40b20ac37afac302efc2a0dae7702e44720e166` |
+| Kof | `/home/renanfranca/.local/bin/kof`, `kof 0.6.6`; `--kof kof` escolhe o executável pelo PATH |
+| Configuração e escopo | [`kof-mut.json`](../../kof-mut.json), [`kof-mut-scope.json`](../../kof-mut-scope.json) |
+
+### Critérios e resultados
+
+| Critério | Procedimento | Resultado | Auditoria da prova |
+| --- | --- | --- | --- |
+| Check JVM/JS | `python3 scripts/kof_project.py check --target ALVO --json --kof kof` | Ambos exit 0, `success=true`, um arquivo e zero erros | JSON aprovado pelo wrapper existente |
+| Testes JVM/JS | `python3 scripts/kof_project.py test --target ALVO --kof kof` | Ambos exit 0, 114/114, zero falhas | Catálogo completo atual contém uma suíte |
+| Testes Python | `python3 -m unittest discover -s tests -p 'test_*.py'` | 16 testes, OK, exit 0 | Log bruto opcional em `.agent/tmp/kof-mut-acceptance/logs/unittest.log` |
+| Mutante detectado | Fixture oficial `detected`, `sum(2, 3) == 5` | Um candidato `Killed`; baseline passou; `complete/0`; UUID `4395f5d1-a0f9-462c-b883-6658a3cab362` | A assertion distingue `+` de `-`; prova restrita a um mutante aritmético |
+| Mutante sobrevivente | Fixture oficial `survived`, `sum(5, 0) == 5` | Um candidato `Survived`; baseline passou; `complete/1`; UUID `98586243-38ab-4165-9c9a-3ddd1b459607` | Confirma reprovação de qualidade quando sobrevive um mutante; não exige teste artificial |
+| Erro de fonte | Expressão incompleta em cópia descartável da fixture | `baseline_failed/2`, check 1, nenhuma mutação; UUID `411d1e33-d4d3-4e37-9ee6-fae65814a1ce` | Teste não iniciado e zero candidatos avaliados |
+| Teste falho | Assertion falsa em cópia inicialmente aprovada | Check 0, teste 1, 1 executado/1 falho, `baseline_failed/2`, nenhuma mutação; UUID `1ea0d261-2a87-4255-b140-758c8903b25d` | Baseline reprovado impede mutantes |
+| Integração real | Arquivo inteiro `src/main/kof/sifuture/game/Background.kf` | Baseline JVM passou com 114 testes; um candidato `Killed`; `complete/0`; UUID `3e698919-faaa-4ff4-9716-a62a09230bd3`; SHA-256 do JSON `9f3addc040deb5bc0a43176c0c6018ebbd14a12231ab75df7547756d7c50ca19` | Prova operação e aprovação somente desse arquivo nesta execução |
+| Preservação e correspondência | Conferir stdout `reportPath`, `runId`, escopo, baseline, contagens, exit e SHA-256 | Tudo reconciliado; 25 hashes de fontes/testes Kof permaneceram iguais antes/depois; SHA-256 igual do manifesto ordenado antes/depois: `e3fe68ce7f029ad791bbf15253e17f4b285bbc6121b5179be042eec91e1a5676`; checkout KofMut permaneceu limpo | Cada saída foi conferida contra o relatório anunciado pela mesma execução; inventários, logs e relatórios individuais preservados opcionalmente em `.agent/tmp/` |
+
+### Decisão e limite
+
+Uso manual, KofMut fixado no SHA acima e wrapper existente via `PATH`; mutação JVM serial, timeout de 10 s por comando e sem orçamento total. `complete/0` aprova só o escopo avaliado; `complete/1` reprova por sobrevivente; erro/baseline com código 2 e inconclusivo/sem escopo/sem mutações com código 3 não aprovam qualidade. Não foi criado wrapper ou interpretador de relatórios. O medidor de linhas/complexidade continua disponível para consulta manual; não é bloqueio. Nenhum sensor ou gatilho foi ativado.
+
+A limitação conhecida é que `scripts/kof_project.py` executa uma chamada Kof por arquivo encontrado no laço [do wrapper](../../scripts/kof_project.py#L151), enquanto o leitor KofMut aceita um único resumo final: `commandPassed >= 0` marca o segundo resumo como inválido em [`Evidence.kf`](https://github.com/renanfranca/kof-mut/blob/a40b20ac37afac302efc2a0dae7702e44720e166/src/main/kof/kofmut/Evidence.kf#L130). O trecho relevante é:
+
+```kof
+} else if (line.matches("[0-9]+ passed, [0-9]+ failed.*")) {
+    if (commandPassed >= 0) { valid = false }
+    var fields = line.split(" ")
+    commandPassed = fields[0].toInt()
+    commandFailed = fields[2].toInt()
+}
+```
+
+Por isso, o aceite cobre o catálogo observado com uma suíte (`GameJourney.kf`); futuras suítes exigem prova de compatibilidade e não podem ser omitidas para contornar o problema. M2–M5 e S1–S3 continuam pendentes.
