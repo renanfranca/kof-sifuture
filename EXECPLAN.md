@@ -1160,3 +1160,46 @@ Marcos: reproduzir a falha em testes comportamentais sintéticos no KofMut; corr
 Estado inicial: provas pendentes. Não instalar gatilhos, ampliar catálogo permanente, modificar compilador, criar worktree/subagente, commit ou publicação. Expectativas e capacidade discriminatória das provas serão auditadas separadamente; resultados anteriores continuam históricos.
 
 Resultado do check completo nesta continuidade: exit 1, 18 testes CLI aprovados e 13 reprovados de 31, 1308389 ms. O script parou antes das suítes Run, Install e frontend. A tag corrigida também retorna 1 por preparação de compatibilidade incompleta antes dos cenários. Há diagnósticos explícitos de prazos de compilação/compatibilidade, mas nem toda assertion reprovada tem causa individual demonstrada; não atribuir todas as falhas ao ambiente. A implementação segue sem aceite público completo. Revisão final preservou 202 arquivos SiFuture protegidos, os prefixos históricos, a configuração SHA-256 2e24df1360b021bbf30d4cf4f7fdcdcf1cec202d601a45b018c61b65d8fda9bd e os dois guias com a limitação. git diff --check passou nos dois repositórios.
+
+## Recuperação anterior ao Luna e nova validação — 26/10/2026
+
+A implementação anterior ao Luna foi reconstruída no KofMut a partir da sessão `01a178d1-f353-7300-ad3f-22c8b5fbbb44`. Os dez arquivos coincidiram com o manifesto histórico antes de aplicar o conjunto. O manifesto e o aceite originais permanecem intactos; o novo suplemento é `.agent/validation/multiple-invocations-recovery.md`, no KofMut, sobre base `a40b20ac37afac302efc2a0dae7702e44720e166`; os bytes entregues serão identificados também pelo novo manifesto. A comparação do Luna foi inválida: as oito cópias usavam o leitor da base. Seus logs foram preservados, sem reutilizar sua comparação como prova.
+
+A recuperação preserva o leitor SHA-256 `5e46e9ce8c6a7f8f951b1a46108eb44442d0bdcde624fdc8aa24d71d6a22fc46`, distinto da base `be118bd66eab68887315bba54f119676ae8f9c31d13a3745e821874b95aafded`. Os inventários completos foram verificados antes de novas rodadas sequenciais, com o mesmo Kof 0.6.6, jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`. Os limites de 10000 ms por comando, 8500 ms por ensaio interno e 90000 ms para preparação foram preservados. A comparação correta também encontrou prazos excedidos; não estabeleceu regressão de desempenho nem causalidade pela carga.
+
+Resultados públicos finais do KofMut: tag `multiple-invocations` aprovada, 3/3 grupos, exit 0; controle isolado corrigido 2/0 contra controle da base 1/1, com falha esperada no grupo válido. Compatibilidade final exit 1, 7/8 reprovados. O check completo retornou 1 no CLI, 19 aprovados/12 reprovados de 31; Run foi então executada inteira, 34/13 de 47, incluindo os três grupos novos aprovados; Install 16/15 de 31; contratos frontend 15 aprovados, exit 0. Todas as suítes foram tentadas, mas isso não aprova o check que parou no CLI. As treze falhas históricas anteriores foram classificadas: oito têm etapa de preparação identificada, cinco não têm etapa individual estabelecida; as causas internas dos diagnósticos antigos não foram todas comprovadas. Nenhuma causa foi atribuída à carga apenas por observação.
+
+### Quatro provas reais com dois arquivos de suíte
+
+As novas cópias partiram do SiFuture `a451d311fe3beb7f37cbfd517aa96bbbb102a14b`. Usaram as receitas Bash existentes e a configuração real SHA-256 `2e24df1360b021bbf30d4cf4f7fdcdcf1cec202d601a45b018c61b65d8fda9bd`, sem omitir suítes. Background usa Extra + GameJourney; os três cálculos usam GameJourney + ZProbe, acrescentados somente às cópias. O catálogo permanente continua com 114 casos.
+
+| Cenário | Testes normais, casos/falhas/exit | Resultado da própria chamada de mutação | Baseline check/test ms | Arquivos da cópia preservados |
+| --- | --- | --- | --- | --- |
+| background | 115/0/0 | incomplete/3, zero mutantes | 7307/10033 | 190, bytes e modos iguais |
+| detected | 115/0/0 | incomplete/3, zero mutantes | 7572/10032 | 191, bytes e modos iguais |
+| survived | 115/0/0 | incomplete/3, zero mutantes | 7304/10037 | 191, bytes e modos iguais |
+| baseline-failed | 115/1/1 | incomplete/3, zero mutantes | 6231/10033 | 191, bytes e modos iguais |
+
+| Cenário | UUID próprio | SHA-256 do relatório anunciado |
+| --- | --- | --- |
+| background | 68f9e38e-99ed-40c3-b33d-d11626d36874 | 27cfa3620ffee7fa7b6927e120ac2bf8b35caf496a786209d4ab1957f3f6bcf4 |
+| detected | b15ef54a-c1cd-468e-b080-5e165f5c657b | eb4e5cab69cdd891d3a6affcafb728e5f5030936f1a8d6618035955ad7440502 |
+| survived | f2304068-4a33-45cc-8cef-cff679c0bc9a | ce9faeaab2f428fbf9c88ae4da4a792afa018d04a7b99942f5c9f4ff4047c4d2 |
+| baseline-failed | d12f6354-fad8-4098-a3ef-d052ce17b17f | d78e851f17658dd5df9ddcca08a8d9e447d2e0955e45a5a3afcccbe849d94dda |
+
+Conferidos UUID, esquema/versões, namespace canônico, único `reportPath=` anunciado pela chamada, escopo e retornos da ferramenta/receita/inspeção. Background tem escopo `src/main/kof/sifuture/game/Background.kf`; os demais usam `src/main/kof/sifuture/game/ManualMutationProbe.kf`. Todos os relatórios registram check exit 0/filesChecked 1, teste da baseline exit 137 com `test timeout`, nenhum candidato ou mutante e todos os contadores de mutação em zero. Isso não equivale a detectar/sobreviver nem à baseline_failed/2 exigida para o controle inicialmente falho: a fase de teste não terminou. O contador timeout dos mutantes fica zero porque o prazo foi excedido antes de gerar mutantes.
+
+Tempos informados pelo CLI nos comandos normais, em chamadas sequenciais: Background 4165+7820=11985 ms; detectado 9472+5928=15400 ms; sobrevivente 9776+5865=15641 ms; baseline falha 8384+5441=13825 ms. Essas somas já excedem os 10000 ms do comando completo do wrapper, antes de contar preparação e inicialização. Trecho real do log Background:
+
+```text
+time: 4165ms total, slowest /tmp/sifuture-kof-4_tdaj9w/source/Main.kf (4165ms)
+time: 7820ms total, slowest /tmp/sifuture-kof-ldl44t_v/source/Main.kf (7820ms)
+```
+
+O [laço do wrapper](scripts/kof_project.py#L152) chama `_run` de forma síncrona para cada arquivo. Não há sobreposição que invalide a soma. Os logs das baselines mostram o segundo arquivo iniciado quando o processo foi encerrado. O prazo foi demonstrado; a causa completa da demora continua desconhecida. Os 10032–10037 ms medidos incluem o encerramento do grupo de processos, sem ampliar o limite de espera.
+
+O aceite completo permanece pendente. É necessária uma decisão entre repetir em condições controladas que cumpram os prazos existentes ou rever explicitamente os limites e restrições da receita. Nenhuma ampliação foi aplicada, e nenhum relatório anterior substituiu o da chamada. Os guias mantêm a limitação até a aprovação pública e dos quatro resultados reais exigidos. Configuração, wrapper, escopo e catálogo permanentes continuam iguais; M2–M5 e S1–S3 não são encerrados. Não houve commit, publicação, worktree, subagente ou alteração do Kof.
+
+Evidência local opcional: `.agent/tmp/recovery-20261026/integration/`, com quatro cópias preservadas, stdout/stderr/exits, inventários e relatórios próprios. O suplemento KofMut contém comandos, resultados, fontes do mecanismo, lacunas e o novo manifesto; este registro conserva os resultados essenciais sem depender desses arquivos locais.
+
+Conferência final: 202 arquivos rastreados protegidos mantêm bytes e modos iniciais; configuração/escopo/manifesto/wrapper/src/tests (49 arquivos), os dois guias e os blocos Bash aprovados permanecem iguais. Prefixos históricos deste plano/aceite e do plano externo preservados. Kof permanece limpo e o jar tem o mesmo SHA-256; exclusão Git local aparece uma vez. O verificador de links do histórico completo sinaliza 51 ocorrências já presentes na base; comparação contra os textos de HEAD produz exatamente as mesmas mensagens e nenhuma aponta para a continuidade nova. `git diff --check` passou. O [novo manifesto](.agent/validation/kofmut-recovery.sha256) identifica esta continuidade e os arquivos protegidos, sem substituir o manifesto anterior do KofMut. O aceite continua pendente; nenhuma limitação foi retirada dos guias.
