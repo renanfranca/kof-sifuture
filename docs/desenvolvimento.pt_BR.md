@@ -131,39 +131,70 @@ arquivo inteiro `Background.kf`. Edite esse array JSON para escolher outros
 caminhos de produção `.kf`; são caminhos explícitos, sem glob. O KofMut copia
 as entradas configuradas e avalia o escopo em cópias isoladas do projeto.
 
-Execute uma avaliação diretamente do checkout do KofMut. O exemplo guarda
-stdout, stderr e o código de saída em `.agent/tmp/`, gera um UUID novo para a
-chamada e coloca seu relatório sob `.agent/tmp/kof-mut-reports/`:
+Execute estas receitas Bash na **raiz do checkout do SiFuture**, invocando o
+executável externo do KofMut pelo caminho absoluto. A primeira receita guarda
+stdout, stderr e o código nativo do processo em `<run_id>.exit` sob
+`.agent/tmp/kof-mut-runs/`, e coloca o relatório sob
+`.agent/tmp/kof-mut-reports/`. Cada chamada recebe um UUID novo. Mantenha
+`run_id` no shell interativo para a inspeção posterior:
 
 ```bash
-mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports
-run_id=$(python3 -c 'import uuid; print(uuid.uuid4())')
-if /home/renanfranca/projects/kof-mut/bin/kof-mut run \
-  --project "$PWD" \
-  --files "$PWD/kof-mut-scope.json" \
-  --config kof-mut.json \
-  --report-dir "$PWD/.agent/tmp/kof-mut-reports" \
-  --run-id "$run_id" \
-  > ".agent/tmp/kof-mut-runs/$run_id.stdout" \
-  2> ".agent/tmp/kof-mut-runs/$run_id.stderr"; then
-  exit_code=0
+if run_id=$(python3 -c 'import uuid; print(uuid.uuid4())'); then
+  (
+    mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports || exit 2
+    exec 3> ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    exec 4> ".agent/tmp/kof-mut-runs/$run_id.stderr" || exit 2
+    if /home/renanfranca/projects/kof-mut/bin/kof-mut run \
+      --project "$PWD" \
+      --files "$PWD/kof-mut-scope.json" \
+      --config kof-mut.json \
+      --report-dir "$PWD/.agent/tmp/kof-mut-reports" \
+      --run-id "$run_id" >&3 2>&4; then
+      exit_code=0
+    else
+      exit_code=$?
+    fi
+    exec 3>&- 4>&- || exit 2
+    printf '%s\n' "$exit_code" > ".agent/tmp/kof-mut-runs/$run_id.exit" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stderr" >&2 || exit 2
+    printf 'exit=%s run_id=%s\n' "$exit_code" "$run_id" || exit 2
+    exit "$exit_code"
+  )
 else
-  exit_code=$?
+  (exit 2)
 fi
-printf 'exit=%s run_id=%s\n' "$exit_code" "$run_id"
-cat ".agent/tmp/kof-mut-runs/$run_id.stdout"
-cat ".agent/tmp/kof-mut-runs/$run_id.stderr" >&2
 ```
+
+Os parênteses executam `exit` em um subshell: o terminal interativo continua
+disponível. Após apresentar as evidências, a receita devolve o código nativo
+salvo em `.exit`, inclusive uma reprovação. Uma falha própria ao preparar,
+salvar, ler ou apresentar evidência necessária devolve 2. `.exit` registra o
+resultado do KofMut; ele não substitui conferir o `$?` final da receita.
 
 Leia somente o caminho de relatório anunciado pela linha `reportPath=` desta
 chamada. Decodifique o valor como JSON (ele é uma string JSON; não remova as
 aspas manualmente) e então inspecione esse arquivo. Exemplo com Python e `jq`:
 
 ```bash
-report_path=$(python3 -c 'import json,sys; lines=[line for line in sys.stdin if line.startswith("reportPath=")]; assert len(lines)==1; print(json.loads(lines[0][len("reportPath="):]))' \
-  < ".agent/tmp/kof-mut-runs/$run_id.stdout")
-jq '{runId, scope, baseline, counts, status}' "$report_path"
+(
+  [ -n "${run_id:-}" ] || exit 2
+  exit_code=$(cat ".agent/tmp/kof-mut-runs/$run_id.exit") || exit 2
+  case "$exit_code" in ''|*[!0-9]*) exit 2 ;; esac
+  [ "$exit_code" -le 255 ] || exit 2
+  report_path=$(python3 -c 'import json,sys; lines=[line for line in sys.stdin if line.startswith("reportPath=")]; assert len(lines)==1; path=json.loads(lines[0][len("reportPath="):]); assert isinstance(path,str) and path; print(path)' \
+    < ".agent/tmp/kof-mut-runs/$run_id.stdout") || exit 2
+  jq -e -s --arg run_id "$run_id" \
+    'select(length == 1) | .[0] | select(.runId == $run_id) | {runId, scope, baseline, counts, status}' "$report_path" || exit 2
+  exit "$exit_code"
+)
 ```
+
+A inspeção também devolve o código nativo registrado após mostrar o relatório;
+registro de saída ausente/inválido, falha na descoberta do relatório,
+`runId` divergente ou falha de leitura/apresentação devolve 2. No mesmo
+terminal, `printf '%s\n' "$?"` imediatamente após cada receita mostra seu
+resultado. Preserve os arquivos anteriores; nenhuma receita os procura ou apaga.
 
 Não use um caminho fixo `report.json` nem procure o relatório mais recente. O
 caminho anunciado identifica esta chamada; o JSON final e o código de saída

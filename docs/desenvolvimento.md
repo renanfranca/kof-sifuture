@@ -143,39 +143,70 @@ selects the whole `Background.kf` file. Edit this JSON array to select other
 production `.kf` paths; entries are explicit paths, not globs. KofMut copies
 the configured inputs and evaluates this scope in isolated project copies.
 
-Run one evaluation directly from the KofMut checkout. This example captures
-stdout, stderr and the process exit under `.agent/tmp/`, gives the invocation
-a new UUID, and places its report beneath `.agent/tmp/kof-mut-reports/`:
+Run these Bash recipes from the **SiFuture checkout root**, invoking the
+external KofMut executable by its absolute path. The first recipe captures
+stdout, stderr and the native process exit in `<run_id>.exit` under
+`.agent/tmp/kof-mut-runs/`, and places the report beneath
+`.agent/tmp/kof-mut-reports/`. Each invocation gets a new UUID. Keep
+`run_id` in the interactive shell for the later inspection:
 
 ```bash
-mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports
-run_id=$(python3 -c 'import uuid; print(uuid.uuid4())')
-if /home/renanfranca/projects/kof-mut/bin/kof-mut run \
-  --project "$PWD" \
-  --files "$PWD/kof-mut-scope.json" \
-  --config kof-mut.json \
-  --report-dir "$PWD/.agent/tmp/kof-mut-reports" \
-  --run-id "$run_id" \
-  > ".agent/tmp/kof-mut-runs/$run_id.stdout" \
-  2> ".agent/tmp/kof-mut-runs/$run_id.stderr"; then
-  exit_code=0
+if run_id=$(python3 -c 'import uuid; print(uuid.uuid4())'); then
+  (
+    mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports || exit 2
+    exec 3> ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    exec 4> ".agent/tmp/kof-mut-runs/$run_id.stderr" || exit 2
+    if /home/renanfranca/projects/kof-mut/bin/kof-mut run \
+      --project "$PWD" \
+      --files "$PWD/kof-mut-scope.json" \
+      --config kof-mut.json \
+      --report-dir "$PWD/.agent/tmp/kof-mut-reports" \
+      --run-id "$run_id" >&3 2>&4; then
+      exit_code=0
+    else
+      exit_code=$?
+    fi
+    exec 3>&- 4>&- || exit 2
+    printf '%s\n' "$exit_code" > ".agent/tmp/kof-mut-runs/$run_id.exit" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stderr" >&2 || exit 2
+    printf 'exit=%s run_id=%s\n' "$exit_code" "$run_id" || exit 2
+    exit "$exit_code"
+  )
 else
-  exit_code=$?
+  (exit 2)
 fi
-printf 'exit=%s run_id=%s\n' "$exit_code" "$run_id"
-cat ".agent/tmp/kof-mut-runs/$run_id.stdout"
-cat ".agent/tmp/kof-mut-runs/$run_id.stderr" >&2
 ```
+
+The parentheses run `exit` in a subshell: the interactive terminal remains
+available. After presenting the evidence, the recipe returns the native
+code saved in `.exit`, including a rejection. Its own failure to prepare,
+save, read or present necessary evidence returns 2 instead. `.exit` records
+the KofMut result; it does not replace checking the recipe's final `$?`.
 
 Read only the report path announced by this invocation's `reportPath=` line.
 Decode the value as JSON (it is a JSON string, so do not strip quotes by
 hand), then inspect that file. For example, with Python and `jq` installed:
 
 ```bash
-report_path=$(python3 -c 'import json,sys; lines=[line for line in sys.stdin if line.startswith("reportPath=")]; assert len(lines)==1; print(json.loads(lines[0][len("reportPath="):]))' \
-  < ".agent/tmp/kof-mut-runs/$run_id.stdout")
-jq '{runId, scope, baseline, counts, status}' "$report_path"
+(
+  [ -n "${run_id:-}" ] || exit 2
+  exit_code=$(cat ".agent/tmp/kof-mut-runs/$run_id.exit") || exit 2
+  case "$exit_code" in ''|*[!0-9]*) exit 2 ;; esac
+  [ "$exit_code" -le 255 ] || exit 2
+  report_path=$(python3 -c 'import json,sys; lines=[line for line in sys.stdin if line.startswith("reportPath=")]; assert len(lines)==1; path=json.loads(lines[0][len("reportPath="):]); assert isinstance(path,str) and path; print(path)' \
+    < ".agent/tmp/kof-mut-runs/$run_id.stdout") || exit 2
+  jq -e -s --arg run_id "$run_id" \
+    'select(length == 1) | .[0] | select(.runId == $run_id) | {runId, scope, baseline, counts, status}' "$report_path" || exit 2
+  exit "$exit_code"
+)
 ```
+
+Inspection also returns the recorded native code after displaying the
+report; a missing/invalid exit record, failed report discovery, mismatched
+`runId`, or failed reading/presentation returns 2. In the same terminal,
+`printf '%s\n' "$?"` immediately after either recipe shows that recipe's
+result. Preserve previous files; neither recipe searches for or deletes them.
 
 Do not use a fixed `report.json` path or search for the newest report. The
 announced path identifies this invocation; its final JSON and exit code must

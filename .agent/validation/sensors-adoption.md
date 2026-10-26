@@ -333,3 +333,95 @@ A limitação conhecida é que `scripts/kof_project.py` executa uma chamada Kof 
 ```
 
 Por isso, o aceite cobre o catálogo observado com uma suíte (`GameJourney.kf`); futuras suítes exigem prova de compatibilidade e não podem ser omitidas para contornar o problema. M2–M5 e S1–S3 continuam pendentes.
+
+<a id="kofmut-manual-recipe-acceptance"></a>
+
+## Continuidade: receita manual e aceite da configuração real — 26/10/2026
+
+Correção documental sobre SiFuture `4e7d03f9f2f3fa5ef9e3e5549a5be9f06616ba51`, branch `sensor-calibration-m1`, mais o diff local desta entrega. Os registros anteriores permanecem históricos. Foram alterados apenas os dois guias, este aceite e as continuidades dos planos. Não há novo commit, publicação, suíte versionada ou avaliação de mutação nesta entrega.
+
+### Resultado das receitas publicadas
+
+As receitas em [inglês](../../docs/desenvolvimento.md#check-and-mutate-a-source-file-manually) e [português](../../docs/desenvolvimento.pt_BR.md#conferir-e-mutar-um-arquivo-manualmente) executam na raiz do SiFuture e chamam o executável externo `/home/renanfranca/projects/kof-mut/bin/kof-mut`. `run_id` é atribuído no shell que recebe os comandos, antes do subshell. Arquivos anteriores são preservados; cada chamada usa seu UUID e a inspeção lê somente o `reportPath=` anunciado naquela saída, decodificado como string JSON, com um único relatório e `runId` correspondente.
+
+Trecho publicado na receita de execução, após a captura do processo:
+
+```bash
+    printf '%s\n' "$exit_code" > ".agent/tmp/kof-mut-runs/$run_id.exit" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stderr" >&2 || exit 2
+    printf 'exit=%s run_id=%s\n' "$exit_code" "$run_id" || exit 2
+    exit "$exit_code"
+```
+
+O último comando do subshell determina seu retorno. Por isso, o `exit` explícito devolve o resultado capturado mesmo quando `cat` e `printf` passam. Os guardas `|| exit 2` tornam uma falha própria da receita uma reprovação de infraestrutura. A inspeção termina igualmente com `exit "$exit_code"`, após ler e validar `.exit` e apresentar o relatório. O arquivo `.exit` conserva o resultado nativo; uma apresentação que falhe pode fazer a receita terminar em 2 mesmo que esse arquivo contenha 0. Os parênteses limitam o `exit` ao subshell e deixam o terminal disponível.
+
+### Auditoria das expectativas e das provas
+
+Expectativas conferidas separadamente: os quatro retornos exigidos vêm do pedido desta entrega; as correspondências entre estado e código vêm do [contrato KofMut](https://github.com/renanfranca/kof-mut/blob/a40b20ac37afac302efc2a0dae7702e44720e166/docs/report-format.md#overall-status-and-process-exit). O contrato distingue `complete/0`, `complete/1`, falha de baseline/2 e resultados inconclusivos/3. Não se usa o sucesso do verificador como aprovação de uma mutação sobrevivente.
+
+| Critério e expectativa | Prova dos blocos exatos publicados | Como a prova distingue o defeito |
+| --- | --- | --- |
+| Retorno nativo 0, 1, 2 ou 3 | Extração literal dos quatro blocos Markdown; função Bash controlada no caminho absoluto da CLI, em raízes descartáveis; verificação de argv, `.exit`, apresentação e retorno de execução/inspeção. Cada código foi observado nos dois idiomas. Também passaram 42, 130 e 143. | Expectativas literais por código; devolver sempre 0 ou sempre 2 falharia. Os dois trechos antigos devolveram 0 para código nativo 1. Retirar o `exit` final de cada receita corrigida também devolveu 0. |
+| Apresentação bem-sucedida preserva reprovação | Comando controlado 1, `cat`, `printf` e `jq` bem-sucedidos; `.exit=1`, execução=1 e inspeção=1. | O valor esperado é 1 mesmo com apresentação aprovada; os controles defeituosos acima retornaram 0. |
+| Falha ao preparar, salvar, ler ou apresentar devolve 2 | Falha controlada de UUID, caminho de diretório ocupado, stdout/stderr com permissão negada, `.exit` em `/dev/full`, evidências removidas antes de `cat`, falha de `cat` e apresentação em `/dev/full`. Na inspeção: `.exit` ausente, ilegível, vazio, texto, negativo, maior que 255 ou multilinha; stdout ausente/ilegível; anúncio ausente, duplicado, JSON inválido ou valor sem tipo string; relatório ausente, ilegível, vazio, JSON inválido, duplicado ou com `runId` divergente; identificador ausente. | Cada cenário usa resultado nativo 0 e exige retorno final 2. Falhas de execução não exibem `exit=0`. Ignorar a falha de `cat` ou aceitar relatório vazio com `jq -e` sem agregação devolveu 0 nos controles defeituosos. Negação de permissão foi exercitada como UID 1000. |
+| O terminal continua disponível | Bash 5.1.16, modo interativo, pseudoterminal real: códigos 0/1/2/3 em cada idioma, oito sessões. Após cada receita, consultar `$?`, conferir o mesmo `run_id`, ler `.exit` e emitir o marcador `TERMINAL_AVAILABLE`. | Conferidos marcador, processo ainda vivo e leitura posterior. Um controle com `exit` no shell pai terminou antes do marcador, embora seu retorno numérico fosse 1. |
+| Relatório corrente e preservação | Caminho anunciado com espaços e aspas, relatório antigo com nome fixo e data futura, arquivos antigos de saída/exit. Comparação dos bytes antigos após cada cenário. | Escolher o relatório mais recente ou fixo encontraria o `runId` antigo; remover o atual deve falhar, mesmo com o antigo disponível. Nenhum fallback é aceito. |
+
+O verificador local registrou 138 observações: 96 verificações do contrato, incluindo oito sessões interativas, e 42 preparações aprovadas para os casos negativos de inspeção. Os blocos Bash correspondentes são idênticos nos dois idiomas. Os sete controles defeituosos acima confirmam a capacidade de detecção das provas, sem executar mutações Kof.
+
+Identidade SHA-256 dos blocos extraídos, incluindo uma quebra de linha final: execução `f7df764e0dbece0acf698dbcdab2ad6c512563838dd9796d9a8e8832b0652695`; inspeção `11c97fb386e39860a69e87a1da1ad5422439f6e0c11711bc47fa28aac6353834`.
+
+### Provas reais reutilizadas e identidades conferidas
+
+Reutilizados os quatro resultados de `.agent/tmp/kof-mut-manual-review-2isv6v_u/results.json` e o resultado de duas suítes em `multi-suite-result.json`, sem repetir avaliações. O primeiro arquivo tem SHA-256 `bd904e4d58f88e6b584a9fea1623747c70510c5f3f351a18ac229c1225b61de1`; o segundo, `e8912b969c51cb3cd3f3acfe074bec1902d48fa77519cbeb2d5468ce6b4a588a`.
+
+Conferidos: uma única linha `reportPath=` por saída; correspondência com o arquivo JSON existente; UUID do comando, nome reservado e `runId`; schema 1, KofMut 0.1.0, Kof 0.6.6; estado, contagens e baseline reconciliados com o sumário; logs de check/test referenciados pelo relatório. Nos quatro casos com argv preservado, o SHA-256 do caminho do projeto declarado no comando coincide com o identificador do diretório de relatórios. O registro de duas suítes não preserva argv completo; sua identidade foi conferida por saída, relatório anunciado, UUID e logs, sem afirmar reconstrução do comando original.
+
+| Item | Identidade confirmada nesta continuidade |
+| --- | --- |
+| KofMut | Checkout limpo `a40b20ac37afac302efc2a0dae7702e44720e166`; `VERSION` 0.1.0 |
+| Kof | `kof version`: 0.6.6; `/home/renanfranca/.local/bin/kof` resolve para `/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/bin/kof` |
+| Frontend | `lib/kof.jar` da distribuição acima, SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58` |
+| Fontes Kof consultadas | `7c237861a9035d84b1f7ec4cfddd89daef4c6ddd`; não se presume equivalência com o jar |
+| Configuração real | `kof-mut.json`, SHA-256 `2e24df1360b021bbf30d4cf4f7fdcdcf1cec202d601a45b018c61b65d8fda9bd`, igual ao registrado nos quatro casos |
+| Wrapper real preservado | `scripts/kof_project.py`, SHA-256 `a389cd1445afb4fd6ee19d895b572aa97d38007243fa43a7ff6c383ca67867b6` |
+
+Os quatro casos usaram cópias descartáveis do SiFuture com a configuração real, via wrapper JVM e catálogo completo, acrescentando um probe à suíte existente. Os 115 casos correspondem aos 114 do jogo mais esse caso; não são uma alteração das fontes ou testes entregues. O escopo foi `src/main/kof/sifuture/ManualMutationProbe.kf`. O sumário original registra `inputsPreserved=true` nos quatro casos; como essas cópias já foram removidas, essa comparação histórica não foi refeita nem apresentada como nova medição de hashes das cópias.
+
+| Caso | runId | Resultado essencial | SHA-256 do relatório |
+| --- | --- | --- | --- |
+| Detecção | `0da16a7a-4738-42ff-a196-611c0c9761b4` | `complete/0`; baseline check 0, teste 0, 115 executados/0 falhas; 1 candidato, 1 executado, 1 Killed, 0 Survived | `f6fe5ca7145faaa77dae75574c44d16f1285bd82e8fa738e1c4c11a84f4ea2be` |
+| Sobrevivência | `51a4b838-0692-4fae-8857-560d2f49a564` | `complete/1`; baseline check 0, teste 0, 115/0; 1 candidato, 1 executado, 0 Killed, 1 Survived | `e25e3b96990c5c9490c91be7c4a0936efe86082ccfe8cdbfe995f6f530af6b5a` |
+| Erro de fonte | `9ef127fe-f978-4d92-9206-b7576ba007b5` | `baseline_failed/2`; check 1 com PARSE041/PARSE009; testes não iniciados; todos os contadores de mutação em zero | `f80a94113b94ad8b98154e9d84c43cf1e06c69cdebdd40b43347f6559f774bf9` |
+| Teste reprovado | `048023bb-fcc7-476b-b747-c0d9c7f2519a` | `baseline_failed/2`; check 0, teste 1, 115 executados/1 falha; todos os contadores de mutação em zero | `4397929889363d64cebf352e9e767d68405ea51490a571d629a156fb37945106` |
+| Duas suítes | `27732709-5293-4cf9-bb99-16d10b5371b4` | `baseline_failed/2`; check 0, teste 0, 115 executados/0 falhas, protocolo rejeitado; todos os contadores de mutação em zero | `47130ab9f48dcd8ae70d9e1198b59ab3219603e4fa8fa6d68646f83fe3860eae` |
+
+Nos casos de detecção/sobrevivência, os demais contadores são zero, não há limitações nem descartes, e o relatório registra a mutação aritmética `+` para `-` como `Killed`/`Survived`. Esses resultados demonstram os estados distintos com a configuração real; não ampliam a aprovação de qualidade para todo o jogo.
+
+### Limitação confirmada e continuidade
+
+Na cópia com `Extra.kf` e `GameJourney.kf`, o comando normal `python3 scripts/kof_project.py test --target jvm --kof kof` terminou com 0. Os logs normais e os logs da fase de teste do KofMut contêm:
+
+```text
+Suite: sifuture/game/Extra.kf
+0 failed of 1 tests
+1 passed, 0 failed
+Suite: sifuture/game/GameJourney.kf
+0 failed of 114 tests
+1 passed, 0 failed
+```
+
+O relatório corrente registra `baseline.test.exitCode=0`, `executedTests=115`, `failedTests=0`, mas também:
+
+```text
+Invalid or incomplete test protocol
+```
+
+Um processo de teste aprovado não garante que seu protocolo seja aceito pelo consumidor. O segundo resumo final é rejeitado pelo trecho de `Evidence.kf` transcrito no aceite anterior; isso explica `baseline_failed/2` sem atribuir falhas aos 115 testes. A compatibilidade com vários arquivos de suíte permanece aberta para trabalho separado, incluindo uma nova prova ponta a ponta após o reparo. Não omitir suítes nem repetir avaliações apenas para contornar a limitação. M2–M5 e S1–S3 continuam pendentes.
+
+### Verificações finais e preservação
+
+Comandos executados na raiz do SiFuture: `python3 .agent/tmp/kof-mut-recipe-fix-20261026/verify_recipes.py` (138 observações, exit 0); `bash -n` sobre os blocos extraídos dos dois guias; verificador local de links Markdown dos dois guias; conferência dos destinos externos e das linhas citadas; `git diff --check`. Os resultados finais e a comparação de preservação estão registrados na continuidade dos planos.
+
+Configuração, escopo, manifesto, wrapper, fontes e testes do jogo permanecem byte a byte iguais à base desta entrega: 49 arquivos protegidos, manifesto ordenado no formato `SHA-256  caminho\n`, SHA-256 `3aa5364846a284d6741d73e75677cb26a11e8be7d4b93a46cf8a285256d3396f`. Os outros 200 arquivos rastreados fora dos quatro arquivos desta entrega permaneceram iguais. Os prefixos históricos de `EXECPLAN.md`, deste aceite e do plano externo foram preservados; a exclusão `/.agent/tmp/` permanece exatamente uma vez em `.git/info/exclude`. As provas anteriores não foram removidas ou sobrescritas. Scripts, blocos extraídos, resultados, controles negativos, hashes e logs novos ficam opcionalmente em `.agent/tmp/kof-mut-recipe-fix-20261026/`; os arquivos de `.agent/tmp/` não entram no versionamento. Não foram repetidos testes do jogo ou navegador, pois somente guia e registros mudaram.
