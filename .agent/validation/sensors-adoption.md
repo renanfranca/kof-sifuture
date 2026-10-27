@@ -871,3 +871,273 @@ execução/inspeção são idênticos aos de HEAD em ambos os idiomas. Os histó
 dos dois planos e do aceite permanecem como prefixos, KofMut/Kof estão limpos
 e `git diff --check` retorna 0. Os hashes da suíte, fixture, escopo e configuração
 acima identificam os mesmos bytes usados na rodada de mutação e nos testes.
+
+<a id="kof067-js-break-regression"></a>
+
+## Diagnóstico e rascunho: regressão de `break` no JS 0.6.7 — 27/10/2026
+
+Continuidade documental sobre SiFuture `53e9626b19ad5740dd2b250b2f167932c892e364`,
+branch `sensor-calibration-m1`, checkout inicialmente limpo. A entrega é o
+diagnóstico documentado e o [rascunho integral para revisão](kof-0.6.7-js-break-issue.md),
+título **[Bug]: JS no Kof 0.6.7 ignora break em for-in dentro de if**.
+O rascunho segue os campos do formulário oficial, com reprodução autossuficiente,
+comandos, saídas, contrato, classificação e checklist. Não foi publicado.
+Os aceites anteriores continuam identificados com Kof 0.6.6; não foram
+reinterpretados como validação do jogo ou do KofMut com 0.6.7.
+
+### Expectativa, conferida separadamente do experimento
+
+A [referência Kof, §5.5, linha 134](https://github.com/KofLang/Kof4j/blob/df27d89fc94b56344984ac42579bc8bb40809150/docs/language-reference/statements.md#L134) estabelece:
+
+> End/skip the iteration of the **innermost loop** (or `switch`).
+
+O [training de controle de fluxo, linha 142](https://github.com/KofLang/Kof4j/blob/df27d89fc94b56344984ac42579bc8bb40809150/training/idioms/control-flow.md#L142) reforça:
+
+> `break`/`continue` remain required in loops (to exit/skip).
+
+O [Learn Kof 05, linha 83](https://github.com/KofLang/Kof4j/blob/df27d89fc94b56344984ac42579bc8bb40809150/learn/05-control-flow.md#L83) exemplifica:
+
+```kof
+for (var i = 0; i < 100; i++) {
+    if (i == 50) break;
+    if (i % 2 == 0) continue;
+    print(i);
+}
+```
+
+Essa citação não foi executada como ensaio adicional. Ela mostra que o `if`
+condiciona a saída do laço. O `break` deve encerrar o contexto de laço mais
+interno, sem percorrer os elementos seguintes. O §5.4 admite `for-in` sobre
+`List<T>`. Consultei também syntax/classes/CLI no training, os idiomas de
+classes, `fake-idioms.md`, `runtime-workarounds.md` e a filosofia. A consulta
+local de implementação incluiu `StatementLowerer.java` e
+`js/JsControlFlowParser.java`; os testes consultados foram
+`JsLoopIfTailE2ETest` e `SwitchBreakScopeE2ETest`, sem executar essas suítes.
+Não se atribui a eles cobertura desta regressão nem aprovação do jar atual.
+
+A regra histórica de um tiro por tentativa vem de
+[`Subchief.java:355`](https://github.com/renanfranca/sifuture/blob/50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3/src/Subchief.java#L355),
+consultado localmente em `/home/renanfranca/projects/sifuture`, SHA
+`50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3`:
+
+```java
+	public void shoot(int x, int y, int sizey) {
+		for (byte i = 0; i < LASER_QUANTITY; i++) {
+			if (!this.subchiefShoots[i].shootOn) {
+				this.subchiefShoots[i].shoot(x, y, sizey);
+				break;
+			}
+		}
+	}
+```
+
+Espaço final da linha do fechamento do laço normalizado na transcrição.
+O método histórico
+[`fire():297`](https://github.com/renanfranca/sifuture/blob/50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3/src/Subchief.java#L297)
+contém, a partir da linha 298:
+
+```java
+		if (this.state == NORMAL) {
+			this.shootTime += 1;
+			if (this.shootTime % 12 == 0) {
+				this.shoot(this.x, this.y, this.naveMiddle.getHeight());
+			}
+```
+
+Espaço final da linha da condição normalizado na transcrição; restante do
+método omitido. `fire()` tenta disparar nos múltiplos de 12 passos normais.
+`shoot()` escolhe o primeiro tiro inativo e sai do laço.
+Consulta estática, sem executar Java ME. No port,
+[`Subchief.kf:97`](../../src/main/kof/sifuture/game/Subchief.kf#L97) mantém:
+
+```kof
+            if (normalSteps % 12 == 0) {
+                for (var shot in shots) {
+                    if (!shot.active) { shot.fire(x, y); break }
+                }
+            }
+```
+
+O cenário existente em
+[`GameJourney.kf:1639`](../../src/test/kof/sifuture/game/GameJourney.kf#L1639)
+observa os instantes discriminatórios:
+
+```kof
+    for (var i = 0; i < 10; i++) { g.step() }
+    assert(!chief.shots[0].active)
+    g.step()
+    assert(chief.shots[0].active && !chief.shots[1].active)
+    assert(chief.shots[0].x == chief.x - 7 - 4 && chief.shots[0].y == chief.y + 13)
+    for (var i = 0; i < 12; i++) { g.step() }
+    assert(chief.shots[1].active && !chief.shots[2].active)
+```
+
+Essas expectativas não foram mudadas para acomodar o defeito. O teste do jogo
+é evidência consultada, não uma execução nova nesta entrega. A norma Kof e a
+regra histórica fundamentam a expectativa; a redução abaixo mede o desvio.
+
+### Identidade e matriz executada
+
+Programa mínimo: os mesmos bytes de `Minimal.kf` do diagnóstico anterior,
+agora como `Main.kf`, SHA-256
+`2b5309215b5bf58ca2d3d897429ba619d780a31984740e43b5530ea2cecfedbc`.
+Programa temporal: mesmas classes `Slot` e `Rack`, somente `main()` ampliado
+para observar 11/12/24/36, SHA-256
+`6cd1692be594c4926d69656de8a85b62b1b6e90a17673f174730f0ff3341bf42`.
+Ambos estão transcritos no rascunho. Não há dependência do SiFuture para
+reproduzir. Execução isolada em dois diretórios sob
+`/tmp/kof-break-report-5dpco6bi/`, sem manifesto ancestral, removidos após
+preservar fontes e logs em `.agent/tmp/`. Cada diretório continha somente
+seu `Main.kf` durante as execuções.
+
+Comandos usados, uma vez para cada programa:
+
+```sh
+/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/bin/kof run Main.kf --target jvm
+/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/bin/kof run Main.kf --target js
+/home/renanfranca/.local/share/kof/kof-0.6.7-linux-x86_64/bin/kof run Main.kf --target jvm
+/home/renanfranca/.local/share/kof/kof-0.6.7-linux-x86_64/bin/kof run Main.kf --target js
+```
+
+Cada célula representa os estados dos três slots, na ordem. `T` significa
+`true`; `F`, `false`. Os slots desta redução não se movem nem são reciclados.
+
+| Versão | Alvo | Mínimo após 12 | Passo 11 | Passo 12 | Passo 24 | Passo 36 | Retornos mínimo/temporal | stderr mínimo/temporal |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.6.6 | JVM | T F F | F F F | T F F | T T F | T T T | 0 / 0 | vazio / vazio |
+| 0.6.6 | JS | T F F | F F F | T F F | T T F | T T T | 0 / 0 | vazio / vazio |
+| 0.6.7 | JVM | T F F | F F F | T F F | T T F | T T T | 0 / 0 | vazio / vazio |
+| 0.6.7 | JS | T T T | F F F | T T T | T T T | T T T | 0 / 0 | vazio / vazio |
+
+Saída completa de 0.6.7/JS para o programa temporal:
+
+```text
+11:false:false:false
+12:true:true:true
+24:true:true:true
+36:true:true:true
+```
+
+Os passos 12 e 24 discriminam a regressão. No 11 ainda não houve disparo e
+no 36 a execução correta também já ocupou os três slots. Retorno 0 não prova
+que a regra foi respeitada: o resultado funcional é incorreto sem diagnóstico.
+
+Ambiente: Ubuntu 22.04.5 LTS, WSL2,
+`Linux 6.18.54.1-microsoft-standard-WSL2 x86_64 GNU/Linux`.
+`kof version` retornou `kof 0.6.6` e `kof 0.6.7` pelos binários explícitos.
+Jars SHA-256, respectivamente:
+`198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58` e
+`e9940afbb8db4a38f17b57a071fe039602454bdff78e99f8c3c095618489de76`.
+Launchers usam os JDKs embutidos Temurin 25.0.4.1+1 e 25.0.5+8.
+Pesquisa local Kof em `df27d89fc94b56344984ac42579bc8bb40809150`, checkout
+limpo. O hash do jar 0.6.7 coincide com o digest do asset oficial na
+[release Linux publicada em 27/10 às 06:01:18 UTC](https://api.github.com/repos/KofLang/Kof4j/releases/tags/kof-0.6.7-linux-x86_64).
+`releases/latest` também indicou 0.6.7, nessa revisão, na consulta corrente.
+
+Dois builds do mínimo com `build Main.kf --target js --output <diretório>`
+pelos mesmos binários retornaram 0. Os comandos e trechos gerados estão
+integralmente no rascunho. O `Default.mjs` 0.6.6 contém `break;` após
+`_forInVar.fire();`; o trecho correspondente em 0.6.7 não contém essa saída.
+A prova combina comportamento executado e inspeção do artefato, sem editar
+JavaScript gerado. Confirma regressão JS nessa forma; não determina o commit
+ou passe responsável e não generaliza a todas as formas de `break`.
+
+### Duplicatas, preservação e limites
+
+Buscas GitHub atualizadas em 27/10/2026, incluindo abertas e fechadas:
+`repo:KofLang/Kof4j is:issue break JS` (28 resultados),
+`repo:KofLang/Kof4j is:issue "for-in" "break"` (17) e
+`repo:KofLang/Kof4j is:issue "0.6.7" "break"` (0).
+As três respostas completas têm `incomplete_results=false`, sem paginação
+pendente. Não encontrei equivalente; os próximos #101/#587/#962 foram lidos
+e diferenciados no rascunho. Formulário fixado e atual coincidem no blob
+`9d0d0bd564d6e467f45f1d8445777fb4c8238e50`; #708 e #777 orientam o estilo.
+
+Evidência bruta opcional em `.agent/tmp/kof067-break-report-20261027/`:
+fontes, resultados das oito execuções, identidade dos jars/JDKs, módulos
+gerados, buscas e metadados da release. Uma tentativa inicial nesse diretório
+interno falhou no JVM com `Error reading source file: /agent [COMP001]`;
+seus resultados estão separados em `attempt-1/` e não entram na matriz.
+A matriz aceita somente a repetição isolada externa. A origem desse erro
+de preparação não foi investigada. O diagnóstico anterior em
+`.agent/tmp/kof067-diagnosis-4vct81n0/` permanece intacto.
+
+Produção, testes, assets, guias, configuração e ferramentas preservados.
+Históricos deste aceite, do EXECPLAN e do plano externo mantidos como
+prefixos. Exclusão local `/.agent/tmp/` exatamente uma vez. Sem publicação,
+correção do compilador, mudança de regra, commit, CI ou novo aceite de
+navegador. Não há workflow novo para vincular; as provas desta entrega são
+locais. A revisão do relato e uma eventual publicação são etapas posteriores.
+
+Conferência documental final: dos 205 arquivos rastreados iniciais, 203
+mantêm bytes e modos; somente este aceite e `EXECPLAN.md` receberam acréscimos,
+além do rascunho novo. O plano externo também recebeu somente acréscimo.
+O verificador local comparou os programas transcritos com os executados,
+os trechos JS com os artefatos, os comandos com os logs, os campos com o
+formulário e os novos links locais com seus destinos. Comando:
+`python3 .agent/tmp/kof067-break-report-20261027/check_report.py`, retorno 0.
+Resumo essencial, preservado aqui independentemente do script local:
+
+```text
+PASS: 203 arquivos preservados; 3 prefixos historicos; fontes e comandos conferidos; links novos validos; diff check 0
+```
+
+<a id="kof067-js-break-published"></a>
+
+## Publicação da issue de `break` no JS 0.6.7 — 27/10/2026
+
+Publicada [KofLang/Kof4j #975](https://github.com/KofLang/Kof4j/issues/975),
+por **renanfranca**, em **27/10/2026 às 12:33:27 UTC**.
+Título final: **[Bug]: break em for-in não encerra o laço no JS 0.6.7**.
+Registro sobre SiFuture `53e9626b19ad5740dd2b250b2f167932c892e364`, branch
+`sensor-calibration-m1`. O [rascunho existente](kof-0.6.7-js-break-issue.md)
+agora identifica a publicação e preserva o corpo público.
+
+O título e a abertura aprovados foram aplicados; todos os campos obrigatórios
+do formulário foram mantidos. A variante temporal, o JavaScript gerado e os
+hashes estão em uma seção expansível. O corpo público usa links públicos,
+sem a nota administrativa de rascunho ou vínculo relativo ao aceite local.
+
+Conferência anterior à publicação: os dois programas transcritos coincidem
+por bytes com as fontes preservadas; as saídas, retornos e stderr coincidem
+com as oito execuções aceitas, e os dois trechos JS com os builds preservados.
+Não houve nova execução do jogo ou do reproducer nesta publicação. A expectativa
+foi reconferida separadamente em `statements.md` §5.4/§5.5, no training e no
+Learn Kof 05. Os passos 12 e 24 distinguem TFF/TTF esperados de TTT observado;
+os passos 11 e 36 coincidem e sozinhos não revelam a regressão.
+
+Buscas atualizadas pelo conector, incluindo issues abertas e fechadas:
+`repo:KofLang/Kof4j is:issue break JS` (28),
+`repo:KofLang/Kof4j is:issue "for-in" "break"` (17),
+`repo:KofLang/Kof4j is:issue "0.6.7" "break"` (0).
+Não foi encontrado equivalente. #101, #587 e #962 foram relidos e tratam de
+outros casos, conforme detalhado no relato. Formulário atual e fontes públicas
+fixadas na revisão `df27d89fc94b56344984ac42579bc8bb40809150` conferidos.
+A consulta corrente da release mais recente continua em 0.6.7, nessa revisão.
+
+A criação pelo conector retornou `403: Resource not accessible by integration`.
+Após confirmar ausência de issue pelo título e receber a instrução de usar
+`gh`, a CLI autenticada como `renanfranca` publicou uma única issue:
+
+```sh
+gh issue create --repo KofLang/Kof4j --title '[Bug]: break em for-in não encerra o laço no JS 0.6.7' --body-file .agent/tmp/kof067-break-publication-20261027/issue-body.md --label bug
+gh api repos/KofLang/Kof4j/issues/975 --method GET
+```
+
+Ambos retornaram 0. A consulta confirmou repositório, autoria, número, URL,
+título e corpo integral, incluindo blocos de código, links e `<details>`.
+O comando solicitou a label `bug` do formulário, mas a consulta retornou
+labels vazias. Sem responsáveis ou marco.
+O SHA-256 do corpo conferido antes e depois da publicação é
+`0f919ccd7c7d6f09a208f2eae5750baad687e739f724338a759439485b0072ab`.
+
+Validação documental:
+`python3 .agent/tmp/kof067-break-publication-20261027/check_publication.py`
+retornou 0, com fontes, saídas, campos, hashes, blocos e links conferidos;
+`git diff --check` retornou 0. Evidência bruta opcional no mesmo diretório,
+fora do versionamento. A issue e este resumo contêm o material essencial.
+Históricos do aceite e dos dois planos preservados como prefixos. Não há
+workflow novo associado a esta publicação; não houve commit ou alteração
+de produção, testes, assets ou ferramentas. A entrega de publicação está
+concluída. A regressão observada permanece distinta de sua causa específica,
+ainda não localizada; os aceites históricos com 0.6.6 não qualificam 0.6.7.

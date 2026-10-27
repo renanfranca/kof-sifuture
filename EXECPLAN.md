@@ -1324,3 +1324,61 @@ wrapper, limites e receitas preservados. Históricos dos planos e aceite
 preservados como prefixos; evidência em .agent/tmp/meteor-acceptance-20261026/.
 Sem commit, publicação, CI novo, worktree, subagentes ou instalação de sensores.
 M2–M5/S1–S3 permanecem fora deste encerramento.
+
+## Continuidade: registrar a regressão de `break` no Kof 0.6.7 — 27/10/2026
+
+Pedido aprovado: documentar o diagnóstico e preparar um relato revisável,
+sem publicação, correção do compilador ou acomodação do jogo. Base SiFuture
+`53e9626b19ad5740dd2b250b2f167932c892e364`, branch atual
+`sensor-calibration-m1`. O aceite anterior com 0.6.6 continua histórico.
+
+- [x] Contrato revalidado em `statements.md` §5.4/§5.5, training e Learn Kof 05;
+  regra histórica conferida em Java `50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3`.
+- [x] Mesmo programa mínimo reexecutado com binários explícitos 0.6.6/0.6.7
+  em JVM/JS, retorno e stdout/stderr preservados.
+- [x] Variante temporal executada nas mesmas quatro combinações; passos
+  11/12/24/36 observados. 0.6.7/JS diverge em 12 e 24, ativando três slots;
+  os outros resultados respeitam a cadência de um por tentativa.
+- [x] Builds JS comparados: `break;` presente em 0.6.6 e ausente no trecho
+  correspondente de 0.6.7. Os oito runs e os dois builds retornaram 0.
+- [x] Jar 0.6.7 identificado pelo digest oficial; release mais recente,
+  formulário e duplicatas reconferidos no GitHub.
+- [x] [Aceite ampliado](.agent/validation/sensors-adoption.md#kof067-js-break-regression)
+  e [relato completo](.agent/validation/kof-0.6.7-js-break-issue.md) preparados,
+  com continuidade no plano externo e preservação dos históricos.
+
+Classificação: regressão do alvo JS para Kof válido. A perda do `break` está
+demonstrada; a alteração específica responsável continua indeterminada.
+Expectativa e poder discriminatório do reproducer foram conferidos
+separadamente: observar somente o passo 36 esconderia o erro.
+Suítes e navegador do jogo não foram repetidos nesta entrega documental;
+os aceites 0.6.6 não qualificam 0.6.7. Nada foi publicado ou commitado.
+Evidência opcional: `.agent/tmp/kof067-break-report-20261027/`.
+
+## Continuidade: issue de `break` no JS 0.6.7 publicada — 27/10/2026
+
+- [x] Publicada [KofLang/Kof4j #975](https://github.com/KofLang/Kof4j/issues/975),
+  por `renanfranca`, em 27/10/2026 às 12:33:27 UTC.
+  Título final: **[Bug]: break em for-in não encerra o laço no JS 0.6.7**.
+- [x] Título e abertura aprovados aplicados; campos obrigatórios mantidos,
+  evidências adicionais reunidas em seção expansível e links públicos usados.
+- [x] Programas, oito execuções e dois trechos JS conferidos contra a evidência
+  preservada; expectativa Kof e distinção nos passos 12/24 reavaliadas
+  separadamente. Buscas atualizadas, incluindo issues fechadas, sem equivalente.
+- [x] Conector recusou a criação com 403; após busca pelo título sem resultados,
+  publicação feita por `gh`, conforme instrução do usuário. Consulta posterior
+  confirmou repositório, autoria, título e corpo exato, com código e links,
+  sem responsáveis ou marco. Corpo SHA-256
+  `0f919ccd7c7d6f09a208f2eae5750baad687e739f724338a759439485b0072ab`.
+- [x] [Aceite da publicação](.agent/validation/sensors-adoption.md#kof067-js-break-published)
+  acrescentado; [rascunho](.agent/validation/kof-0.6.7-js-break-issue.md)
+  identificado como publicado; continuidade acrescentada ao plano externo.
+
+Base SiFuture `53e9626b19ad5740dd2b250b2f167932c892e364`, branch
+`sensor-calibration-m1`. Verificação documental:
+`python3 .agent/tmp/kof067-break-publication-20261027/check_publication.py`
+e `git diff --check`, ambos com retorno 0. Históricos preservados;
+evidência local opcional em `.agent/tmp/kof067-break-publication-20261027/`.
+Publicação concluída; a alteração específica causadora da regressão continua
+indeterminada. Sem nova execução do jogo/reproducer, commit ou workflow CI.
+M2–M5/S1–S3 e os limites dos aceites anteriores permanecem históricos.
