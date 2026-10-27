@@ -480,3 +480,67 @@ O aceite completo permanece pendente. É necessária uma decisão entre repetir 
 Evidência local opcional: `.agent/tmp/recovery-20261026/integration/`, com quatro cópias preservadas, stdout/stderr/exits, inventários e relatórios próprios. O suplemento KofMut contém comandos, resultados, fontes do mecanismo, lacunas e o novo manifesto; este registro conserva os resultados essenciais sem depender desses arquivos locais.
 
 Conferência final: 202 arquivos rastreados protegidos mantêm bytes e modos iniciais; configuração/escopo/manifesto/wrapper/src/tests (49 arquivos), os dois guias e os blocos Bash aprovados permanecem iguais. Prefixos históricos deste plano/aceite e do plano externo preservados. Kof permanece limpo e o jar tem o mesmo SHA-256; exclusão Git local aparece uma vez. O verificador de links do histórico completo sinaliza 51 ocorrências já presentes na base; comparação contra os textos de HEAD produz exatamente as mesmas mensagens e nenhuma aponta para a continuidade nova. `git diff --check` passou. O [novo manifesto](kofmut-recovery.sha256) identifica esta continuidade e os arquivos protegidos, sem substituir o manifesto anterior do KofMut. O aceite continua pendente; nenhuma limitação foi retirada dos guias.
+
+
+<a id="kofmut-timeout-acceptance"></a>
+
+## Aceite dos limites autorizados e de duas suítes — 26/10/2026
+
+Continuidade aprovada sobre SiFuture `54c317b52d010fbfa94e28499b05610d3ee62077` e KofMut `e8a08b6478d02bfd6d8e1158c2c9e9c913bc82b6`, com alterações sem commit desta sessão. Kof 0.6.6 Linux/JVM, jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`. Os fracassos e manifestos anteriores permanecem históricos; esta seção registra uma rodada nova, sem substituir seus relatórios.
+
+O plano fornecido pelo usuário autoriza `commandTimeoutMs: 30000` no SiFuture, 30000 ms por compilação/ensaio da preparação e 25000 ms por ensaio interno de mutação no KofMut. Mantidos: comandos internos em 10000 ms, preparação inteira em 90000 ms desde o início incluindo espera, limpeza compartilhada em 2000 ms, `budgetMs: 0`, concorrência 1, wrapper, escopo e catálogo permanente. Não houve aumento automático, modificação/atualização do Kof, commit, publicação, worktree, subagente ou instalação de sensores.
+
+Configuração avaliada, [`kof-mut.json`](../../kof-mut.json#L14):
+
+```json
+"commandTimeoutMs": 30000,
+"budgetMs": 0,
+"maxParallelMutants": 1
+```
+
+SHA-256 da configuração: `a0303c0cd6fa65cb2e7d33e056a4e642a1f8dda00a1432b7d8b7bb3df6027f65`. Esse limite cobre o comando completo do wrapper, incluindo as chamadas sequenciais dos dois arquivos; cada arquivo não recebe um novo prazo. `budgetMs: 0` remove somente o orçamento total da avaliação, sem remover o timeout de cada comando.
+
+| Prova nova | UUID | Estado/retorno | Killed/Survived | Segundos externos |
+| --- | --- | --- | --- | ---: |
+| background | `5edef194-8273-4eec-ac36-5554e9955b8f` | `complete/0` | 1/0 | 14.757 |
+| detected | `660fb933-dfd0-45ae-9e29-61ea54e4b595` | `complete/0` | 1/0 | 15.538 |
+| survived | `11984982-2786-4c42-b093-d32382099039` | `complete/1` | 0/1 | 15.543 |
+| baseline-failed | `3612b9e3-4b33-49f7-8f95-ef33481848da` | `baseline_failed/2` | 0/0 | 8.912 |
+
+Cada chamada usa sua própria receita Bash documentada e sua própria inspeção, sem buscar o relatório mais recente. Foram conferidos `reportPath=`, UUID, namespace canônico, escopo, schema v1, Kof 0.6.6, baseline, contagens e os retornos nativo/receita/inspeção. Background usa o arquivo completo de produção; os cálculos usam apenas `ManualMutationProbe.kf` nas cópias descartáveis. As três primeiras baselines têm 115 casos/zero falhas e um mutante avaliado; a quarta tem 115 casos/uma falha e nenhum candidato ou mutante. Todos os outros contadores são zero, sem descartes ou limitações. As cópias preservam os 190/191/191/191 arquivos de entrada em bytes e modos. O comando normal do wrapper também foi executado separadamente: 115 casos, falhas 0/0/0/1, retornos 0/0/0/1.
+
+| Relatório da própria chamada | SHA-256 |
+| --- | --- |
+| background | `738d5a24dece97084fb9107dab8ba6a23b586e3e64a807d76edfa4803ae18340` |
+| detected | `9d8be817f01facbb158c96ef75aba4f2353e5d309fe0cef7cade12152614213f` |
+| survived | `c3bff6ccc1cf91d6a298621109e578c636615bfe65a2238c829c95ca1715534b` |
+| baseline-failed | `9708097c19bdfcfec8da0e7a2b39c80495d28404ce94cb4c0edefdb83778eae0` |
+
+A auditoria das expectativas confirma: `(2 + 3)` e `(2 - 3)` distinguem detecção; com segundo argumento zero a alteração deve sobreviver; esperar 6 quando o cálculo retorna 5 reprova a situação original e impede toda mutação. O teste real de Background verifica deslocamento de cinco unidades. A auditoria separada da capacidade da prova rejeitou 58 controles com identidade, escopo, estado, contagem ou relatório de outra chamada incorretos. No cálculo detectado, o stdout do mutante mostra que a falha veio do segundo arquivo:
+
+```text
+Suite: sifuture/game/GameJourney.kf
+0 failed of 114 tests
+Suite: sifuture/game/ZProbe.kf
+FAIL probe contract: assertion failed
+1 failed of 1 tests
+```
+
+Isso demonstra o acúmulo dos 115 casos e a preservação da falha após uma primeira suíte aprovada. O resultado Survived/1 é esperado nessa prova e reprova qualidade; não é convertido em aprovação de testes.
+
+Na raiz do KofMut, validação nova e sequencial:
+
+| Comando | Retorno | Segundos externos |
+| --- | --- | ---: |
+| `kof test src/test/kof/kofmut/Cli.kf --tag compatibility` | 0 | 296.540 |
+| `kof test src/test/kof/kofmut/Run.kf --tag multiple-invocations` | 0 | 86.363 |
+| `./scripts/check` | 0 | 2822.044 |
+
+Compatibilidade: 9/0; várias execuções: 3/0; check completo: CLI 32/0, ciclo 47/0, instalação 31/0, frontend 15/0. O compilador controlado atrasado em 11 s falha com o limite antigo e conclui com o novo. Os ensaios reais lentos de detecção/sobrevivência levam 10008/9608 ms, acima de 8500 e abaixo de 25000. Bloqueio retorna 2 após cerca de 30 s, sem aprovação nem avaliação do projeto, com limpeza e recuperação normal. O check completo inclui a prova de interrupção da preparação aos 90 s e a preservação das recusas por evidência inválida ou falha real. [Suplemento completo do KofMut](../../../kof-mut/.agent/validation/multiple-invocations-recovery.md#authorized-timeout-integration-acceptance-2026-10-26).
+
+Aceite desta continuidade concluído: preparação, check completo e quatro provas reais aprovados. A ressalva obsoleta sobre rejeição de um segundo resumo pode ser retirada dos dois guias. A prova cobre a árvore avaliada e JVM; não promete duração universal, não instala gatilhos e não encerra M2–M5/S1–S3. Evidências locais opcionais em `.agent/tmp/timeouts-20261026/`, com logs, tempos, receitas, relatórios, inventários e auditorias; os resultados essenciais acima permitem compreender o aceite sem esses arquivos.
+
+
+Conferência final: `git diff --check` retorna 0 nos dois repositórios. O check completo mede a interrupção da preparação em 90026 ms monotônicos/90027 ms de relógio; uma avaliação já confirmada com orçamento zero executa 94097 ms no motor, 95220 ms externos. São prazos distintos: uma avaliação longa não reinicia nem prolonga a preparação.
+
+Preservação independente: 205 arquivos rastreados iniciais no SiFuture, cinco alterações autorizadas e 200 iguais em bytes/modos; 145 no KofMut, onze alterações autorizadas e 134 iguais. Planos e aceites anteriores são prefixos intactos; todos os manifestos SHA-256 históricos, wrapper, escopo, catálogo, receitas Bash bilíngues, os 44 inputs congelados do check e o jar instalado permanecem preservados. Kof de pesquisa continua limpo. A exclusão Git local aparece exatamente uma vez em cada repositório. O verificador de links mantém exatamente os diagnósticos dos textos de HEAD: 51 no conjunto Markdown alterado do SiFuture e 14 no KofMut, nenhum novo; esses problemas históricos não foram apresentados como links globalmente aprovados. Links novos passam. Inventários e auditorias novos ficam em `.agent/tmp/timeouts-20261026/`, fora de commits. Não resta lacuna obrigatória para este aceite dos limites e de várias execuções.

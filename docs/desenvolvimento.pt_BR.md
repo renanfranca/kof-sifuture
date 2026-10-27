@@ -124,10 +124,10 @@ python3 scripts/kof_project.py test --target js --kof kof
 ```
 
 `kof-mut.json` configura o KofMut para usar as versões JVM pelo mesmo wrapper
-e o executável `kof` resolvido no `PATH`. Cada comando tem timeout de dez
-segundos; `budgetMs: 0` remove apenas o orçamento total da avaliação. O escopo
-explícito atual em [`kof-mut-scope.json`](../kof-mut-scope.json) seleciona o
-arquivo inteiro `Background.kf`. Edite esse array JSON para escolher outros
+e o executável `kof` resolvido no `PATH`. Cada comando completo de check ou
+teste tem timeout de 30 segundos; `budgetMs: 0` remove apenas o orçamento total
+da avaliação. O escopo explícito atual em
+[`kof-mut-scope.json`](../kof-mut-scope.json) seleciona o arquivo inteiro `Background.kf`. Edite esse array JSON para escolher outros
 caminhos de produção `.kf`; são caminhos explícitos, sem glob. O KofMut copia
 as entradas configuradas e avalia o escopo em cópias isoladas do projeto.
 
@@ -206,13 +206,16 @@ significa que pelo menos uma sobreviveu e reprova a aceitação de qualidade.
 Analise sobreviventes pelo mérito; não invente requisito nem adicione teste
 artificial apenas para eliminá-los.
 
-O wrapper atualmente descobre uma suíte Kof. Se o catálogo crescer para
-vários arquivos de suíte, confirme a compatibilidade antes de depender da
-mutação: o leitor atual do KofMut rejeita um segundo resumo final. Não omita
-suítes para contornar essa limitação.
+O catálogo permanente atualmente contém uma suíte Kof. A compatibilidade
+com dois arquivos independentes e todos os 115 casos foi verificada em
+cópias descartáveis usando as fontes do KofMut identificadas no
+[registro de aceite](../.agent/validation/sensors-adoption.md#kofmut-timeout-acceptance).
+O KofMut valida cada invocação completa e acumula casos e falhas entre os
+arquivos. Mantenha todos os arquivos de suíte no comando de teste; saída
+incompleta ou contraditória não aprova a baseline nem detecta uma mutação.
 
-Essa regra cobre os casos dentro de uma invocação Kof; o laço Python conserva
-também a independência entre arquivos. O [training do CLI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
+Uma falha em um caso não interrompe os outros casos da mesma invocação Kof;
+o laço Python conserva também a independência entre arquivos. O [training do CLI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
 documenta `kof test` e `--target`; o wrapper organiza as fontes antes de chamar
 essa ferramenta.
 

@@ -136,10 +136,10 @@ python3 scripts/kof_project.py test --target js --kof kof
 ```
 
 `kof-mut.json` configures KofMut to use the JVM versions through the same
-wrapper and the `kof` executable resolved from `PATH`. Each command has a ten
-second timeout; `budgetMs: 0` removes only the overall evaluation budget. The
-current explicit scope in [`kof-mut-scope.json`](../kof-mut-scope.json)
-selects the whole `Background.kf` file. Edit this JSON array to select other
+wrapper and the `kof` executable resolved from `PATH`. Each complete check or
+test command has a timeout of 30 seconds; `budgetMs: 0` removes only the
+overall evaluation budget. The current explicit scope in
+[`kof-mut-scope.json`](../kof-mut-scope.json) selects the whole `Background.kf` file. Edit this JSON array to select other
 production `.kf` paths; entries are explicit paths, not globs. KofMut copies
 the configured inputs and evaluates this scope in isolated project copies.
 
@@ -217,13 +217,16 @@ unavailable/rejected; `incomplete`, `no_scope` or `no_mutants` with exit 3
 does not approve quality. Inspect survivors on their merits; do not invent a
 requirement or add an artificial test just to eliminate one.
 
-The wrapper currently discovers one Kof suite. If the catalog grows to
-multiple suite files, confirm compatibility before relying on mutation:
-KofMut's current test-output reader rejects a second final summary. Do not
-omit suites to work around that limitation.
+The permanent catalog currently contains one Kof suite. Compatibility with
+two independent suite files and all 115 cases was verified in disposable
+copies using the KofMut sources identified in the
+[acceptance record](../.agent/validation/sensors-adoption.md#kofmut-timeout-acceptance).
+KofMut validates each complete invocation and accumulates cases and failures
+across files. Keep all suite files in the test command; incomplete or
+contradictory output cannot approve the baseline or detect a mutation.
 
-That rule applies to cases within one Kof invocation; the Python loop also
-keeps files independent. The [CLI training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
+A failed case does not stop other cases within a Kof invocation; the Python
+loop also keeps suite files independent. The [CLI training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
 documents `kof test` and `--target`; the wrapper prepares sources before
 calling that tool.
 
