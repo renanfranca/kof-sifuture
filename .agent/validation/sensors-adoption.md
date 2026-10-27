@@ -544,3 +544,330 @@ Aceite desta continuidade concluído: preparação, check completo e quatro prov
 Conferência final: `git diff --check` retorna 0 nos dois repositórios. O check completo mede a interrupção da preparação em 90026 ms monotônicos/90027 ms de relógio; uma avaliação já confirmada com orçamento zero executa 94097 ms no motor, 95220 ms externos. São prazos distintos: uma avaliação longa não reinicia nem prolonga a preparação.
 
 Preservação independente: 205 arquivos rastreados iniciais no SiFuture, cinco alterações autorizadas e 200 iguais em bytes/modos; 145 no KofMut, onze alterações autorizadas e 134 iguais. Planos e aceites anteriores são prefixos intactos; todos os manifestos SHA-256 históricos, wrapper, escopo, catálogo, receitas Bash bilíngues, os 44 inputs congelados do check e o jar instalado permanecem preservados. Kof de pesquisa continua limpo. A exclusão Git local aparece exatamente uma vez em cada repositório. O verificador de links mantém exatamente os diagnósticos dos textos de HEAD: 51 no conjunto Markdown alterado do SiFuture e 14 no KofMut, nenhum novo; esses problemas históricos não foram apresentados como links globalmente aprovados. Links novos passam. Inventários e auditorias novos ficam em `.agent/tmp/timeouts-20261026/`, fora de commits. Não resta lacuna obrigatória para este aceite dos limites e de várias execuções.
+
+<a id="meteor-survivor-acceptance"></a>
+
+## Aceite: sobreviventes de Meteor e escopo manual — 26/10/2026
+
+Árvore testada: base SiFuture `fc74cb777c602f9745551d3a39f697a2b4a26652`
+mais o diff local desta entrega, na branch `sensor-calibration-m1`. Produção,
+assets, wrapper, KofMut e limites não foram modificados. O catálogo permanece
+com 114 casos: quatro cenários existentes foram ampliados, sem duplicar suítes.
+A fixture visual usa `collide()` e `impactFrame()`. O escopo explícito contém
+os arquivos inteiros Background e Meteor.
+
+### Expectativas: auditoria do contrato
+
+A [especificação aprovada](../specifications/port-sifuture-to-kof.md#historical-gameplay)
+exige preservar regras históricas, com seed injetável nos testes e uma recompensa
+por contato da nave. A revisão histórica é `50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3`
+em `/home/renanfranca/projects/sifuture`. O código histórico foi lido, não
+executado nesta entrega. Em [Meteor.java](../../../sifuture/src/Meteor.java#L111):
+
+```java
+this.y = Math.abs(random.nextInt() % BACK_GROUND_HEIGHT) + StageCount.stage1.getHeight();
+```
+
+Essa expressão soma o cabeçalho ao sorteio. Em Kof, o cenário com seed 71 foi
+executado e exige y=201; outros cem resets exigem x entre 176 e 375 e y entre
+30 e 201. A equivalência de seeds entre Java histórico e Kof não é alegada.
+O [idioma de stdlib](../../../kof/training/idioms/stdlib.md#rng--determinism-you-can-test-x8-slices-12)
+mostra a intenção de usar seed explícita:
+
+```kof
+rng.seed(42)
+```
+
+A seed fixa torna a expectativa reproduzível. O resultado exato de seed 71
+vem da execução atual nos dois alvos, sem depender da versão antiga do corpus.
+O limite histórico em [Meteor.java](../../../sifuture/src/Meteor.java#L149) é:
+
+```java
+this.x --;
+if (this.x < INVISIBLE_LEFT_POSITION){
+```
+
+Portanto sair de -24 para -25 ainda não relança. O passo seguinte deve
+relançar. O cenário ampliado verifica os dois lados do limite estrito.
+
+A animação histórica em [Meteor.java](../../../sifuture/src/Meteor.java#L190)
+usa `timing=2` no reset horizontal e avança `collisionDraw` até três imagens.
+A expectativa permanente lê a API usada pelo desenho, em
+[GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L722):
+
+```kof
+assert(g.meteors[0].impactFrame() == 0)
+var expectedFrames = listOf(0, 1, 1, 2, 2)
+```
+
+Cada avanço consulta `impactFrame()`, cobrindo 0/0/1/1/2/2; no sexto passo
+o impacto termina e o meteoro relança. A divisão por dois não é repetida
+na assertion nem na fixture. O browser também compara pixels dos três sprites.
+
+O contato histórico em [AirShip.java](../../../sifuture/src/AirShip.java#L374)
+usa a borda esquerda do meteoro, com limites inclusivos nos dois eixos. A
+[expressão Kof](../../src/main/kof/sifuture/game/Meteor.kf#L83) preservada é:
+
+```kof
+return x >= shipX && x <= shipX + Rules.SHIP_WIDTH &&
+    ((y >= shipY && y <= shipY + Rules.SHIP_HEIGHT) ||
+     (y + Rules.METEOR_HEIGHT >= shipY && y + Rules.METEOR_HEIGHT <= shipY + Rules.SHIP_HEIGHT))
+```
+
+Com nave (60,100), x=60/110 toca e x=59/111 não toca em y=105;
+em x=80, y=82/120 toca e y=81/121 não toca. O teste verifica a função
+isoladamente e a consequência em Game. O meteoro começa em x+1 porque Game
+move antes de testar o contato. Os demais meteoros ficam inativos; armas
+recém resetadas não têm projéteis ativos e não chegam ao intervalo de disparo
+nos dois passos observados. Exige colisão, explosão e cinco pontos, conservados
+no passo posterior aos contatos. O caso x=111 só é ausência no primeiro passo:
+no segundo ele entra em x=110; não se exige ausência artificial nesse ponto.
+
+A regra Kof de classe mutável usa campos públicos e atribuição direta. A
+[referência de classes](../../../kof/docs/language-reference/classes.md#1-classes-mutable-state)
+registra:
+
+> **Fields are public by default** (no `private`); direct write.
+
+O [idioma de classes](../../../kof/training/idioms/classes.md#explicit-constructor--mutable-state-the-real-class-form)
+e [Learn Kof 07](../../../kof/learn/07-classes-and-objects.md#3-mutable-state--class-with-fields--constructor)
+orientam esse uso. As fixtures alteram campos para posicionar entidades e
+consultam métodos para observar comportamento. Learn 23 define o teste:
+
+> Inside the test, `assert(cond[, "msg"])` marks the failure with a clear message.
+
+Fonte: [Learn Kof 23](../../../kof/learn/23-testing.md#23--testing).
+O contrato atual também é exercitado por
+[StructuredTestE2ETest](../../../kof/kof-compiler/src/test/java/dev/kof/compiler/StructuredTestE2ETest.java#L146),
+que exige exit 1 e a mensagem da assertion falha. Aqui as provas foram
+executadas nos alvos JVM e JS, não apenas compiladas.
+
+### Equivalências: condições e prova
+
+Os offsets abaixo pertencem aos bytes preservados de `Meteor.kf`; o ID completo
+é `src/main/kof/sifuture/game/Meteor.kf:<offset>:<replacement>`.
+
+**106:false e 255:true, somente no fluxo Game.** O estado inicial da classe
+é observável e diferente antes de reset. Não há equivalência geral de Meteor.
+O [início da partida](../../src/main/kof/sifuture/game/Game.kf#L109) sempre faz:
+
+```kof
+for (var m in meteors) { m.reset() }
+```
+
+O reset chama `relocate()` e depois `clearAnimation()`, que contém:
+
+```kof
+active = motion == MeteorMotion.Horizontal
+frame = 0
+frameDirection = 1
+frameSteps = 0
+collisionSteps = 0
+collided = false
+```
+
+Fonte: [Meteor.clearAnimation](../../src/main/kof/sifuture/game/Meteor.kf#L42).
+Nenhum dos dois valores iniciais é lido por `relocate()`. Após reset, todos
+os campos coincidem para ambas as direções com a mesma seed. O fluxo de
+[Game.step](../../src/main/kof/sifuture/game/Game.kf#L195) retorna em Credits,
+Menu e Controls antes de avançar meteoros; a
+[renderização](../../src/main/kof/sifuture/GameView.kf#L77) também retorna nessas
+telas antes de ler meteoros. Pause/Result normais são alcançados depois de start.
+Assim os valores iniciais não influenciam a partida válida; acesso externo
+antes de start, escrita arbitrária de `screen` ou uso direto de Meteor não
+pertencem a essa prova. Cada um desses dois mutantes exatos também executou
+a suíte ampliada de 114 casos, sem falhas, em JVM e JS.
+
+**2526:> e 2647:<, com as dimensões do jogo e sem overflow.**
+São alterações individuais, mantendo a outra cláusula do `||` original.
+No primeiro caso a única diferença possível é y=shipY. Nesse ponto,
+y+18 fica dentro de [shipY,shipY+20], logo a segunda cláusula continua verdadeira.
+No segundo caso a única diferença possível é y+18=shipY+20, isto é,
+y=shipY+2. A primeira cláusula continua verdadeira. Se x não satisfaz o limite
+horizontal, ambas as versões já retornam falso. Isso prova a redundância,
+sem depender de não encontrar um contraexemplo. Alturas diferentes ou aritmética
+fora do domínio válido não são abrangidas.
+
+Como confirmação executável, cópias das classes com os quatro edits exatos
+foram criadas somente na preparação temporária. Para os limites, foram
+comparados original e cada mutante para shipY=30..200, meteorY=-172..221
+e x=59/60/80/110/111, nave x=60. A condição horizontal comum e a dependência
+vertical apenas da diferença entre coordenadas sustentam a análise dos demais
+x válidos. Resultado de `kof run <preparação>/Main.kf --target jvm` e do mesmo
+comando com `--target js`, ambos exit 0:
+
+```text
+equivalent boundary comparisons=673740
+initial values differ before reset and converge after reset for both motions
+```
+
+Cada alvo realizou 673740 comparações entre o resultado original e o mutante.
+O domínio inclui as fronteiras verticais válidas sem overflow. A primeira
+tentativa do harness passou um diretório a `kof run` e foi recusada com COMP001;
+foi corrigida para o arquivo Main.kf, sem mudar Kof ou limites. Somente as
+execuções corrigidas são evidência. Scripts e logs locais opcionais ficam
+em `.agent/tmp/meteor-acceptance-20261026/`; as condições e a demonstração
+matemática acima tornam a justificativa compreensível sem esses temporários.
+
+### Capacidade das provas: auditoria separada
+
+A rodada final confirma que os nove casos não equivalentes falham por
+assertion no teste correspondente, sem classificar erro de compilação como
+detecção. O verificador local conferiu identidade, caminho anunciado, escopo,
+versões, baseline, unicidade e composição dos IDs, localização/tokens atuais,
+contadores, resultados e logs. Rejeitou 21 controles alterados: UUID de outra
+chamada, escopo antigo, versões, estado, limitações, descartes, cada contador,
+resumo de baseline, ID e classificação. Uma primeira versão da auditoria não
+rejeitou um ID adulterado do candidato de Background; a conferência foi
+corrigida para exigir `file:offset:replacement` em todos os IDs antes do aceite.
+O parser de logs também foi ajustado para distinguir a linha FAIL do arquivo
+das linhas FAIL de assertions. Essas correções do instrumento local não
+modificaram o jogo nem o relatório.
+
+Os treze sobreviventes anteriores estão classificados abaixo. Todos tinham
+resultado anterior `Survived`; a coluna final preserva a classificação bruta.
+Cada contato discriminatório também exige a consequência de Game descrita
+acima, e não apenas uma chamada sem falha.
+
+| Offset:replacement | Linha e edit | Regra, teste discriminatório ou prova | Final |
+| --- | --- | --- | --- |
+| `106:false` | 5: `true` → `false` | Equivalência no fluxo Game: reset sobrescreve active antes do uso. | `Survived` |
+| `255:true` | 13: `false` → `true` | Equivalência no fluxo Game: reset limpa collided antes do uso. | `Survived` |
+| `715:-` | 25: `+` → `-` | Soma do cabeçalho: seed 71 exige y=201; faixa 30..201. | `Killed` |
+| `1512:<=` | 57: `<` → `<=` | Saída estrita: -24 avança para -25 sem relançar; só depois relança. | `Killed` |
+| `2364:*` | 80: `/` → `*` | impactFrame(): 0/0/1/1/2/2; a multiplicação erra já no passo 1. | `Killed` |
+| `2465:>` | 84: `>=` → `>` | Contato horizontal inclusivo: x=60 deve tocar. | `Killed` |
+| `2526:>` | 85: `>=` → `>` | Equivalência geométrica: em y=shipY a segunda cláusula cobre o contato. | `Survived` |
+| `2540:<` | 85: `<=` → `<` | Contato vertical inclusivo: y=120 deve tocar. | `Killed` |
+| `2589:-` | 86: `+` → `-` | Base do meteoro usa +18: y=82 deve tocar. | `Killed` |
+| `2611:>` | 86: `>=` → `>` | Contato vertical inclusivo: y+18=100 deve tocar. | `Killed` |
+| `2625:-` | 86: `+` → `-` | Limite da base usa +18: y=121 deve ficar fora. | `Killed` |
+| `2647:<` | 86: `<=` → `<` | Equivalência geométrica: em y=shipY+2 a primeira cláusula cobre o contato. | `Survived` |
+| `2656:-` | 86: `+` → `-` | Limite da nave usa +20: y=82 deve tocar. | `Killed` |
+
+Os 28 IDs antes detectados continuam `Killed`. A tabela inclui também o
+candidato de Background, ausente da medição anterior de Meteor. O nome do
+caso abaixo foi extraído da falha real de assertion; linha e edit identificam
+a expressão da regra preservada. Para Meteor, o prefixo do ID é o mesmo
+explicitado acima; Background usa `src/main/kof/sifuture/game/Background.kf`.
+
+| Arquivo, offset:replacement | Linha e edit da regra | Antes → final | Assertion que detectou |
+| --- | --- | --- | --- |
+| `Background.kf:123:-` | 8: `+` → `-` | não avaliado → Killed | background moves five units wraps at sixty and pauses |
+| `Meteor.kf:390:!=` | 18: `==` → `!=` | Killed → Killed | vertical initial and impact resets keep reduced range while bottom exits include both full endpoints |
+| `Meteor.kf:513:+` | 20: `-` → `+` | Killed → Killed | vertical initial and impact resets keep reduced range while bottom exits include both full endpoints |
+| `Meteor.kf:657:-` | 24: `+` → `-` | Killed → Killed | same seed reproduces meteors and horizontal resets stay below the header |
+| `Meteor.kf:1089:!=` | 43: `==` → `!=` | Killed → Killed | vertical bottom exit uses full historical range and waits inactive with clean animation |
+| `Meteor.kf:1230:true` | 48: `false` → `true` | Killed → Killed | vertical bottom exit uses full historical range and waits inactive with clean animation |
+| `Meteor.kf:1310:!=` | 53: `==` → `!=` | Killed → Killed | vertical bottom exit uses full historical range and waits inactive with clean animation |
+| `Meteor.kf:1356:-` | 54: `+` → `-` | Killed → Killed | vertical bottom exit uses full historical range and waits inactive with clean animation |
+| `Meteor.kf:1395:>=` | 55: `>` → `>=` | Killed → Killed | boss absorbs inclusive meteors before player contacts with one movement and suppresses vertical relaunch |
+| `Meteor.kf:1475:+` | 56: `-` → `+` | Killed → Killed | laser hit holds meteor collision images for three pairs of steps |
+| `Meteor.kf:1705:-` | 63: `+` → `-` | Killed → Killed | vertical initial and impact resets keep reduced range while bottom exits include both full endpoints |
+| `Meteor.kf:1782:!=` | 65: `==` → `!=` | Killed → Killed | vertical initial and impact resets keep reduced range while bottom exits include both full endpoints |
+| `Meteor.kf:1856:!=` | 66: `==` → `!=` | Killed → Killed | one ship collision marks every overlapping meteor and scores once |
+| `Meteor.kf:1934:-` | 68: `+` → `-` | Killed → Killed | meteor sprite advances every two steps and returns through the historical frames |
+| `Meteor.kf:1965:!=` | 69: `==` → `!=` | Killed → Killed | meteor sprite advances every two steps and returns through the historical frames |
+| `Meteor.kf:2057:-` | 71: `+` → `-` | Killed → Killed | meteor sprite advances every two steps and returns through the historical frames |
+| `Meteor.kf:2100:!=` | 72: `==` → `!=` | Killed → Killed | meteor sprite advances every two steps and returns through the historical frames |
+| `Meteor.kf:2123:+` | 72: `-` → `+` | Killed → Killed | meteor sprite advances every two steps and returns through the historical frames |
+| `Meteor.kf:2178:!=` | 73: `==` → `!=` | Killed → Killed | meteor sprite advances every two steps and returns through the historical frames |
+| `Meteor.kf:2282:!=` | 79: `==` → `!=` | Killed → Killed | laser hit holds meteor collision images for three pairs of steps |
+| `Meteor.kf:2474:||` | 84: `&&` → `||` | Killed → Killed | finishing with right held restores normal ship while score counts and position freezes |
+| `Meteor.kf:2479:<` | 84: `<=` → `<` | Killed → Killed | ship meteor contact includes each boundary and excludes adjacent positions |
+| `Meteor.kf:2488:-` | 84: `+` → `-` | Killed → Killed | three meteor hits end the attempt and result persists |
+| `Meteor.kf:2507:||` | 84: `&&` → `||` | Killed → Killed | normal fire starts on thirteenth step and earns five points |
+| `Meteor.kf:2535:||` | 85: `&&` → `||` | Killed → Killed | normal fire starts on thirteenth step and earns five points |
+| `Meteor.kf:2549:-` | 85: `+` → `-` | Killed → Killed | ship meteor contact includes each boundary and excludes adjacent positions |
+| `Meteor.kf:2570:&&` | 85: `||` → `&&` | Killed → Killed | ship meteor contact includes each boundary and excludes adjacent positions |
+| `Meteor.kf:2620:||` | 86: `&&` → `||` | Killed → Killed | normal fire starts on thirteenth step and earns five points |
+| `Meteor.kf:2720:false` | 90: `true` → `false` | Killed → Killed | vertical initial and impact resets keep reduced range while bottom exits include both full endpoints |
+
+### Execução e identidade finais
+
+Kof 0.6.6, jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`;
+fontes de pesquisa `7c237861a9035d84b1f7ec4cfddd89daef4c6ddd`. KofMut 0.1.0,
+checkout limpo `338c7b3501d2ec91a9072f1e68ac827aae7f5d36`. A qualificação do
+[aceite anterior](#kofmut-timeout-acceptance) foi reutilizada: todos os 44
+inputs congelados do check anterior coincidem em SHA-256, incluindo os seis
+inputs alterados naquela entrega. SHA-256 do inventário histórico desses
+44 inputs: `c338f8fb4498c15c08ad351fc0c767717263efadafefb6cb5abf90a15a28af22`.
+A ferramenta e seus limites não foram modificados nem requalificados nesta
+entrega. Fontes locais de Kof e o jar também permaneceram iguais.
+
+| Comando no checkout SiFuture | Retorno | Resultado |
+| --- | ---: | --- |
+| `python3 scripts/kof_project.py test --target jvm --kof kof` | 0 | 114 casos, zero falhas |
+| `python3 scripts/kof_project.py test --target js --kof kof` | 0 | 114 casos, zero falhas |
+| `python3 tests/browser_meteor.py --kof kof` | 0 | Chrome 155.0.8059.39, sprites/posição nos seis instantes e relançamento, sem pageerror |
+| Receita Bash manual do guia | 1 | complete, 42 executados, 38 Killed, 4 Survived |
+| Inspeção Bash da mesma chamada | 1 | Mesmo UUID, baseline, escopo, contagens e estado |
+| `git diff --check` | 0 | Sem erro de whitespace |
+
+Saídas essenciais dos comandos de teste e navegador:
+
+```text
+0 failed of 114 tests
+1 passed, 0 failed
+PASS moving meteor, three impact frames, and respawn in Chrome
+```
+
+O primeiro resumo aparece em cada alvo. O navegador foi automatizado, não uma
+aceitação manual de conforto. O percurso clica Next step cinco vezes e compara
+as posições 100..95 e os três sprites, depois verifica relançamento no sexto
+clique. Outros browsers e Android físico não foram avaliados nesta entrega.
+
+A receita e a inspeção são os blocos literais dos dois guias, sem mudanças.
+UUID novo: `05f9192d-a6fe-47f2-a524-aeecaf451152`. Somente o `reportPath=` anunciado
+por essa chamada foi lido; seu namespace coincide com o SHA-256 do caminho
+canônico do projeto. Schema 1, toolVersion 0.1.0, kofVersion 0.6.6.
+SHA-256 do JSON final: `3f3561d2f144cb9eac693455e26b97f3b305379f0f30a58ad2eb8073ef370b58`.
+Duração registrada pelo motor: 217821 ms. Baseline check/test:
+exit 0/0, filesChecked 1, 114 casos e zero falhas. Resultado bruto:
+
+```text
+candidates=42 killed=38 survived=4 compileError=0 timeout=0 testError=0 pending=0
+```
+
+Executados 42/42, sem descartes ou limitações. Background: 1 Killed de 1;
+Meteor: 37 Killed e 4 Survived de 41. Os 28 Killed anteriores foram
+reconciliados por ID e permanecem detectados. Nove dos treze sobreviventes
+anteriores agora são Killed por assertions; quatro têm prova e limite de
+equivalência acima. Os retornos nativo/receita/inspeção são 1/1/1. Não houve
+exclusão, supressão nem conversão do relatório para complete/0.
+
+A medição anterior tinha UUID `101c64fe-d24d-4edc-85e0-ebb1882950d9`,
+41/41 executados, 28 Killed e 13 Survived, baseline 114/0. Seu relatório foi
+preservado e conferido pelo SHA-256
+`13da3e3f9dcb5534b3119fccd964b74d1f7d3603e9e8786659850f164d5e7dc1`.
+
+Árvore efetivamente avaliada, identificada além do SHA base:
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| `src/test/kof/sifuture/game/GameJourney.kf` | `dae75a75b698a2a8cf511ddf42348d85036480f70856316ab9ba11de02f4acdc` |
+| `tests/meteor-motion.kf` | `6c8d34e454ade14fec184f29971ad6b53df20df88e72ef926f8b3db977f1bc99` |
+| `kof-mut-scope.json` | `7e8bb7355756433158856fd993719c0ad075d167b1efff6ab673338f203e7f0d` |
+| `kof-mut.json` | `a0303c0cd6fa65cb2e7d33e056a4e642a1f8dda00a1432b7d8b7bb3df6027f65` |
+| `src/main/kof/sifuture/game/Meteor.kf` | `e8c61d89c178f3ffcd98c1b871d9de1ab0a89e5895ffe425dee5d02852ccf9c6` |
+| `src/main/kof/sifuture/game/Background.kf` | `d917f9e661f1988b682ecac9779a93870757e8b1fd890b77908652ad45e88706` |
+
+Os históricos deste aceite, do EXECPLAN e do plano externo foram preservados
+como prefixos. Produção/assets, KofMut, limites e receitas permanecem iguais;
+a exclusão local `/.agent/tmp/` aparece uma vez. A auditoria final identifica
+os sete arquivos rastreados autorizados e verifica todos os demais por bytes
+e modos. Evidências geradas permanecem fora de commits. Não houve commit,
+worktree, subagente, publicação, hooks ou instalação de sensores. Não há nova
+execução CI nem workflow de entrega para este diff local; a prova é local.
+Este aceite fecha as lacunas identificadas de Meteor e justifica todos os
+sobreviventes desse escopo. Não amplia a conclusão para outras mutações,
+classes ou domínios, nem encerra M2–M5/S1–S3 históricos.
+
+Conferência final da entrega: dos 205 arquivos rastreados iniciais, sete têm
+alterações autorizadas e os outros 198 preservam bytes e modos. Os vinte links
+novos do aceite/guias foram conferidos contra arquivos e âncoras locais;
+nenhuma aprovação global dos links históricos é alegada. Blocos Bash de
+execução/inspeção são idênticos aos de HEAD em ambos os idiomas. Os históricos
+dos dois planos e do aceite permanecem como prefixos, KofMut/Kof estão limpos
+e `git diff --check` retorna 0. Os hashes da suíte, fixture, escopo e configuração
+acima identificam os mesmos bytes usados na rodada de mutação e nos testes.

@@ -1,3 +1,4 @@
 [
-  "src/main/kof/sifuture/game/Background.kf"
+  "src/main/kof/sifuture/game/Background.kf",
+  "src/main/kof/sifuture/game/Meteor.kf"
 ]

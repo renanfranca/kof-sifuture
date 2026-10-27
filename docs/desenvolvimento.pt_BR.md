@@ -127,7 +127,7 @@ python3 scripts/kof_project.py test --target js --kof kof
 e o executável `kof` resolvido no `PATH`. Cada comando completo de check ou
 teste tem timeout de 30 segundos; `budgetMs: 0` remove apenas o orçamento total
 da avaliação. O escopo explícito atual em
-[`kof-mut-scope.json`](../kof-mut-scope.json) seleciona o arquivo inteiro `Background.kf`. Edite esse array JSON para escolher outros
+[`kof-mut-scope.json`](../kof-mut-scope.json) seleciona os arquivos inteiros `Background.kf` e `Meteor.kf`. Edite esse array JSON para escolher outros
 caminhos de produção `.kf`; são caminhos explícitos, sem glob. O KofMut copia
 as entradas configuradas e avalia o escopo em cópias isoladas do projeto.
 
@@ -205,6 +205,15 @@ significa que pelo menos uma sobreviveu e reprova a aceitação de qualidade.
 `incomplete`, `no_scope` ou `no_mutants` com código 3 não aprova qualidade.
 Analise sobreviventes pelo mérito; não invente requisito nem adicione teste
 artificial apenas para eliminá-los.
+
+O [aceite de Meteor](../.agent/validation/sensors-adoption.md#meteor-survivor-acceptance)
+classifica cada sobrevivente anterior. Os valores iniciais de `active` e
+`collided` são equivalentes somente no fluxo de `Game` que reinicia meteoros
+antes do uso; duas alterações de limite vertical preservam o contato com as
+dimensões do jogo. Esses quatro mutantes continuam como `Survived` no relatório
+bruto: o escopo ampliado retorna `complete` com código 1 mesmo após fechar as
+lacunas de cobertura identificadas. As equivalências documentadas não suprimem
+mutantes nem convertem esse resultado do processo em `complete/0`.
 
 O catálogo permanente atualmente contém uma suíte Kof. A compatibilidade
 com dois arquivos independentes e todos os 115 casos foi verificada em

@@ -1247,3 +1247,80 @@ All four fresh real SiFuture copies pass the existing documented run/inspection 
 Full `./scripts/check` passed, exit 0, 2822.044 external monotonic seconds: CLI 32/0, mutation cycle 47/0, installation 31/0, frontend 15/0. The original preparation deadline control stopped at 90026 ms monotonic (90027 ms wall); a separately confirmed budget-zero evaluation ran 94097 engine ms, 95220 external ms. Blocked compilation in this full run stopped after 30329 observed command/cleanup ms, whole preparation 31256 ms, with no approval publication and normal recovery. All 44 frozen execution inputs remain unchanged through the check. Focused compatibility and multiple-invocations commands and all four fresh 115-case SiFuture outcomes passed earlier in this same continuation; independent report audit now rejects 58 incorrect controls.
 
 The obsolete second-summary rejection limitation is removed from both SiFuture guides, with the qualified source identity and two-file proof linked. Permanent wrapper, scope and catalog remain unchanged; only SiFuture commandTimeoutMs changes in its configuration. Existing acceptance records receive append-only continuations with authorization, base SHAs, configuration/source/report hashes, commands, clocks, UUIDs, exact results and proof limits. Historical failures/manifests remain preserved. New generated evidence/inventories stay in ignored `.agent/tmp/timeouts-20261026/`. Final diff/link/preservation checks are recorded in the acceptance continuation. This closes the pending public/real multiple-invocation acceptance under the new authorized deadlines; historical sensor activation and project-performance goals remain outside this completion. No commit, publication, user installation, worktree, subagent or Kof change.
+
+
+## Continuidade: sobreviventes de Meteor — 26/10/2026
+
+## Purpose and success
+
+Eliminar lacunas reais nos 13 sobreviventes de Meteor e ampliar o escopo manual
+para Background e Meteor, mantendo sobreviventes equivalentes como Survived/1.
+
+## Context and limits
+
+Base SiFuture fc74cb7, checkout atual sensor-calibration-m1. O plano aprovado
+exige preservar produção, KofMut e limites. Medição histórica: 41 candidatos,
+28 Killed, 13 Survived, 114 testes. Histórico Java em ../sifuture, SHA 50fc40d.
+A qualificação anterior será reutilizada após conferir bytes e identidade.
+
+## Milestones
+
+1. Ampliar cenários existentes em GameJourney.kf e usar impactFrame() na fixture
+   tests/meteor-motion.kf: posição, limite esquerdo, quadros e contato inclusive.
+2. Provar as quatro hipóteses de equivalência com análise de domínio e execução
+   JVM/JS, sem transformar equivalência no fluxo Game em contrato da classe.
+3. Executar suítes JVM/JS, browser_meteor.py e receita manual dos guias com
+   kof-mut-scope.json contendo Background/Meteor. Reconciliar os 41 IDs anteriores
+   e o candidato de Background, sem timeout, erro ou pendência.
+4. Atualizar ambos os guias, aceite existente e continuidade do plano externo,
+   preservando históricos e arquivos fora do escopo.
+
+## Progress
+
+- [x] Fontes e medição histórica recuperadas; checkout limpo identificado.
+- [x] Testes ampliados e expectativas auditadas contra regras históricas.
+- [x] Equivalências provadas nos dois alvos e mutação reconciliada por ID.
+- [x] Guias, aceite, planos e preservação conferidos.
+
+## Validation
+
+Comandos: python3 scripts/kof_project.py test --target jvm --kof kof;
+python3 scripts/kof_project.py test --target js --kof kof;
+python3 tests/browser_meteor.py --kof kof; git diff --check.
+Receita manual literal extraída de docs/desenvolvimento.md, com UUID novo e
+inspeção do reportPath anunciado pela própria chamada. Expectativa: 42 candidatos,
+38 Killed e quatro equivalentes Survived, complete/1, a confirmar sem supressão.
+Evidência local opcional em .agent/tmp/meteor-acceptance-20261026/.
+
+
+### Fechamento do marco de Meteor
+
+Concluído na árvore local sobre fc74cb777c602f9745551d3a39f697a2b4a26652.
+JVM e JS: 114/0, exit 0; browser_meteor.py: exit 0, Chrome 155.0.8059.39,
+seis instantes dos impactos e relançamento. A receita manual literal e sua
+inspeção retornaram 1/1, preservando o resultado nativo complete/1. UUID
+05f9192d-a6fe-47f2-a524-aeecaf451152; JSON SHA-256
+3f3561d2f144cb9eac693455e26b97f3b305379f0f30a58ad2eb8073ef370b58.
+42/42 executados: 38 Killed, quatro Survived, zero erros/timeouts/pendências,
+sem descartes/limitações. Os 28 detectados anteriores continuam Killed;
+nove dos treze sobreviventes anteriores agora falham por assertion.
+
+As quatro equivalências foram demonstradas por análise de domínio e prova
+JVM/JS com as alterações exatas: dois estados iniciais convergem após reset,
+somente no fluxo Game; duas comparações verticais têm a fronteira coberta pela
+outra cláusula com alturas 18/20, sem overflow. Cada alvo executou 673740
+comparações geométricas, e cada mutante inicial passou os 114 casos em ambos
+os alvos. Não há sobrevivente inexplicado nem lacuna real conhecida no conjunto
+avaliado. Não se declara equivalência geral de Meteor nem complete/0.
+
+Guias bilíngues e escopo permanente incluem Background/Meteor. O
+[aceite completo](.agent/validation/sensors-adoption.md#meteor-survivor-acceptance)
+registra cada ID, regra, resultado anterior/final, provas e seus limites.
+Expectativas foram auditadas contra Java histórico 50fc40d e especificação;
+a auditoria separada dos relatórios rejeita 21 controles adulterados.
+A qualificação anterior de KofMut 338c7b3 foi reutilizada após conferir seus
+44 inputs congelados, checkout limpo e jar Kof inalterado. Produção, assets,
+wrapper, limites e receitas preservados. Históricos dos planos e aceite
+preservados como prefixos; evidência em .agent/tmp/meteor-acceptance-20261026/.
+Sem commit, publicação, CI novo, worktree, subagentes ou instalação de sensores.
+M2–M5/S1–S3 permanecem fora deste encerramento.

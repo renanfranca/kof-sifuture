@@ -139,7 +139,7 @@ python3 scripts/kof_project.py test --target js --kof kof
 wrapper and the `kof` executable resolved from `PATH`. Each complete check or
 test command has a timeout of 30 seconds; `budgetMs: 0` removes only the
 overall evaluation budget. The current explicit scope in
-[`kof-mut-scope.json`](../kof-mut-scope.json) selects the whole `Background.kf` file. Edit this JSON array to select other
+[`kof-mut-scope.json`](../kof-mut-scope.json) selects the whole `Background.kf` and `Meteor.kf` files. Edit this JSON array to select other
 production `.kf` paths; entries are explicit paths, not globs. KofMut copies
 the configured inputs and evaluates this scope in isolated project copies.
 
@@ -216,6 +216,15 @@ and fails quality acceptance. `baseline_failed` or `error` with exit 2 is
 unavailable/rejected; `incomplete`, `no_scope` or `no_mutants` with exit 3
 does not approve quality. Inspect survivors on their merits; do not invent a
 requirement or add an artificial test just to eliminate one.
+
+The [Meteor acceptance record](../.agent/validation/sensors-adoption.md#meteor-survivor-acceptance)
+classifies every previously surviving mutant. Initial `active` and `collided`
+values are equivalent only in the `Game` flow that resets meteors before use;
+two vertical boundary changes preserve contact for the game's dimensions.
+These four mutants remain raw `Survived` results: the broader scope therefore
+returns `complete` with exit 1 even after the identified coverage gaps are
+closed. The documented equivalences do not suppress mutants or change this
+process result into `complete/0`.
 
 The permanent catalog currently contains one Kof suite. Compatibility with
 two independent suite files and all 115 cases was verified in disposable
