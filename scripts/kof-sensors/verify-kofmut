@@ -8,13 +8,22 @@ import sys
 import tempfile
 import uuid
 
-revision = 'a40b20ac37afac302efc2a0dae7702e44720e166'
 tool = Path(sys.argv[1] if len(sys.argv) > 1 else '/home/renanfranca/projects/kof-mut').resolve()
 out = Path(sys.argv[2] if len(sys.argv) > 2 else '.agent/tmp/sensors-m1').resolve()
+kof_mut = shutil.which('kof-mut')
+if not kof_mut:
+    raise SystemExit('kof-mut unavailable on PATH; install KofMut with ./install.sh')
+if subprocess.check_output(['git', '-C', str(tool), 'status', '--porcelain'], text=True):
+    raise SystemExit(f'KofMut checkout is dirty: {tool}')
+revision = subprocess.check_output(['git', '-C', str(tool), 'rev-parse', 'HEAD'], text=True).strip()
+image = json.loads((Path(kof_mut).resolve().parent / 'image.json').read_text())
+stale = [source['path'] for source in image['runtimeSources']
+         if not (tool / source['path']).is_file()
+         or hashlib.sha256((tool / source['path']).read_bytes()).hexdigest() != source['hash']]
+if stale:
+    raise SystemExit(f'Installed KofMut image {image["id"]} is stale relative to {tool} at {revision}; '
+                     f'reinstall with ./install.sh. Differing runtime sources: {", ".join(stale)}')
 out.mkdir(parents=True, exist_ok=True)
-actual = subprocess.check_output(['git', '-C', str(tool), 'rev-parse', 'HEAD'], text=True).strip()
-if actual != revision or subprocess.check_output(['git', '-C', str(tool), 'status', '--porcelain'], text=True):
-    raise SystemExit('KofMut revision differs or checkout is dirty; requalify dependency explicitly')
 summary = []
 for fixture, expected_exit, state in [('detected', 0, 'Killed'), ('survived', 1, 'Survived')]:
     with tempfile.TemporaryDirectory(prefix='sifuture-mut-proof-') as temporary:
@@ -27,7 +36,7 @@ for fixture, expected_exit, state in [('detected', 0, 'Killed'), ('survived', 1,
 
         before = hashes()
         run_id = str(uuid.uuid4())
-        command = [str(tool / 'bin/kof-mut'), 'run', '--project', str(project), '--files',
+        command = [kof_mut, 'run', '--project', str(project), '--files',
                    str(project / 'scope.json'), '--report-dir', str(out / 'mutation-reports'), '--run-id', run_id]
         result = subprocess.run(command, capture_output=True, text=True)
         (out / f'{fixture}-{run_id}.stdout').write_text(result.stdout)
@@ -55,7 +64,8 @@ for fixture, expected_exit, state in [('detected', 0, 'Killed'), ('survived', 1,
         assert not report['discardedCandidates'] and not report['limitations']
         assert before == hashes()
         summary.append(dict(fixture=fixture, command=command, exit=result.returncode, report=str(report_path),
-                            runId=run_id, revision=revision, hashes=before, preserved=True, counts=counts))
+                            runId=run_id, kofMut=kof_mut, imageId=image['id'],
+                            revision=revision, hashes=before, preserved=True, counts=counts))
 summary_path = out / f'mutation-summary-{uuid.uuid4()}.json'
 summary_path.write_text(json.dumps(summary, indent=2) + '\n')
 print(summary_path)

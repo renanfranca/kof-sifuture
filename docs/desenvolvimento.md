@@ -144,7 +144,9 @@ production `.kf` paths; entries are explicit paths, not globs. KofMut copies
 the configured inputs and evaluates this scope in isolated project copies.
 
 Run these Bash recipes from the **SiFuture checkout root**, invoking the
-external KofMut executable by its absolute path. The first recipe captures
+`kof-mut` executable resolved from `PATH`. The installed KofMut changes only
+when `./install.sh` is run again from an updated KofMut checkout; selecting
+another compatible `kof` on `PATH` does not update KofMut itself. The first recipe captures
 stdout, stderr and the native process exit in `<run_id>.exit` under
 `.agent/tmp/kof-mut-runs/`, and places the report beneath
 `.agent/tmp/kof-mut-reports/`. Each invocation gets a new UUID. Keep
@@ -156,7 +158,7 @@ if run_id=$(python3 -c 'import uuid; print(uuid.uuid4())'); then
     mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports || exit 2
     exec 3> ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
     exec 4> ".agent/tmp/kof-mut-runs/$run_id.stderr" || exit 2
-    if /home/renanfranca/projects/kof-mut/bin/kof-mut run \
+    if kof-mut run \
       --project "$PWD" \
       --files "$PWD/kof-mut-scope.json" \
       --config kof-mut.json \

@@ -132,7 +132,9 @@ caminhos de produção `.kf`; são caminhos explícitos, sem glob. O KofMut copi
 as entradas configuradas e avalia o escopo em cópias isoladas do projeto.
 
 Execute estas receitas Bash na **raiz do checkout do SiFuture**, invocando o
-executável externo do KofMut pelo caminho absoluto. A primeira receita guarda
+executável `kof-mut` resolvido no `PATH`. O KofMut instalado só muda quando
+`./install.sh` é executado de novo a partir de um checkout atualizado do KofMut;
+escolher outro `kof` compatível no `PATH` não atualiza o próprio KofMut. A primeira receita guarda
 stdout, stderr e o código nativo do processo em `<run_id>.exit` sob
 `.agent/tmp/kof-mut-runs/`, e coloca o relatório sob
 `.agent/tmp/kof-mut-reports/`. Cada chamada recebe um UUID novo. Mantenha
@@ -144,7 +146,7 @@ if run_id=$(python3 -c 'import uuid; print(uuid.uuid4())'); then
     mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports || exit 2
     exec 3> ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
     exec 4> ".agent/tmp/kof-mut-runs/$run_id.stderr" || exit 2
-    if /home/renanfranca/projects/kof-mut/bin/kof-mut run \
+    if kof-mut run \
       --project "$PWD" \
       --files "$PWD/kof-mut-scope.json" \
       --config kof-mut.json \

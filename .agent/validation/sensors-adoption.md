@@ -1141,3 +1141,158 @@ workflow novo associado a esta publicação; não houve commit ou alteração
 de produção, testes, assets ou ferramentas. A entrega de publicação está
 concluída. A regressão observada permanece distinta de sua causa específica,
 ainda não localizada; os aceites históricos com 0.6.6 não qualificam 0.6.7.
+
+<a id="kof064-path-revalidation"></a>
+
+## Revalidação com Kof 0.6.4 e KofMut do PATH — 01/11/2026
+
+**Decisão do usuário:** Kof e KofMut vêm do PATH. Base SiFuture
+`0e18275d25f9528a31db7266cddd1e32095ff772`, branch `sensor-calibration-m1`,
+com diff local não commitado. Kof `0.6.4`
+(`~/.local/share/kof/kof-0.6.4-linux-x86_64`, jar SHA-256
+`137a838d38757e317545474d55ad6a3ad291fb86d263ae77d9197cf705829c62`).
+KofMut `main` = `origin/main` = `9f9bb069f02b8dfb6e291b4bbed18c0daced1c37`, limpo.
+
+Mudanças locais: `scripts/kof-sensors/pom.xml` sem jar padrão e com versão
+rótulo `installed`; novo `scripts/kof-sensors/test`, que resolve `KOF`/PATH e o
+jar ao lado; `verify-kofmut` usa o `kof-mut` do PATH, recusa checkout sujo e
+recusa imagem cujos `runtimeSources` diferem do checkout das fixtures; receita
+manual nos dois guias chama `kof-mut`; README dos sensores atualizado.
+
+O KofMut instalado não se atualiza sozinho: adota outro Kof compatível do PATH,
+mas o próprio código só muda com `./install.sh` a partir de um checkout
+atualizado. A imagem de 25/10
+(`b8b2faa777b73a020fc95930cca1c434755c2a376d325580e19e01ae7b4368b9`, construída
+com 0.6.6) diferia da `main` em 13 dos 24 `runtimeSources`.
+
+### Controle negativo e instalação
+
+Com a imagem de 25/10 ativa, `scripts/kof-sensors/verify-kofmut
+/home/renanfranca/projects/kof-mut <dir>` retornou **1** antes de criar o
+diretório de saída:
+
+```text
+Installed KofMut image b8b2faa777b73a020fc95930cca1c434755c2a376d325580e19e01ae7b4368b9 is stale relative to /home/renanfranca/projects/kof-mut at 9f9bb069f02b8dfb6e291b4bbed18c0daced1c37; reinstall with ./install.sh. Differing runtime sources: scripts/bootstrap/Launch.kf, scripts/installed-launch, scripts/launch, scripts/supervise, src/main/kof/kofmut/CompatibilityProbe.kf, src/main/kof/kofmut/Evidence.kf, src/main/kof/kofmut/InstalledPreflight.kf, src/main/kof/kofmut/Run.kf, src/main/kof/kofmut/RunResources.kf, src/main/kof/kofmut/launch/Compatibility.kf, src/main/kof/kofmut/launch/InstallOwnership.kf, src/main/kof/kofmut/launch/PreparedEntry.kf, src/main/kof/kofmut/launch/RuntimeEntry.kf
+```
+
+Depois, `./install.sh` no checkout KofMut, com 0.6.4 no PATH, retornou 0.
+`kof-mut --version`: `KofMut 0.1.0`. Imagem ativa
+`b5401898d74f18086fa29ed8f59f55f3e51a84a1608a5b4a23278f6282735d79`,
+`buildDependency.version` 0.6.4, 24 `runtimeSources` iguais à `main`. A imagem
+anterior continua em `~/.local/share/kof-mut/releases/`. Checkout KofMut sem
+alterações.
+
+### Resultados
+
+| Passo | Comando | Retorno | Resultado |
+| --- | --- | ---: | --- |
+| 1 | `python3 -m unittest discover -s tests -p 'test_*.py'` | 0 | 16 testes OK |
+| 2 | `python3 scripts/kof_project.py check --target jvm --json` | 0 | success true, 0 erros |
+| 2 | `python3 scripts/kof_project.py check --target js --json` | 0 | success true, 0 erros |
+| 3 | `python3 scripts/kof_project.py test --target jvm` | 0 | 0 failed of 114 tests |
+| 3 | `python3 scripts/kof_project.py test --target js` | 0 | 0 failed of 114 tests |
+| 4 | `scripts/kof-sensors/test` | 0 | 21 testes, 0 falhas |
+| 4 | `mvn -f scripts/kof-sensors/pom.xml test` (sem `-Dkof.jar`) | 1 | falha explícita, como esperado |
+| 5 | `scripts/kof-sensors/run .` | 0 | ver comparação abaixo |
+| 6 | sete `python3 tests/browser*.py` | 0 (cada) | sete PASS, Chrome 155.0.8059.39 |
+| 7 | `scripts/kof-sensors/verify-kofmut` | 0 | detected complete/0, survived complete/1 |
+| 8 | receita manual + inspeção | 1 / 1 | complete, 42 candidatos, 38 Killed, 4 Survived |
+
+Falha esperada do passo 4:
+
+```text
+[ERROR] 'dependencies.dependency.systemPath' for dev.kof:installed-frontend:jar must specify an absolute path but is ${kof.jar} @ line 9, column 147
+```
+
+**Passo 5.** Na árvore atual: 25 arquivos, 321 unidades, 45.988 tokens, 19
+grupos CPD, `failures` vazio. A referência de 25/10 (0.6.6) tinha 45.443 tokens
+e 17 grupos. Toda a diferença está em
+`src/test/kof/sifuture/game/GameJourney.kf` (2.665 → 2.719 linhas, 29.634 →
+30.179 tokens; quatro testes renomeados/reescritos e deslocamentos de linha),
+alterado pelo commit `53e9626` de 27/10, posterior à referência. Para separar
+fonte de frontend, o mesmo `run` com 0.6.4 sobre `git archive 53e9626^ src`
+produziu `files` e `calibration` idênticos à referência e o mesmo CPD após
+normalizar o prefixo dos caminhos (17 grupos). O frontend 0.6.4 não altera a
+medição do M1. A calibração aprovada continua descrita sobre a árvore de 25/10;
+a árvore atual tem os números acima.
+
+**Passo 7.** Imagem `b5401898…`, `kof-mut` em `~/.local/bin/kof-mut`, checkout
+`9f9bb06`. `detected`: exit 0, 1 Killed; `survived`: exit 1, 1 Survived;
+ambos `complete`, `kofVersion` 0.6.4, hashes das fixtures preservados, sem
+descartes nem limitações.
+
+**Passo 8.** Bloco literal do guia, UUID `49619a9b-c359-45f3-a34c-014c51456c7c`.
+Retornos nativo/receita/inspeção 1/1/1; schema 1, `kofVersion` 0.6.4; baseline
+check/test exit 0/0, 114 casos, zero falhas; duração do motor 210974 ms.
+
+```text
+candidates=42 killed=38 survived=4 compileError=0 timeout=0 testError=0 pending=0
+Survived src/main/kof/sifuture/game/Meteor.kf:5:19 true -> false
+Survived src/main/kof/sifuture/game/Meteor.kf:13:21 false -> true
+Survived src/main/kof/sifuture/game/Meteor.kf:85:17 >= -> >
+Survived src/main/kof/sifuture/game/Meteor.kf:86:75 <= -> <
+```
+
+Comparado ao relatório de 26/10 (UUID `05f9192d-a6fe-47f2-a524-aeecaf451152`,
+0.6.6, KofMut `338c7b3`): mesmos 42 IDs de mutante e mesmo estado em cada um.
+O relatório anterior foi preservado (SHA-256 `3f3561d2…`, igual ao registrado);
+o novo tem SHA-256
+`03cad3b9eb535d25400db56bb8cca1d6ef8b0d871d53edfd9c205a6058f26b65`. Os seis
+arquivos da árvore avaliada têm os mesmos SHA-256 da tabela de 26/10.
+
+### Verificações e limites
+
+Hashes de `src/`, `tests/`, `kof-mut*.json` e `scripts/kof_project.py`
+(58 arquivos) iguais antes e depois. `git status` lista apenas os seis arquivos
+das mudanças e estes registros. `git diff --check` retornou 0; `bash -n` nos
+blocos da receita em inglês e português retornou 0, e os blocos são idênticos
+entre os idiomas.
+
+Não executado: o passo 9 opcional (`./scripts/check` do KofMut com 0.6.4),
+pendente de confirmação do usuário. Pendências: o CI do SiFuture usa o release
+mais recente do Kof (0.6.9), não o PATH local, e 0.6.9 tem a regressão de UI
+registrada em 31/10; `verify-kofmut` compara somente os `runtimeSources`
+listados na imagem, então um arquivo novo no checkout fora dessa lista não é
+detectado. Sem commit, push, worktree, subagente ou alteração no KofMut.
+Evidência local opcional em `.agent/tmp/kof064-revalidation-20261101/`.
+
+### Passo 9 opcional: check do KofMut — 01/11/2026
+
+Executado a pedido do usuário, uma vez, no checkout KofMut `9f9bb06`, com Kof
+0.6.4 primeiro no PATH e a máquina livre (load1 inicial 0,26):
+`KOF_MUT_COMPATIBILITY_OTHER=$HOME/.local/share/kof/kof-0.6.8-linux-x86_64/bin/kof ./scripts/check`.
+Retornou **1** em 820 s, com pico de load1 em 24,48. Oito filas terminaram com
+exit 0 (`version`, `contracts`, `cli-a`, `cli-b`, `run-a`, `run-b`,
+`install-a`, `install-b`). A fila `install-c` retornou 1, com 1 falha em 11 testes:
+
+```text
+.../next toolchain/kof: line 50: /home/renanfranca/.local/share/kof/kof-0.6.8-linux-x86_64/bin/kof/kof: Not a directory
+kof-mut: kof info --json failed
+FAIL runtime sources survive checkout and build dependency removal and follow PATH: expected: first.exitCode == 3
+```
+
+Causa: erro do operador. `Install.kf:1174` usa a variável como diretório
+(`selected = other + "/kof"`), e a invocação passou o executável em vez do
+diretório `bin` usado nos registros do KofMut (`kof-068.md`). A rodada não
+qualifica nem desqualifica o KofMut com 0.6.4 nesse teste. As demais filas
+passaram. Checkout KofMut sem alterações; observações em
+`/home/renanfranca/projects/kof-mut/.agent/tmp/check-e745f9c0-db60-4292-9bb4-fe26287f46d2/`
+e log em `.agent/tmp/kof064-revalidation-20261101/s9-check.out`. Não foi repetida.
+
+Segunda rodada, autorizada pelo usuário para corrigir a invocação:
+`KOF_MUT_COMPATIBILITY_OTHER=$HOME/.local/share/kof/kof-0.6.8-linux-x86_64/bin ./scripts/check`,
+mesmo checkout `9f9bb06`, Kof 0.6.4 primeiro no PATH, load1 inicial 0,15.
+Retornou **0** em 732 s, com pico de load1 em 23,56 e nenhum processo
+remanescente. As nove filas terminaram com exit 0 (testes por fila:
+`cli-a` 17, `cli-b` 17, `run-a` 24, `run-b` 23, `install-a` 8, `install-b` 12,
+`install-c` 11, todos com 0 falhas). O teste da falha anterior passou:
+
+```text
+PASS runtime sources survive checkout and build dependency removal and follow PATH
+```
+
+O resultado coincide com o registro de 01/11 em `check-parallel.md`
+(0.6.4 primeiro e 0.6.8 como alternativo, exit 0). Checkout KofMut sem
+alterações; observações em
+`/home/renanfranca/projects/kof-mut/.agent/tmp/check-66ba2564-79f2-446c-914e-dc053ef1ef9d/`
+e log em `.agent/tmp/kof064-revalidation-20261101/s9b-check.out`.

@@ -2,12 +2,12 @@
 
 Este módulo mede Kof com o lexer e parser oficiais e executa PMD CPD 7.17.0 sobre os mesmos tokens. Não instala hooks, não altera fontes e não aprova dívida de design.
 
-Requisitos: Python 3, Maven 3.9 e Java 25; distribuição oficial Kof selecionada em PATH. As dependências Maven e os plugins têm versões fixadas no `pom.xml`. O jar do Kof é uma dependência `system`, fornecida pela instalação, sem cópia para o repositório. O padrão de `mvn test` é a instalação local 0.6.6 em `~/.local/share/kof/kof-0.6.6-linux-x86_64/lib/kof.jar`; para outra localização, passe `-Dkof.jar=/caminho/absoluto/lib/kof.jar`. Mudança de distribuição exige repetir as provas, não reutilizar a identidade anterior.
+Requisitos: Python 3, Maven 3.9 e Java 25; distribuição oficial Kof selecionada em PATH. As dependências Maven e os plugins têm versões fixadas no `pom.xml`. O jar do Kof é uma dependência `system`, fornecida pela instalação, sem cópia para o repositório. Kof e KofMut vêm do PATH: `test` e `run` resolvem `KOF` ou o `kof` do PATH e usam o `lib/kof.jar` ao lado do launcher real (`KOF_JAR` seleciona outro jar explicitamente); `verify-kofmut` usa o `kof-mut` do PATH. O `pom.xml` não tem jar padrão: `mvn -f scripts/kof-sensors/pom.xml test` sem `-Dkof.jar=/caminho/absoluto/lib/kof.jar` falha em vez de usar outra versão em silêncio. Mudança de distribuição exige repetir as provas, não reutilizar a identidade anterior.
 
 Na raiz do SiFuture:
 
 ```bash
-mvn -f scripts/kof-sensors/pom.xml test
+scripts/kof-sensors/test
 scripts/kof-sensors/run . > .agent/tmp/sensors-m1/inventory.json
 scripts/kof-sensors/verify-kofmut /home/renanfranca/projects/kof-mut .agent/tmp/sensors-m1
 ```
@@ -28,6 +28,6 @@ Linhas por função incluem declaração, delimitadores e corpos aninhados, remo
 
 CPD usa `CpdAnalysis` e um `CpdCapableLanguage` local; `TokenFactory.recordToken` recebe tipo, grafia original e coordenadas do lexer oficial. Não normaliza nomes nem literais, não usa `AnyCpdLexer`, não descarta arquivos iguais. Ignora espaços/comentários porque o lexer oficial não os emite. Um grupo requer ao menos 50 tokens e duas ocorrências com ao menos 5 linhas cada, incluindo grupos dentro do mesmo arquivo. O JSON registra cada ocorrência. Os testes incluem um clone real, renomeação de identificadores, sequência longa em uma linha, sequência curta em cinco linhas e falhas de tokenização/leitura. API consultada no fonte publicado de [PMD 7.17.0](https://github.com/pmd/pmd/tree/pmd_releases/7.17.0/pmd-core/src/main/java/net/sourceforge/pmd/cpd).
 
-`verify-kofmut` exige a revisão limpa `a40b20ac37afac302efc2a0dae7702e44720e166`, copia `detected` e `survived` para temporários externos e invoca a interface real. Confere anúncio único, project-id, UUID, schema, versão, baseline, contagens, estado, exit e hashes antes/depois. Cada execução conserva seus próprios stdout/stderr, relatório e sumário com UUID; não procura o relatório mais recente. Isso qualifica a dependência com essas fixtures e não mede cobertura nem desempenho do jogo.
+`verify-kofmut` usa o `kof-mut` do PATH e as fixtures do checkout KofMut indicado no primeiro argumento. Recusa checkout sujo e recusa quando os `runtimeSources` do `image.json` instalado diferem dos arquivos desse checkout: o KofMut instalado não se atualiza sozinho, só com `./install.sh` a partir de um checkout atualizado. O sumário registra caminho do `kof-mut`, id da imagem e SHA do checkout. Em seguida, copia `detected` e `survived` para temporários externos e invoca a interface real. Confere anúncio único, project-id, UUID, schema, versão, baseline, contagens, estado, exit e hashes antes/depois. Cada execução conserva seus próprios stdout/stderr, relatório e sumário com UUID; não procura o relatório mais recente. Isso qualifica a dependência com essas fixtures e não mede cobertura nem desempenho do jogo.
 
 A referência de design e limiares permanece Katacombs `44cb39c916e9a05de561123d7b13554ee6e0a516`. Nenhum guia ou implementação do Katacombs foi copiado ou modificado neste marco.

@@ -1382,3 +1382,24 @@ evidência local opcional em `.agent/tmp/kof067-break-publication-20261027/`.
 Publicação concluída; a alteração específica causadora da regressão continua
 indeterminada. Sem nova execução do jogo/reproducer, commit ou workflow CI.
 M2–M5/S1–S3 e os limites dos aceites anteriores permanecem históricos.
+
+## Continuidade: Kof 0.6.4 e KofMut do PATH — 01/11/2026
+
+Decisão do usuário: Kof e KofMut vêm do PATH. Base `0e18275`, diff local sem commit.
+
+- [x] `pom.xml` dos sensores sem jar padrão 0.6.6; novo `scripts/kof-sensors/test`;
+  `verify-kofmut` usa o `kof-mut` do PATH e recusa imagem defasada ou checkout sujo;
+  receita manual chama `kof-mut`; README atualizado.
+- [x] Controle negativo: com a imagem de 25/10 (`b8b2faa7…`, 0.6.6), `verify-kofmut`
+  recusou com exit 1 listando 13 `runtimeSources` divergentes.
+- [x] KofMut `9f9bb06` instalado com 0.6.4: imagem `b5401898…`.
+- [x] Com 0.6.4: unittest 16 OK; check jvm/js sem erros; 114/0 em jvm e js;
+  sensores 21/0; `mvn` sem `-Dkof.jar` falha explicitamente; sete jornadas de
+  navegador PASS; `verify-kofmut` complete/0 e complete/1; receita manual
+  complete/1, 42/38/4, mesmos estados por mutante de 26/10.
+- [x] Inventário: frontend 0.6.4 reproduz a referência de 25/10 sobre `53e9626^`;
+  a árvore atual tem 45.988 tokens e 19 grupos CPD por causa de `53e9626`.
+- [x] Opcional: `./scripts/check` do KofMut com 0.6.4. A primeira rodada retornou 1 porque `KOF_MUT_COMPATIBILITY_OTHER` recebeu o executável em vez do diretório `bin` (erro do operador; falhou só a fila `install-c`). A segunda, com o diretório correto e autorizada pelo usuário, retornou 0 em 732 s, com as nove filas e 0 falhas.
+- [ ] CI continua no Kof 0.6.9.
+
+Detalhes no [aceite](.agent/validation/sensors-adoption.md#kof064-path-revalidation).
