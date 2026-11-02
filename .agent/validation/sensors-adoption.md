@@ -1421,3 +1421,24 @@ os `runtimeSources` continuam iguais ao checkout. `detected`: exit 0, 1 Killed;
 `survived`: exit 1, 1 Survived; ambos `complete`, `kofVersion` 0.6.4, hashes
 das fixtures preservados. Evidência opcional em
 `.agent/tmp/production-calibration-20261101/b-normal-path-clean/`.
+
+**Revisão do ciclo TDD de A — 02/11/2026.** Achados da revisão de `2391c4e` e
+`377a7ff`, sem mudar o texto acima:
+
+1. **RED pelo motivo errado.** No RED, o teste novo parou na linha 506, a
+   asserção de `schemaVersion` (`expected: <2> but was: <1>`), e não no
+   comportamento de calibração. O RED do comportamento (complexidade
+   `proposed` 7 no mesmo cenário) só apareceu na execução separada do medidor
+   sem mudança. Daqui em diante, as asserções incidentais vêm depois das de
+   comportamento, e o aceite registra o motivo esperado e o observado.
+2. **Dois testes no mesmo ciclo.** O teste novo e a mudança de contrato de
+   `commandReconcilesScopeAndAppliesBothSuitePolicies` entraram juntos no RED.
+   É defensável por ser o mesmo contrato, mas a escolha não foi registrada
+   como tal na época.
+3. **Pendência do M2: rótulo de `calibratedOn`.** `calibratedOn` é a constante
+   `"src/main/kof"` (`Main.java`, `PRODUCTION_SOURCES`), mas a seleção de
+   produção é “todo arquivo fora de `src/test/kof/`”. Com um escopo explícito
+   fora dessas pastas, o rótulo fica impreciso. Não afeta a árvore atual.
+
+As regras de TDD que resultam de 1 e 2 estão em `AGENTS.md`, seção
+“Test-driven development”.
