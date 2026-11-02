@@ -272,6 +272,74 @@ O [Learn Kof](../../../kof/learn/35-kof-ui.md#L5) situa a renderização de
 A falha no JVM acontece antes de qualquer renderização, já na chamada do
 método.
 
+## Atualização de 02/11/2026: 0.6.10 continua afetado
+
+Commit do SiFuture: `56b217752e1fcfe746cab254bcc2896fabaebf7c`, branch
+`sensor-calibration-m1`. O hash de `ControlsGuide.kf` é o mesmo registrado
+acima.
+
+O CI resolve a release estável mais recente. Em 02/11 ela era a 0.6.10:
+
+```bash
+gh release list -R KofLang/Kof4j --limit 5
+```
+
+```text
+Kof 0.6.10 (linux-x86_64)		kof-0.6.10-linux-x86_64	2026-11-01T21:42:02Z
+```
+
+A issue [KofLang/Kof4j#991](https://github.com/KofLang/Kof4j/issues/991) foi
+fechada em `2026-11-02T06:27:27Z`. O commit da correção é o
+`7ec75f5319096484c572be37dccfe0ff03e40af0` ("fix(ui)+test+docs: #991 — a method
+of the owning class inside Column/Row resolves again"). Ele não está na tag da
+0.6.10, cujo commit é `e579132bb3f17db64faba33b9be1d27837851fa0`:
+
+```bash
+gh api repos/KofLang/Kof4j/compare/7ec75f53...e579132bb3f17db64faba33b9be1d27837851fa0 --jq .status
+```
+
+```text
+behind
+```
+
+`behind` quer dizer que a tag é anterior ao commit da correção. O ramo
+`Column`/`Row` de um argumento em `BuiltinUiCallTyper.java` é idêntico nas tags
+0.6.9 e 0.6.10.
+
+No alvo JS, o mesmo código foi compilado por `scripts/kof_project.py::build`
+com os pacotes oficiais 0.6.4 e 0.6.10. Os dois builds terminaram com exit 0.
+Chamadas emitidas em `Default.mjs`:
+
+| Kof | Chamadas emitidas |
+|---|---|
+| 0.6.4 | `this.heading("Teclado`, `this.heading("Toque`, `this.heading("Especial` |
+| 0.6.10 | `heading("Teclado`, `heading("Toque`, `heading("Especial` |
+
+Percurso de navegador com 0.6.10:
+
+```bash
+python3 tests/browser_controls.py --kof /home/renanfranca/.local/share/kof/kof-0.6.10-linux-x86_64/bin/kof
+```
+
+Resultado: exit 1.
+
+```text
+Error: strict mode violation: locator("canvas:visible") resolved to 2 elements
+```
+
+São dois canvases visíveis, o mesmo sintoma da tabela de 0.6.5 a 0.6.9. Esse
+percurso não coleta `pageerror`. A ligação com `ReferenceError` vem do JS
+emitido acima, não do log do percurso.
+
+Consequência: as suítes do CI não instanciam `ControlsGuide` e passariam com a
+0.6.10. Um merge na `main` publicaria o Pages com a ajuda de controles
+quebrada. O PR de `sensor-calibration-m1` fica suspenso até sair uma release
+que contenha o `7ec75f53`. Para liberar, é preciso que `compare 7ec75f53...<tag>`
+responda `ahead` ou `identical` e que o percurso acima passe com essa release.
+
+Evidência local opcional: `.agent/tmp/kof-0.6.10-check/` (log do percurso e
+builds 0.6.4 e 0.6.10).
+
 ## Limites
 
 - O commit causador foi identificado pelo histórico e confirmado por

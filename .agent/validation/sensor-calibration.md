@@ -17,7 +17,7 @@ Contrato de adaptação preservado do plano externo aprovado, seção “Calibra
   'max-statements': ['error', 15],
 ```
 
-[Referência fixada](https://github.com/renanfranca/katacombs-kata-ts/blob/44cb39c916e9a05de561123d7b13554ee6e0a516/eslint.config.mjs#L17). Linhas por função usam 25 com `skipBlankLines: true, skipComments: true`; arquivo usa 150 com `skipComments: false`. Suítes preservam exceção somente para linhas por função e statements. Nenhum guia foi modificado ou traduzido em política de aviso.
+[Referência fixada](https://github.com/SDiamante13/katacombs-kata-ts/blob/44cb39c916e9a05de561123d7b13554ee6e0a516/eslint.config.mjs#L17). Linhas por função usam 25 com `skipBlankLines: true, skipComments: true`; arquivo usa 150 com `skipComments: false`. Suítes preservam exceção somente para linhas por função e statements. Nenhum guia foi modificado ou traduzido em política de aviso.
 
 | Métrica | Definição Kof |
 | --- | --- |
@@ -780,7 +780,7 @@ O guia fixado de Katacombs, `scripts/guides/structural.mjs:8`, estabelece:
 
 > Not this: splitting mid-responsibility to duck the count. Two half-files that only work together are worse than one long file.
 
-[Fonte histórica](https://github.com/renanfranca/katacombs-kata-ts/blob/44cb39c916e9a05de561123d7b13554ee6e0a516/scripts/guides/structural.mjs#L8). Isso impede tratar uma divisão no ponto 150 como correção de design. O [training contra abstração desnecessária](../../../kof/training/anti-patterns/unnecessary-abstraction.md:48) acrescenta:
+[Fonte histórica](https://github.com/SDiamante13/katacombs-kata-ts/blob/44cb39c916e9a05de561123d7b13554ee6e0a516/scripts/guides/structural.mjs#L8). Isso impede tratar uma divisão no ponto 150 como correção de design. O [training contra abstração desnecessária](../../../kof/training/anti-patterns/unnecessary-abstraction.md:48) acrescenta:
 
 > Add a layer only when it solves a concrete problem:
 > - tested swappability (interface + multiple implementations);
