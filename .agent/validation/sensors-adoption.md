@@ -1296,3 +1296,118 @@ O resultado coincide com o registro de 01/11 em `check-parallel.md`
 alterações; observações em
 `/home/renanfranca/projects/kof-mut/.agent/tmp/check-66ba2564-79f2-446c-914e-dc053ef1ef9d/`
 e log em `.agent/tmp/kof064-revalidation-20261101/s9b-check.out`.
+
+## Continuidade: calibração por produção e verify-kofmut — 01/11/2026
+
+**Nota sobre o registro anterior.** A seção “Revalidação com Kof 0.6.4 e KofMut
+do PATH — 01/11/2026” foi escrita sobre a base `0e18275` com diff local, antes
+do commit. O usuário publicou esse diff e o registro em
+`ba8739d` (“feat: resolve sensor tools from PATH”), cujo pai é `0e18275`.
+
+**Base e ambiente.** SiFuture `ba8739d`, branch `sensor-calibration-m1`, limpo
+no início. `kof version`: `kof 0.6.4`
+(`~/.local/share/kof/kof-0.6.4-linux-x86_64/bin/kof`). `kof-mut` do PATH em
+`~/.local/bin/kof-mut`, imagem `b5401898…`. Decisões do usuário na revisão de
+`ba8739d`: produção calibra complexidade, profundidade e parâmetros, e os
+testes são medidos contra esse limite; mudar o medidor agora. Regra e números
+em [calibração](sensor-calibration.md#continuidade-produção-calibra-testes-são-medidos--01112026).
+
+### A. Medidor, com TDD
+
+`Main.java` troca o `boolean` de isenção por `SuitePolicy` com dois valores:
+`EXEMPT` (linhas por função e statements, como antes) e `MEASURED`
+(complexidade, profundidade e parâmetros). `Calibration.propose`/`exceeds`
+não mudaram. Inventário em `schemaVersion` 2.
+
+Teste novo pela CLI,
+`commandCalibratesDesignMetricsOnProductionAndMeasuresSuitesAgainstThatLimit`:
+produção com uma função de complexidade 6 e suíte com 20 testes de
+complexidade 7. As duas fontes passam antes por `kof check --target jvm --json`
+e `--target js --json`. O teste `commandReconcilesScopeAndPreservesOnlyTwoSuiteExceptions`
+virou `commandReconcilesScopeAndAppliesBothSuitePolicies`, com população 2 em
+`fileLines`, 1 em `functionLines`/`statements` sem `suiteDistribution`, e 1 de
+produção mais 1 de suíte nas métricas medidas.
+
+**RED** (`scripts/kof-sensors/test`, antes de mudar `Main.java`), exit 1:
+
+```text
+[ERROR] Tests run: 22, Failures: 2, Errors: 0, Skipped: 0
+[ERROR]   AnalyzerTest.commandCalibratesDesignMetricsOnProductionAndMeasuresSuitesAgainstThatLimit:506 expected: <2> but was: <1>
+[ERROR]   AnalyzerTest.commandReconcilesScopeAndAppliesBothSuitePolicies:550 complexity ==> expected: <1> but was: <2>
+```
+
+A linha 506 é a asserção de `schemaVersion`; os quatro `kof check` das fontes
+novas vêm antes dela e passaram. Para mostrar o valor antigo no mesmo cenário,
+o medidor sem mudança (`scripts/kof-sensors/run <fixture>`) retornou 0 com
+`schemaVersion` 1 e complexidade `proposed` 7, `referenceFindings` 21,
+`proposedFindings` 0, distribuição `{6: 1, 7: 20}`.
+
+**GREEN.** A primeira tentativa não compilou: o helper `distribution(List)`
+colidia com o acessor do record (`method distribution in record ... cannot be
+applied to given types`). Renomeado para `distributionOf`, a suíte retornou 0
+com 22 testes e 0 falhas. Refatoração do teste (helper `inventoryOf` também na
+execução que espera exit 1) manteve 22/0.
+
+**Árvore atual** (`scripts/kof-sensors/run . > .agent/tmp/production-calibration-20261101/inventory.json`),
+exit 0: `schemaVersion` 2, `success` true, 25 arquivos, `failures` vazio,
+frontend `kof 0.6.4`.
+
+| Métrica | Política | Proposta | Findings produção | Findings testes na proposta |
+| --- | --- | ---: | ---: | ---: |
+| fileLines | incluídas | 150 | 5 (com testes) | — |
+| functionLines | isentas | 25 | 10 | — |
+| complexity | medidas | 10 | 18 | 38 |
+| parameters | medidas | 4 | 2 | 0 |
+| depth | medidas | 2 | 12 | 8 |
+| statements | isentas | 17 | 18 | — |
+
+`fileLines`, `functionLines`, `statements` e todos os `files` são idênticos ao
+inventário de revalidação `s5-inventory.json`.
+
+### B. Mensagem do verify-kofmut
+
+Se não houver `image.json` ao lado do `kof-mut` resolvido, o script encerra com
+`SystemExit` antes de olhar o checkout KofMut. Antes da mudança, a leitura de
+`image.json` vinha depois da checagem do checkout.
+
+Prova com `/home/renanfranca/projects/kof-mut/bin` primeiro no PATH, exit **1**:
+
+```text
+kof-mut on PATH is not a KofMut installation: /home/renanfranca/projects/kof-mut/bin/kof-mut has no image.json beside it; install KofMut with ./install.sh
+```
+
+Prova com o PATH normal (`~/.local/bin/kof-mut`, `kof 0.6.4`), exit **1**,
+não 0 como o plano esperava:
+
+```text
+KofMut checkout is dirty: /home/renanfranca/projects/kof-mut
+```
+
+Causa: o checkout KofMut `9f9bb06` tem um arquivo não rastreado,
+`.agent/validation/kof-0610-revalidation.md`, que não existia no início desta
+sessão e não foi criado por ela. O script recusou como deve; a prova de exit 0
+com o PATH normal ficou **pendente** e não foi repetida. O mesmo arquivo
+também fez a execução de controle antes da mudança parar na checagem do
+checkout, então não há registro do erro antigo com o `bin/` do checkout.
+
+### Verificações
+
+| Comando | Retorno | Resultado |
+| --- | ---: | --- |
+| `scripts/kof-sensors/test` (RED) | 1 | 22 testes, 2 falhas esperadas |
+| `scripts/kof-sensors/test` (GREEN e refatoração) | 0 | 22 testes, 0 falhas |
+| `scripts/kof-sensors/run .` | 0 | números da tabela acima |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | 0 | 16 testes OK |
+| `verify-kofmut` com `kof-mut/bin` primeiro | 1 | mensagem nova |
+| `verify-kofmut` com PATH normal | 1 | checkout KofMut sujo; pendente |
+| `git diff --check` | 0 | sem problemas |
+
+Hashes de `src/` e `tests/` iguais antes e depois (ver fim desta seção).
+Sem mudanças em fontes ou testes do jogo, na configuração do KofMut, no
+wrapper ou no repositório KofMut. Sem commit nem push. Evidência local opcional
+em `.agent/tmp/production-calibration-20261101/`.
+
+Hashes (`git ls-files -s src tests | sha256sum` e SHA-256 de todos os arquivos
+de `src/` e `tests/`), antes e depois:
+`4f9ac3b1c99892aaf15dcbdda88151d795f04f14f83b52d9b9d01f0b9fc135af` e
+`d15101dea812d2e9791792bea62a0ffae651398b3732d7bb79cd7a492a7d59a0`, iguais.

@@ -447,38 +447,114 @@ class AnalyzerTest {
         assertEquals(1, file.functions().getFirst().statements());
     }
 
-    @Test void commandReconcilesScopeAndPreservesOnlyTwoSuiteExceptions() throws Exception {
+    com.fasterxml.jackson.databind.JsonNode inventoryOf(Path project) throws Exception {
+        return inventoryOf(project, 0);
+    }
+
+    com.fasterxml.jackson.databind.JsonNode inventoryOf(Path project, int expectedExit) throws Exception {
+        var output = project.resolve("report.json");
+        var errors = project.resolve("stderr");
+        var process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin/java").toString(),
+                "-cp", System.getProperty("java.class.path"), "sifuture.sensors.Main", project.toString())
+                .redirectOutput(output.toFile()).redirectError(errors.toFile()).start();
+        assertEquals(expectedExit, process.waitFor(), Files.readString(errors));
+        return new ObjectMapper().readTree(output.toFile());
+    }
+
+    com.fasterxml.jackson.databind.JsonNode calibrationOf(com.fasterxml.jackson.databind.JsonNode inventory, String name) {
+        for (var metric : inventory.get("calibration")) {
+            if (metric.get("name").asText().equals(name)) return metric;
+        }
+        return fail("Missing calibration metric " + name);
+    }
+
+    int population(com.fasterxml.jackson.databind.JsonNode distribution) {
+        int population = 0;
+        for (var count : distribution) population += count.asInt();
+        return population;
+    }
+
+    @Test void commandCalibratesDesignMetricsOnProductionAndMeasuresSuitesAgainstThatLimit() throws Exception {
+        String production = """
+            Int classify(Int a) {
+                if (a > 0 && a < 10 || a == 20) { return 1 }
+                if (a < 0) { return 2 }
+                if (a > 100) { return 3 }
+                return 0
+            }
+            """;
+        var suite = new StringBuilder();
+        for (int number = 1; number <= 20; number++) {
+            suite.append("""
+                test "case %d" {
+                    var a = %d
+                    if (a > 0 && a < 10 || a == 20) { a = a + 1 }
+                    if (a < 0 && a > -10) { a = a - 1 }
+                    if (a > 100) { a = 0 }
+                    assert(a > 0)
+                }
+                """.formatted(number, number));
+        }
+        for (String target : List.of("jvm", "js")) {
+            checkWithOfficialCompiler(production, target);
+            checkWithOfficialCompiler(suite.toString(), target);
+        }
+        var project = Files.createDirectories(root.resolve("project"));
+        Files.createDirectories(project.resolve("src/main/kof"));
+        Files.createDirectories(project.resolve("src/test/kof"));
+        Files.writeString(project.resolve("src/main/kof/Classify.kf"), production);
+        Files.writeString(project.resolve("src/test/kof/ClassifyTest.kf"), suite.toString());
+
+        var inventory = inventoryOf(project);
+
+        assertEquals(2, inventory.get("schemaVersion").asInt());
+        var complexity = calibrationOf(inventory, "complexity");
+        assertEquals("src/main/kof", complexity.get("calibratedOn").asText());
+        assertEquals(5, complexity.get("proposed").asInt());
+        assertEquals(1, complexity.get("referenceFindings").asInt());
+        assertEquals(1, complexity.get("proposedFindings").asInt());
+        assertEquals(1, complexity.get("affectedAtProposed").size());
+        assertEquals("classify", complexity.get("affectedAtProposed").get(0).get("name").asText());
+        assertEquals(1, complexity.get("distribution").get("6").asInt());
+        assertEquals(1, complexity.get("distribution").size());
+        assertEquals(20, complexity.get("suiteFindingsAtReference").asInt());
+        assertEquals(20, complexity.get("suiteFindingsAtProposed").asInt());
+        assertEquals(20, complexity.get("suiteAffectedAtProposed").size());
+        assertEquals("src/test/kof/ClassifyTest.kf", complexity.get("suiteAffectedAtProposed").get(0).get("file").asText());
+        assertEquals(20, complexity.get("suiteDistribution").get("7").asInt());
+        assertFalse(calibrationOf(inventory, "functionLines").has("calibratedOn"));
+        assertFalse(calibrationOf(inventory, "statements").has("suiteDistribution"));
+    }
+
+    @Test void commandReconcilesScopeAndAppliesBothSuitePolicies() throws Exception {
         var production = root.resolve("src/main/kof");
         var suites = root.resolve("src/test/kof");
         Files.createDirectories(production);
         Files.createDirectories(suites);
         Files.writeString(production.resolve("Main.kf"), "main() {}\n");
         Files.writeString(suites.resolve("Suite.kf"), "test \"long suite\" {\n" + "println(1)\n".repeat(30) + "}\n");
-        var output = root.resolve("report.json");
-        var errors = root.resolve("stderr");
-        var process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin/java").toString(),
-                "-cp", System.getProperty("java.class.path"), "sifuture.sensors.Main", root.toString())
-                .redirectOutput(output.toFile()).redirectError(errors.toFile()).start();
-        assertEquals(0, process.waitFor(), Files.readString(errors));
-        var json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(output.toFile());
+        var json = inventoryOf(root);
         assertTrue(json.get("success").asBoolean());
         assertEquals(2, json.get("expected").size());
         assertEquals(2, json.get("cpd").get("result").get("tokenized").size());
         assertEquals(32, json.get("files").get(1).get("functions").get(0).get("lines").asInt());
         assertEquals(30, json.get("files").get(1).get("functions").get(0).get("statements").asInt());
+        assertEquals(2, population(calibrationOf(json, "fileLines").get("distribution")));
+        for (String name : List.of("functionLines", "statements")) {
+            assertEquals(1, population(calibrationOf(json, name).get("distribution")), name);
+            assertFalse(calibrationOf(json, name).has("suiteDistribution"), name);
+        }
+        for (String name : List.of("complexity", "parameters", "depth")) {
+            assertEquals(1, population(calibrationOf(json, name).get("distribution")), name);
+            assertEquals(1, population(calibrationOf(json, name).get("suiteDistribution")), name);
+            assertEquals(0, calibrationOf(json, name).get("suiteFindingsAtReference").asInt(), name);
+        }
         for (var metric : json.get("calibration")) {
             String name = metric.get("name").asText();
-            int population = 0;
-            for (var count : metric.get("distribution")) population += count.asInt();
-            assertEquals(List.of("functionLines", "statements").contains(name) ? 1 : 2, population, name);
             assertEquals(0, metric.get("referenceFindings").asInt(), name);
         }
         Files.writeString(production.resolve("Main.kf"), "main() { println(\"unterminated }");
-        var invalid = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin/java").toString(),
-                "-cp", System.getProperty("java.class.path"), "sifuture.sensors.Main", root.toString())
-                .redirectOutput(output.toFile()).redirectError(errors.toFile()).start();
-        assertEquals(1, invalid.waitFor());
-        var bad = new com.fasterxml.jackson.databind.ObjectMapper().readTree(output.toFile());
+        var bad = inventoryOf(root, 1);
         assertFalse(bad.get("success").asBoolean());
         assertFalse(bad.get("failures").isEmpty());
         assertEquals(2, bad.get("cpd").get("result").get("expected").size());

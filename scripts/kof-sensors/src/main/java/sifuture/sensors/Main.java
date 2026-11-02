@@ -1,5 +1,6 @@
 package sifuture.sensors;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.kof.compiler.parser.Lexer;
 import java.nio.file.*;
@@ -9,30 +10,60 @@ import java.util.function.ToIntFunction;
 
 public final class Main {
     record Finding(String file, String name, int line, int value) {}
-    record Metric(String name, int reference, int proposed, int referenceFindings, int proposedFindings,
-                  int previousFindings, SortedMap<Integer, Long> distribution,
-                  List<Finding> affectedAtReference, List<Finding> affectedAtProposed) {}
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record Metric(String name, String calibratedOn, int reference, int proposed, int referenceFindings,
+                  int proposedFindings, int previousFindings, SortedMap<Integer, Long> distribution,
+                  List<Finding> affectedAtReference, List<Finding> affectedAtProposed,
+                  Integer suiteFindingsAtReference, Integer suiteFindingsAtProposed,
+                  List<Finding> suiteAffectedAtProposed, SortedMap<Integer, Long> suiteDistribution) {
+        Metric measuringSuitesAgainstProposed(List<Finding> suites) {
+            var suitesAtProposed = exceeding(suites, proposed);
+            return new Metric(name, PRODUCTION_SOURCES, reference, proposed, referenceFindings, proposedFindings,
+                    previousFindings, distribution, affectedAtReference, affectedAtProposed,
+                    exceeding(suites, reference).size(), suitesAtProposed.size(), suitesAtProposed, distributionOf(suites));
+        }
+    }
+    enum SuitePolicy { EXEMPT, MEASURED }
+
+    static final String PRODUCTION_SOURCES = "src/main/kof";
+    static final String SUITE_SOURCES = "src/test/kof/";
+
+    static List<Finding> exceeding(List<Finding> values, int limit) {
+        return values.stream().filter(v -> Calibration.exceeds(v.value(), limit)).toList();
+    }
+
+    static SortedMap<Integer, Long> distributionOf(List<Finding> values) {
+        var distribution = new TreeMap<Integer, Long>();
+        values.forEach(value -> distribution.merge(value.value(), 1L, Long::sum));
+        return distribution;
+    }
 
     static Metric metric(String name, int reference, List<Finding> values) {
-        var integers = values.stream().map(Finding::value).toList();
-        int proposed = Calibration.propose(integers, reference);
-        var distribution = new TreeMap<Integer, Long>();
-        integers.forEach(value -> distribution.merge(value, 1L, Long::sum));
-        var atReference = values.stream().filter(v -> Calibration.exceeds(v.value(), reference)).toList();
-        var atProposed = values.stream().filter(v -> Calibration.exceeds(v.value(), proposed)).toList();
-        return new Metric(name, reference, proposed, atReference.size(), atProposed.size(),
-                (int) integers.stream().filter(v -> Calibration.exceeds(v, proposed - 1)).count(),
-                distribution, atReference, atProposed);
+        int proposed = Calibration.propose(values.stream().map(Finding::value).toList(), reference);
+        var atReference = exceeding(values, reference);
+        var atProposed = exceeding(values, proposed);
+        return new Metric(name, null, reference, proposed, atReference.size(), atProposed.size(),
+                exceeding(values, proposed - 1).size(), distributionOf(values), atReference, atProposed,
+                null, null, null, null);
+    }
+
+    static List<Finding> functionFindings(List<Analyzer.FileMetrics> files, ToIntFunction<Analyzer.FunctionMetrics> value,
+                                          boolean suites) {
+        var values = new ArrayList<Finding>();
+        for (var file : files) {
+            if (file.file().startsWith(SUITE_SOURCES) != suites) continue;
+            for (var function : file.functions()) values.add(new Finding(file.file(), function.name(), function.line(), value.applyAsInt(function)));
+        }
+        return values;
     }
 
     static Metric functions(String name, int reference, List<Analyzer.FileMetrics> files,
-                            ToIntFunction<Analyzer.FunctionMetrics> value, boolean exemptSuites) {
-        var values = new ArrayList<Finding>();
-        for (var file : files) {
-            if (exemptSuites && file.file().startsWith("src/test/kof/")) continue;
-            for (var function : file.functions()) values.add(new Finding(file.file(), function.name(), function.line(), value.applyAsInt(function)));
-        }
-        return metric(name, reference, values);
+                            ToIntFunction<Analyzer.FunctionMetrics> value, SuitePolicy suitePolicy) {
+        var production = metric(name, reference, functionFindings(files, value, false));
+        return switch (suitePolicy) {
+            case EXEMPT -> production;
+            case MEASURED -> production.measuringSuitesAgainstProposed(functionFindings(files, value, true));
+        };
     }
 
     public static void main(String[] args) throws Exception {
@@ -63,14 +94,14 @@ public final class Main {
         if (paths.isEmpty()) failures.add("No expected source files");
         var metrics = List.of(
                 metric("fileLines", 150, inventory.stream().map(f -> new Finding(f.file(), "file", 1, f.lines())).toList()),
-                functions("functionLines", 25, inventory, Analyzer.FunctionMetrics::lines, true),
-                functions("complexity", 5, inventory, Analyzer.FunctionMetrics::complexity, false),
-                functions("parameters", 4, inventory, Analyzer.FunctionMetrics::parameters, false),
-                functions("depth", 2, inventory, Analyzer.FunctionMetrics::depth, false),
-                functions("statements", 15, inventory, Analyzer.FunctionMetrics::statements, true));
+                functions("functionLines", 25, inventory, Analyzer.FunctionMetrics::lines, SuitePolicy.EXEMPT),
+                functions("complexity", 5, inventory, Analyzer.FunctionMetrics::complexity, SuitePolicy.MEASURED),
+                functions("parameters", 4, inventory, Analyzer.FunctionMetrics::parameters, SuitePolicy.MEASURED),
+                functions("depth", 2, inventory, Analyzer.FunctionMetrics::depth, SuitePolicy.MEASURED),
+                functions("statements", 15, inventory, Analyzer.FunctionMetrics::statements, SuitePolicy.EXEMPT));
         Path jar = Path.of(Lexer.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath();
         var report = new LinkedHashMap<String, Object>();
-        report.put("schemaVersion", 1);
+        report.put("schemaVersion", 2);
         report.put("success", failures.isEmpty());
         report.put("frontend", Map.of("jar", jar.toString(), "sha256", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))),
                 "version", System.getProperty("kof.version", "unrecorded")));

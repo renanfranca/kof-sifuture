@@ -1187,3 +1187,133 @@ O teste Maven agora envia cada uma das 12 fontes medidas ao compilador Kof 0.6.6
 A verificação detectou a regressão antes da correção: as duas variantes parametrizadas com chamada interna `new Box()` falharam nos dois targets com `SEM023` e “expected 1”; após a correção, 24 checks (12 fontes × 2 alvos) passaram com exit 0, `success=true`, `errorCount=0` e zero diagnósticos ERROR. O cenário de dois construtores e `main` fixa exatamente três unidades e seus intervalos 2–5, 6–6 e 8–8. As expectativas literais da matriz continuam sendo verificadas na API pública do analisador.
 
 Revalidação do inventário em `.agent/tmp/sensors-m1-measurement-closeout-20261025/inventory.json`; comparação contra a calibração anterior em `comparison.json`: 25 arquivos, 321 unidades, 45.443 tokens, 17 grupos CPD, zero falhas; zero arquivos ou unidades adicionados/removidos e zero métricas alteradas. Todos os comandos de aceite concluíram com exit 0: Python 16 testes, Maven 21 testes, check Kof JVM/JS, testes Kof 114/114 por target e execução do sensor. Identidade Kof, hashes de arquivos testados, expectativas e limitações estão em [aceitação continuada](sensors-adoption.md#continuidade-compilador-e-medição-da-matriz-de-construtores--25102026). Não houve mudança no jogo, contagens, limites, guias ou regras. A política de gatilhos permanece para discussão futura; sensores não foram ativados.
+
+## Continuidade: produção calibra, testes são medidos — 01/11/2026
+
+Decisão do usuário em 01/11/2026, na revisão de `ba8739d`: complexidade, profundidade e parâmetros passam a ter o limite calculado só com `src/main/kof`. As suítes em `src/test/kof` são avaliadas contra esse mesmo limite e aparecem como dívida separada. Linhas por função e statements mantêm a exceção das suítes; linhas por arquivo continuam calculadas com tudo, porque o número não muda (150). O motivo: os testes inflavam o limite que vale para a produção (complexidade 17 com testes, 10 sem). A regra de proposta (menor inteiro não inferior à referência com menos de 20 findings) e o critério estrito de finding não mudaram.
+
+O medidor registra a política por métrica. Nas métricas medidas, `proposed`, `referenceFindings`, `proposedFindings`, `previousFindings`, `distribution` e `affectedAt*` contam só produção, e há os campos `calibratedOn: "src/main/kof"`, `suiteFindingsAtReference`, `suiteFindingsAtProposed`, `suiteAffectedAtProposed` e `suiteDistribution`. Nas métricas isentas esses campos não aparecem. Como o significado de campos existentes mudou, o inventário passou a `schemaVersion` 2.
+
+Medição na base `ba8739d` com as mudanças do medidor, Kof 0.6.4 do PATH (`scripts/kof-sensors/run .`): `success` true, 25 arquivos, `failures` vazio. Cada célula mostra limite proposto e, entre parênteses, findings nesse limite. "25/10 com testes" vem da tabela de [Limites propostos](#limites-propostos); "hoje com testes" vem do inventário de revalidação de 01/11 (`schemaVersion` 1). `fileLines`, `functionLines` e `statements`, e os `files` medidos, ficaram idênticos ao inventário de revalidação.
+
+| Métrica | Política das suítes | Referência | 25/10 com testes | Hoje com testes | Hoje, regra nova | Testes no limite de produção |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| fileLines | incluídas | 150 | 150 (5) | 150 (5) | 150 (5) | — |
+| functionLines | isentas | 25 | 25 (10) | 25 (10) | 25 (10) | — |
+| complexity | medidas | 5 | 16 (19) | 17 (17) | 10 (18) | 38 |
+| parameters | medidas | 4 | 4 (2) | 4 (2) | 4 (2) | 0 |
+| depth | medidas | 2 | 3 (5) | 3 (5) | 2 (12) | 8 |
+| statements | isentas | 15 | 17 (18) | 17 (18) | 17 (18) | — |
+
+**Divergência 16 → 17 entre 25/10 e hoje (complexidade com testes).** O teste `ship meteor contact includes each boundary and excludes adjacent positions`, em [GameJourney.kf:794](../../src/test/kof/sifuture/game/GameJourney.kf:794), entrou em `53e9626` (“test: cover meteor collision and animation boundaries”, 27/10, confirmado por `git blame`) com complexidade 18. Na distribuição de hoje, os valores acima de 16 somam 20 (17: 3, 18: 1, 19: 3, 20: 1, 21: 2, 22: 2, 23: 1, 26: 1, 27: 1, 28: 2, 33: 1, 43: 1, 55: 1). Vinte findings não satisfazem “menos de 20”, então a proposta sobe para 17. Em 25/10 a mesma faixa tinha 19 findings, sem esse teste. Com a regra nova, o teste continua visível como dívida de suíte e não altera o limite da produção.
+
+### Findings nos limites propostos pela produção
+
+Ordenados por valor decrescente. Linhas por arquivo, linhas por função e statements não mudaram; seus findings seguem nas seções anteriores.
+
+**complexity > 10, produção (18)**:
+
+| Unidade | Local | Valor |
+| --- | --- | ---: |
+| step | [Game.kf:195](../../src/main/kof/sifuture/game/Game.kf:195) | 55 |
+| render | [GameView.kf:77](../../src/main/kof/sifuture/GameView.kf:77) | 43 |
+| keyChanged | [GameControls.kf:297](../../src/main/kof/sifuture/GameControls.kf:297) | 33 |
+| advance | [Ship.kf:46](../../src/main/kof/sifuture/game/Ship.kf:46) | 27 |
+| movement | [Game.kf:81](../../src/main/kof/sifuture/game/Game.kf:81) | 26 |
+| update | [GameControls.kf:355](../../src/main/kof/sifuture/GameControls.kf:355) | 19 |
+| attemptFire | [BossWeapons.kf:27](../../src/main/kof/sifuture/game/BossWeapons.kf:27) | 17 |
+| keyboard | [Game.kf:62](../../src/main/kof/sifuture/game/Game.kf:62) | 15 |
+| advance | [Boss.kf:111](../../src/main/kof/sifuture/game/Boss.kf:111) | 14 |
+| advance | [Meteor.kf:51](../../src/main/kof/sifuture/game/Meteor.kf:51) | 12 |
+| beginsBossContact | [SpecialBeam.kf:63](../../src/main/kof/sifuture/game/SpecialBeam.kf:63) | 12 |
+| touchesShip | [Subchief.kf:41](../../src/main/kof/sifuture/game/Subchief.kf:41) | 12 |
+| advanceNormal | [Subchief.kf:89](../../src/main/kof/sifuture/game/Subchief.kf:89) | 12 |
+| navigate | [Game.kf:127](../../src/main/kof/sifuture/game/Game.kf:127) | 11 |
+| confirm | [Game.kf:150](../../src/main/kof/sifuture/game/Game.kf:150) | 11 |
+| attemptFire | [Weapons.kf:32](../../src/main/kof/sifuture/game/Weapons.kf:32) | 11 |
+| hitSubchiefLaser | [Weapons.kf:89](../../src/main/kof/sifuture/game/Weapons.kf:89) | 11 |
+| hitBossLaser | [Weapons.kf:131](../../src/main/kof/sifuture/game/Weapons.kf:131) | 11 |
+
+**complexity > 10, testes (38)**:
+
+| Unidade | Local | Valor |
+| --- | --- | ---: |
+| credits enter exactly at twelve wait six seconds and leave one empty frame | [GameJourney.kf:114](../../src/test/kof/sifuture/game/GameJourney.kf:114) | 28 |
+| subchief seeded destinations movement and three shot slots use normal step clocks | [GameJourney.kf:1623](../../src/test/kof/sifuture/game/GameJourney.kf:1623) | 28 |
+| vertical initial and impact resets keep reduced range while bottom exits include both full endpoints | [GameJourney.kf:261](../../src/test/kof/sifuture/game/GameJourney.kf:261) | 23 |
+| fatal subchief hit rewards once at lifetime boundaries and leaves recurring items in place | [GameJourney.kf:1765](../../src/test/kof/sifuture/game/GameJourney.kf:1765) | 22 |
+| defeat during subchief encounter animates without contacts rewards or life changes and restart clears it | [GameJourney.kf:1870](../../src/test/kof/sifuture/game/GameJourney.kf:1870) | 22 |
+| subchief explosion freezes track for thirty steps with historical displacement and pause | [GameJourney.kf:1830](../../src/test/kof/sifuture/game/GameJourney.kf:1830) | 21 |
+| defeat during boss fight animates without contacts score changes or new player fire and resets all clocks | [GameJourney.kf:2738](../../src/test/kof/sifuture/game/GameJourney.kf:2738) | 21 |
+| projectiles launched before defeat keep moving until all finish and stay absent | [GameJourney.kf:1521](../../src/test/kof/sifuture/game/GameJourney.kf:1521) | 20 |
+| special subchief markers reapply in color order and expire after six steps | [GameJourney.kf:1726](../../src/test/kof/sifuture/game/GameJourney.kf:1726) | 19 |
+| each main menu arrival restarts its selector while staying does not | [GameJourney.kf:2831](../../src/test/kof/sifuture/game/GameJourney.kf:2831) | 19 |
+| ship meteor contact includes each boundary and excludes adjacent positions | [GameJourney.kf:794](../../src/test/kof/sifuture/game/GameJourney.kf:794) | 18 |
+| pause restart clears evolved combat and replays an injected seed | [GameJourney.kf:55](../../src/test/kof/sifuture/game/GameJourney.kf:55) | 17 |
+| vertical contacts preserve ship laser blaster special priority and one reward | [GameJourney.kf:1438](../../src/test/kof/sifuture/game/GameJourney.kf:1438) | 17 |
+| defeat ends explosion without new projectiles or another loss at every weapon level | [GameJourney.kf:1489](../../src/test/kof/sifuture/game/GameJourney.kf:1489) | 16 |
+| laser blaster and special impacts finish after one four and six result steps | [GameJourney.kf:1564](../../src/test/kof/sifuture/game/GameJourney.kf:1564) | 16 |
+| marked exhausted special beam still reapplies when next color enters contact | [GameJourney.kf:1933](../../src/test/kof/sifuture/game/GameJourney.kf:1933) | 16 |
+| boss normal fire uses five intervals and first free slot with four occupied attempts | [GameJourney.kf:2392](../../src/test/kof/sifuture/game/GameJourney.kf:2392) | 16 |
+| fatal boss damage rewards once before clock increment stops firing and captures moved explosion | [GameJourney.kf:2502](../../src/test/kof/sifuture/game/GameJourney.kf:2502) | 16 |
+| boss seeded spawn and destination move one unit per axis including arrival | [GameJourney.kf:2351](../../src/test/kof/sifuture/game/GameJourney.kf:2351) | 15 |
+| three meteor hits end the attempt and result persists | [GameJourney.kf:541](../../src/test/kof/sifuture/game/GameJourney.kf:541) | 14 |
+| launched weapons finish after downgrade and pause freezes every moving state | [GameJourney.kf:1098](../../src/test/kof/sifuture/game/GameJourney.kf:1098) | 14 |
+| four diagonals preserve either held axis in both press and release orders | [GameJourney.kf:2194](../../src/test/kof/sifuture/game/GameJourney.kf:2194) | 14 |
+| simultaneous boss hits preserve body laser blaster special priority and reward only one claimant | [GameJourney.kf:2700](../../src/test/kof/sifuture/game/GameJourney.kf:2700) | 14 |
+| vertical bottom exit uses full historical range and waits inactive with clean animation | [GameJourney.kf:184](../../src/test/kof/sifuture/game/GameJourney.kf:184) | 13 |
+| result keeps scenery and pending effects moving with frozen gameplay | [GameJourney.kf:1402](../../src/test/kof/sifuture/game/GameJourney.kf:1402) | 13 |
+| boss explosion displays short first frame then three-step frames ends at 28 and resumes 290 steps | [GameJourney.kf:2528](../../src/test/kof/sifuture/game/GameJourney.kf:2528) | 13 |
+| boss blaster geometry uses right edge remaining resistance and special center reapplies marked colors | [GameJourney.kf:2637](../../src/test/kof/sifuture/game/GameJourney.kf:2637) | 13 |
+| explosion completion loses a charge before level exactly once and never below basic | [GameJourney.kf:1077](../../src/test/kof/sifuture/game/GameJourney.kf:1077) | 12 |
+| vertical impact has three moving frames and pair relaunch waits for both inactive | [GameJourney.kf:1335](../../src/test/kof/sifuture/game/GameJourney.kf:1335) | 12 |
+| same seed replays entire stage including both bosses vertical relaunch and result | [GameJourney.kf:1468](../../src/test/kof/sifuture/game/GameJourney.kf:1468) | 12 |
+| boss enemy contacts use previous positions new reused and special preparation shots wait a step | [GameJourney.kf:2559](../../src/test/kof/sifuture/game/GameJourney.kf:2559) | 12 |
+| finishing with right held restores normal ship while score counts and position freezes | [GameJourney.kf:161](../../src/test/kof/sifuture/game/GameJourney.kf:161) | 11 |
+| pause and lost keyboard focus clear right image without changing opposing direction priority | [GameJourney.kf:231](../../src/test/kof/sifuture/game/GameJourney.kf:231) | 11 |
+| special requires active normal charged idle ship consumes on start and launches three beams | [GameJourney.kf:1032](../../src/test/kof/sifuture/game/GameJourney.kf:1032) | 11 |
+| vertical pair unlocks above position thirty and falls one unit per step | [GameJourney.kf:1308](../../src/test/kof/sifuture/game/GameJourney.kf:1308) | 11 |
+| result counts by five to exact total then confirms in two stages | [GameJourney.kf:1367](../../src/test/kof/sifuture/game/GameJourney.kf:1367) | 11 |
+| boss absorbs inclusive meteors before player contacts with one movement and suppresses vertical relaunch | [GameJourney.kf:2607](../../src/test/kof/sifuture/game/GameJourney.kf:2607) | 11 |
+| boss evolution preserves a due clock uses first free slot and jumps crossed levels on nonfatal weapons | [GameJourney.kf:2767](../../src/test/kof/sifuture/game/GameJourney.kf:2767) | 11 |
+
+**parameters > 4, produção (2)**:
+
+| Unidade | Local | Valor |
+| --- | --- | ---: |
+| menuOption | [GameControls.kf:232](../../src/main/kof/sifuture/GameControls.kf:232) | 6 |
+| drawText | [GameView.kf:182](../../src/main/kof/sifuture/GameView.kf:182) | 5 |
+
+**parameters > 4, testes (0)**: nenhum.
+
+**depth > 2, produção (12)**:
+
+| Unidade | Local | Valor |
+| --- | --- | ---: |
+| advance | [Item.kf:41](../../src/main/kof/sifuture/game/Item.kf:41) | 4 |
+| advanceNormal | [Subchief.kf:89](../../src/main/kof/sifuture/game/Subchief.kf:89) | 4 |
+| attemptFire | [Weapons.kf:32](../../src/main/kof/sifuture/game/Weapons.kf:32) | 4 |
+| keyChanged | [GameControls.kf:297](../../src/main/kof/sifuture/GameControls.kf:297) | 3 |
+| render | [GameView.kf:77](../../src/main/kof/sifuture/GameView.kf:77) | 3 |
+| attemptFire | [BossWeapons.kf:27](../../src/main/kof/sifuture/game/BossWeapons.kf:27) | 3 |
+| step | [Game.kf:195](../../src/main/kof/sifuture/game/Game.kf:195) | 3 |
+| advance | [Meteor.kf:51](../../src/main/kof/sifuture/game/Meteor.kf:51) | 3 |
+| advance | [Ship.kf:46](../../src/main/kof/sifuture/game/Ship.kf:46) | 3 |
+| advanceExplosion | [Subchief.kf:74](../../src/main/kof/sifuture/game/Subchief.kf:74) | 3 |
+| hitLaser | [Weapons.kf:52](../../src/main/kof/sifuture/game/Weapons.kf:52) | 3 |
+| hitSpecial | [Weapons.kf:76](../../src/main/kof/sifuture/game/Weapons.kf:76) | 3 |
+
+**depth > 2, testes (8)**:
+
+| Unidade | Local | Valor |
+| --- | --- | ---: |
+| four diagonals preserve either held axis in both press and release orders | [GameJourney.kf:2194](../../src/test/kof/sifuture/game/GameJourney.kf:2194) | 5 |
+| fatal subchief hit rewards once at lifetime boundaries and leaves recurring items in place | [GameJourney.kf:1765](../../src/test/kof/sifuture/game/GameJourney.kf:1765) | 4 |
+| defeat ends explosion without new projectiles or another loss at every weapon level | [GameJourney.kf:1489](../../src/test/kof/sifuture/game/GameJourney.kf:1489) | 3 |
+| laser blaster and special impacts finish after one four and six result steps | [GameJourney.kf:1564](../../src/test/kof/sifuture/game/GameJourney.kf:1564) | 3 |
+| subchief explosion freezes track for thirty steps with historical displacement and pause | [GameJourney.kf:1830](../../src/test/kof/sifuture/game/GameJourney.kf:1830) | 3 |
+| last opposite pad press wins in either axis until its own release | [GameJourney.kf:2237](../../src/test/kof/sifuture/game/GameJourney.kf:2237) | 3 |
+| boss normal fire uses five intervals and first free slot with four occupied attempts | [GameJourney.kf:2392](../../src/test/kof/sifuture/game/GameJourney.kf:2392) | 3 |
+| fatal boss damage rewards once before clock increment stops firing and captures moved explosion | [GameJourney.kf:2502](../../src/test/kof/sifuture/game/GameJourney.kf:2502) | 3 |
+
+Comandos, RED e provas desta mudança estão na [continuidade de aceitação](sensors-adoption.md#continuidade-calibração-por-produção-e-verify-kofmut--01112026). Inventário opcional em `.agent/tmp/production-calibration-20261101/inventory.json`. Isso recalibra o volume de feedback; não aprova a dívida, não muda fontes ou suítes do jogo e não ativa sensores.

@@ -1403,3 +1403,31 @@ Decisão do usuário: Kof e KofMut vêm do PATH. Base `0e18275`, diff local sem 
 - [ ] CI continua no Kof 0.6.9.
 
 Detalhes no [aceite](.agent/validation/sensors-adoption.md#kof064-path-revalidation).
+
+## Continuidade: produção calibra, testes são medidos — 01/11/2026
+
+O registro “Kof 0.6.4 e KofMut do PATH” acima foi escrito antes do commit, sobre
+`0e18275` com diff local; o usuário o publicou em `ba8739d`. Base desta
+continuidade: `ba8739d`, Kof 0.6.4 do PATH, diff local sem commit.
+
+- [x] Decisões do usuário na revisão de `ba8739d`: complexidade, profundidade e
+  parâmetros calibram só com `src/main/kof`, e as suítes são medidas contra esse
+  limite como dívida separada; linhas por função e statements mantêm a exceção;
+  as seis regras de desenho de testes do Katacombs entram no M2; o medidor muda agora.
+- [x] Medidor com `SuitePolicy` (`EXEMPT`/`MEASURED`), campos `calibratedOn`,
+  `suiteFindingsAtReference`, `suiteFindingsAtProposed`, `suiteAffectedAtProposed`,
+  `suiteDistribution`; inventário em `schemaVersion` 2. RED registrado
+  (22 testes, 2 falhas esperadas), GREEN 22/0.
+- [x] Árvore atual: complexidade 10 (18 de produção, 38 de testes), profundidade 2
+  (12 e 8), parâmetros 4 (2 e 0); 150/25/17 iguais ao inventário de revalidação.
+  A divergência 16 → 17 de complexidade com testes vem do teste novo
+  `GameJourney.kf:794` (complexidade 18, `53e9626`).
+- [x] `verify-kofmut` recusa `kof-mut` sem `image.json` ao lado e pede `./install.sh`;
+  com `kof-mut/bin` primeiro no PATH, exit 1 com a mensagem nova.
+- [ ] Prova de `verify-kofmut` com o PATH normal: exit 1 porque o checkout KofMut
+  tem `.agent/validation/kof-0610-revalidation.md` não rastreado, alheio a esta
+  sessão. Repetir depois que esse checkout estiver limpo.
+- [x] unittest 16 OK; `git diff --check` 0; hashes de `src/` e `tests/` iguais.
+
+Detalhes no [aceite](.agent/validation/sensors-adoption.md#continuidade-calibração-por-produção-e-verify-kofmut--01112026)
+e na [calibração](.agent/validation/sensor-calibration.md#continuidade-produção-calibra-testes-são-medidos--01112026).

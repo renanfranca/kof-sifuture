@@ -13,10 +13,14 @@ out = Path(sys.argv[2] if len(sys.argv) > 2 else '.agent/tmp/sensors-m1').resolv
 kof_mut = shutil.which('kof-mut')
 if not kof_mut:
     raise SystemExit('kof-mut unavailable on PATH; install KofMut with ./install.sh')
+image_receipt = Path(kof_mut).resolve().parent / 'image.json'
+if not image_receipt.is_file():
+    raise SystemExit(f'kof-mut on PATH is not a KofMut installation: {Path(kof_mut).resolve()} has no image.json '
+                     'beside it; install KofMut with ./install.sh')
 if subprocess.check_output(['git', '-C', str(tool), 'status', '--porcelain'], text=True):
     raise SystemExit(f'KofMut checkout is dirty: {tool}')
 revision = subprocess.check_output(['git', '-C', str(tool), 'rev-parse', 'HEAD'], text=True).strip()
-image = json.loads((Path(kof_mut).resolve().parent / 'image.json').read_text())
+image = json.loads(image_receipt.read_text())
 stale = [source['path'] for source in image['runtimeSources']
          if not (tool / source['path']).is_file()
          or hashlib.sha256((tool / source['path']).read_bytes()).hexdigest() != source['hash']]
