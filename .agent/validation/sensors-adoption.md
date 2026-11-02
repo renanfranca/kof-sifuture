@@ -1411,3 +1411,13 @@ Hashes (`git ls-files -s src tests | sha256sum` e SHA-256 de todos os arquivos
 de `src/` e `tests/`), antes e depois:
 `4f9ac3b1c99892aaf15dcbdda88151d795f04f14f83b52d9b9d01f0b9fc135af` e
 `d15101dea812d2e9791792bea62a0ffae651398b3732d7bb79cd7a492a7d59a0`, iguais.
+
+**Fechamento da prova de B — 02/11/2026.** Depois que o checkout KofMut ficou
+limpo em `64c85f8` (único commit novo desde `9f9bb06`: “docs: record Kof 0.6.10
+revalidation”), `scripts/kof-sensors/verify-kofmut /home/renanfranca/projects/kof-mut <dir>`
+com o PATH normal (`~/.local/bin/kof-mut`, `kof 0.6.4`) retornou **0**, na
+primeira e única execução. A imagem `b5401898…` não foi recusada como defasada:
+os `runtimeSources` continuam iguais ao checkout. `detected`: exit 0, 1 Killed;
+`survived`: exit 1, 1 Survived; ambos `complete`, `kofVersion` 0.6.4, hashes
+das fixtures preservados. Evidência opcional em
+`.agent/tmp/production-calibration-20261101/b-normal-path-clean/`.

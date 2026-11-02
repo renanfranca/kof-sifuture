@@ -1424,9 +1424,11 @@ continuidade: `ba8739d`, Kof 0.6.4 do PATH, diff local sem commit.
   `GameJourney.kf:794` (complexidade 18, `53e9626`).
 - [x] `verify-kofmut` recusa `kof-mut` sem `image.json` ao lado e pede `./install.sh`;
   com `kof-mut/bin` primeiro no PATH, exit 1 com a mensagem nova.
-- [ ] Prova de `verify-kofmut` com o PATH normal: exit 1 porque o checkout KofMut
-  tem `.agent/validation/kof-0610-revalidation.md` não rastreado, alheio a esta
-  sessão. Repetir depois que esse checkout estiver limpo.
+- [x] `verify-kofmut` com o PATH normal: a primeira prova retornou 1 porque o
+  checkout KofMut tinha `.agent/validation/kof-0610-revalidation.md` não
+  rastreado, alheio a esta sessão. Repetida uma vez em 02/11/2026, com o
+  checkout limpo em `64c85f8` (commit só documental), retornou 0: detected
+  complete/0, survived complete/1.
 - [x] unittest 16 OK; `git diff --check` 0; hashes de `src/` e `tests/` iguais.
 
 Detalhes no [aceite](.agent/validation/sensors-adoption.md#continuidade-calibração-por-produção-e-verify-kofmut--01112026)
