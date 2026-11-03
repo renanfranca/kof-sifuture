@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+module = Path(__file__).resolve().parent
+kof = shutil.which(os.environ.get('KOF', 'kof'))
+if not kof:
+    raise SystemExit('Kof executable unavailable; select KOF or PATH')
+jar = Path(os.environ.get('KOF_JAR', str(Path(kof).resolve().parent.parent / 'lib/kof.jar'))).resolve()
+if not jar.is_file():
+    raise SystemExit(f'Official Kof jar unavailable: {jar}')
+version = subprocess.check_output([kof, 'version'], text=True).strip()
+subprocess.run(['mvn', '-q', '-f', str(module / 'pom.xml'), f'-Dkof.jar={jar}',
+                'compile', 'dependency:build-classpath', '-Dmdep.outputFile=target/classpath.txt'],
+               stdout=sys.stderr, check=True)
+classpath = os.pathsep.join([str(module / 'target/classes'), (module / 'target/classpath.txt').read_text().strip(), str(jar)])
+raise SystemExit(subprocess.call(['java', f'-Dkof.version={version}', '-cp', classpath,
+                                 'sifuture.sensors.Main', *sys.argv[1:]]))

@@ -480,13 +480,22 @@ test "pausing and returning from result leave no directional movement" {
 }
 
 
-test "same seed produces the same meteors" {
+test "same seed reproduces meteors and horizontal resets stay below the header" {
     var a = Game()
     a.start(42)
     var x = a.meteors[0].x
     var y = a.meteors[0].y
     a.start(42)
     assert(a.meteors[0].x == x && a.meteors[0].y == y)
+    var meteor = Meteor()
+    rng.seed(71)
+    meteor.reset()
+    assert(meteor.y == 201)
+    for (var i = 0; i < 100; i++) {
+        meteor.reset()
+        assert(meteor.x >= 176 && meteor.x <= 375)
+        assert(meteor.y >= 30 && meteor.y <= 201)
+    }
 }
 
 test "ship moves five units and stops at bounds and release" {
@@ -710,11 +719,13 @@ test "laser hit holds meteor collision images for three pairs of steps" {
     g.meteors[0].y = g.weapons.lasers.shots[0].y
     g.step()
     assert(g.score == 5 && g.meteors[0].collided)
+    assert(g.meteors[0].impactFrame() == 0)
+    var expectedFrames = listOf(0, 1, 1, 2, 2)
     var x = g.meteors[0].x
     for (var i = 0; i < 5; i++) {
         g.step()
         assert(g.meteors[0].collided && g.meteors[0].x == x - i - 1 && g.score == 5)
-        assert(g.meteors[0].collisionSteps / 2 == (i + 1) / 2)
+        assert(g.meteors[0].impactFrame() == expectedFrames[i])
     }
     g.step()
     assert(!g.meteors[0].collided && g.meteors[0].x >= 176)
@@ -759,6 +770,12 @@ test "meteor sprite advances every two steps and returns through the historical 
     g.step()
     g.step()
     assert(m.frame == 4)
+    m.x = -24
+    m.y = 80
+    m.advance()
+    assert(m.x == -25 && m.y == 80)
+    m.advance()
+    assert(m.x >= 176 && m.x <= 375 && m.y >= 30 && m.y <= 201)
 }
 
 test "ship collision takes priority when its laser reaches the same meteor" {
@@ -774,18 +791,55 @@ test "ship collision takes priority when its laser reaches the same meteor" {
     assert(g.ship.phase == ShipPhase.Explosion && g.score == 5 && g.weapons.lasers.shots[0].active)
 }
 
-test "ship meteor collision uses meteor left edge and inclusive ship bounds" {
-    var g = Game()
-    g.start(51)
-    g.ship.phase = ShipPhase.Normal
-    g.meteors[0].x = -5
-    g.meteors[0].y = 100
-    g.step()
-    assert(g.score == 0 && g.ship.phase == ShipPhase.Normal)
-    g.meteors[0].x = 51
-    g.meteors[0].y = 100
-    g.step()
-    assert(g.score == 5 && g.ship.phase == ShipPhase.Explosion)
+test "ship meteor contact includes each boundary and excludes adjacent positions" {
+    var meteor = Meteor()
+    meteor.y = 105
+    for (var x in listOf(59, 60, 110, 111)) {
+        meteor.x = x
+        var touches = x == 60 || x == 110
+        assert(meteor.touchesShip(60, 100) == touches)
+        var g = Game()
+        g.start(51)
+        g.ship.phase = ShipPhase.Normal
+        g.ship.x = 60
+        g.ship.y = 100
+        for (var m in g.meteors) { m.active = false }
+        g.meteors[0].active = true
+        g.meteors[0].x = x + 1
+        g.meteors[0].y = 105
+        g.step()
+        assert(g.meteors[0].x == x)
+        assert(g.meteors[0].collided == touches)
+        if (touches) {
+            assert(g.score == 5 && g.ship.phase == ShipPhase.Explosion)
+        } else {
+            assert(g.score == 0 && g.ship.phase == ShipPhase.Normal)
+        }
+        g.step()
+        if (touches) { assert(g.score == 5 && g.ship.phase == ShipPhase.Explosion) }
+    }
+    meteor.x = 80
+    for (var y in listOf(81, 82, 120, 121)) {
+        meteor.y = y
+        var touches = y == 82 || y == 120
+        assert(meteor.touchesShip(60, 100) == touches)
+        var g = Game()
+        g.start(51)
+        g.ship.phase = ShipPhase.Normal
+        g.ship.x = 60
+        g.ship.y = 100
+        for (var m in g.meteors) { m.active = false }
+        g.meteors[0].active = true
+        g.meteors[0].x = 81
+        g.meteors[0].y = y
+        g.step()
+        assert(g.meteors[0].collided == touches)
+        if (touches) { assert(g.score == 5 && g.ship.phase == ShipPhase.Explosion) }
+        else { assert(g.score == 0 && g.ship.phase == ShipPhase.Normal) }
+        g.step()
+        if (touches) { assert(g.score == 5 && g.ship.phase == ShipPhase.Explosion) }
+        else { assert(g.score == 0 && g.ship.phase == ShipPhase.Normal) }
+    }
 }
 
 test "laser meteor collision uses historical tip and bottom conditions" {

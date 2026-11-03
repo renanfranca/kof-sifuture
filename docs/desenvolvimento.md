@@ -124,8 +124,120 @@ teaches:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
 
-That rule applies to cases within one Kof invocation; the Python loop also
-keeps files independent. The [CLI training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
+## Check and mutate a source file manually
+
+Run the JSON check and complete test suite on both supported project targets:
+
+```bash
+python3 scripts/kof_project.py check --target jvm --json --kof kof
+python3 scripts/kof_project.py check --target js --json --kof kof
+python3 scripts/kof_project.py test --target jvm --kof kof
+python3 scripts/kof_project.py test --target js --kof kof
+```
+
+`kof-mut.json` configures KofMut to use the JVM versions through the same
+wrapper and the `kof` executable resolved from `PATH`. Each complete check or
+test command has a timeout of 30 seconds; `budgetMs: 0` removes only the
+overall evaluation budget. The current explicit scope in
+[`kof-mut-scope.json`](../kof-mut-scope.json) selects the whole `Background.kf` and `Meteor.kf` files. Edit this JSON array to select other
+production `.kf` paths; entries are explicit paths, not globs. KofMut copies
+the configured inputs and evaluates this scope in isolated project copies.
+
+Run these Bash recipes from the **SiFuture checkout root**, invoking the
+`kof-mut` executable resolved from `PATH`. The installed KofMut changes only
+when `./install.sh` is run again from an updated KofMut checkout; selecting
+another compatible `kof` on `PATH` does not update KofMut itself. The first recipe captures
+stdout, stderr and the native process exit in `<run_id>.exit` under
+`.agent/tmp/kof-mut-runs/`, and places the report beneath
+`.agent/tmp/kof-mut-reports/`. Each invocation gets a new UUID. Keep
+`run_id` in the interactive shell for the later inspection:
+
+```bash
+if run_id=$(python3 -c 'import uuid; print(uuid.uuid4())'); then
+  (
+    mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports || exit 2
+    exec 3> ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    exec 4> ".agent/tmp/kof-mut-runs/$run_id.stderr" || exit 2
+    if kof-mut run \
+      --project "$PWD" \
+      --files "$PWD/kof-mut-scope.json" \
+      --config kof-mut.json \
+      --report-dir "$PWD/.agent/tmp/kof-mut-reports" \
+      --run-id "$run_id" >&3 2>&4; then
+      exit_code=0
+    else
+      exit_code=$?
+    fi
+    exec 3>&- 4>&- || exit 2
+    printf '%s\n' "$exit_code" > ".agent/tmp/kof-mut-runs/$run_id.exit" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stderr" >&2 || exit 2
+    printf 'exit=%s run_id=%s\n' "$exit_code" "$run_id" || exit 2
+    exit "$exit_code"
+  )
+else
+  (exit 2)
+fi
+```
+
+The parentheses run `exit` in a subshell: the interactive terminal remains
+available. After presenting the evidence, the recipe returns the native
+code saved in `.exit`, including a rejection. Its own failure to prepare,
+save, read or present necessary evidence returns 2 instead. `.exit` records
+the KofMut result; it does not replace checking the recipe's final `$?`.
+
+Read only the report path announced by this invocation's `reportPath=` line.
+Decode the value as JSON (it is a JSON string, so do not strip quotes by
+hand), then inspect that file. For example, with Python and `jq` installed:
+
+```bash
+(
+  [ -n "${run_id:-}" ] || exit 2
+  exit_code=$(cat ".agent/tmp/kof-mut-runs/$run_id.exit") || exit 2
+  case "$exit_code" in ''|*[!0-9]*) exit 2 ;; esac
+  [ "$exit_code" -le 255 ] || exit 2
+  report_path=$(python3 -c 'import json,sys; lines=[line for line in sys.stdin if line.startswith("reportPath=")]; assert len(lines)==1; path=json.loads(lines[0][len("reportPath="):]); assert isinstance(path,str) and path; print(path)' \
+    < ".agent/tmp/kof-mut-runs/$run_id.stdout") || exit 2
+  jq -e -s --arg run_id "$run_id" \
+    'select(length == 1) | .[0] | select(.runId == $run_id) | {runId, scope, baseline, counts, status}' "$report_path" || exit 2
+  exit "$exit_code"
+)
+```
+
+Inspection also returns the recorded native code after displaying the
+report; a missing/invalid exit record, failed report discovery, mismatched
+`runId`, or failed reading/presentation returns 2. In the same terminal,
+`printf '%s\n' "$?"` immediately after either recipe shows that recipe's
+result. Preserve previous files; neither recipe searches for or deletes them.
+
+Do not use a fixed `report.json` path or search for the newest report. The
+announced path identifies this invocation; its final JSON and exit code must
+agree. A `complete` result with exit 0 means all applicable mutations were
+detected for this scope. `complete` with exit 1 means at least one survived
+and fails quality acceptance. `baseline_failed` or `error` with exit 2 is
+unavailable/rejected; `incomplete`, `no_scope` or `no_mutants` with exit 3
+does not approve quality. Inspect survivors on their merits; do not invent a
+requirement or add an artificial test just to eliminate one.
+
+The [Meteor acceptance record](../.agent/validation/sensors-adoption.md#meteor-survivor-acceptance)
+classifies every previously surviving mutant. Initial `active` and `collided`
+values are equivalent only in the `Game` flow that resets meteors before use;
+two vertical boundary changes preserve contact for the game's dimensions.
+These four mutants remain raw `Survived` results: the broader scope therefore
+returns `complete` with exit 1 even after the identified coverage gaps are
+closed. The documented equivalences do not suppress mutants or change this
+process result into `complete/0`.
+
+The permanent catalog currently contains one Kof suite. Compatibility with
+two independent suite files and all 115 cases was verified in disposable
+copies using the KofMut sources identified in the
+[acceptance record](../.agent/validation/sensors-adoption.md#kofmut-timeout-acceptance).
+KofMut validates each complete invocation and accumulates cases and failures
+across files. Keep all suite files in the test command; incomplete or
+contradictory output cannot approve the baseline or detect a mutation.
+
+A failed case does not stop other cases within a Kof invocation; the Python
+loop also keeps suite files independent. The [CLI training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
 documents `kof test` and `--target`; the wrapper prepares sources before
 calling that tool.
 

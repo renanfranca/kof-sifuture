@@ -93,6 +93,22 @@ facts, future plans, and hypotheses.
   that makes their purpose clear.
 - Apply these rules to application code, tests, and fixtures.
 
+## Test-driven development
+
+- When behavior is implemented test-first, invoke the
+  `tdd-behavior-autonomous-quiet` skill rather than only reading it.
+- Each red must fail for the reason of the behavior under test. Order
+  assertions so that an incidental check, such as a schema version, cannot
+  stop the test first, and record the expected and observed failure in the
+  acceptance record.
+- Keep one behavior per cycle. When an existing test must change with the
+  same contract, record that choice explicitly.
+- The comment rules in "Code readability" take precedence over the skill:
+  do not write `[TEST]` intent comments. Keep pending intents outside the
+  code, in the execution plan or the session task list.
+- Quiet output applies during cycles. Final summaries and acceptance records
+  still follow "Explain with visible evidence and teach the concept".
+
 ## Validation records and local evidence
 
 - Keep concise acceptance records in `.agent/validation/` under version

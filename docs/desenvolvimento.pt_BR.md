@@ -112,8 +112,121 @@ ensina:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
 
-Essa regra cobre os casos dentro de uma invocação Kof; o laço Python conserva
-também a independência entre arquivos. O [training do CLI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
+## Conferir e mutar um arquivo manualmente
+
+Execute o check JSON e a suíte completa nos dois alvos do projeto:
+
+```bash
+python3 scripts/kof_project.py check --target jvm --json --kof kof
+python3 scripts/kof_project.py check --target js --json --kof kof
+python3 scripts/kof_project.py test --target jvm --kof kof
+python3 scripts/kof_project.py test --target js --kof kof
+```
+
+`kof-mut.json` configura o KofMut para usar as versões JVM pelo mesmo wrapper
+e o executável `kof` resolvido no `PATH`. Cada comando completo de check ou
+teste tem timeout de 30 segundos; `budgetMs: 0` remove apenas o orçamento total
+da avaliação. O escopo explícito atual em
+[`kof-mut-scope.json`](../kof-mut-scope.json) seleciona os arquivos inteiros `Background.kf` e `Meteor.kf`. Edite esse array JSON para escolher outros
+caminhos de produção `.kf`; são caminhos explícitos, sem glob. O KofMut copia
+as entradas configuradas e avalia o escopo em cópias isoladas do projeto.
+
+Execute estas receitas Bash na **raiz do checkout do SiFuture**, invocando o
+executável `kof-mut` resolvido no `PATH`. O KofMut instalado só muda quando
+`./install.sh` é executado de novo a partir de um checkout atualizado do KofMut;
+escolher outro `kof` compatível no `PATH` não atualiza o próprio KofMut. A primeira receita guarda
+stdout, stderr e o código nativo do processo em `<run_id>.exit` sob
+`.agent/tmp/kof-mut-runs/`, e coloca o relatório sob
+`.agent/tmp/kof-mut-reports/`. Cada chamada recebe um UUID novo. Mantenha
+`run_id` no shell interativo para a inspeção posterior:
+
+```bash
+if run_id=$(python3 -c 'import uuid; print(uuid.uuid4())'); then
+  (
+    mkdir -p .agent/tmp/kof-mut-runs .agent/tmp/kof-mut-reports || exit 2
+    exec 3> ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    exec 4> ".agent/tmp/kof-mut-runs/$run_id.stderr" || exit 2
+    if kof-mut run \
+      --project "$PWD" \
+      --files "$PWD/kof-mut-scope.json" \
+      --config kof-mut.json \
+      --report-dir "$PWD/.agent/tmp/kof-mut-reports" \
+      --run-id "$run_id" >&3 2>&4; then
+      exit_code=0
+    else
+      exit_code=$?
+    fi
+    exec 3>&- 4>&- || exit 2
+    printf '%s\n' "$exit_code" > ".agent/tmp/kof-mut-runs/$run_id.exit" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stdout" || exit 2
+    cat ".agent/tmp/kof-mut-runs/$run_id.stderr" >&2 || exit 2
+    printf 'exit=%s run_id=%s\n' "$exit_code" "$run_id" || exit 2
+    exit "$exit_code"
+  )
+else
+  (exit 2)
+fi
+```
+
+Os parênteses executam `exit` em um subshell: o terminal interativo continua
+disponível. Após apresentar as evidências, a receita devolve o código nativo
+salvo em `.exit`, inclusive uma reprovação. Uma falha própria ao preparar,
+salvar, ler ou apresentar evidência necessária devolve 2. `.exit` registra o
+resultado do KofMut; ele não substitui conferir o `$?` final da receita.
+
+Leia somente o caminho de relatório anunciado pela linha `reportPath=` desta
+chamada. Decodifique o valor como JSON (ele é uma string JSON; não remova as
+aspas manualmente) e então inspecione esse arquivo. Exemplo com Python e `jq`:
+
+```bash
+(
+  [ -n "${run_id:-}" ] || exit 2
+  exit_code=$(cat ".agent/tmp/kof-mut-runs/$run_id.exit") || exit 2
+  case "$exit_code" in ''|*[!0-9]*) exit 2 ;; esac
+  [ "$exit_code" -le 255 ] || exit 2
+  report_path=$(python3 -c 'import json,sys; lines=[line for line in sys.stdin if line.startswith("reportPath=")]; assert len(lines)==1; path=json.loads(lines[0][len("reportPath="):]); assert isinstance(path,str) and path; print(path)' \
+    < ".agent/tmp/kof-mut-runs/$run_id.stdout") || exit 2
+  jq -e -s --arg run_id "$run_id" \
+    'select(length == 1) | .[0] | select(.runId == $run_id) | {runId, scope, baseline, counts, status}' "$report_path" || exit 2
+  exit "$exit_code"
+)
+```
+
+A inspeção também devolve o código nativo registrado após mostrar o relatório;
+registro de saída ausente/inválido, falha na descoberta do relatório,
+`runId` divergente ou falha de leitura/apresentação devolve 2. No mesmo
+terminal, `printf '%s\n' "$?"` imediatamente após cada receita mostra seu
+resultado. Preserve os arquivos anteriores; nenhuma receita os procura ou apaga.
+
+Não use um caminho fixo `report.json` nem procure o relatório mais recente. O
+caminho anunciado identifica esta chamada; o JSON final e o código de saída
+precisam concordar. Um resultado `complete` com código 0 significa que todas
+as mutações aplicáveis foram detectadas neste escopo. `complete` com código 1
+significa que pelo menos uma sobreviveu e reprova a aceitação de qualidade.
+`baseline_failed` ou `error` com código 2 é indisponível/reprovado;
+`incomplete`, `no_scope` ou `no_mutants` com código 3 não aprova qualidade.
+Analise sobreviventes pelo mérito; não invente requisito nem adicione teste
+artificial apenas para eliminá-los.
+
+O [aceite de Meteor](../.agent/validation/sensors-adoption.md#meteor-survivor-acceptance)
+classifica cada sobrevivente anterior. Os valores iniciais de `active` e
+`collided` são equivalentes somente no fluxo de `Game` que reinicia meteoros
+antes do uso; duas alterações de limite vertical preservam o contato com as
+dimensões do jogo. Esses quatro mutantes continuam como `Survived` no relatório
+bruto: o escopo ampliado retorna `complete` com código 1 mesmo após fechar as
+lacunas de cobertura identificadas. As equivalências documentadas não suprimem
+mutantes nem convertem esse resultado do processo em `complete/0`.
+
+O catálogo permanente atualmente contém uma suíte Kof. A compatibilidade
+com dois arquivos independentes e todos os 115 casos foi verificada em
+cópias descartáveis usando as fontes do KofMut identificadas no
+[registro de aceite](../.agent/validation/sensors-adoption.md#kofmut-timeout-acceptance).
+O KofMut valida cada invocação completa e acumula casos e falhas entre os
+arquivos. Mantenha todos os arquivos de suíte no comando de teste; saída
+incompleta ou contraditória não aprova a baseline nem detecta uma mutação.
+
+Uma falha em um caso não interrompe os outros casos da mesma invocação Kof;
+o laço Python conserva também a independência entre arquivos. O [training do CLI](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/tooling/cli.md)
 documenta `kof test` e `--target`; o wrapper organiza as fontes antes de chamar
 essa ferramenta.
 

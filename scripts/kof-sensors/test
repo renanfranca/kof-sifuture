@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+module = Path(__file__).resolve().parent
+kof = shutil.which(os.environ.get('KOF', 'kof'))
+if not kof:
+    raise SystemExit('Kof executable unavailable; select KOF or PATH')
+jar = Path(os.environ.get('KOF_JAR', str(Path(kof).resolve().parent.parent / 'lib/kof.jar'))).resolve()
+if not jar.is_file():
+    raise SystemExit(f'Official Kof jar unavailable: {jar}')
+raise SystemExit(subprocess.call(['mvn', '-f', str(module / 'pom.xml'), f'-Dkof.jar={jar}', 'test', *sys.argv[1:]],
+                                 env={**os.environ, 'KOF': kof}))

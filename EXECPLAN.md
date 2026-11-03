@@ -992,3 +992,465 @@ Inventário confirmado: onze checks locais (Kof JVM/JS, sete jornadas Chrome, Py
 ### Checkpoint e revisão do foco do menu
 
 No SHA `9643f4e5ddb104334bfe43f83603781cf58ea8cd`, os onze checks passaram em461,82s: Kof JVM/JS114 testes por alvo, sete jornadas Chrome,8 testes Python e contrato CI. Resultados por critério, trechos, identidade, limitações e auditorias constam do aceite de controles. Duas sondas negativas nas cópias temporárias rejeitaram retenção encerrada na soltura e movimento após blur. Revisão estrutural no mesmo contexto: nenhum refactor necessário. A documentação do aceite será comprometida antes do gate final, que repete o inventário sobre o commit final; resultados finais e CI serão consolidados no ledger e PR.
+
+
+## Continuidade M1 dos sensores — 25/10/2026
+
+### Purpose and success
+
+Implementar o M1 aprovado: frontend oficial e CPD 7.17.0, check confiável e calibração medida com triagem de design. Não ativar sensores nem refatorar o jogo para contagens.
+
+### Context and limits
+
+Base `82111142c85f98b970ccd65fbf044e492d017729`, checkout inicialmente limpo, branch `sensor-calibration-m1`. KofMut fixado em `a40b20ac37afac302efc2a0dae7702e44720e166`; Kof instalado 0.6.6. Trabalho no checkout atual, sem workers, commits, PRs ou publicação. O histórico acima é preservado integralmente.
+
+### Milestones
+
+1. Conferir dependência em árvores descartáveis e registrar identidade, relatórios, exits e hashes.
+2. Acrescentar testes comportamentais antes do check em `scripts/kof_project.py` e do módulo Maven em `scripts/kof-sensors/`; provar métricas e CPD com limites literais e erros explícitos.
+3. Medir todo `src/main/kof` e `src/test/kof`; publicar inventário, distribuições, propostas e triagem em `.agent/validation/sensor-calibration.md`, aceitação em `sensors-adoption.md`.
+
+### Progress
+
+- [x] Fontes, histórico e ambiente inicial consultados; hashes de preservação capturados.
+- [x] KofMut detectado/sobrevivente e check JVM/JS comprovados.
+- [x] Métricas, CPD e calibração com triagem concluídos.
+
+### Validation
+
+Executar `python3 -m unittest discover -s tests -p 'test_*.py'`, `mvn -f scripts/kof-sensors/pom.xml test`, checks JSON e testes Kof JVM/JS pelo wrapper. Os critérios do plano aprovado exigem validar separadamente a expectativa e a suficiência das assertions: imports com erro, JSON/contagens inválidos, leitura e limpeza, nested functions, limites 19/20, clones 50 tokens/5 linhas e preservação de bytes. Registrar comando, resultado, assertion e lacunas por critério. M2–M5 e S1–S3 continuam pendentes.
+
+### Resultado observado do M1
+
+M1 concluído sobre a base registrada mais alterações locais não commitadas: 14 testes Python e 12 testes Maven aprovados; checks JSON JVM/JS aprovados; 114 testes Kof por alvo sem falhas. Provas adicionais: import com erro/restauração, leitura negada pelo sistema, JSON/contagens/exits inválidos, limpeza dos temporários, contagem/localização de funções aninhadas e clones no limite exato 50 tokens/5 linhas, com controles de 49 tokens/4 linhas. KofMut complete/0/Killed e complete/1/Survived em cópias descartáveis, UUID/baseline/contagens/hashes conferidos.
+
+Inventário: 25 arquivos esperados/analisados/tokenizados, 321 unidades e 45.443 tokens, sem falhas, 17 grupos CPD. Propostas de limites 150/25/16/4/3/17 (arquivo/função/complexidade/parâmetros/profundidade/statements), com provas do inteiro anterior e regra de menos de vinte findings. Os 5 findings de arquivo e 10 de função têm triagem completa; propostas não aprovam dívida. [Calibração e inventário](.agent/validation/sensor-calibration.md) e [aceitação por critério](.agent/validation/sensors-adoption.md) conservam resultados e limites sem depender dos logs opcionais.
+
+Os 44 arquivos originais em src/tests mantêm hashes, incluindo toda fonte e suíte do jogo. Esta continuidade e a atualização do plano externo são acrescentadas preservando os bytes históricos. M2–M5, S1–S3, ativação, novas jornadas de navegador e meta de desempenho histórica não estão concluídos por este marco. Não houve alteração de guia/severidade, refactor do jogo, worktree, worker, commit, PR ou publicação.
+
+## Continuidade: assinaturas compostas e chamadas internas em construtores
+
+### Purpose and success
+
+Corrigir as duas regressões remanescentes observadas na revisão de `0f8de0670a57027145019305220d10fe8964ef65`: reconstrução de tipos de retorno genéricos/de array e localização de construtores cuja implementação chama a própria classe. Preservar os reparos já aceitos, o inventário do jogo, métricas, limites, guias e política de exceções.
+
+### Context and limits
+
+Executar na branch existente `sensor-calibration-m1`, sem worktree, subagentes, commits ou publicação. Usar lexer/parser oficiais e tokens balanceados; não criar gramática paralela. Uma medição sem intervalo determinável deve falhar explicitamente. A política para bloqueios por tamanho permanece no M2. Preservar os registros M1 e a evidência anterior em `.agent/tmp/`.
+
+### Milestones
+
+1. Acrescentar casos comportamentais públicos para as 12 combinações de `Int`, `List<Int>` e `Int[]`, retorno antes/depois dos parâmetros e cabeçalho em uma/duas linhas, além da chamada recursiva ao construtor e suas formas nomeadas. Validar os exemplos Kof com `check --target jvm --json`.
+2. Ajustar `Spans.java` para reconstruir o tipo de retorno como sufixo integral dos tokens da assinatura e delimitar o cabeçalho do construtor antes do corpo. Manter os testes anteriores de spans, JSON, declarações multilinha, construtores simples e falha explícita.
+3. Executar validação Python, Maven, check/test Kof JVM/JS e inventário SiFuture; comparar por arquivo/unidade contra 25 arquivos, 321 unidades, 45.443 tokens e 17 grupos CPD. Reconciliar este plano, o plano externo dos sensores e os registros de adoção/calibração com comandos, resultados, identidade dos bytes e gaps.
+
+### Progress
+
+- [x] Reproduzir primeiro as regressões em testes comportamentais e registrar a prova RED.
+- [x] Corrigir a localização sem alterar APIs, fontes do jogo, limites ou exceções.
+- [x] Reexecutar os gates e reconciliar os dois planos e os registros de aceitação.
+
+### Validation
+
+Executar `python3 -m unittest discover -s tests -p 'test_*.py'`, `mvn -f scripts/kof-sensors/pom.xml test`, `python3 scripts/kof_project.py check --target jvm --json`, o mesmo para JS, `python3 scripts/kof_project.py test --target jvm`, o mesmo para JS e `scripts/kof-sensors/run .`. Espera-se zero exits não nulos; check aprovado; testes completos sem falhas; inventário estável por arquivo e unidade. Guardar logs e comparações em diretório novo `.agent/tmp/`; registrar SHA de base e hash do jar carregado. Se o inventário mudar, explicar cada mudança com prova independente, sem ajustar expectativas para obter sucesso.
+
+### Resultado observado
+
+Provas RED: o teste da matriz falhou ao medir `List<Int>` com “Cannot locate declaration”; os testes dos construtores explícito e nomeado localizaram linha 3 em vez da declaração na linha 2. Com as correções, os três testes focados passaram. O check oficial aceitou as 12 assinaturas no JVM e JS; análise CLI com escopo explícito encontrou os 12 métodos e ambos os construtores recursivos, sem falhas. Construtores medem linhas 22–24 e 27–29 no probe, cada um com complexidade 2, um parâmetro, profundidade 1 e dois statements; `main` conserva linhas 31–34.
+
+Na branch `sensor-calibration-m1`, base de revisão `0f8de0670a57027145019305220d10fe8964ef65`, identidade efetivamente carregada: Kof 0.6.6, jar `/home/renanfranca/.local/share/kof/kof-0.6.6-linux-x86_64/lib/kof.jar`, SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`; fontes Kof consultadas em `7c237861a9035d84b1f7ec4cfddd89daef4c6ddd`; KofMut `a40b20ac37afac302efc2a0dae7702e44720e166`, checkout limpo e sem alteração. Java Temurin 25.0.2; Maven 3.9.5.
+
+Validação final: 16 testes Python; 18 testes Maven; checks wrapper JVM/JS com exit 0, `success=true`, uma entrada e zero ERROR; 114 testes Kof em cada alvo; inventário com 25/25 arquivos, 25 tokenizados, 321 unidades, 45.443 tokens, zero falhas e 17 grupos CPD. Comparação integral por arquivo/unidade com `.agent/tmp/sensors-m1-repair-20261025/inventory.json`: nenhuma chave adicionada/removida, nenhuma métrica alterada. O plano externo canônico recebeu seção append-only em `/home/renanfranca/.agents/skills/_temporary/codex-skills-ai-context/2026-10-15_FEATURE_sifuture-quality-sensors-exec-plan.md`; seu prefixo anterior está preservado no snapshot em `.agent/tmp/sensors-m1-repair-20261025-continuation/`. Os logs, probe, checksums e comparação desta continuidade estão no mesmo diretório.
+
+As regressões de localização estão corrigidas para os 12 formatos testados e para chamadas recursivas nos dois estilos de construtor. A prova não promete cobrir formas sintáticas futuras não representadas; elas continuam exigindo casos próprios. M2–M5 e S1–S3, ativação dos sensores e a decisão sobre bloqueios por tamanho continuam pendentes. Não houve mudança em fontes/suítes do jogo, métricas, limites, guias ou exceções; não houve worktree, subagente, commit ou publicação.
+
+## Continuidade: validação do compilador na matriz de construtores — 25/10/2026
+
+Na revisão `47854206fab1c8868b3294062b1a198bf81e0f67`, a matriz de 12 combinações media fontes válidas e inválidas sem distingui-las pelo frontend oficial. Agora cada fonte é escrita uma vez, verificada com `kof check --target jvm --json` e `kof check --target js --json`, e passada sem transformação a `Analyzer.measure`. As chamadas internas usam `new Box(value)` quando a assinatura declara `Int value` e `new Box()` quando a assinatura não recebe parâmetros.
+
+RED/GREEN: antes da correção, os dois exemplos parametrizados com corpo que construía `new Box()` falharam nos dois alvos com `SEM023`, “no constructor of 'Box' with 0 argument(s) (expected 1)”. As outras dez fontes foram aceitas em ambos os alvos. Depois do ajuste, as 12 fontes passaram nos dois alvos, com exit 0, `success=true`, `errorCount=0` e nenhum diagnóstico ERROR. O teste Maven falha se qualquer execução contrariar esse contrato.
+
+As expectativas da matriz seguem literais: início na linha 2, coluna 5; término nas linhas 2, 4 ou 5 conforme o corpo; 1, 3 ou 4 linhas contadas; parâmetros 0/1; complexidade 1/2; profundidade 0/1; statements 0/1/3. No cenário com dois construtores e `main`, o teste exige exatamente três unidades e confirma os intervalos próprios: construtor principal 2–5, auxiliar 6–6 e `main` 8–8. Assinaturas compostas, funções aninhadas/lambdas, erros explícitos e duplicação seguem na suíte aprovada.
+
+Validação em `sensor-calibration-m1`, base revisada `47854206fab1c8868b3294062b1a198bf81e0f67`, com alterações locais preservadas: 16 testes Python, 21 testes Maven, checks gerais Kof JVM/JS com `success=true` e zero erros, 114 casos Kof por alvo sem falhas, inventário dos sensores aprovado. A medição ficou idêntica por arquivo e unidade à calibração anterior: 25 arquivos, 321 unidades, 45.443 tokens e 17 grupos CPD, sem falhas nem métricas alteradas.
+
+O frontend carregado permanece Kof 0.6.6, jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`. KofMut continua limpo na revisão `a40b20ac37afac302efc2a0dae7702e44720e166`; sua qualificação anterior foi reutilizada. A gramática local do Kof exige bloco no construtor explícito (`constructor-declaration = ... , block`); construtores explícitos sem corpo continuam fora da sintaxe implementada e não foram acrescentados a este reparo. Consulte [aceitação continuada](.agent/validation/sensors-adoption.md#continuidade-compilador-e-medição-da-matriz-de-construtores--25102026) e [calibração](.agent/validation/sensor-calibration.md#continuidade-da-verificação-oficial-da-matriz-de-construtores--25102026).
+
+Esta entrega conclui a medição e sua verificação. Não instala gatilhos, não ativa sensores e não transforma contagens em bloqueios. M2–M5 e S1–S3 permanecem pendentes.
+
+### Retificação documental: construtor explícito sem corpo
+
+Esta retificação substitui a afirmação imediatamente acima de que a gramática local exige bloco e de que construtores explícitos sem corpo estão fora da sintaxe implementada. A produção consultada em `grammar.md` realmente inclui `block`, mas o próprio documento se apresenta como descrição extrativa do parser real, não como especificação que o parser segue. A evidência local `.agent/tmp/sensors-measurement-closeout-review-2v71lv9r/documentation-discrepancy.txt` mostra `kof check` aceitando `constructor()` sem corpo em JVM e JS (`success=True`, `errorCount=0`), enquanto o sensor falha com `Cannot locate constructor body end for Box`. Check comprova aceitação/checagem, não execução; a intenção dessa aceitação pelo Kof permanece indeterminada. O Kof instalado segue na versão 0.6.6 e no SHA-256 registrado. A documentação oficial do Kof não foi alterada.
+
+## Continuidade: uso manual do KofMut — 26/10/2026
+
+### Purpose and success
+
+Preparar configuração, instruções bilíngues e aceitação para executar manualmente `check`, testes e mutação no SiFuture. O medidor de linhas/complexidade segue disponível à consulta manual; nenhum sensor ou gatilho automático será ativado.
+
+### Context and limits
+
+Usar KofMut do checkout `/home/renanfranca/projects/kof-mut`, revisão `a40b20ac37afac302efc2a0dae7702e44720e166`, sem atualização automática, e o `kof` efetivo do PATH através de `scripts/kof_project.py`. Mutação roda no alvo JVM; as verificações comuns cobrem JVM e JS. Reportar separadamente integração operacional e aprovação de qualidade. Nenhum wrapper de relatórios, hook, alteração em fonte/teste Kof do jogo, commit ou publicação faz parte deste marco.
+
+### Milestones
+
+1. Criar `kof-mut.json`, arquivo de escopo com caminho explícito e excluir `.agent/tmp/` localmente exatamente uma vez. Validar a configuração e escopo com a CLI fixada.
+2. Atualizar `docs/desenvolvimento.md` e `docs/desenvolvimento.pt_BR.md` com comandos atuais de check/test, execução manual, captura de saída/erro/exit e leitura somente do `reportPath` anunciado.
+3. Executar checks/testes JVM e JS e unittest Python; validar resultados KofMut detected/survived e baselines falhos em cópias descartáveis; executar o arquivo `Background.kf` completo no checkout real e conferir identidade, contagens, resultado e hashes de preservação.
+4. Atualizar a decisão preexistente e o registro de aceite com evidência por critério, incluindo a limitação de múltiplos resumos que o leitor atual de KofMut rejeita.
+
+### Progress
+
+- [x] Configuração, escopo e guia bilíngue prontos.
+- [x] Provas descartáveis e execução real concluídas.
+- [x] Expectativa, suficiência de prova, hashes, registros e lacunas auditados.
+
+### Validation
+
+Executar `python3 scripts/kof_project.py check --target jvm --json --kof kof` e JS; `python3 scripts/kof_project.py test --target jvm --kof kof` e JS; `python3 -m unittest discover -s tests -p 'test_*.py'`; duas provas canônicas (`sum(2, 3) == 5` detectada e `sum(5, 0) == 5` sobrevivente); erro de fonte e falha de teste separados com `baseline_failed/2`; mutação de `Background.kf` inteiro usando a configuração entregue. Espera-se preservar fontes/testes originais, UUID/escopo/baseline/contagens coerentes e correspondência entre relatório atual e exit code. Cada critério não demonstrado permanece pendente. Logs/relatórios locais ficam em `.agent/tmp/`.
+
+### Resultado observado
+
+Na branch `sensor-calibration-m1`, base `373ad9eaf99dbb3171a6503f630c23d2124a17bc` mais alterações deste marco, checkout inicialmente limpo. KofMut 0.1.0 permaneceu limpo em `a40b20ac37afac302efc2a0dae7702e44720e166`; Kof do PATH `/home/renanfranca/.local/bin/kof`, versão 0.6.6. A exclusão Git local `/.agent/tmp/` aparece exatamente uma vez.
+
+Checks JSON JVM/JS: ambos exit 0, `success=true`, `filesChecked=1`, `errorCount=0`. Testes JVM/JS: ambos 114/114, zero falhas e exit 0. `python3 -m unittest discover -s tests -p 'test_*.py'`: 16 testes, `OK`, exit 0. A suíte Kof atual é `GameJourney.kf`.
+
+| Critério | Procedimento e resultado observado | Auditoria e limite |
+| --- | --- | --- |
+| Alteração detectada | Fixture oficial `detected`, `sum(2, 3) == 5`: baseline passou, 1 caso/0 falhas, 1 candidato `Killed`, `complete/0`, UUID `4395f5d1-a0f9-462c-b883-6658a3cab362` | Assertion distingue `+` de `-`; prova uma mutação aritmética, não cobertura geral |
+| Alteração sobrevivente | Fixture oficial `survived`, `sum(5, 0) == 5`: baseline passou, 1 candidato `Survived`, `complete/1`, UUID `98586243-38ab-4165-9c9a-3ddd1b459607` | Demonstra que sobrevivente reprova; não justifica requisito ou teste artificial |
+| Erro de fonte | Expressão incompleta em cópia descartável: `baseline_failed/2`, check 1, teste não iniciado, zero mutantes, UUID `411d1e33-d4d3-4e37-9ee6-fae65814a1ce` | Falha de pré-requisito impede avaliar qualidade |
+| Teste reprovado | Assertion falsa em cópia inicialmente aprovada: check 0, teste 1 (1 executado/1 falho), `baseline_failed/2`, zero mutantes, UUID `1ea0d261-2a87-4255-b140-758c8903b25d` | Baseline de teste reprovado impede mutantes |
+| Integração real | Arquivo inteiro `Background.kf`: check JVM 0, 114 testes/0 falhas, 1 candidato aritmético `+`→`-`, linha 8 coluna 34, `Killed`, `complete/0`, UUID `3e698919-faaa-4ff4-9716-a62a09230bd3` | SHA-256 do JSON `9f3addc040deb5bc0a43176c0c6018ebbd14a12231ab75df7547756d7c50ca19`; integração e aprovação somente deste arquivo/execução, não de todo `src/main/kof` |
+| Identidade/preservação | UUID, scope, baseline, contagens, exits e relatório corrente reconciliados; KofMut limpo; 25 hashes de fontes/testes Kof iguais antes/depois | SHA-256 do manifesto ordenado antes/depois igual a `e3fe68ce7f029ad791bbf15253e17f4b285bbc6121b5179be042eec91e1a5676`; hashes cobrem arquivos `.kf`; evidência bruta opcional em `.agent/tmp/kof-mut-acceptance/` e `.agent/tmp/kof-mut-runs/` |
+
+A [aceitação](.agent/validation/sensors-adoption.md#continuidade-kofmut-manual--26102026) conserva critério, resultado e suficiência sem depender dos logs locais. Limitação: o wrapper emite um resumo final por arquivo de suíte; o leitor atual do KofMut rejeita um segundo. O catálogo presente tem uma suíte e passou inteiro. Se crescer, provar compatibilidade sem omitir suítes. A ferramenta funciona e `Background.kf` foi aprovado nesta avaliação; isso não instala gatilhos nem ativa sensores. O medidor continua disponível para consulta manual. M2–M5 e S1–S3 permanecem pendentes. Sem worktree, subagentes, commit, PR ou publicação.
+
+
+## Continuidade: correção da receita manual e fechamento do aceite — 26/10/2026
+
+### Escopo e decisão
+
+Entrega documental sobre `4e7d03f9f2f3fa5ef9e3e5549a5be9f06616ba51`, branch `sensor-calibration-m1`. Preservados como prefixo todos os registros anteriores. Corrigir os dois guias e complementar o aceite com as provas da configuração real já existentes; compatibilidade do KofMut com vários arquivos de suíte continua como trabalho separado. Não alterar configuração, escopo, manifesto, wrapper, fontes ou testes do jogo. Nenhum commit ou publicação faz parte desta entrega.
+
+### Progresso e validação concluídos
+
+- [x] Receitas Bash bilíngues executadas da raiz SiFuture, chamando o KofMut externo; UUID mantido no shell pai, stdout/stderr/exit persistidos por chamada, retorno explícito dentro de subshell nas duas receitas e falhas próprias com código 2.
+- [x] Quatro blocos relevantes extraídos literalmente dos guias e executados com comando controlado, sem avaliação de mutação: códigos 0/1/2/3 preservados no arquivo `.exit` e no retorno das duas receitas, inclusive depois de apresentação bem-sucedida. Verificados também 42/130/143.
+- [x] Falhas reais de permissão e `/dev/full`, falhas de leitura/apresentação, registros inválidos, relatório ausente/vazio/duplicado e identidade divergente devolvem 2. Arquivos antigos preservados, incluindo relatório antigo com data futura; apenas o caminho anunciado é consultado.
+- [x] Oito sessões interativas Bash 5.1.16 com pseudoterminal, códigos 0/1/2/3 em ambos os idiomas: shell vivo, `run_id` preservado e leitura posterior de `.exit` comprovados.
+- [x] Expectativas auditadas independentemente das provas. Sete controles defeituosos: trechos antigos e retirada do `exit` final devolvem 0 para nativo 1; ignorar falha de `cat` ou aceitar relatório vazio devolve 0 em vez de 2; `exit` no shell pai impede o marcador posterior. Não foi criada uma suíte versionada.
+- [x] Conferidas as identidades das quatro provas reais de `.agent/tmp/kof-mut-manual-review-2isv6v_u/results.json`, incluindo configuração SHA-256 `2e24df1360b021bbf30d4cf4f7fdcdcf1cec202d601a45b018c61b65d8fda9bd`, UUIDs, relatório anunciado, contagens e logs. Detecção `0da16a7a-4738-42ff-a196-611c0c9761b4`: complete/0, 1 Killed; sobrevivência `51a4b838-0692-4fae-8857-560d2f49a564`: complete/1, 1 Survived; ambos baseline 115/0. Fonte inválida `9ef127fe-f978-4d92-9206-b7576ba007b5` e teste falho `048023bb-fcc7-476b-b747-c0d9c7f2519a`: baseline_failed/2 e zero mutantes. Provas reutilizadas, sem nova avaliação de mutação.
+- [x] Confirmada a limitação de duas suítes: `27732709-5293-4cf9-bb99-16d10b5371b4`, 115 testes/0 falhas e exit 0 no comando normal e na fase de teste, mas KofMut baseline_failed/2, “Invalid or incomplete test protocol”. Aprovação dos testes não equivale à aceitação de seu protocolo. A compatibilidade permanece aberta; não omitir suítes para contornar a falha.
+
+Comandos executados: `python3 .agent/tmp/kof-mut-recipe-fix-20261026/verify_recipes.py` (exit 0; 138 observações, das quais 42 preparações e 96 verificações do contrato); `bash -n` em todos os 16 blocos Bash dos dois guias (8 por idioma, exit 0); `python3 /home/renanfranca/.agents/skills/restructure-documentation/scripts/check_markdown_links.py docs/desenvolvimento.md docs/desenvolvimento.pt_BR.md` (exit 0); conferência dos links novos dos registros e dos 21 destinos externos dos guias (HTTP 200, linhas citadas existentes); `git diff --check` (exit 0). Os blocos correspondentes são idênticos em ambos os idiomas: SHA-256 execução `f7df764e0dbece0acf698dbcdab2ad6c512563838dd9796d9a8e8832b0652695`, inspeção `11c97fb386e39860a69e87a1da1ad5422439f6e0c11711bc47fa28aac6353834`, incluindo quebra de linha final.
+
+O [aceite complementar](.agent/validation/sensors-adoption.md#kofmut-manual-recipe-acceptance) contém resultados essenciais, UUIDs, hashes dos cinco relatórios, auditoria por critério e limites de proveniência. A identidade permanece KofMut 0.1.0 limpo em `a40b20ac37afac302efc2a0dae7702e44720e166`, Kof 0.6.6 e jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`. As cópias descartáveis da revisão já foram removidas: o aceite distingue a preservação histórica registrada de uma comparação nova que não seria possível repetir sobre essas cópias.
+
+Preservação desta entrega: 49 arquivos de configuração/escopo/manifesto/wrapper/src/tests comparados byte a byte com a base, sem mudanças; manifesto ordenado SHA-256 `3aa5364846a284d6741d73e75677cb26a11e8be7d4b93a46cf8a285256d3396f`. Todos os 200 arquivos rastreados fora dos quatro arquivos autorizados permanecem idênticos. Prefixos históricos dos dois planos e do aceite conservados. Exclusão local `/.agent/tmp/` exatamente uma vez. Evidência bruta opcional em `.agent/tmp/kof-mut-recipe-fix-20261026/`, sem versionamento. Jogo, navegador e mutação não foram reavaliados porque só documentação e registros mudaram.
+
+Entrega encerrada neste escopo: os exemplos preservam os códigos e o aceite inclui as provas reais e a limitação restante. Continuidade pendente: compatibilidade de vários arquivos de suíte, com prova ponta a ponta usando todas as suítes após o reparo. M2–M5 e S1–S3 continuam pendentes. Sem worktree, subagentes, commit, PR, publicação ou ativação de sensores.
+
+## Continuidade: vários arquivos de teste no KofMut — 26/10/2026
+
+Implementar o plano aprovado de leitura de execuções completas concatenadas no KofMut. O SiFuture recebe somente documentação e aceite; wrapper, configuração, escopo entregue e catálogo permanente permanecem iguais. Base SiFuture dc96b0366eee67b3417d58dbe14a06c66e6651aa, branch sensor-calibration-m1, árvore inicialmente limpa. Base KofMut a40b20ac37afac302efc2a0dae7702e44720e166; correção na branch multiple-test-invocations.
+
+Marcos: reproduzir a falha em testes comportamentais sintéticos no KofMut; corrigir o leitor e executar tag multiple-invocations/check completo; provar a receita manual existente em cópias descartáveis do SiFuture sob .agent/tmp/multiple-invocations/, com configuração real preservada por hash. Exigir 114 casos mais uma segunda suíte de um caso: testes normais 115/0/exit 0 e Background Killed/complete/0. Para cálculo temporário em segundo arquivo, exigir detecção complete/0, sobrevivência complete/1 e baseline_failed/2 com 115 casos. Conferir UUID, reportPath da própria chamada, escopo, contagens, retorno e hashes. Só depois retirar a limitação nos guias EN/PT. Acrescentar aceite sem apagar o histórico.
+
+Estado inicial: provas pendentes. Não instalar gatilhos, ampliar catálogo permanente, modificar compilador, criar worktree/subagente, commit ou publicação. Expectativas e capacidade discriminatória das provas serão auditadas separadamente; resultados anteriores continuam históricos.
+
+Resultado do check completo nesta continuidade: exit 1, 18 testes CLI aprovados e 13 reprovados de 31, 1308389 ms. O script parou antes das suítes Run, Install e frontend. A tag corrigida também retorna 1 por preparação de compatibilidade incompleta antes dos cenários. Há diagnósticos explícitos de prazos de compilação/compatibilidade, mas nem toda assertion reprovada tem causa individual demonstrada; não atribuir todas as falhas ao ambiente. A implementação segue sem aceite público completo. Revisão final preservou 202 arquivos SiFuture protegidos, os prefixos históricos, a configuração SHA-256 2e24df1360b021bbf30d4cf4f7fdcdcf1cec202d601a45b018c61b65d8fda9bd e os dois guias com a limitação. git diff --check passou nos dois repositórios.
+
+## Recuperação anterior ao Luna e nova validação — 26/10/2026
+
+A implementação anterior ao Luna foi reconstruída no KofMut a partir da sessão `01a178d1-f353-7300-ad3f-22c8b5fbbb44`. Os dez arquivos coincidiram com o manifesto histórico antes de aplicar o conjunto. O manifesto e o aceite originais permanecem intactos; o novo suplemento é `.agent/validation/multiple-invocations-recovery.md`, no KofMut, sobre base `a40b20ac37afac302efc2a0dae7702e44720e166`; os bytes entregues serão identificados também pelo novo manifesto. A comparação do Luna foi inválida: as oito cópias usavam o leitor da base. Seus logs foram preservados, sem reutilizar sua comparação como prova.
+
+A recuperação preserva o leitor SHA-256 `5e46e9ce8c6a7f8f951b1a46108eb44442d0bdcde624fdc8aa24d71d6a22fc46`, distinto da base `be118bd66eab68887315bba54f119676ae8f9c31d13a3745e821874b95aafded`. Os inventários completos foram verificados antes de novas rodadas sequenciais, com o mesmo Kof 0.6.6, jar SHA-256 `198bb211dbcefe60bd02f703dff991e82ba55c94f805b1b2b863362757289e58`. Os limites de 10000 ms por comando, 8500 ms por ensaio interno e 90000 ms para preparação foram preservados. A comparação correta também encontrou prazos excedidos; não estabeleceu regressão de desempenho nem causalidade pela carga.
+
+Resultados públicos finais do KofMut: tag `multiple-invocations` aprovada, 3/3 grupos, exit 0; controle isolado corrigido 2/0 contra controle da base 1/1, com falha esperada no grupo válido. Compatibilidade final exit 1, 7/8 reprovados. O check completo retornou 1 no CLI, 19 aprovados/12 reprovados de 31; Run foi então executada inteira, 34/13 de 47, incluindo os três grupos novos aprovados; Install 16/15 de 31; contratos frontend 15 aprovados, exit 0. Todas as suítes foram tentadas, mas isso não aprova o check que parou no CLI. As treze falhas históricas anteriores foram classificadas: oito têm etapa de preparação identificada, cinco não têm etapa individual estabelecida; as causas internas dos diagnósticos antigos não foram todas comprovadas. Nenhuma causa foi atribuída à carga apenas por observação.
+
+### Quatro provas reais com dois arquivos de suíte
+
+As novas cópias partiram do SiFuture `a451d311fe3beb7f37cbfd517aa96bbbb102a14b`. Usaram as receitas Bash existentes e a configuração real SHA-256 `2e24df1360b021bbf30d4cf4f7fdcdcf1cec202d601a45b018c61b65d8fda9bd`, sem omitir suítes. Background usa Extra + GameJourney; os três cálculos usam GameJourney + ZProbe, acrescentados somente às cópias. O catálogo permanente continua com 114 casos.
+
+| Cenário | Testes normais, casos/falhas/exit | Resultado da própria chamada de mutação | Baseline check/test ms | Arquivos da cópia preservados |
+| --- | --- | --- | --- | --- |
+| background | 115/0/0 | incomplete/3, zero mutantes | 7307/10033 | 190, bytes e modos iguais |
+| detected | 115/0/0 | incomplete/3, zero mutantes | 7572/10032 | 191, bytes e modos iguais |
+| survived | 115/0/0 | incomplete/3, zero mutantes | 7304/10037 | 191, bytes e modos iguais |
+| baseline-failed | 115/1/1 | incomplete/3, zero mutantes | 6231/10033 | 191, bytes e modos iguais |
+
+| Cenário | UUID próprio | SHA-256 do relatório anunciado |
+| --- | --- | --- |
+| background | 68f9e38e-99ed-40c3-b33d-d11626d36874 | 27cfa3620ffee7fa7b6927e120ac2bf8b35caf496a786209d4ab1957f3f6bcf4 |
+| detected | b15ef54a-c1cd-468e-b080-5e165f5c657b | eb4e5cab69cdd891d3a6affcafb728e5f5030936f1a8d6618035955ad7440502 |
+| survived | f2304068-4a33-45cc-8cef-cff679c0bc9a | ce9faeaab2f428fbf9c88ae4da4a792afa018d04a7b99942f5c9f4ff4047c4d2 |
+| baseline-failed | d12f6354-fad8-4098-a3ef-d052ce17b17f | d78e851f17658dd5df9ddcca08a8d9e447d2e0955e45a5a3afcccbe849d94dda |
+
+Conferidos UUID, esquema/versões, namespace canônico, único `reportPath=` anunciado pela chamada, escopo e retornos da ferramenta/receita/inspeção. Background tem escopo `src/main/kof/sifuture/game/Background.kf`; os demais usam `src/main/kof/sifuture/game/ManualMutationProbe.kf`. Todos os relatórios registram check exit 0/filesChecked 1, teste da baseline exit 137 com `test timeout`, nenhum candidato ou mutante e todos os contadores de mutação em zero. Isso não equivale a detectar/sobreviver nem à baseline_failed/2 exigida para o controle inicialmente falho: a fase de teste não terminou. O contador timeout dos mutantes fica zero porque o prazo foi excedido antes de gerar mutantes.
+
+Tempos informados pelo CLI nos comandos normais, em chamadas sequenciais: Background 4165+7820=11985 ms; detectado 9472+5928=15400 ms; sobrevivente 9776+5865=15641 ms; baseline falha 8384+5441=13825 ms. Essas somas já excedem os 10000 ms do comando completo do wrapper, antes de contar preparação e inicialização. Trecho real do log Background:
+
+```text
+time: 4165ms total, slowest /tmp/sifuture-kof-4_tdaj9w/source/Main.kf (4165ms)
+time: 7820ms total, slowest /tmp/sifuture-kof-ldl44t_v/source/Main.kf (7820ms)
+```
+
+O [laço do wrapper](scripts/kof_project.py#L152) chama `_run` de forma síncrona para cada arquivo. Não há sobreposição que invalide a soma. Os logs das baselines mostram o segundo arquivo iniciado quando o processo foi encerrado. O prazo foi demonstrado; a causa completa da demora continua desconhecida. Os 10032–10037 ms medidos incluem o encerramento do grupo de processos, sem ampliar o limite de espera.
+
+O aceite completo permanece pendente. É necessária uma decisão entre repetir em condições controladas que cumpram os prazos existentes ou rever explicitamente os limites e restrições da receita. Nenhuma ampliação foi aplicada, e nenhum relatório anterior substituiu o da chamada. Os guias mantêm a limitação até a aprovação pública e dos quatro resultados reais exigidos. Configuração, wrapper, escopo e catálogo permanentes continuam iguais; M2–M5 e S1–S3 não são encerrados. Não houve commit, publicação, worktree, subagente ou alteração do Kof.
+
+Evidência local opcional: `.agent/tmp/recovery-20261026/integration/`, com quatro cópias preservadas, stdout/stderr/exits, inventários e relatórios próprios. O suplemento KofMut contém comandos, resultados, fontes do mecanismo, lacunas e o novo manifesto; este registro conserva os resultados essenciais sem depender desses arquivos locais.
+
+Conferência final: 202 arquivos rastreados protegidos mantêm bytes e modos iniciais; configuração/escopo/manifesto/wrapper/src/tests (49 arquivos), os dois guias e os blocos Bash aprovados permanecem iguais. Prefixos históricos deste plano/aceite e do plano externo preservados. Kof permanece limpo e o jar tem o mesmo SHA-256; exclusão Git local aparece uma vez. O verificador de links do histórico completo sinaliza 51 ocorrências já presentes na base; comparação contra os textos de HEAD produz exatamente as mesmas mensagens e nenhuma aponta para a continuidade nova. `git diff --check` passou. O [novo manifesto](.agent/validation/kofmut-recovery.sha256) identifica esta continuidade e os arquivos protegidos, sem substituir o manifesto anterior do KofMut. O aceite continua pendente; nenhuma limitação foi retirada dos guias.
+
+
+# Complete integration with authorized time limits (2026-10-26)
+
+## Purpose and success
+
+Allow legitimate preparation and SiFuture commands to complete while retaining blocked process termination. Completion requires public compatibility, multiple-invocations regression, all four fresh real 115-case scenarios and the full KofMut check.
+
+## Context and limits
+
+User supplied plan authorizes 30000 ms per SiFuture command, 30000 ms per preparation compilation/probe and 25000 ms per internal mutation trial. Keep internal individual commands at 10000 ms, preparation total at 90000 ms including waits, shared cleanup at 2000 ms, SiFuture budgetMs 0, concurrency, wrapper, scope and permanent catalog. No automatic increases, commits, user installations, worktrees, agents, dependency changes or publications. Preserve all historical records and manifests. Base SiFuture 54c317b52d010fbfa94e28499b05610d3ee62077; KofMut e8a08b6478d02bfd6d8e1158c2c9e9c913bc82b6. Continue current branches.
+
+## Milestones
+
+1. Extend existing behavioral coverage for compilation after ten seconds, internal trial beyond 8500 ms, blocked compilation and normal recovery. Change only timeout boundaries in scripts/launch, scripts/bootstrap/Launch.kf, Compatibility.kf, CompatibilityProbe.kf and SiFuture kof-mut.json; reconcile bilingual preparation documentation.
+2. Run `kof test src/test/kof/kofmut/Cli.kf --tag compatibility` and `kof test src/test/kof/kofmut/Run.kf --tag multiple-invocations`. Use fresh SiFuture byte copies and existing Bash recipes for Background Killed complete/0, last-file calculation Killed complete/0, calculation Survived complete/1, failing baseline baseline_failed/2. Check announced report, UUID, scope, 115 cases, counts, exits and preserved inputs.
+3. Run `./scripts/check` in KofMut and `git diff --check` in both repositories. Retain the existing ninety-second deadline and invalid-evidence controls. Independently audit expected outcomes and proof discrimination. Remove SiFuture guide limitation only after all required gates pass. Append essential results to existing acceptance records and create separate manifests.
+
+## Progress
+
+- [x] Behavioral deadline coverage and implementation.
+- [x] Focused tests and four real scenarios.
+- [x] Full check, documentation gate, preservation and final evidence.
+
+## Validation
+
+Pending. Local raw evidence: `.agent/tmp/timeouts-20261026/`; tracked summaries will continue existing acceptance records. Record base SHA plus hashes of edited execution inputs, configuration hash, observed clocks and native exits. No earlier report substitutes for a current invocation. Unknown causes and any exceeded new deadline remain explicit and acceptance stays pending.
+
+
+### Deadline implementation boundary
+
+Focused Linux/JVM Kof 0.6.6 validation passes: compatibility 9/0 (296.540 s), multiple-invocations 3/0 (86.363 s). The new slow compilation test first failed at the old 10000 ms compile deadline, then passed with an injected 11 s delay. Delayed real detection/survival reports took 10008/9608 ms, beyond 8500 and below 25000, with individual commands still bounded at 10000 ms. Blocked compilation returned 2, observed command/cleanup 30324 ms, whole preparation 31213 ms; no caller report, process stopped, normal retry passed. Compatibility refusal for wrong frontend behavior and concurrent/integrity/signal cases also pass. Four fresh SiFuture copies are now running. Full check and the 90000 ms total-deadline regression remain pending. Logs: `.agent/tmp/timeouts-20261026/` in KofMut.
+
+
+### Real integration boundary
+
+All four fresh real SiFuture copies pass the existing documented run/inspection recipes with two files and 115 cases: Background Killed complete/0 (14.757 s), second-file calculation Killed complete/0 (15.538 s), calculation Survived complete/1 (15.543 s), failing baseline baseline_failed/2 (8.912 s, one failure, zero candidates/mutants). Each own announced report, UUID, namespace, scope, schema/Kof version, exact counts and native/recipe/inspection exits reconcile. All 190/191/191/191 input bytes and modes are preserved. Config SHA-256 a0303c0cd6fa65cb2e7d33e056a4e642a1f8dda00a1432b7d8b7bb3df6027f65. Normal wrapper controls independently execute all 115 cases with 0/0/0/1 failures. Separate proof audit rejects 36 corrupted or cross-call controls. Full check is running; the blocked-command assertion additionally rejects premature termination before 29 seconds and checks no approval publication. No production behavior changed after focused/integration validation. Guide limitation remains until full check passes.
+
+
+### Final integration acceptance boundary
+
+Full `./scripts/check` passed, exit 0, 2822.044 external monotonic seconds: CLI 32/0, mutation cycle 47/0, installation 31/0, frontend 15/0. The original preparation deadline control stopped at 90026 ms monotonic (90027 ms wall); a separately confirmed budget-zero evaluation ran 94097 engine ms, 95220 external ms. Blocked compilation in this full run stopped after 30329 observed command/cleanup ms, whole preparation 31256 ms, with no approval publication and normal recovery. All 44 frozen execution inputs remain unchanged through the check. Focused compatibility and multiple-invocations commands and all four fresh 115-case SiFuture outcomes passed earlier in this same continuation; independent report audit now rejects 58 incorrect controls.
+
+The obsolete second-summary rejection limitation is removed from both SiFuture guides, with the qualified source identity and two-file proof linked. Permanent wrapper, scope and catalog remain unchanged; only SiFuture commandTimeoutMs changes in its configuration. Existing acceptance records receive append-only continuations with authorization, base SHAs, configuration/source/report hashes, commands, clocks, UUIDs, exact results and proof limits. Historical failures/manifests remain preserved. New generated evidence/inventories stay in ignored `.agent/tmp/timeouts-20261026/`. Final diff/link/preservation checks are recorded in the acceptance continuation. This closes the pending public/real multiple-invocation acceptance under the new authorized deadlines; historical sensor activation and project-performance goals remain outside this completion. No commit, publication, user installation, worktree, subagent or Kof change.
+
+
+## Continuidade: sobreviventes de Meteor — 26/10/2026
+
+## Purpose and success
+
+Eliminar lacunas reais nos 13 sobreviventes de Meteor e ampliar o escopo manual
+para Background e Meteor, mantendo sobreviventes equivalentes como Survived/1.
+
+## Context and limits
+
+Base SiFuture fc74cb7, checkout atual sensor-calibration-m1. O plano aprovado
+exige preservar produção, KofMut e limites. Medição histórica: 41 candidatos,
+28 Killed, 13 Survived, 114 testes. Histórico Java em ../sifuture, SHA 50fc40d.
+A qualificação anterior será reutilizada após conferir bytes e identidade.
+
+## Milestones
+
+1. Ampliar cenários existentes em GameJourney.kf e usar impactFrame() na fixture
+   tests/meteor-motion.kf: posição, limite esquerdo, quadros e contato inclusive.
+2. Provar as quatro hipóteses de equivalência com análise de domínio e execução
+   JVM/JS, sem transformar equivalência no fluxo Game em contrato da classe.
+3. Executar suítes JVM/JS, browser_meteor.py e receita manual dos guias com
+   kof-mut-scope.json contendo Background/Meteor. Reconciliar os 41 IDs anteriores
+   e o candidato de Background, sem timeout, erro ou pendência.
+4. Atualizar ambos os guias, aceite existente e continuidade do plano externo,
+   preservando históricos e arquivos fora do escopo.
+
+## Progress
+
+- [x] Fontes e medição histórica recuperadas; checkout limpo identificado.
+- [x] Testes ampliados e expectativas auditadas contra regras históricas.
+- [x] Equivalências provadas nos dois alvos e mutação reconciliada por ID.
+- [x] Guias, aceite, planos e preservação conferidos.
+
+## Validation
+
+Comandos: python3 scripts/kof_project.py test --target jvm --kof kof;
+python3 scripts/kof_project.py test --target js --kof kof;
+python3 tests/browser_meteor.py --kof kof; git diff --check.
+Receita manual literal extraída de docs/desenvolvimento.md, com UUID novo e
+inspeção do reportPath anunciado pela própria chamada. Expectativa: 42 candidatos,
+38 Killed e quatro equivalentes Survived, complete/1, a confirmar sem supressão.
+Evidência local opcional em .agent/tmp/meteor-acceptance-20261026/.
+
+
+### Fechamento do marco de Meteor
+
+Concluído na árvore local sobre fc74cb777c602f9745551d3a39f697a2b4a26652.
+JVM e JS: 114/0, exit 0; browser_meteor.py: exit 0, Chrome 155.0.8059.39,
+seis instantes dos impactos e relançamento. A receita manual literal e sua
+inspeção retornaram 1/1, preservando o resultado nativo complete/1. UUID
+05f9192d-a6fe-47f2-a524-aeecaf451152; JSON SHA-256
+3f3561d2f144cb9eac693455e26b97f3b305379f0f30a58ad2eb8073ef370b58.
+42/42 executados: 38 Killed, quatro Survived, zero erros/timeouts/pendências,
+sem descartes/limitações. Os 28 detectados anteriores continuam Killed;
+nove dos treze sobreviventes anteriores agora falham por assertion.
+
+As quatro equivalências foram demonstradas por análise de domínio e prova
+JVM/JS com as alterações exatas: dois estados iniciais convergem após reset,
+somente no fluxo Game; duas comparações verticais têm a fronteira coberta pela
+outra cláusula com alturas 18/20, sem overflow. Cada alvo executou 673740
+comparações geométricas, e cada mutante inicial passou os 114 casos em ambos
+os alvos. Não há sobrevivente inexplicado nem lacuna real conhecida no conjunto
+avaliado. Não se declara equivalência geral de Meteor nem complete/0.
+
+Guias bilíngues e escopo permanente incluem Background/Meteor. O
+[aceite completo](.agent/validation/sensors-adoption.md#meteor-survivor-acceptance)
+registra cada ID, regra, resultado anterior/final, provas e seus limites.
+Expectativas foram auditadas contra Java histórico 50fc40d e especificação;
+a auditoria separada dos relatórios rejeita 21 controles adulterados.
+A qualificação anterior de KofMut 338c7b3 foi reutilizada após conferir seus
+44 inputs congelados, checkout limpo e jar Kof inalterado. Produção, assets,
+wrapper, limites e receitas preservados. Históricos dos planos e aceite
+preservados como prefixos; evidência em .agent/tmp/meteor-acceptance-20261026/.
+Sem commit, publicação, CI novo, worktree, subagentes ou instalação de sensores.
+M2–M5/S1–S3 permanecem fora deste encerramento.
+
+## Continuidade: registrar a regressão de `break` no Kof 0.6.7 — 27/10/2026
+
+Pedido aprovado: documentar o diagnóstico e preparar um relato revisável,
+sem publicação, correção do compilador ou acomodação do jogo. Base SiFuture
+`53e9626b19ad5740dd2b250b2f167932c892e364`, branch atual
+`sensor-calibration-m1`. O aceite anterior com 0.6.6 continua histórico.
+
+- [x] Contrato revalidado em `statements.md` §5.4/§5.5, training e Learn Kof 05;
+  regra histórica conferida em Java `50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3`.
+- [x] Mesmo programa mínimo reexecutado com binários explícitos 0.6.6/0.6.7
+  em JVM/JS, retorno e stdout/stderr preservados.
+- [x] Variante temporal executada nas mesmas quatro combinações; passos
+  11/12/24/36 observados. 0.6.7/JS diverge em 12 e 24, ativando três slots;
+  os outros resultados respeitam a cadência de um por tentativa.
+- [x] Builds JS comparados: `break;` presente em 0.6.6 e ausente no trecho
+  correspondente de 0.6.7. Os oito runs e os dois builds retornaram 0.
+- [x] Jar 0.6.7 identificado pelo digest oficial; release mais recente,
+  formulário e duplicatas reconferidos no GitHub.
+- [x] [Aceite ampliado](.agent/validation/sensors-adoption.md#kof067-js-break-regression)
+  e [relato completo](.agent/validation/kof-0.6.7-js-break-issue.md) preparados,
+  com continuidade no plano externo e preservação dos históricos.
+
+Classificação: regressão do alvo JS para Kof válido. A perda do `break` está
+demonstrada; a alteração específica responsável continua indeterminada.
+Expectativa e poder discriminatório do reproducer foram conferidos
+separadamente: observar somente o passo 36 esconderia o erro.
+Suítes e navegador do jogo não foram repetidos nesta entrega documental;
+os aceites 0.6.6 não qualificam 0.6.7. Nada foi publicado ou commitado.
+Evidência opcional: `.agent/tmp/kof067-break-report-20261027/`.
+
+## Continuidade: issue de `break` no JS 0.6.7 publicada — 27/10/2026
+
+- [x] Publicada [KofLang/Kof4j #975](https://github.com/KofLang/Kof4j/issues/975),
+  por `renanfranca`, em 27/10/2026 às 12:33:27 UTC.
+  Título final: **[Bug]: break em for-in não encerra o laço no JS 0.6.7**.
+- [x] Título e abertura aprovados aplicados; campos obrigatórios mantidos,
+  evidências adicionais reunidas em seção expansível e links públicos usados.
+- [x] Programas, oito execuções e dois trechos JS conferidos contra a evidência
+  preservada; expectativa Kof e distinção nos passos 12/24 reavaliadas
+  separadamente. Buscas atualizadas, incluindo issues fechadas, sem equivalente.
+- [x] Conector recusou a criação com 403; após busca pelo título sem resultados,
+  publicação feita por `gh`, conforme instrução do usuário. Consulta posterior
+  confirmou repositório, autoria, título e corpo exato, com código e links,
+  sem responsáveis ou marco. Corpo SHA-256
+  `0f919ccd7c7d6f09a208f2eae5750baad687e739f724338a759439485b0072ab`.
+- [x] [Aceite da publicação](.agent/validation/sensors-adoption.md#kof067-js-break-published)
+  acrescentado; [rascunho](.agent/validation/kof-0.6.7-js-break-issue.md)
+  identificado como publicado; continuidade acrescentada ao plano externo.
+
+Base SiFuture `53e9626b19ad5740dd2b250b2f167932c892e364`, branch
+`sensor-calibration-m1`. Verificação documental:
+`python3 .agent/tmp/kof067-break-publication-20261027/check_publication.py`
+e `git diff --check`, ambos com retorno 0. Históricos preservados;
+evidência local opcional em `.agent/tmp/kof067-break-publication-20261027/`.
+Publicação concluída; a alteração específica causadora da regressão continua
+indeterminada. Sem nova execução do jogo/reproducer, commit ou workflow CI.
+M2–M5/S1–S3 e os limites dos aceites anteriores permanecem históricos.
+
+## Continuidade: Kof 0.6.4 e KofMut do PATH — 01/11/2026
+
+Decisão do usuário: Kof e KofMut vêm do PATH. Base `0e18275`, diff local sem commit.
+
+- [x] `pom.xml` dos sensores sem jar padrão 0.6.6; novo `scripts/kof-sensors/test`;
+  `verify-kofmut` usa o `kof-mut` do PATH e recusa imagem defasada ou checkout sujo;
+  receita manual chama `kof-mut`; README atualizado.
+- [x] Controle negativo: com a imagem de 25/10 (`b8b2faa7…`, 0.6.6), `verify-kofmut`
+  recusou com exit 1 listando 13 `runtimeSources` divergentes.
+- [x] KofMut `9f9bb06` instalado com 0.6.4: imagem `b5401898…`.
+- [x] Com 0.6.4: unittest 16 OK; check jvm/js sem erros; 114/0 em jvm e js;
+  sensores 21/0; `mvn` sem `-Dkof.jar` falha explicitamente; sete jornadas de
+  navegador PASS; `verify-kofmut` complete/0 e complete/1; receita manual
+  complete/1, 42/38/4, mesmos estados por mutante de 26/10.
+- [x] Inventário: frontend 0.6.4 reproduz a referência de 25/10 sobre `53e9626^`;
+  a árvore atual tem 45.988 tokens e 19 grupos CPD por causa de `53e9626`.
+- [x] Opcional: `./scripts/check` do KofMut com 0.6.4. A primeira rodada retornou 1 porque `KOF_MUT_COMPATIBILITY_OTHER` recebeu o executável em vez do diretório `bin` (erro do operador; falhou só a fila `install-c`). A segunda, com o diretório correto e autorizada pelo usuário, retornou 0 em 732 s, com as nove filas e 0 falhas.
+- [ ] CI continua no Kof 0.6.9.
+
+Detalhes no [aceite](.agent/validation/sensors-adoption.md#kof064-path-revalidation).
+
+## Continuidade: produção calibra, testes são medidos — 01/11/2026
+
+O registro “Kof 0.6.4 e KofMut do PATH” acima foi escrito antes do commit, sobre
+`0e18275` com diff local; o usuário o publicou em `ba8739d`. Base desta
+continuidade: `ba8739d`, Kof 0.6.4 do PATH, diff local sem commit.
+
+- [x] Decisões do usuário na revisão de `ba8739d`: complexidade, profundidade e
+  parâmetros calibram só com `src/main/kof`, e as suítes são medidas contra esse
+  limite como dívida separada; linhas por função e statements mantêm a exceção;
+  as seis regras de desenho de testes do Katacombs entram no M2; o medidor muda agora.
+- [x] Medidor com `SuitePolicy` (`EXEMPT`/`MEASURED`), campos `calibratedOn`,
+  `suiteFindingsAtReference`, `suiteFindingsAtProposed`, `suiteAffectedAtProposed`,
+  `suiteDistribution`; inventário em `schemaVersion` 2. RED registrado
+  (22 testes, 2 falhas esperadas), GREEN 22/0.
+- [x] Árvore atual: complexidade 10 (18 de produção, 38 de testes), profundidade 2
+  (12 e 8), parâmetros 4 (2 e 0); 150/25/17 iguais ao inventário de revalidação.
+  A divergência 16 → 17 de complexidade com testes vem do teste novo
+  `GameJourney.kf:794` (complexidade 18, `53e9626`).
+- [x] `verify-kofmut` recusa `kof-mut` sem `image.json` ao lado e pede `./install.sh`;
+  com `kof-mut/bin` primeiro no PATH, exit 1 com a mensagem nova.
+- [x] `verify-kofmut` com o PATH normal: a primeira prova retornou 1 porque o
+  checkout KofMut tinha `.agent/validation/kof-0610-revalidation.md` não
+  rastreado, alheio a esta sessão. Repetida uma vez em 02/11/2026, com o
+  checkout limpo em `64c85f8` (commit só documental), retornou 0: detected
+  complete/0, survived complete/1.
+- [x] unittest 16 OK; `git diff --check` 0; hashes de `src/` e `tests/` iguais.
+
+Detalhes no [aceite](.agent/validation/sensors-adoption.md#continuidade-calibração-por-produção-e-verify-kofmut--01112026)
+e na [calibração](.agent/validation/sensor-calibration.md#continuidade-produção-calibra-testes-são-medidos--01112026).
+
+## Continuidade: medidor dos sensores no Kof 0.7.0 — 03/11/2026
+
+Base `58478aa`, Kof 0.7.0 do PATH e 0.6.4 de compatibilidade, diff local sem commit.
+
+- [x] `Spans.constructorName` aceita a posição do nó de construtor no início da
+  declaração (0.7.0) ou depois do corpo (0.6.4), sem ramificar por versão.
+  RED registrado com 0.7.0 (22 testes, 1 falha e 8 erros, todos
+  `Cannot locate constructor body end`); GREEN 22/0 nas duas versões.
+- [x] Ciclo 2: construtor com cláusula `throw` (gramática do Kof) ganhou teste;
+  RED com 0.7.0 (1 erro), GREEN 23/0 com 0.7.0 e 0.6.4.
+- [x] `scripts/kof-sensors/run .` com 0.7.0 e com 0.6.4: exit 0, 25 arquivos, sem
+  falhas; inventários idênticos entre si e ao de 01/11 por arquivo, unidade,
+  calibração e CPD. Calibração: complexidade 10 (18 produção, 38 testes),
+  profundidade 2 (12, 8), parâmetros 4 (2, 0), 150/25/17, 19 grupos CPD,
+  45.988 tokens.
+- [x] unittest 16 OK; `git diff --check` 0; hashes de `src/` e `tests/` iguais.
+- [x] O bloqueio do M2 pelo medidor está resolvido; o M2 pode ser planejado.
+
+Detalhes no [aceite](.agent/validation/sensors-adoption.md#continuidade-medidor-dos-sensores-no-kof-070--03112026)
+e na [calibração](.agent/validation/sensor-calibration.md#continuidade-calibração-com-kof-070--03112026).
