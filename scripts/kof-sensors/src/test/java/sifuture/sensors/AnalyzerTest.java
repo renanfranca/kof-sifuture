@@ -260,6 +260,31 @@ class AnalyzerTest {
         assertEquals(2, constructor.statements());
     }
 
+    @Test void constructorsWithThrowClausesKeepTheirOwnSpansAndCounts() throws Exception {
+        var source = "class Box {\n"
+                + "    constructor(Int value) throw Exception {\n"
+                + "        if (value < 0) { throw new Exception(\"negative\") }\n"
+                + "    }\n"
+                + "    Box() throw Exception {}\n"
+                + "}\n";
+        checkWithOfficialCompiler(source, "jvm");
+        checkWithOfficialCompiler(source, "js");
+
+        var constructors = measure(source).functions();
+
+        assertEquals(2, constructors.size());
+        assertEquals(2, constructors.get(0).line());
+        assertEquals(5, constructors.get(0).column());
+        assertEquals(4, constructors.get(0).endLine());
+        assertEquals(1, constructors.get(0).parameters());
+        assertEquals(2, constructors.get(0).complexity());
+        assertEquals(1, constructors.get(0).depth());
+        assertEquals(5, constructors.get(1).line());
+        assertEquals(5, constructors.get(1).column());
+        assertEquals(5, constructors.get(1).endLine());
+        assertEquals(0, constructors.get(1).parameters());
+    }
+
     @Test void overloadedConstructorsRemainAssociatedWithTheirOwnParametersAndBodies() {
         var constructors = measure("class Box {\n"
                 + "    constructor() {}\n"

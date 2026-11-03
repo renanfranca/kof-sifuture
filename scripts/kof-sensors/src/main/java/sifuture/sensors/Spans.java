@@ -97,25 +97,43 @@ final class Spans {
     }
 
     static int constructorName(List<Token> tokens, int position, Analyzer.Callable function) {
-        int declarationEnd = at(tokens, function.node().position().offset()) - 1;
+        int nodeToken = at(tokens, function.node().position().offset());
+        if (declaresConstructorAt(tokens, nodeToken, function)) return nodeToken;
+        int declarationEnd = nodeToken - 1;
         if (declarationEnd < 0 || !symbol(tokens.get(declarationEnd)).equals("}")) {
             throw new IllegalArgumentException("Cannot locate constructor body end for " + function.name()
                     + " at " + tokens.get(position));
         }
-        int bodyOpening = opening(tokens, declarationEnd);
+        int closingBodyOpening = opening(tokens, declarationEnd);
         for (int i = Math.min(position, tokens.size() - 1); i >= 0; i--) {
             String value = symbol(tokens.get(i));
             boolean candidate = value.equals("constructor") || value.equals(function.name());
             if (!candidate || i + 1 >= tokens.size() || !symbol(tokens.get(i + 1)).equals("(")) continue;
             int parametersEnd = matching(tokens, i + 1);
             if (!constructorParametersMatch(tokens, i + 1, parametersEnd, function.parameters())) continue;
-            int body = parametersEnd + 1;
-            while (body < tokens.size() - 1 && !List.of("{", "}", ";").contains(symbol(tokens.get(body)))) body++;
-            if (body != bodyOpening || !symbol(tokens.get(body)).equals("{")) continue;
+            int body = bodyOpening(tokens, parametersEnd);
+            if (body != closingBodyOpening || !symbol(tokens.get(body)).equals("{")) continue;
             if (matching(tokens, body) == declarationEnd) return i;
         }
         throw new IllegalArgumentException("Cannot locate constructor " + function.name()
                 + " at " + tokens.get(position));
+    }
+
+    static boolean declaresConstructorAt(List<Token> tokens, int index, Analyzer.Callable function) {
+        String value = symbol(tokens.get(index));
+        if (!value.equals("constructor") && !value.equals(function.name())) return false;
+        if (index + 1 >= tokens.size() || !symbol(tokens.get(index + 1)).equals("(")) return false;
+        int parametersEnd = matching(tokens, index + 1);
+        boolean emptyParentheses = parametersEnd == index + 2;
+        if (function.parameters().isEmpty() != emptyParentheses) return false;
+        if (!constructorParametersMatch(tokens, index + 1, parametersEnd, function.parameters())) return false;
+        return symbol(tokens.get(bodyOpening(tokens, parametersEnd))).equals("{");
+    }
+
+    static int bodyOpening(List<Token> tokens, int parametersEnd) {
+        int body = parametersEnd + 1;
+        while (body < tokens.size() - 1 && !List.of("{", "}", ";").contains(symbol(tokens.get(body)))) body++;
+        return body;
     }
 
     static boolean constructorParametersMatch(List<Token> tokens, int opening, int closing, List<?> parameters) {

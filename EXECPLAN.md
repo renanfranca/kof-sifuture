@@ -1433,3 +1433,24 @@ continuidade: `ba8739d`, Kof 0.6.4 do PATH, diff local sem commit.
 
 Detalhes no [aceite](.agent/validation/sensors-adoption.md#continuidade-calibração-por-produção-e-verify-kofmut--01112026)
 e na [calibração](.agent/validation/sensor-calibration.md#continuidade-produção-calibra-testes-são-medidos--01112026).
+
+## Continuidade: medidor dos sensores no Kof 0.7.0 — 03/11/2026
+
+Base `58478aa`, Kof 0.7.0 do PATH e 0.6.4 de compatibilidade, diff local sem commit.
+
+- [x] `Spans.constructorName` aceita a posição do nó de construtor no início da
+  declaração (0.7.0) ou depois do corpo (0.6.4), sem ramificar por versão.
+  RED registrado com 0.7.0 (22 testes, 1 falha e 8 erros, todos
+  `Cannot locate constructor body end`); GREEN 22/0 nas duas versões.
+- [x] Ciclo 2: construtor com cláusula `throw` (gramática do Kof) ganhou teste;
+  RED com 0.7.0 (1 erro), GREEN 23/0 com 0.7.0 e 0.6.4.
+- [x] `scripts/kof-sensors/run .` com 0.7.0 e com 0.6.4: exit 0, 25 arquivos, sem
+  falhas; inventários idênticos entre si e ao de 01/11 por arquivo, unidade,
+  calibração e CPD. Calibração: complexidade 10 (18 produção, 38 testes),
+  profundidade 2 (12, 8), parâmetros 4 (2, 0), 150/25/17, 19 grupos CPD,
+  45.988 tokens.
+- [x] unittest 16 OK; `git diff --check` 0; hashes de `src/` e `tests/` iguais.
+- [x] O bloqueio do M2 pelo medidor está resolvido; o M2 pode ser planejado.
+
+Detalhes no [aceite](.agent/validation/sensors-adoption.md#continuidade-medidor-dos-sensores-no-kof-070--03112026)
+e na [calibração](.agent/validation/sensor-calibration.md#continuidade-calibração-com-kof-070--03112026).

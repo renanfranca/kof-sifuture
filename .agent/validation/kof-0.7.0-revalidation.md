@@ -115,3 +115,15 @@ construtor, defeito do SiFuture já conhecido.
 Lacunas: a CI do SiFuture ainda resolve a release que o script escolher e
 não foi executada aqui; a checagem do KofMut só passa com um locale UTF-8
 disponível no shell.
+
+## Nota de 03/11/2026: bloqueio 2 resolvido
+
+O medidor dos sensores passa no 0.7.0 e no 0.6.4. `Spans.constructorName`
+aceita as duas convenções de posição do nó de construtor sem ramificar por
+versão. `scripts/kof-sensors/test`: 23/0 nas duas versões (RED registrado
+antes, 22 testes, 1 falha e 8 erros `Cannot locate constructor body end`).
+`scripts/kof-sensors/run .`: exit 0 nas duas, sem falhas, com inventários
+idênticos entre si e ao de 01/11. Detalhes na
+[continuidade de aceitação](sensors-adoption.md#continuidade-medidor-dos-sensores-no-kof-070--03112026)
+e na [calibração](sensor-calibration.md#continuidade-calibração-com-kof-070--03112026).
+O texto acima fica como registro do estado em `58478aa`.

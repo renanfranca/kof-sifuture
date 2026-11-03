@@ -1442,3 +1442,147 @@ das fixtures preservados. Evidência opcional em
 
 As regras de TDD que resultam de 1 e 2 estão em `AGENTS.md`, seção
 “Test-driven development”.
+
+## Continuidade: medidor dos sensores no Kof 0.7.0 — 03/11/2026
+
+Ponto de partida: `58478aa` em `sensor-calibration-m1`, checkout limpo,
+`kof version` = `kof 0.7.0` no PATH (`~/.local/bin/kof`), e Kof de
+compatibilidade em `~/.local/share/kof/kof-0.6.4-linux-x86_64/bin/kof`
+(`kof 0.6.4`). Plano: `~/.claude/plans/implementado-revise-de-acordo-atomic-sprout.md`.
+
+**Comportamento:** os spans e as contagens de construtores ficam corretos
+qualquer que seja a convenção de posição de `ConstructorDeclarationNode` no
+frontend (fim do corpo no 0.6.4, início da declaração no 0.7.0).
+
+**Escolha de teste, registrada explicitamente:** nenhum teste novo para o RED.
+Os testes existentes de `AnalyzerTest` (via `measure` e via CLI) já
+especificam esse comportamento; a suíte atual executada com o 0.7.0 é o RED.
+Nenhum teste existente muda de contrato.
+
+**RED esperado, anotado antes de executar:** `scripts/kof-sensors/test` com
+`kof 0.7.0` → exit 1, `Tests run: 22, Failures: 1, Errors: 8`, e todos os nove
+problemas com a causa `Cannot locate constructor body end`. Qualquer outra
+causa interrompe o ciclo.
+
+**RED observado (ciclo 1), igual ao esperado:** exit 1,
+`Tests run: 22, Failures: 1, Errors: 8`. Os oito erros e a única falha (a
+matriz `constructorSpanMatrixCoversParameterCountsDeclarationStylesAndBodies`,
+linha 357, cujo relatório traz a mesma exceção) têm a causa esperada:
+
+```text
+AnalyzerTest.constructorCallToItsClassDoesNotBecomeTheDeclarationStart:226->measure:16 » IllegalArgument Cannot locate constructor body end for Box at Token[type=IDENTIFIER, value=constructor, file=Probe.kf, line=2, column=5, offset=16, length=11]
+constructorSpanMatrixCoversParameterCountsDeclarationStylesAndBodies … constructor, parameterized=false, body=0 (1 failure)
+	java.lang.IllegalArgumentException: Cannot locate constructor body end for Box at Token[…value=constructor, …line=2, column=5…]
+```
+
+**GREEN (ciclo 1):** `Spans.constructorName` aceita primeiro o token na
+posição do nó como declaração quando ele é `constructor` ou o nome da classe,
+seguido de `(`, com parênteses vazios se e somente se não há parâmetros, com
+as posições dos `FormalParameterNode` dentro desses parênteses
+(`constructorParametersMatch`) e com `{` logo depois de `)`. Caso contrário,
+segue a busca antiga a partir do `}` anterior (convenção 0.6.4). Suíte com
+0.7.0 e com 0.6.4: `Tests run: 22, Failures: 0, Errors: 0`, exit 0.
+
+Prova de que a exigência de parênteses vazios é necessária, executada e
+revertida: sem essa condição, com 0.6.4 (`-Dtest='AnalyzerTest#overloaded*+zeroParameterConstructorsStay*'`):
+
+```text
+AnalyzerTest.overloadedConstructorsRemainAssociatedWithTheirOwnParametersAndBodies:269 expected: <2> but was: <3>
+AnalyzerTest.zeroParameterConstructorsStayAssociatedWithTheirOwnBodies:296 constructor() / new Box() ==> expected: <2> but was: <6>
+```
+
+No 0.6.4 a posição do construtor sem parâmetros cai no token logo depois do
+seu corpo, que é a declaração do construtor seguinte; sem a condição, ele era
+atribuído a essa declaração. É o risco que o plano pedia para cobrir.
+
+**Ciclo 2, caso que nenhum teste cobria.** A gramática admite cláusula de
+throws entre os parâmetros e o bloco do construtor
+([grammar.md:144](../../../kof/docs/language-reference/grammar.md:144)):
+
+> constructor-declaration = [ "constructor" ] , "(" , [ parameter-list ] , ")" ,
+>                           [ throws-clause ] , block ;
+> …
+> throws-clause  = "throw" , type-ref , { "," , type-ref } ;
+
+O GREEN do ciclo 1 exige `{` logo após `)`, então no 0.7.0 esse construtor
+cairia na busca antiga e falharia. Teste novo:
+`constructorsWithThrowClausesKeepTheirOwnSpansAndCounts` (um construtor
+`constructor(Int value) throw Exception` com corpo de três linhas e um
+`Box() throw Exception {}`), conferido antes com `kof check` JVM e JS nas duas
+versões. **RED esperado, anotado antes de executar:** com 0.7.0, só esse teste
+falha, com `Cannot locate constructor body end for Box`; os outros 22 passam.
+Com 0.6.4 o teste já deve passar, porque a busca antiga tolera tokens entre
+`)` e `{`.
+
+**RED observado (ciclo 2), igual ao esperado:** com 0.7.0, exit 1,
+`Tests run: 23, Failures: 0, Errors: 1`:
+
+```text
+AnalyzerTest.constructorsWithThrowClausesKeepTheirOwnSpansAndCounts:273->measure:16 » IllegalArgument Cannot locate constructor body end for Box at Token[type=IDENTIFIER, value=constructor, file=Probe.kf, line=2, column=5, offset=16, length=11]
+```
+
+Lacuna: o teste novo não foi executado com 0.6.4 antes do GREEN; a afirmação
+de que ele já passaria ali não foi provada naquele momento.
+
+**GREEN (ciclo 2):** o caminho novo procura o `{` do corpo com a mesma
+varredura da busca antiga (até `{`, `}` ou `;`), extraída em
+`Spans.bodyOpening` e usada pelos dois caminhos. Suíte completa:
+
+| Kof | Comando | Resultado |
+| --- | --- | --- |
+| 0.7.0 (PATH) | `scripts/kof-sensors/test` | exit 0, `Tests run: 23, Failures: 0, Errors: 0` |
+| 0.6.4 | `KOF=/home/renanfranca/.local/share/kof/kof-0.6.4-linux-x86_64/bin/kof scripts/kof-sensors/test` | exit 0, `Tests run: 23, Failures: 0, Errors: 0` |
+
+O plano previa 22/0; são 23 por causa do teste do ciclo 2.
+
+**Confirmação no parser do Kof (opcional).** No checkout local
+`~/projects/kof` (`ee78d4d43`), `ClassMemberParser.parseConstructor` captura a
+posição antes de `constructor` ou do nome; `git log -L` desse trecho aponta
+`6527ec1ea` (21/10/2026, “fix(parser): declarações guardam a posição de onde
+começam”). Não verifiquei por tag em qual release esse commit entrou.
+
+```java
+static ConstructorDeclarationNode parseConstructor(ParseContext ctx, List<String> mods) {
+    SourcePosition start = ctx.pos();
+    …
+    return new ConstructorDeclarationNode(start, mods, name, params, thrown, body);
+```
+
+**Medição pelo caminho público, depois do ciclo 2:**
+
+| Kof | Comando | Resultado |
+| --- | --- | --- |
+| 0.7.0 | `scripts/kof-sensors/run . > .agent/tmp/kof070-calibration-20261103/inventory.json` | exit 0, `success` true, `schemaVersion` 2, 25 arquivos, `failures` vazio, frontend `kof 0.7.0`, SHA-256 `fda317b89bb05ffdb068c2d4ff80be71ecfa5dee821b7b322bfe296acb24ae17` |
+| 0.6.4 | o mesmo, com `KOF=<0.6.4>`, para `inventory-064.json` | exit 0, mesmos campos, frontend `kof 0.6.4`, SHA-256 `137a838d38757e317545474d55ad6a3ad291fb86d263ae77d9197cf705829c62` |
+
+Comparação por chave (arquivo; e arquivo, tipo, nome, linha e coluna de cada
+unidade), com todos os campos medidos, mais calibração, escopo e grupos CPD
+com localizações, entre os dois inventários e contra
+`.agent/tmp/production-calibration-20261101/inventory.json` (0.6.4, árvore de
+`ba8739d`): **zero diferenças** em 25 arquivos e 321 unidades; calibração,
+escopo e CPD idênticos. Detalhe na
+[calibração](sensor-calibration.md#continuidade-calibração-com-kof-070--03112026).
+
+**Divergência com o plano, não com a medição:** o plano cita 17 grupos CPD
+como referência. Esse número é da medição de 25/10. A árvore atual tem 19
+grupos, como já registrava o `EXECPLAN.md` em 01/11; os dois a mais (88 e 83
+tokens, `GameJourney.kf` 811/835 e 800/825) ficam dentro do teste `ship
+meteor contact includes each boundary and excludes adjacent positions`
+(linhas 794 a 843), que entrou em `53e9626`.
+
+**Observação lateral do Kof (fora do escopo):** `kof check <arquivo> --target
+jvm --json` falhou com `COMP001 Error reading source file: /agent` para um
+arquivo em `.agent/tmp/…`, tanto com caminho relativo quanto absoluto, em
+0.7.0 e 0.6.4; o mesmo arquivo copiado para outro diretório passou, e o
+target JS passou nos dois casos. Os testes do medidor usam `@TempDir`, fora de
+`.agent/`, e não são afetados. Não investiguei a causa.
+
+**Verificações:** `python3 -m unittest discover -s tests -p 'test_*.py'`: 16
+OK. SHA-256 de todos os arquivos de `src/` e `tests/` iguais antes e depois;
+`git ls-files -s src tests | sha256sum` =
+`4f9ac3b1c99892aaf15dcbdda88151d795f04f14f83b52d9b9d01f0b9fc135af`, igual ao de
+01/11. `git diff --check`: exit 0. Arquivos alterados: `Spans.java`,
+`AnalyzerTest.java` e os registros. Sem mudanças em fontes ou testes do jogo,
+no KofMut, em `kof-mut*.json` ou no wrapper. Sem commit nem push. Evidência
+local opcional em `.agent/tmp/kof070-sensors-20261103/` e
+`.agent/tmp/kof070-calibration-20261103/`.

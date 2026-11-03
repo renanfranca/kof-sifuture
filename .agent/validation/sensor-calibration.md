@@ -1317,3 +1317,31 @@ Ordenados por valor decrescente. Linhas por arquivo, linhas por função e state
 | fatal boss damage rewards once before clock increment stops firing and captures moved explosion | [GameJourney.kf:2502](../../src/test/kof/sifuture/game/GameJourney.kf:2502) | 3 |
 
 Comandos, RED e provas desta mudança estão na [continuidade de aceitação](sensors-adoption.md#continuidade-calibração-por-produção-e-verify-kofmut--01112026). Inventário opcional em `.agent/tmp/production-calibration-20261101/inventory.json`. Isso recalibra o volume de feedback; não aprova a dívida, não muda fontes ou suítes do jogo e não ativa sensores.
+
+## Continuidade: calibração com Kof 0.7.0 — 03/11/2026
+
+Base `58478aa` com a correção local de `Spans.constructorName` (posição de
+construtor no início da declaração, 0.7.0, ou depois do corpo, 0.6.4). Mesma
+árvore de fontes de `ba8739d`. Comando: `scripts/kof-sensors/run .`, uma vez
+com `kof 0.7.0` do PATH e outra com `KOF` apontando para o 0.6.4. As duas
+execuções: exit 0, `success` true, `schemaVersion` 2, 25/25 arquivos, sem
+falhas. Cada célula mostra limite proposto e, entre parênteses, findings de
+produção nesse limite; a última coluna, findings de testes no limite de
+produção.
+
+| Métrica | 01/11, 0.6.4 | 03/11, 0.6.4 | 03/11, 0.7.0 | Testes (0.7.0) |
+| --- | ---: | ---: | ---: | ---: |
+| fileLines | 150 (5) | 150 (5) | 150 (5) | — |
+| functionLines | 25 (10) | 25 (10) | 25 (10) | — |
+| complexity | 10 (18) | 10 (18) | 10 (18) | 38 |
+| parameters | 4 (2) | 4 (2) | 4 (2) | 0 |
+| depth | 2 (12) | 2 (12) | 2 (12) | 8 |
+| statements | 17 (18) | 17 (18) | 17 (18) | — |
+
+Totais nas três colunas: 321 unidades, 45.988 tokens oficiais, 19 grupos CPD
+(1.343 tokens somados). A comparação por arquivo e por unidade (tipo, nome,
+linha, coluna e todos os campos medidos), por métrica de calibração e por
+grupo CPD com localizações não encontrou nenhuma diferença. Logo, a mudança de
+posição do nó no 0.7.0 não altera spans, tokens nem métricas desta árvore, e
+os findings listados em 01/11 continuam válidos. Comandos e provas na
+[continuidade de aceitação](sensors-adoption.md#continuidade-medidor-dos-sensores-no-kof-070--03112026).
