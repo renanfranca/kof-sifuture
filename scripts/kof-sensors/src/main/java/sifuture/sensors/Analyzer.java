@@ -10,6 +10,7 @@ public final class Analyzer {
     public record FunctionMetrics(String name, String kind, int line, int column, int endLine,
                                   int lines, int complexity, int parameters, int depth, int statements) {}
     public record FileMetrics(String file, int lines, int tokens, List<FunctionMetrics> functions) {}
+    record Parsed(CompilationUnitNode unit, List<Token> tokens) {}
     record Callable(AstNode node, String name, String kind, String returnType, List<?> parameters, List<?> body) {}
 
     static List<Token> tokens(String file, String source) {
@@ -25,11 +26,21 @@ public final class Analyzer {
         }
     }
 
-    public static FileMetrics measure(String file, String source) {
+    static Parsed parse(String file, String source) {
         var tokens = tokens(file, source);
         var diagnostics = new DiagnosticCollector();
         var unit = new Parser(new ArrayList<>(tokens), diagnostics, file).parse();
         requireClean(diagnostics);
+        return new Parsed(unit, tokens);
+    }
+
+    public static FileMetrics measure(String file, String source) {
+        return measure(file, source, parse(file, source));
+    }
+
+    static FileMetrics measure(String file, String source, Parsed parsed) {
+        var tokens = parsed.tokens();
+        var unit = parsed.unit();
         var functions = new ArrayList<FunctionMetrics>();
         collect(unit, tokens, source, functions);
         functions.sort(Comparator.comparingInt(FunctionMetrics::line).thenComparingInt(FunctionMetrics::column));

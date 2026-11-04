@@ -30,4 +30,12 @@ CPD usa `CpdAnalysis` e um `CpdCapableLanguage` local; `TokenFactory.recordToken
 
 `verify-kofmut` usa o `kof-mut` do PATH e as fixtures do checkout KofMut indicado no primeiro argumento. Recusa checkout sujo e recusa quando os `runtimeSources` do `image.json` instalado diferem dos arquivos desse checkout: o KofMut instalado não se atualiza sozinho, só com `./install.sh` a partir de um checkout atualizado. O sumário registra caminho do `kof-mut`, id da imagem e SHA do checkout. Em seguida, copia `detected` e `survived` para temporários externos e invoca a interface real. Confere anúncio único, project-id, UUID, schema, versão, baseline, contagens, estado, exit e hashes antes/depois. Cada execução conserva seus próprios stdout/stderr, relatório e sumário com UUID; não procura o relatório mais recente. Isso qualifica a dependência com essas fixtures e não mede cobertura nem desempenho do jogo.
 
-A referência de design e limiares permanece Katacombs `44cb39c916e9a05de561123d7b13554ee6e0a516`. Nenhum guia ou implementação do Katacombs foi copiado ou modificado neste marco.
+A referência de design e limiares permanece Katacombs `44cb39c916e9a05de561123d7b13554ee6e0a516`. No M1, nenhum guia ou implementação do Katacombs foi copiado ou modificado.
+
+## Modo de achados (M2)
+
+```bash
+scripts/kof-sensors/run --findings . src/main/kof/sifuture/game/Meteor.kf
+```
+
+`--findings <raiz> <arquivos…>` emite JSON (`schemaVersion` 1) com `findings` (`rule`, `file`, `name`, `line`, `column` e, quando há limite, `value` e `limit`), `frontend`, `expected`, `failures` e `duplication` (CPD 50/5 com `expected`, `tokenized` e `clones`, caminhos relativos à raiz). Exit 1 quando algum arquivo não pôde ser lido, tokenizado ou analisado. O inventário de calibração (sem `--findings`) não mudou. As regras estruturais reutilizam `Analyzer` e `Calibration.exceeds` com os limites 150/25/10/4/2/17; `TestRules` e `CommentRules` leem o AST e os tokens oficiais. Comentários são achados nos intervalos entre tokens, porque o lexer não os emite. Os comandos `npm run lint:sensor`, `dup:sensor` e `sensors:debt` formatam esse JSON; veja [SENSORS.md](../../SENSORS.md). Os testes do modo estão em `FindingsTest`, com probes que passam por `kof check` JVM e JS.

@@ -1454,3 +1454,95 @@ Base `58478aa`, Kof 0.7.0 do PATH e 0.6.4 de compatibilidade, diff local sem com
 
 Detalhes no [aceite](.agent/validation/sensors-adoption.md#continuidade-medidor-dos-sensores-no-kof-070--03112026)
 e na [calibração](.agent/validation/sensor-calibration.md#continuidade-calibração-com-kof-070--03112026).
+
+## M2 dos sensores: tier barato e `check` — 04/11/2026
+
+Base `main` `f483b91`, branch `cheap-quality-sensors`, Kof 0.7.0 do PATH e
+0.6.4 de compatibilidade, Node v24.16.0, Gitleaks 8.30.1. Sem commit nem push
+(o usuário faz). Plano da sessão: `~/.claude/plans/implementado-revise-de-acordo-atomic-sprout.md`.
+Decisões de 04/11 (quatro regras de comentário do Katacombs; escopo "alterados
+contra a `main`" mais `sensors:debt`; M2 só com o tier barato e `check`, com
+`design:*` no M4) gravadas no plano externo e na memória `m2-decisions`.
+Ciclos TDD com RED esperado e observado: `.agent/tmp/m2-cycles.md` (local);
+resumo no [aceite](.agent/validation/sensors-adoption.md).
+
+- [x] E1. `package.json` (só `scripts`, `private`, `type: module`),
+  `scripts/sensor-report.mjs`, `scripts/sensor-guides.mjs`,
+  `scripts/sensor-arguments.mjs` (`--root` para projetos de teste),
+  `scripts/guides/docs.mjs`, `scripts/docs-sensor.mjs`, atribuição MIT no
+  `NOTICE`. `node --test test/sensors/*.test.mjs`: 3/3. Adaptação: links
+  `caminho:linha` (formato exigido pelo AGENTS) resolvem para o arquivo; antes
+  dela o repositório tinha 754 achados, 753 desse formato com arquivo
+  existente. Achado real restante: `.agent/validation/controls-guide.md:127`
+  aponta para `src/main/kof/sifuture/BitmapFont.kf`, que nunca existiu em
+  nenhum commit; o registro histórico não foi alterado.
+- [x] E2. `Main --findings <raiz> <arquivos>` (`Findings.java`) emite JSON
+  `schemaVersion` 1 com achados `rule/file/name/line/column/value/limit`,
+  frontend, `expected`, `failures` e `duplication` (CPD 50/5 com `expected`,
+  `tokenized` e `clones` relativos); inventário de calibração inalterado.
+  Limites 150/25/10/4/2/17; suítes isentas de `long-function` e
+  `too-many-statements`. Java 31/0 com 0.7.0 e 0.6.4 (23 do inventário,
+  8 de achados). Node: `lint:sensor`, `dup:sensor` (escopo: `.kf` alterados
+  contra a `main`, inteiros, incluindo não rastreados; caminhos explícitos
+  aceitos; escopo vazio = SKIP; arquivo não tokenizado = UNAVAILABLE com
+  contagens) e `sensors:debt` (todos os `.kf`, só relatório, exit 0).
+  Node 9/9. Na branch sem `.kf` alterado, `lint:sensor` e `dup:sensor` dão SKIP.
+  `sensors:debt`: em `src/` reproduz o M1 (arquivo 4+1, função 10,
+  complexidade 18/38, profundidade 12/8, parâmetros 2/0, statements 18; CPD
+  19 grupos só sobre `src/`); o repositório inteiro tem 31 arquivos e 23
+  grupos CPD, porque inclui as seis fixtures `tests/*.kf`.
+- [x] E3. `TestRules.java` no AST oficial: `assertion-free-test` (sem
+  `AssertStmt` nem chamada `assert*/fail*/expect*/verify*/then*/should*`,
+  inclusive dentro de lambda de `testRows`), `branching-test` (`if`,
+  if-expressão, `switch`), `looping-test` (`for`, `for-in`, `while`,
+  `do-while`), `unnamed-arrange` (mais de 8 statements antes da primeira
+  asserção) e `mystery-guest` (atribuição a estado compartilhado em `setup`,
+  `beforeEach` ou `beforeAll`; como Kof recusa `var` de topo com `PARSE007`,
+  o estado compartilhado é campo `static`). `testRows` executado num probe com
+  0.7.0 e 0.6.4, JVM e JS: linha com falha nomeada (`row 0 [2, 5]: … expected
+  5, got 4`); só então entrou no guia de `looping-test`. Java 36/0 com 0.7.0 e
+  0.6.4; Node 10/10. Dívida real das suítes: 207 `looping-test` (71 são
+  `for … { g.step() }`, laços de arrange, por isso o guia também indica uma
+  função `given…`), 52 `branching-test`, 28 `unnamed-arrange`, nenhum
+  `assertion-free-test` nem `mystery-guest`.
+- [x] E4. `CommentRules.java`: comentários extraídos dos intervalos entre
+  tokens oficiais (`//` e `/* */` não aninhado, conforme a referência léxica),
+  sem segunda gramática; strings com `//`, `/*` ou `TODO` não acusam.
+  `long-comment` (linhas `//` consecutivas ou bloco com mais de 1 linha),
+  `deferred-work` (`todo|fixme|xxx|hack` como palavra), `stale-comment` (nome
+  camel/snake ou chamada entre crases ausente dos identificadores do arquivo;
+  caminho entre crases que não resolve) e `commented-out-code` (parser oficial
+  sobre `main() { … }` ou como declarações de topo). Adaptação ao Kof: como
+  `Tipo nome` é declaração, prosa como "first line of a paragraph" passava no
+  parser; o comentário só é código se todos os statements forem de código
+  (declaração com inicializador, chamada/atribuição/operador/`new`, controle,
+  `return`/`throw` sem identificador solto). Java 40/0 com 0.7.0 e 0.6.4;
+  Node 11/11. O repositório não tem comentários: 0 achados dessas regras.
+- [x] E5. `secret:sensor` (`gitleaks-sensor.mjs`): adaptação de escopo, com
+  Gitleaks sobre um espelho temporário dos arquivos publicáveis
+  (`git ls-files -co --exclude-standard`), porque `gitleaks dir` recebe um só
+  caminho e o `.agent/tmp/` local (672 MB, ignorado pelo Git) dava 52
+  `generic-api-key`; relatório temporário fora do repositório; sem
+  allowlist nem `.gitleaksignore`. Credencial sintética gerada em tempo de
+  execução num projeto temporário: achado `github-pat` com localização e valor
+  redigido, desaparece ao remover; sem Gitleaks no PATH, UNAVAILABLE. Na
+  branch: PASS, 236 arquivos, 0,47 s. `sensors:doctor`: versão e caminho de
+  kof, kof-mut (com id da imagem), node, mvn, java, gitleaks e python3, e cada
+  comando `node scripts/…` do `package.json`; MISSING reprova; não é
+  certificado de qualidade. Node 16/16.
+- [x] E6. `check` (`scripts/check.mjs`): secret → tipos JVM/JS → unittest →
+  Kof JVM/JS → lint → dup → docs → mutação, parando na primeira falha (demais
+  `NOT RUN`); sensor que imprime SKIP aparece como SKIP no sumário. Mutação:
+  `kof-mut run` com `kof-mut.json` sobre os `.kf` de `src/main/kof/`
+  alterados contra a `main`; sem escopo, SKIP; KofMut 1/2/3 reprova; evidência
+  em `.agent/tmp/kof-mut-runs/`. Prova real em cópia: `Background.kf` 1/1
+  morto, exit 0. `check:task` acrescenta as sete jornadas. Node 21/21.
+  Resultado real na branch: `CHECK: FAIL at docs:sensor` e
+  `CHECK:TASK: FAIL at docs:sensor` (só o link de `controls-guide.md:127`);
+  secret, tipos, 16 unittest e 114/0 Kof em JVM e JS passaram; lint e dup SKIP;
+  as sete jornadas, executadas à parte, passaram. `SENSORS.md`,
+  `docs/desenvolvimento*.md` e `scripts/kof-sensors/README.md` atualizados.
+  Probes de todas as regras em cópia temporária: detector, local, ID, guia e
+  desaparecimento. `git diff --check` 0; `src/` e `tests/` iguais à `main`.
+- [ ] Pendente do usuário: decidir o link histórico de `controls-guide.md:127`
+  (o `check` só fica verde depois disso), revisar e fazer commit e push.
