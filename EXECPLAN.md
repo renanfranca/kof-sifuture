@@ -1474,8 +1474,10 @@ resumo no [aceite](.agent/validation/sensors-adoption.md).
   `caminho:linha` (formato exigido pelo AGENTS) resolvem para o arquivo; antes
   dela o repositório tinha 754 achados, 753 desse formato com arquivo
   existente. Achado real restante: `.agent/validation/controls-guide.md:127`
-  aponta para `src/main/kof/sifuture/BitmapFont.kf`, que nunca existiu em
-  nenhum commit; o registro histórico não foi alterado.
+  apontava para `src/main/kof/sifuture/BitmapFont.kf`, criado em `3829df1` e
+  removido em `fbe2029` (a primeira busca usou glob errado e concluiu, por
+  engano, que o arquivo nunca existira). Corrigido depois do commit `236f8b4`:
+  o link aponta para o arquivo em `3829df1`, linhas 24–26, no GitHub.
 - [x] E2. `Main --findings <raiz> <arquivos>` (`Findings.java`) emite JSON
   `schemaVersion` 1 com achados `rule/file/name/line/column/value/limit`,
   frontend, `expected`, `failures` e `duplication` (CPD 50/5 com `expected`,
@@ -1544,5 +1546,7 @@ resumo no [aceite](.agent/validation/sensors-adoption.md).
   `docs/desenvolvimento*.md` e `scripts/kof-sensors/README.md` atualizados.
   Probes de todas as regras em cópia temporária: detector, local, ID, guia e
   desaparecimento. `git diff --check` 0; `src/` e `tests/` iguais à `main`.
-- [ ] Pendente do usuário: decidir o link histórico de `controls-guide.md:127`
-  (o `check` só fica verde depois disso), revisar e fazer commit e push.
+- [x] Commit do M2: `236f8b4` (feito pelo usuário com Luna). Depois dele, o
+  link de `controls-guide.md:127` foi corrigido para o arquivo em `3829df1` e
+  o `check` foi repetido (ver o aceite).
+- [ ] Pendente do usuário: commit desta correção e push.

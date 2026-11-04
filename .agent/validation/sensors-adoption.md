@@ -1592,7 +1592,8 @@ local opcional em `.agent/tmp/kof070-sensors-20261103/` e
 ## M2: tier barato e `check` — 04/11/2026
 
 Base `main` = `origin/main` = `f483b91`, branch `cheap-quality-sensors`, diff
-local sem commit (o SHA do commit fica a cargo do usuário). Kof 0.7.0 do PATH
+local, depois publicado no commit `236f8b4` (sem push até este registro); a
+correção de link e a revalidação abaixo vêm depois dele. Kof 0.7.0 do PATH
 e 0.6.4 de compatibilidade (`~/.local/share/kof/kof-0.6.4-linux-x86_64`),
 KofMut 0.1.0 imagem `b5401898d74f`, Node v24.16.0, Maven 3.9.5, OpenJDK
 25.0.2, Gitleaks 8.30.1, Python 3.10.12, Google Chrome 155.0.8059.39.
@@ -1679,7 +1680,7 @@ statements forem de código. O repositório não tem comentários: 0 achados.
 
 | Comando | Resultado |
 | --- | --- |
-| `npm run docs:sensor` | FAIL, 1 achado: `.agent/validation/controls-guide.md:127` aponta para `src/main/kof/sifuture/BitmapFont.kf`, que não existe em nenhum commit (`git log --all`) |
+| `npm run docs:sensor` em `236f8b4` | FAIL, 1 achado: `.agent/validation/controls-guide.md:127` apontava para `src/main/kof/sifuture/BitmapFont.kf`, criado em `3829df1` e removido em `fbe2029` |
 | `docs:sensor` sobre `SENSORS.md`, `docs/desenvolvimento*.md`, `README*.md` e `scripts/kof-sensors/README.md` | PASS |
 
 Adaptação: links `caminho:linha`, formato exigido pelo AGENTS, resolvem para o
@@ -1747,3 +1748,25 @@ behavioral e `design:*` (M4) não foram feitos. O `check` é um comando, não o
 Stop; o bloqueio por arquivos tocados e os três bloqueios por sessão são do
 M3. A CI continua sem os sensores. Evidência local opcional:
 `.agent/tmp/m2-cycles.md`, `.agent/tmp/m2-e*/`, `.agent/tmp/m2-probes/`.
+
+<a id="m2-revalidacao-apos-link"></a>
+
+### Revalidação depois do commit `236f8b4` — 04/11/2026
+
+Sobre `236f8b4` com um diff só documental: o link de
+`.agent/validation/controls-guide.md:127` passou a apontar para
+[`BitmapFont.kf` em `3829df1`, linhas 24–26](https://github.com/renanfranca/kof-sifuture/blob/3829df10ab82175b2b8f823edf0bd86fd098616e/src/main/kof/sifuture/BitmapFont.kf#L24-L26)
+(HTTP 200), onde o trecho citado está; o arquivo foi removido em `fbe2029`. O
+texto histórico foi preservado. Retificação: a primeira busca
+(`git log --all -- '*BitmapFont*'`) usou um glob que não casou e concluiu, por
+engano, que o arquivo nunca existira; `git log --all -S` encontrou os dois
+commits.
+
+| Comando | Resultado |
+| --- | --- |
+| `npm run docs:sensor` | `SENSOR docs: PASS (0 findings)` |
+| `npm run check` | `CHECK: PASS`: secret, tipos JVM/JS, 16 unittest e `0 failed of 114 tests` em JVM e JS passaram; lint, dup e mutação SKIP (nenhum `.kf` alterado contra a `main`) |
+| `npm run check:task` | `CHECK:TASK: PASS`, incluindo as sete jornadas de navegador |
+
+O PASS do `check` não avalia código Kof novo nem mutação nesta branch, porque
+ela não altera `.kf`; os SKIP dizem isso no sumário.
