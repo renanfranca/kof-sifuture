@@ -124,6 +124,27 @@ teaches:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
 
+<a id="sensores-de-qualidade"></a>
+
+## Quality sensors
+
+`package.json` holds only scripts, with no npm dependencies. `npm run check`
+is the local gate: secrets, JVM and JS type checks, Python tests, Kof tests on
+JVM and JS, the cheap Kof sensors, documentation links, and mutation of the
+production `.kf` files changed against `main`. It stops at the first failure,
+so mutation never runs on a red baseline. `npm run check:task` adds the seven
+browser journeys.
+
+```bash
+npm run check
+npm run lint:sensor
+npm run sensors:debt
+```
+
+Limits: file 150 lines, function 25, complexity 10, parameters 4, depth 2,
+statements 17; CPD 50 tokens and 5 lines. [SENSORS.md](../SENSORS.md) lists
+every command and rule.
+
 ## Check and mutate a source file manually
 
 Run the JSON check and complete test suite on both supported project targets:

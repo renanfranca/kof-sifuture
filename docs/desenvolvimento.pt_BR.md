@@ -112,6 +112,27 @@ ensina:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
 
+<a id="sensores-de-qualidade"></a>
+
+## Sensores de qualidade
+
+O `package.json` contém só scripts, sem dependências npm. `npm run check` é a
+verificação local: segredos, check de tipos JVM e JS, testes Python, testes
+Kof em JVM e JS, os sensores baratos de Kof, links da documentação e mutação
+dos arquivos `.kf` de produção alterados em relação à `main`. Ele para na
+primeira falha, então a mutação nunca roda com testes vermelhos.
+`npm run check:task` acrescenta as sete jornadas de navegador.
+
+```bash
+npm run check
+npm run lint:sensor
+npm run sensors:debt
+```
+
+Limites: arquivo 150 linhas, função 25, complexidade 10, parâmetros 4,
+profundidade 2, statements 17; CPD com 50 tokens e 5 linhas. O
+[SENSORS.md](../SENSORS.md) lista todos os comandos e regras (em inglês).
+
 ## Conferir e mutar um arquivo manualmente
 
 Execute o check JSON e a suíte completa nos dois alvos do projeto:

@@ -66,7 +66,17 @@ public final class Main {
         };
     }
 
+    static Map<String, String> frontend() throws Exception {
+        Path jar = Path.of(Lexer.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath();
+        return Map.of("jar", jar.toString(), "sha256", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))),
+                "version", System.getProperty("kof.version", "unrecorded"));
+    }
+
     public static void main(String[] args) throws Exception {
+        if (args.length > 0 && args[0].equals("--findings")) {
+            Findings.run(Arrays.asList(args).subList(1, args.length));
+            return;
+        }
         Path root = Path.of(args.length == 0 ? "." : args[0]).toRealPath();
         var paths = new TreeSet<Path>();
         var failures = new ArrayList<String>();
@@ -99,12 +109,10 @@ public final class Main {
                 functions("parameters", 4, inventory, Analyzer.FunctionMetrics::parameters, SuitePolicy.MEASURED),
                 functions("depth", 2, inventory, Analyzer.FunctionMetrics::depth, SuitePolicy.MEASURED),
                 functions("statements", 15, inventory, Analyzer.FunctionMetrics::statements, SuitePolicy.EXEMPT));
-        Path jar = Path.of(Lexer.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath();
         var report = new LinkedHashMap<String, Object>();
         report.put("schemaVersion", 2);
         report.put("success", failures.isEmpty());
-        report.put("frontend", Map.of("jar", jar.toString(), "sha256", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))),
-                "version", System.getProperty("kof.version", "unrecorded")));
+        report.put("frontend", frontend());
         report.put("scope", scopes);
         report.put("expected", paths.stream().map(Path::toString).toList());
         report.put("files", inventory);

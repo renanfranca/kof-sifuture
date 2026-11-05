@@ -1,0 +1,16 @@
+{
+  "name": "kof-sifuture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "check:task": "node scripts/check-task.mjs",
+    "docs:sensor": "node scripts/docs-sensor.mjs",
+    "dup:sensor": "node scripts/dup-sensor.mjs",
+    "lint:sensor": "node scripts/lint-sensor.mjs",
+    "secret:sensor": "node scripts/gitleaks-sensor.mjs",
+    "sensors:debt": "node scripts/sensors-debt.mjs",
+    "sensors:doctor": "node scripts/sensors-doctor.mjs",
+    "test:sensors": "node --test test/sensors/*.test.mjs"
+  }
+}

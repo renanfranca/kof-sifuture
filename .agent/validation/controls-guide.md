@@ -124,7 +124,7 @@ O [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:287) ori
 c.drawImage(logo, 5, 5)
 ```
 
-Trecho de [BitmapFont.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/BitmapFont.kf:24):
+Trecho de [BitmapFont.kf](https://github.com/renanfranca/kof-sifuture/blob/3829df10ab82175b2b8f823edf0bd86fd098616e/src/main/kof/sifuture/BitmapFont.kf#L24-L26) (commit `3829df1`; arquivo removido em `fbe2029`):
 
 ```kof
 var item = glyph(text.substring(i, i + 1))

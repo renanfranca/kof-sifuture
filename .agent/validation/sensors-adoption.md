@@ -1586,3 +1586,187 @@ OK. SHA-256 de todos os arquivos de `src/` e `tests/` iguais antes e depois;
 no KofMut, em `kof-mut*.json` ou no wrapper. Sem commit nem push. Evidência
 local opcional em `.agent/tmp/kof070-sensors-20261103/` e
 `.agent/tmp/kof070-calibration-20261103/`.
+
+<a id="m2-tier-barato-e-check"></a>
+
+## M2: tier barato e `check` — 04/11/2026
+
+Base `main` = `origin/main` = `f483b91`, branch `cheap-quality-sensors`, diff
+local, depois publicado no commit `236f8b4` (sem push até este registro); a
+correção de link e a revalidação abaixo vêm depois dele. Kof 0.7.0 do PATH
+e 0.6.4 de compatibilidade (`~/.local/share/kof/kof-0.6.4-linux-x86_64`),
+KofMut 0.1.0 imagem `b5401898d74f`, Node v24.16.0, Maven 3.9.5, OpenJDK
+25.0.2, Gitleaks 8.30.1, Python 3.10.12, Google Chrome 155.0.8059.39.
+Referência Katacombs `44cb39c916e9a05de561123d7b13554ee6e0a516` (MIT,
+atribuição e adaptações no `NOTICE`). Comandos e regras: [SENSORS.md](../../SENSORS.md).
+
+### Estrutura
+
+| Comando | Resultado | Evidência |
+| --- | --- | --- |
+| `scripts/kof-sensors/test` (0.7.0 e `KOF=<0.6.4>`) | 40/0 nas duas versões (23 inventário, 17 achados) | `FindingsTest`: um probe por métrica, com valor no limite sem achado e acima com achado |
+| `npm run sensors:debt` | exit 0; em `src/`: arquivo 4+1, função 10, complexidade 18 (produção) e 38 (testes), profundidade 12 e 8, parâmetros 2 e 0, statements 18 | iguais ao M1 de 03/11; o repositório inteiro acrescenta as seis fixtures `tests/*.kf` (31 arquivos) |
+| `npm run lint:sensor` na branch | `SENSOR lint: SKIP (no Kof files changed against main)` | a branch não altera `.kf` |
+| Probe em cópia temporária (ver abaixo) | 16 achados, com os seis IDs estruturais nas linhas do probe; depois de remover, SKIP | `long-file` 1:1, `long-function` 1:1, `high-complexity` 29:1, `too-many-parameters` 33:1, `deep-nesting` 37:1, `too-many-statements` 46:1 |
+
+### Duplicação
+
+| Comando | Resultado | Evidência |
+| --- | --- | --- |
+| `FindingsTest` e `dup-sensor.test.mjs` | clone de 50 tokens e 7 linhas entre dois arquivos; some ao trocar uma cópia | `2 files expected, 2 tokenized` impresso no PASS e no FAIL |
+| Arquivo não tokenizável no escopo | `SENSOR dup: UNAVAILABLE`, `1 files expected, 0 tokenized` | nunca PASS |
+| `sensors:debt` | 19 grupos CPD sobre `src/` (= M1); 23 no repositório inteiro | 4 grupos envolvem `tests/*.kf` |
+| Probe | `CloneProbeA.kf:1 ERROR duplicated-code`, `6 files expected, 6 tokenized`; depois, SKIP | — |
+
+### Segredos
+
+| Comando | Resultado | Evidência |
+| --- | --- | --- |
+| `npm run secret:sensor` na branch | `SENSOR gitleaks: PASS (0 findings)`, 0,47 s | espelho temporário dos 236 arquivos publicáveis (`git ls-files -co --exclude-standard`) |
+| Credencial sintética (gerada em tempo de execução, fora do repositório) | `github-pat` com arquivo e linha, valor redigido; PASS depois de remover | o valor não aparece em nenhuma saída salva |
+| Sem Gitleaks no PATH | `SENSOR gitleaks: UNAVAILABLE` | nunca PASS |
+
+Adaptação: `gitleaks dir .` sobre o checkout inteiro deu 52 `generic-api-key`,
+todos em `.agent/tmp/` (672 MB de evidência local que o Git exclui). O sensor
+varre só o que o Git publicaria; não há allowlist nem `.gitleaksignore`.
+
+### Tipos e testes
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 scripts/kof_project.py check --target jvm --json` e `js` (dentro do `check`) | PASS |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | 16 testes OK |
+| Testes Kof JVM e JS (dentro do `check`) | `0 failed of 114 tests` em cada alvo |
+| `node --test test/sensors/*.test.mjs` | 21/21 |
+| Sete jornadas `python3 tests/browser*.py`, executadas diretamente | todas exit 0 (`browser` 43 s, `boss` 24 s, `controls` 21 s, `meteor` 2 s, `stage` 27 s, `subchief` 25 s, `weapons` 66 s) |
+
+### Regras de teste
+
+| Regra | Prova | Dívida real em `src/test/kof` |
+| --- | --- | --- |
+| `assertion-free-test` | sem `assert` nem chamada `assert*`/`fail*`/`expect*`/`verify*`; asserção dentro de lambda de `testRows` conta | 0 |
+| `branching-test` | `if`, if-expressão e `switch` nas linhas 3, 6 e 7 do probe | 52 |
+| `looping-test` | `for`, `for-in`, `while`, `do-while` | 207 (71 são `for … { g.step() }`) |
+| `unnamed-arrange` | 9 statements antes da asserção acusa; 8 não | 28 |
+| `mystery-guest` | `setup`/`beforeAll` atribuindo campo `static` acusa; hook só com local não | 0 |
+
+`testRows` foi executado antes de entrar no guia, com 0.7.0 e 0.6.4, JVM e JS:
+
+```text
+PASS reads state filled by setup
+PASS table of squares
+FAIL table names the failing row: square: 1 of 2 rows failed
+  row 0 [2, 5]: assertion failed: square of 2 (expected 5, got 4)
+```
+
+Kof recusa `var` de topo (`PARSE007` na referência de gramática; `PARSE023`
+observado no probe), então o estado preenchido por `setup` é campo `static`.
+
+### Comentários
+
+| Regra | Prova |
+| --- | --- |
+| `long-comment` | duas linhas `//` consecutivas (altura 2) e bloco de três linhas acusam; uma linha não |
+| `deferred-work` | `TODO` e `Hack` em comentário acusam; `"todo: …"`, `"hackathon"`, `todolist` não |
+| `stale-comment` | `` `oldSpeed()` `` ausente e `` `docs/missing.md` `` acusam; nome presente, caminho existente e palavra simples não |
+| `commented-out-code` | `var speed = 4`, `Int old() { … }` e `if (…) { … }` acusam; prosa e palavra solta não |
+| Strings | `"// TODO not a comment"` e `"/* and a block"` nunca acusam: o lexer oficial já consumiu a string |
+
+Adaptação ao Kof: como `Tipo nome` declara local, "first line of a paragraph"
+passava no parser como declarações. O comentário só é código se todos os
+statements forem de código. O repositório não tem comentários: 0 achados.
+
+### Docs
+
+| Comando | Resultado |
+| --- | --- |
+| `npm run docs:sensor` em `236f8b4` | FAIL, 1 achado: `.agent/validation/controls-guide.md:127` apontava para `src/main/kof/sifuture/BitmapFont.kf`, criado em `3829df1` e removido em `fbe2029` |
+| `docs:sensor` sobre `SENSORS.md`, `docs/desenvolvimento*.md`, `README*.md` e `scripts/kof-sensors/README.md` | PASS |
+
+Adaptação: links `caminho:linha`, formato exigido pelo AGENTS, resolvem para o
+arquivo. Antes dela havia 754 achados, 753 desse formato com arquivo existente.
+
+### Ordem do `check`
+
+| Prova | Resultado |
+| --- | --- |
+| Projeto temporário com passos substituídos | ordem secret → tipos JVM/JS → unittest → Kof JVM/JS → lint → dup → docs → mutação; mutação SKIP sem produção alterada |
+| Teste Kof JVM vermelho com produção alterada | lint, dup, docs e mutação `NOT RUN`; `kof-mut` nunca chamado; `CHECK: FAIL at kof tests:jvm` |
+| Mutação com produção alterada | escopo `["src/main/kof/Game.kf"]` (suíte alterada fica fora), `--config kof-mut.json`; exit 1 reprova, 0 aprova, 3 reprova |
+| KofMut real pelo passo de mutação, em cópia | `Background.kf`: `candidates=1 killed=1 survived=0`, exit 0, `reportPath` com o `runId` da execução |
+| `npm run check` na branch | `CHECK: FAIL at docs:sensor` (secret, tipos, unittest e Kof PASS; lint e dup SKIP; mutação NOT RUN) |
+| `npm run check:task` na branch | `CHECK:TASK: FAIL at docs:sensor`; as sete jornadas NOT RUN por isso, e foram executadas à parte acima |
+
+### Probes de aceitação
+
+Cópia temporária da árvore de trabalho em `/tmp` (sem pasta com ponto),
+commitada como `main`, com branch `probe`. Seis fontes de probe passaram por
+`kof check` JVM e JS. `lint:sensor` deu 16 achados nas linhas esperadas,
+incluindo `mystery-guest` 6:5, `assertion-free-test` 9:1, `looping-test`
+14:5, `branching-test` 15:9, `unnamed-arrange` 21:1, `long-comment` 1:1,
+`commented-out-code` 4:1, `deferred-work` e `stale-comment` 6:1; nenhum na
+linha da string `"// TODO …"`. Os 17 guias apareceram (`stale-doc` provado nos
+testes do E1). Depois de remover os probes, lint e dup deram SKIP e gitleaks
+PASS. Cópias removidas.
+
+### Ciclos TDD (RED esperado e observado)
+
+| Ciclo | Comportamento | RED esperado = observado |
+| --- | --- | --- |
+| C1 | docs: link quebrado | script ausente, stdout vazio |
+| C2 | docs: script npm ausente, some ao criar | passou de primeira (módulo copiado); injeção de falha reprovou |
+| C3 | docs: `caminho:linha` | 3 achados em vez de 1 |
+| C4–C8, C10 | `long-function`, `high-complexity`, `too-many-parameters`, `deep-nesting`, `too-many-statements`, `long-file` | C4: `toRealPath("--findings")`; demais: 0 em vez de 1 |
+| C9 | isenção das suítes | passou de primeira; injeção (ignorar isenção) reprovou com `long-function` 33 |
+| C11 | `lint:sensor` com caminho explícito | script ausente; 1ª tentativa verde revelou erro no probe (21 statements), corrigido no teste |
+| C12 | escopo alterado contra a `main` | exit 0 em vez de 1 |
+| C13 | escopo vazio = SKIP | `PASS (0 findings)` |
+| C14 | CPD no JSON de achados | `duplication` nulo |
+| C15 | `dup:sensor` | script ausente |
+| C16 | não tokenizado = UNAVAILABLE com contagens | UNAVAILABLE sem contagens |
+| C17 | `sensors:debt` | script ausente |
+| C18–C22 | cinco regras de teste | lista vazia; C20: probe recusado por `kof check` (`for-in` exige `var`, `SEM011`) e corrigido; C22: 1ª tentativa verde com linha errada (posição de `AssignmentExpr`), corrigida |
+| C23 | guias de teste no Node | `TypeError` (também no teste de dívida, mesma causa) |
+| C24–C27 | quatro regras de comentário | lista vazia |
+| C27b | prosa `Tipo nome` não é código | `[1, 7, 8, 12, 14, 16]` em vez de `[1, 7, 8]` |
+| C28 | guias de comentário no Node | stdout vazio (`TypeError`) |
+| C29 | segredo sintético | script ausente |
+| C30, C31 | UNAVAILABLE sem Gitleaks; escopo publicável | passaram de primeira; injeções reprovaram |
+| C32 | doctor | script ausente |
+| C33 | doctor com faltas | RED inesperado: `bash` fora do PATH mínimo; busca no PATH em Node; injeção reprovou |
+| C34 | ordem do `check` | script ausente |
+| C35 | curto-circuito | passou de primeira; injeção (seguir após FAIL) reprovou |
+| C36 | mutação | `kof-mut` nunca chamado |
+| C37 | `check:task` | script ausente |
+| C38 | SKIP no sumário | `lint:sensor PASS` |
+
+### Verificações e limites
+
+`git diff --check` exit 0; `git diff main -- src tests` vazio e nenhum arquivo
+novo em `src/` ou `tests/`: o M2 não mudou o jogo. Hooks (M3), adaptador
+behavioral e `design:*` (M4) não foram feitos. O `check` é um comando, não o
+Stop; o bloqueio por arquivos tocados e os três bloqueios por sessão são do
+M3. A CI continua sem os sensores. Evidência local opcional:
+`.agent/tmp/m2-cycles.md`, `.agent/tmp/m2-e*/`, `.agent/tmp/m2-probes/`.
+
+<a id="m2-revalidacao-apos-link"></a>
+
+### Revalidação depois do commit `236f8b4` — 04/11/2026
+
+Sobre `236f8b4` com um diff só documental: o link de
+`.agent/validation/controls-guide.md:127` passou a apontar para
+[`BitmapFont.kf` em `3829df1`, linhas 24–26](https://github.com/renanfranca/kof-sifuture/blob/3829df10ab82175b2b8f823edf0bd86fd098616e/src/main/kof/sifuture/BitmapFont.kf#L24-L26)
+(HTTP 200), onde o trecho citado está; o arquivo foi removido em `fbe2029`. O
+texto histórico foi preservado. Retificação: a primeira busca
+(`git log --all -- '*BitmapFont*'`) usou um glob que não casou e concluiu, por
+engano, que o arquivo nunca existira; `git log --all -S` encontrou os dois
+commits.
+
+| Comando | Resultado |
+| --- | --- |
+| `npm run docs:sensor` | `SENSOR docs: PASS (0 findings)` |
+| `npm run check` | `CHECK: PASS`: secret, tipos JVM/JS, 16 unittest e `0 failed of 114 tests` em JVM e JS passaram; lint, dup e mutação SKIP (nenhum `.kf` alterado contra a `main`) |
+| `npm run check:task` | `CHECK:TASK: PASS`, incluindo as sete jornadas de navegador |
+
+O PASS do `check` não avalia código Kof novo nem mutação nesta branch, porque
+ela não altera `.kf`; os SKIP dizem isso no sumário.
