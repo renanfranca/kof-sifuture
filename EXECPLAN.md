@@ -1549,4 +1549,33 @@ resumo no [aceite](.agent/validation/sensors-adoption.md).
 - [x] Commit do M2: `236f8b4` (feito pelo usuário com Luna). Depois dele, o
   link de `controls-guide.md:127` foi corrigido para o arquivo em `3829df1` e
   o `check` foi repetido (ver o aceite).
-- [ ] Pendente do usuário: commit desta correção e push.
+- [x] Commit desta correção e push: `6b17e1c`, mergeado na `main` em `f4af07a`
+  (PR #22).
+
+## Pagamento da dívida dos sensores antes do M3 — 05/11/2026
+
+Plano decidido com o usuário em 05/11; cópia de trabalho em
+`~/.agents/skills/_temporary/codex-skills-ai-context/2026-11-05_FEATURE_sifuture-sensor-debt-payoff.md`.
+Branch `sensor-debt-payoff` a partir de `f4af07a`. Aceite em
+`.agent/validation/sensor-debt-payoff.md`; evidência bruta em `.agent/tmp/debt-*/`.
+Sem commit nem push pela sessão executora.
+
+### Progress
+
+- [x] R0. Linha de base, em `f4af07a`: dívida 415 lint + 23 CPD em 31
+  arquivos; 114 casos em JVM e JS; build com 113 arquivos; sete jornadas
+  determinísticas (186 PNG, 0 diferença de pixels entre duas execuções).
+  KofMut nos 20 `.kf` de produção: 1167 candidatos, 678 mortos, 489
+  sobreviventes, exit 3 `incomplete` por `EnumDeclarationNode` em `Boss`,
+  `Item`, `MenuEntrance`, `State` e `Subchief`; 2h48. `GameControls`,
+  `GameView` e `ControlsGuide` com 0 mortos (199 sobreviventes; `kof.ui` é
+  no-op no JVM). Linha "Pendente do usuário" corrigida.
+- [ ] Ponto de parada 4: aguardando a decisão do usuário sobre o tamanho do R5,
+  a camada `kof.ui` e a limitação de `enum` do KofMut, antes do R1.
+- [ ] R1. Dividir a suíte (depende do ponto de parada 1).
+- [ ] R2. Regras de teste.
+- [ ] R3. Duplicação nas suítes.
+- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).
+- [ ] R5. Sobreviventes por TDD.
+- [ ] R6. Fixtures `tests/*.kf`.
+- [ ] R7. Fechamento.
