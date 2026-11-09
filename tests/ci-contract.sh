@@ -285,18 +285,19 @@ printf 'PASS PR isolation, producer outputs for reruns and freshness immediately
 
 fixture_project="$work/wrapper-project"
 mkdir -p "$fixture_project/scripts"
-cp "$project/scripts/kof_project.py" "$fixture_project/scripts/"
+cp "$project/scripts/kof_project.py" "$project/scripts/kof-tests.mjs" "$project/scripts/sensor-arguments.mjs" "$fixture_project/scripts/"
 cp -r "$project/src" "$fixture_project/src"
 cp -r "$project/assets" "$fixture_project/assets"
 mkdir -p "$fixture_project/src/test/kof/nested/deeper"
-cp "$project/src/test/kof/sifuture/game/GameJourney.kf" "$fixture_project/src/test/kof/nested/deeper/Additional.kf"
+cp "$project/src/test/kof/sifuture/game/MenuJourney.kf" "$fixture_project/src/test/kof/nested/deeper/Additional.kf"
 cat > "$work/bin/kof-fixture" <<'COMPILER'
 #!/usr/bin/env bash
 set -euo pipefail
 case "$1" in
     test)
-        printf '%s %s\n' "$4" "$(cat "$2")" >> "$WRAPPER_LOG"
-        [[ "$4" != "${FAIL_TARGET:-}" ]] || exit 19
+        while IFS= read -r line; do printf '%s %s\n' "$4" "$line" >> "$WRAPPER_LOG"; done < "$2"
+        [[ "$4" != "${FAIL_TARGET:-}" ]] || { printf '1 failed of 1 tests\n'; exit 19; }
+        printf '0 failed of 1 tests\n'
         ;;
     build)
         [[ "${FAIL_BUILD:-false}" == false ]] || { printf 'fixture compiler build failed\n' >&2; exit 17; }
@@ -329,7 +330,7 @@ for failing in jvm js; do
         fi
 
         rg -q "^$target import nested.deeper.Additional$" "$WRAPPER_LOG"
-        rg -q "^$target import sifuture.game.GameJourney$" "$WRAPPER_LOG"
+        rg -q "^$target import sifuture.game.MenuJourney$" "$WRAPPER_LOG"
     done
     [[ "$failures" == 1 ]]
 done

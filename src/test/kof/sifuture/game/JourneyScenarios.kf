@@ -1,0 +1,74 @@
+package sifuture.game
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+prepareSubchief(Game g) {
+    g.start(922)
+    g.stageSteps = 840
+    g.subchief.phase = SubchiefPhase.Normal
+    g.subchief.x = 120
+    g.subchief.y = 100
+    g.subchief.endX = 147
+    g.subchief.endY = 100
+    g.ship.phase = ShipPhase.Normal
+    for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+    for (var item in g.items) { item.x = 10000 }
+}
+
+prepareAudit(Game g) {
+    g.start(922)
+    g.stageSteps = 840
+    g.subchief.phase = SubchiefPhase.Normal
+    g.subchief.x = 120
+    g.subchief.y = 100
+    g.subchief.endX = 120
+    g.subchief.endY = 100
+    g.ship.phase = ShipPhase.Normal
+    g.ship.y = 100
+    for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+    for (var item in g.items) { item.x = 10000 }
+}
+
+prepareFatalContact(Game g, Int weapon) {
+    if (weapon == 0) { g.ship.x = 100 }
+    if (weapon == 1) {
+        g.weapons.lasers.shots[0].fire(0, 100)
+        g.weapons.lasers.shots[0].x = 86
+    }
+    if (weapon == 2) { g.weapons.blaster.fire(g.ship); g.weapons.blaster.x = 60 }
+    if (weapon == 3) {
+        for (var beam in g.weapons.beams) { beam.active = true; beam.x = 0; beam.y = 100 }
+    }
+}
+
+prepareBoss(Game g) {
+    g.start(943)
+    g.stageSteps = 1420
+    g.boss.phase = BossPhase.Normal
+    g.boss.x = 120
+    g.boss.y = 100
+    g.boss.endX = 135
+    g.boss.endY = 110
+    g.ship.phase = ShipPhase.Normal
+    g.ship.y = 200
+    for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+    for (var item in g.items) { item.x = 10000 }
+}

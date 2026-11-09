@@ -1586,6 +1586,31 @@ Do usuário, em 07/11/2026:
    por arquivo, então medir numa cópia e parar no ponto de parada 1 antes do R1.
    Build, check de tipos e jornadas continuam no `kof_project.py`.
 
+### Decisões de 09/11
+
+Do usuário, em 09/11/2026, respondendo ao ponto de parada 1 (registro completo em
+`.agent/tmp/debt-stop-point-1-handoff.md`):
+
+1. Dividir o `GameJourney.kf` em 9 arquivos por assunto, como no probe, com
+   `kof.toml [sources]` e um import por módulo (`import sifuture.game.*` dá `PKG007`).
+2. Os testes Kof passam a rodar por `scripts/kof-tests.mjs`: descobre os `.kf` de
+   `src/test/kof` sem lista à mão, gera uma entrada temporária que importa todos,
+   roda `kof test <entrada> --module-root src/test/kof --target <jvm|js>` uma vez e
+   apaga a entrada no fim.
+3. É uma ponte temporária até o Kof ter o modo nativo (rascunho de issue em
+   `.agent/tmp/kof-test-grouped-suite-issue.md`); documentar isso.
+4. Aposentar o `kof_project.py test`; os testes Python desse comportamento viram
+   testes Node equivalentes. O Python fica só com `check` e `build`.
+5. Continua em `.mjs`, sem TypeScript (migração planejada à parte em
+   `.agent/tmp/typescript-migration-plan.md`).
+6. Na mesma data, durante a execução: a entrada temporária fica em
+   `src/test/kof/KofTestsEntry<aleatório>.kf`, ignorada pelo Git e pela descoberta,
+   sem `--module-root`, porque o Kof 0.6.4 não tem essa opção.
+
+Critérios E1 a E10 do handoff entram no aceite. Chamadores do script: `check.mjs`,
+`testCommand` do `kof-mut.json`, CI (`.github/workflows/kof-ci-and-pages.yml:78`) e
+a documentação que cita `kof_project.py test`.
+
 ### Progress
 
 - [x] R0. Linha de base, em `f4af07a`: dívida 415 lint + 23 CPD em 31
@@ -1606,8 +1631,16 @@ Do usuário, em 07/11/2026:
   custa 2,6 a 2,8 vezes a suíte única sob a mesma carga; o KofMut no `Meteor.kf`
   mudou o veredito (11 timeouts). Uma entrada única custa o mesmo que hoje.
   Máquina carregada durante a medição: tempos absolutos não valem.
-- [ ] Ponto de parada 1: aguardando a decisão do usuário.
-- [ ] R1. Dividir a suíte (depende do ponto de parada 1).
+- [x] Ponto de parada 1: respondido em 09/11 (ver "Decisões de 09/11").
+- [x] E. `scripts/kof-tests.mjs` e aposentadoria do `kof_project.py test`: E1 a
+  E10 verificados (ver o aceite). Entrada em `src/test/kof/KofTestsEntry*.kf`
+  (decisão do usuário em 09/11, porque o 0.6.4 não tem `--module-root`). KofMut no
+  `Meteor.kf` igual ao R0, sem timeout; tempo igual ao wrapper antigo; Python
+  16 → 13, Node 21 → 27. 294 links históricos para o `GameJourney.kf` viraram
+  links permanentes em `f4af07a`. Pendente: CI real, depois do push.
+- [x] R1. Suíte dividida em 9 arquivos por assunto mais `JourneyScenarios.kf`;
+  118 blocos idênticos ao original; 114 casos em JVM e JS no 0.7.0 e no 0.6.4.
+  `npm run check` para em `lint:sensor` com os 333 achados das suítes (R2).
 - [ ] R2. Regras de teste.
 - [ ] R3. Duplicação nas suítes.
 - [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).

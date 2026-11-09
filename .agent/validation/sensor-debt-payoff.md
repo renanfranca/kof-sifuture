@@ -215,3 +215,99 @@ a montagem B custa de 2,6 a 2,8 vezes a A sob a mesma carga.
 
 Estado: ponto de parada 1 acionado (o veredito do KofMut mudou). Aguardando a
 decisão do usuário. A montagem C não foi medida no KofMut.
+
+## Decisões de 09/11
+
+Ponto de parada 1 respondido pelo usuário em 09/11/2026: 9 arquivos por assunto
+com `[sources]`; testes Kof por `scripts/kof-tests.mjs` (entrada temporária gerada
+a cada execução); `kof_project.py test` aposentado, com testes Node equivalentes;
+sem TypeScript. Lista completa no `EXECPLAN.md` ("Decisões de 09/11").
+
+Decisão adicional do usuário em 09/11, nesta sessão: a entrada temporária fica em
+`src/test/kof/KofTestsEntry<aleatório>.kf`, e não em `build/`. Motivo: o Kof 0.6.4
+não aceita `--module-root` (`test: unknown or incomplete flag: --module-root`), e
+na raiz dos testes o Kof já usa essa pasta como raiz de módulo
+(`kof/kof-cli/src/main/java/dev/kof/cli/CmdTest.java`, `dirMode ? src : src.getParent()`).
+Probe antes da decisão: entrada em `src/test/kof/` sem `--module-root`, 114/114 em
+JVM e JS no 0.6.4 e no 0.7.0.
+
+## E. `scripts/kof-tests.mjs` e aposentadoria do `kof_project.py test` (09/11)
+
+Ponto a verificar primeiro (local da entrada):
+- fora do projeto (`/tmp/...`) **não** funciona: o Kof acha o `kof.toml` subindo a
+  partir da entrada, e não do diretório atual (`PKG006 import 'sifuture.game.Background' not found`);
+- `build/kof-tests-XXXX/` dentro do projeto funcionou no 0.7.0 (114/114, invisível
+  ao `git status` com `/build/` ignorado), mas exige `--module-root`, que o 0.6.4 não tem;
+- local final: `src/test/kof/KofTestsEntry<12 hex>.kf`, sem ponto no caminho,
+  ignorado por `/src/test/kof/KofTestsEntry*.kf` no `.gitignore`, pulado pela
+  descoberta e apagado num `finally`. O KofMut roda cada mutante numa cópia em
+  `/tmp/kofmut-…` (`RunResources.kf:29`), também sem ponto. Uma morte forçada
+  (SIGKILL) pode deixar a entrada para trás; ela continua ignorada e não é importada
+  (teste "an entry left behind…").
+
+TDD com o skill `tdd-behavior-autonomous-quiet`, testes em
+`test/sensors/kof-tests.test.mjs`, pela linha de comando real com o `kof` do PATH:
+
+| Critério | Teste | RED observado | Prova de que distingue |
+| --- | --- | --- | --- |
+| E1 Descoberta sem lista | `a new test file under src/test/kof runs without editing any list` | `Cannot find module …/scripts/kof-tests.mjs` | soma 1 → 2 ao criar um arquivo em subpacote, sem editar nada |
+| E2 Falha propaga | `a failing test fails the run, names the test and still removes the generated entry` | passou de primeira (o E1 já devolvia o exit) | mutantes manuais: `return 0` → falhou; sem `rmSync` → falhou mostrando `KofTestsEntry2894d7d2a363.kf` |
+| E3 Zero não é sucesso | `a test root without any Kof test fails with a clear message instead of passing` | mensagem do Kof sem citar a pasta (`no runnable test or program file found`) | pasta vazia e só com auxiliar saem 1 com `kof-tests: no Kof tests ran in src/test/kof` |
+| E4 Módulo auxiliar | `a helper module without tests or main is shared by test files in other packages` | passou de primeira (capacidade do Kof) | mutante manual `--module-root` apontando para outra pasta → falhou (versão com `build/`) |
+| Local da entrada | `an entry left behind by an interrupted run is neither imported nor counted` | `PKG006 import 'KofTestsEntryInterrupted' not found` | — |
+| Fonte atual | `each run compiles the current production sources` | passou de primeira (equivalente Node do teste Python aposentado) | verde → vermelho com `a - b` → verde de novo |
+
+| Critério | Comando | Resultado |
+| --- | --- | --- |
+| E5 Os 114 casos | `KOF=<0.7.0\|0.6.4> node scripts/kof-tests.mjs --target jvm\|js` | `0 failed of 114 tests` nas quatro combinações; nenhuma entrada sobrando |
+| E6 Mutação igual ao R0 | `kof-mut run --files <Meteor.kf> --config kof-mut.json`, `uptime` antes: load 6,35 em 32 núcleos | `complete`; `candidates=41 killed=37 survived=4 timeout=0`; mesmos 41 `id`s com os mesmos status do R0; mediana 8,5 s por mutante; 6m03s (exit 1 = os 4 sobreviventes conhecidos). Uma rodada anterior, com a entrada em `build/`, deu o mesmo, mediana 5,3 s |
+| E7 Tempo | intercalado, 3 rodadas, load ~12: wrapper antigo da `HEAD` (1 suíte) × script (9 suítes), JVM | 5,36 × 5,16 s; 5,03 × 5,20 s; 5,07 × 4,86 s |
+| E9 Documentado | `docs/desenvolvimento*.md`, "Ponte temporária" | registra a ponte, a troca pela opção nativa do Kof e o risco de estado estático compartilhado; `mystery-guest` com 0 achados (`npm run check`) |
+| E10 `check` | `npm run check` | `secret`, `types:jvm/js`, `python tests`, **`kof tests:jvm` e `kof tests:js` PASS pelo script**; `lint:sensor` FAIL com 333 achados, todos das suítes e exatamente a dívida do R0 (207 `looping-test`, 52 `branching-test`, 38 `high-complexity`, 28 `unnamed-arrange`, 8 `deep-nesting`), que é o R2; `dup`, `docs` e mutação NOT RUN. Rodados à parte: `dup:sensor` PASS (0 arquivos de produção mudados), `docs:sensor` PASS |
+| E10 Node | `KOF=<0.7.0\|0.6.4> node --test test/sensors/*.test.mjs` | 27/27 nas duas (eram 21) |
+| E10 Sensores | `KOF=<0.7.0\|0.6.4> scripts/kof-sensors/test` | 42/0 nas duas |
+| E10 Jornadas | `python3 tests/browser*.py` | 7/7 exit 0 (`browser` 55 s, `boss` 27 s, `controls` 28 s, `meteor` 3 s, `stage` 34 s, `subchief` 28 s, `weapons` 80 s); logs em `.agent/tmp/debt-e10/` |
+| E10 Contrato da CI | `bash tests/ci-contract.sh` com um `rg` de teste (`grep -Eq`) no PATH, porque o ripgrep não está instalado | exit 0, 28 PASS, inclusive "actual workflow test command discovers nested suites and preserves each target failure". Na `HEAD` também exigia o `rg` (parava na linha 85 sem ele). Mutante manual (script ignorando o exit) → contrato exit 1 |
+| E10 Espaços | `git diff --check` | exit 0 |
+
+Pendente: a CI real só roda depois do push, que é do usuário. O passo da CI usa o
+Node.js que já vem no `ubuntu-24.04`, sem `setup-node`. O script não depende de
+`import.meta.main`; se o Node do runner não tiver `import.meta.dirname`
+(`sensor-arguments.mjs`), o passo quebra com erro, e não com PASS falso.
+
+### E8. Testes Python aposentados (16 → 13)
+
+| Teste Python | Para |
+| --- | --- |
+| `test_prepared_sources_are_byte_copies_and_isolate_suite` | reescrito como `test_prepared_sources_are_byte_copies_without_manifest`: a cópia byte a byte continua para `check` e `build`; a parte da suíte selecionada deixou de existir junto com o parâmetro `suite` |
+| `test_real_cli_observes_source_update_and_suite_isolation` | Node `each run compiles the current production sources` (mudança de produção percebida) e `a failing test fails the run…` (falha propagada). O isolamento entre suítes (`--suite` excluindo um arquivo quebrado) não existe mais: todas as suítes rodam num só programa; um arquivo isolado roda com `kof test <arquivo> --module-root src/test/kof` (Kof 0.7.0+) |
+| `test_rejects_missing_outside_and_empty_suite` | suíte inexistente ou fora da raiz: a opção `--suite` não existe mais. Pasta vazia: Node `a test root without any Kof test fails…` |
+| `test_first_suite_failure_code_is_retained` | não existe mais: um programa, um código de saída. A propagação da falha fica com o Node `a failing test fails the run…` e com o contrato da CI ("preserves each target failure", exit 19) |
+
+Também mudaram: `tests/ci-contract.sh` (o `kof` falso recebe a entrada e o alvo
+na nova posição; o módulo esperado passou a `sifuture.game.MenuJourney`) e
+`test/sensors/check.test.mjs` (o stub chama `scripts/kof-tests.mjs`).
+
+Links: os 294 links relativos dos registros históricos para o
+`GameJourney.kf` (`sensor-calibration.md` 284, `stage-hud-result.md` 8,
+`sensors-adoption.md` 2) viraram links permanentes do GitHub para o arquivo em
+`f4af07a` (já na `origin/main`, conteúdo idêntico ao dividido). Só o destino do
+link mudou; o texto dos registros não. Sem isso, o `docs:sensor` dava FAIL com
+294 achados.
+
+## R1. Suíte dividida por assunto (09/11)
+
+`GameJourney.kf` (2719 linhas não vazias) virou 9 arquivos em
+`src/test/kof/sifuture/game/` mais o auxiliar `JourneyScenarios.kf` (os quatro
+`prepare…`). Testes por arquivo: `Boss` 19, `Controls` 19, `Subchief` 18,
+`Meteor` 15, `Weapons` 15, `Menu` 8, `Result` 7, `Stage` 7, `Items` 6. O maior tem
+460 linhas não vazias. Só o cabeçalho mudou: `import sifuture.game.*` virou um
+import por módulo (o curinga dá `PKG007` com `[sources]`), mais
+`import sifuture.game.JourneyScenarios` em `Boss` e `Subchief`.
+
+Prova de movimentação pura: os 118 blocos de nível superior (114 testes e 4
+funções) dos novos arquivos são idênticos, byte a byte, aos do arquivo original
+(comparação de multiconjunto). Mapa teste → arquivo em
+`.agent/tmp/debt-r1/test-to-file.txt`.
+
+A2: soma pelo script 114 em JVM e JS, no 0.7.0 e no 0.6.4 (E5).

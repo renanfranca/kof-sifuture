@@ -34,10 +34,10 @@ The [Kof CI and GitHub Pages workflow](../.github/workflows/kof-ci-and-pages.yml
 runs for every **PR targeting `main`** and every **push to `main`**, including
 changes only to documentation or assets. The **Kof tests (jvm)** and **Kof
 tests (js)** checks separately run the full command
-`python3 scripts/kof_project.py test --target ALVO`. The matrix uses
+`node scripts/kof-tests.mjs --target ALVO`. The matrix uses
 `fail-fast: false`: failure on one target does not cancel the other, and blocks
 the build and publishing. Recursive discovery includes new nested suites.
-This CI runs only Kof suites; Python is the existing wrapper. It does not
+This CI runs only Kof suites, through the runner's preinstalled Node.js. It does not
 install or run Python tests, Playwright, browsers, or Pillow.
 
 JS tests use the embedded engine, according to the [Kof target training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/reference/targets.md#L135):
@@ -183,8 +183,8 @@ sha=$(jq -r .sifuture_sha "$bundle/manifest.json")
 scratch=$(mktemp -d)
 installation=$(bash scripts/kof_ci.sh install "$bundle" "$scratch/installation" "$sha")
 export KOF=$(jq -r .kof <<< "$installation")
-python3 scripts/kof_project.py test --target jvm
-python3 scripts/kof_project.py test --target js
+node scripts/kof-tests.mjs --target jvm
+node scripts/kof-tests.mjs --target js
 python3 scripts/kof_project.py build --output "$scratch/site"
 ```
 

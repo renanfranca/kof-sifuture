@@ -323,7 +323,7 @@ agrupados por cor, corrigindo o carregamento sem substituir os desenhos.
 
 Os trechos Kof acima são excertos do código existente. Sua execução pertence
 às revisões registradas, não a exemplos novos apresentados como executados.
-[GameJourney.kf](../src/test/kof/sifuture/game/GameJourney.kf) exercita as regras
+[As suítes de src/test/kof](../src/test/kof/sifuture/game/) exercitam as regras
 em JVM e JS. Os scripts de navegador usam os mesmos componentes reais e
 posições determinísticas para observar os pixels, o tempo e as interações.
 O [guia de desenvolvimento](desenvolvimento.pt_BR.md#o-que-as-verificações-demonstram)
