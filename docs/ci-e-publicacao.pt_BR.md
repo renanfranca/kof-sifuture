@@ -28,7 +28,7 @@ quais resultados precisam estar aprovados antes da próxima etapa.
 Um **check** é o resultado visível de uma verificação da revisão. Neste fluxo,
 os testes de regras têm um check para JVM e outro para JS.
 
-O workflow [Kof CI and GitHub Pages](../.github/workflows/kof-ci-and-pages.yml) executa em todo **PR destinado a `main`** e todo **push em `main`**, inclusive alterações apenas em documentação ou assets. Os checks **Kof tests (jvm)** e **Kof tests (js)** executam separadamente o comando completo `node scripts/kof-tests.mjs --target ALVO`. A matriz usa `fail-fast: false`: a falha de um alvo não cancela o outro e impede build e publicação. A descoberta recursiva inclui novas suítes aninhadas. Esse CI executa somente as suítes Kof, pelo Node.js que já vem no runner. Não instala nem executa testes Python, Playwright, navegadores ou Pillow.
+O workflow [Kof CI and GitHub Pages](../.github/workflows/kof-ci-and-pages.yml) executa em todo **PR destinado a `main`** e todo **push em `main`**, inclusive alterações apenas em documentação ou assets. Os checks **Kof tests (jvm)** e **Kof tests (js)** executam separadamente o comando completo `node scripts/kof-tests.mjs --target ALVO`. A matriz usa `fail-fast: false`: a falha de um alvo não cancela o outro e impede build e publicação. A descoberta recursiva inclui novas suítes aninhadas. Esse CI executa somente as suítes Kof, pelo Node.js 24 instalado pelo `actions/setup-node` travado por SHA. Não instala nem executa testes Python, Playwright, navegadores ou Pillow.
 
 Os testes JS usam o engine embarcado, conforme o [treinamento de alvos Kof](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/reference/targets.md#L135):
 

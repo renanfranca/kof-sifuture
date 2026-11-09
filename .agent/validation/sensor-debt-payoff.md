@@ -311,3 +311,29 @@ funções) dos novos arquivos são idênticos, byte a byte, aos do arquivo origi
 `.agent/tmp/debt-r1/test-to-file.txt`.
 
 A2: soma pelo script 114 em JVM e JS, no 0.7.0 e no 0.6.4 (E5).
+
+## Node.js 24 fixado na CI (09/11)
+
+Pedido do usuário em 09/11, antes do R2: o passo de testes da CI não pode depender
+do Node.js da imagem `ubuntu-24.04`. O job `test` de
+`.github/workflows/kof-ci-and-pages.yml` ganhou, antes de "Run complete Kof suite",
+`actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` com
+`node-version: '24'`. O SHA é o commit da release mais recente, `v7.1.0`
+(publicada em 08/10/2026), lido com `gh api repos/actions/setup-node/releases/latest`
+e `git/ref/tags/v7.1.0` (tag leve, objeto `commit`). No `action.yml` desse SHA, a
+entrada `node-version` existe e o cache automático só liga com `packageManager` no
+`package.json`, que este projeto não declara.
+
+`tests/ci-contract.sh` ganhou a verificação "Kof tests run on a pinned Node.js 24":
+no job `test`, existe um passo `actions/setup-node@…` antes de "Run complete Kof
+suite", com `with` exatamente `{"node-version":"24"}`. A verificação que já existia
+exige que todo `uses` seja travado por um SHA de 40 caracteres hexadecimais.
+
+| Etapa | Comando | Resultado |
+| --- | --- | --- |
+| RED | `bash tests/ci-contract.sh` (com o `rg` de teste), só com a verificação nova | exit 1, logo depois de `PASS documentation PR triggers, independent checks, gating, pins and permissions` |
+| GREEN | mesmo comando, com o passo no workflow | exit 0, 29 PASS (eram 28), inclusive `PASS Kof tests run on a pinned Node.js 24` |
+
+`docs/ci-e-publicacao*.md` passou a citar o Node.js 24 instalado pelo
+`actions/setup-node`. Pendente: a CI real, que só roda num PR para a `main` ou num
+push na `main`. O push da branch `sensor-debt-payoff` não dispara o workflow.

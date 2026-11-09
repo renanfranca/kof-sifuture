@@ -178,6 +178,14 @@ jq -e '
 ' "$work/workflow.json" >/dev/null
 printf 'PASS documentation PR triggers, independent checks, gating, pins and permissions\n'
 
+jq -e '
+    .jobs.test.steps |
+    (map(.uses // "" | startswith("actions/setup-node@")) | index(true)) as $node |
+    (map(.name == "Run complete Kof suite") | index(true)) as $run |
+    $node != null and $run != null and $node < $run and .[$node].with == {"node-version":"24"}
+' "$work/workflow.json" >/dev/null
+printf 'PASS Kof tests run on a pinned Node.js 24\n'
+
 cp "$FIXTURE_ROOT/releases-2.json" "$work/releases-before-body.json"
 jq 'map(. + {body:("x" * 150000)})' "$work/releases-before-body.json" > "$FIXTURE_ROOT/releases-2.json"
 

@@ -1641,6 +1641,9 @@ a documentação que cita `kof_project.py test`.
 - [x] R1. Suíte dividida em 9 arquivos por assunto mais `JourneyScenarios.kf`;
   118 blocos idênticos ao original; 114 casos em JVM e JS no 0.7.0 e no 0.6.4.
   `npm run check` para em `lint:sensor` com os 333 achados das suítes (R2).
+- [x] Node.js 24 fixado no job de testes da CI (`actions/setup-node` v7.1.0,
+  `949feb24…`); `tests/ci-contract.sh` verifica o passo (29 PASS). CI real pendente
+  de um PR para a `main`.
 - [ ] R2. Regras de teste.
 - [ ] R3. Duplicação nas suítes.
 - [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).

@@ -37,7 +37,7 @@ tests (js)** checks separately run the full command
 `node scripts/kof-tests.mjs --target ALVO`. The matrix uses
 `fail-fast: false`: failure on one target does not cancel the other, and blocks
 the build and publishing. Recursive discovery includes new nested suites.
-This CI runs only Kof suites, through the runner's preinstalled Node.js. It does not
+This CI runs only Kof suites, through Node.js 24 installed by `actions/setup-node` pinned by SHA. It does not
 install or run Python tests, Playwright, browsers, or Pillow.
 
 JS tests use the embedded engine, according to the [Kof target training](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/training/reference/targets.md#L135):
