@@ -114,3 +114,104 @@ Relatório JSON e lista de sobreviventes (local): `.agent/tmp/debt-r0/kofmut-r0-
 `.agent/tmp/debt-r0/survivors-r0.txt`.
 
 Estado do R0: medido; parado no ponto de parada 4.
+
+## Decisões de 07/11
+
+Ponto de parada 4 respondido pelo usuário em 07/11/2026; a lista completa está
+no `EXECPLAN.md` ("Decisões de 07/11"). Exceção de regra aprovada pelo usuário
+(fonte: usuário, 07/11): no código de teste (`src/test/kof/` e `tests/`),
+`long-file` vale 1000 linhas não vazias e o CPD não analisa esses arquivos. A
+produção continua com 150 e CPD de 50 tokens; os limites por função não mudam.
+
+## S. Sensores com a exceção aprovada
+
+RED esperado antes de cada mudança, observado igual:
+
+| Teste novo (`FindingsTest`) | RED esperado | RED observado | GREEN |
+| --- | --- | --- | --- |
+| `testCodeLongFileIsReportedAboveOneThousandLinesAndNotAtOneThousand` | o arquivo de teste com 1000 linhas recebe `long-file` (limite ainda 150) | `but was: <[src/test/kof/AboveLimit.kf, src/test/kof/AtLimit.kf, tests/fixture.kf]>` | limite 1000 para `src/test/kof/` e `tests/` (`Findings.java`, `testCode`) |
+| `duplicationLeavesTestCodeOutAndStillReportsProductionClones` | o CPD ainda espera os arquivos de teste | `but was: <[src/test/kof/Journey.kf, tests/fixture.kf, src/main/kof/First.kf, src/main/kof/Second.kf]>` | só caminhos que não são de teste vão ao CPD |
+
+O teste existente `longFileIsReportedAboveOneHundredFiftyLinesAndNotAtOneHundredFifty`
+continua provando 150/151 na produção, e `duplicationReportsAFiftyTokenFiveLineCloneWithRelativeLocations`
+continua provando o clone de produção. Juntos, cobrem os dois lados das duas
+fronteiras: desligar a regra ou subir o limite da produção reprovaria.
+
+| Verificação | Comando | Resultado |
+| --- | --- | --- |
+| Sensores 0.7.0 | `scripts/kof-sensors/test` | `Tests run: 42, Failures: 0` (eram 40) |
+| Sensores 0.6.4 | `KOF=<0.6.4> scripts/kof-sensors/test` | `Tests run: 42, Failures: 0` |
+| Node 0.7.0 e 0.6.4 | `node --test test/sensors/*.test.mjs` | 21/21 nas duas |
+| Caminho público, só teste | `scripts/kof-sensors/run --findings . src/test/kof/sifuture/game/GameJourney.kf` | `success: true`; CPD `expected: []`, `tokenized: []`, sem falha; `long-file` 2719 com limite 1000 |
+| Docs | `npm run docs:sensor` | `SENSOR docs: PASS (0 findings)` |
+| Python | `python3 -m unittest discover -s tests -p 'test_*.py'` | `Ran 16 tests`, OK |
+| Kof | `kof_project.py test --target jvm\|js` | `0 failed of 114 tests` nos dois |
+| Espaços | `git diff --check` | exit 0 |
+
+`npm run sensors:debt` depois (saída lida; exit 0 sempre): `SENSORS DEBT (report only, 31 Kof files)`;
+`SENSOR lint: FAIL (412 findings)` (eram 415: saíram os 3 `long-file` das fixtures);
+`SENSOR dup: FAIL (3 findings)`, `24 files expected, 24 tokenized` (31 menos os 7
+arquivos de teste). Os 3 grupos restantes são os da produção: `Boss.kf:114`,
+`Game.kf:208`, `BossShot.kf:25`. O `long-file` do `GameJourney.kf` (2719 > 1000)
+fica até o R1. Saída em `.agent/tmp/debt-s/sensors-debt.txt`.
+
+Arquivos alterados: `scripts/kof-sensors/src/main/java/sifuture/sensors/Findings.java`,
+`FindingsTest.java`, `SENSORS.md`. Não houve mudança em `scripts/*.mjs`,
+`package.json` nem nos guias.
+
+## P. Probe do ponto de parada 1 (07/11)
+
+Cópia em `/tmp/sifuture-r1-probe-NyRo` (fora de pastas com ponto), já apagada.
+Evidência em `.agent/tmp/debt-r1-probe/` (divisão em `split/`, script `split.py`,
+saídas, relatório do KofMut). Nada foi aplicado no repositório.
+
+Montagem: `kof.toml` com `[sources] app = "src/main/kof"` e `test = "src/test/kof"`;
+`GameJourney.kf` dividido por assunto em 9 arquivos (`Boss` 19 testes, `Controls` 19,
+`Subchief` 18, `Meteor` 15, `Weapons` 15, `Menu` 8, `Result` 7, `Stage` 7, `Items` 6;
+o maior tem 460 linhas não vazias) e um módulo auxiliar `JourneyScenarios.kf` com os
+quatro `prepare…`. O corpo dos testes não mudou.
+
+Achados da montagem:
+
+1. Com `[sources]`, o cabeçalho atual `package sifuture.game` + `import sifuture.game.*`
+   falha com `PKG007` (import auto-referente). Sem o import, o pacote de teste não
+   enxerga o do app (`SEM015 Undefined function: 'Game'`). Funciona com um import
+   por módulo (`import sifuture.game.Game`, …), como o fixture do Kof
+   (`kof/kof-cli/src/test/java/dev/kof/cli/TwoRootsCliE2ETest.java:69-70`). É uma
+   mudança só de cabeçalho.
+2. O módulo auxiliar sem `test` nem `main` aparece como
+   `SKIP … JourneyScenarios.kf (no tests, no main)` e não conta como falha; os
+   arquivos que usam os helpers precisam de `import sifuture.game.JourneyScenarios`.
+3. `kof_project.py check` e `build` continuam funcionando com `[sources]`
+   (`success:true`; build com 113 arquivos, igual ao R0).
+
+| Medida | Comando | Resultado |
+| --- | --- | --- |
+| Casos JVM 0.7.0 | `kof test --target jvm` (3 vezes) | `9 passed, 0 failed, 1 skipped`; soma `0 failed of 114`; 13,3 s, 11,6 s, 11,3 s |
+| Casos JS 0.7.0 | `kof test --target js` (3 vezes) | soma `0 failed of 114`; 7,0 s, 7,4 s, 7,1 s |
+| Casos 0.6.4 | `<0.6.4> kof test --target jvm\|js` | `0 failed of 114` nos dois; 10,5 s e 6,8 s |
+| Entrada única | `kof test entry/AllJourneys.kf --module-root src/test/kof --target jvm` (3 vezes) | `0 failed of 114`; 10,8 s, 11,2 s, 10,8 s |
+
+Lacuna de medição: durante a probe a máquina estava carregada por outros
+trabalhos (load average 31 a 35 em 32 núcleos, processos do `kof-mut` e de uma
+publicação Node). O wrapper atual, no repositório sem mudança, passou de 3,3 s
+para 9,8 a 11,1 s. Os tempos absolutos acima não valem como referência. A
+comparação relativa, intercalada sob a mesma carga, vale:
+
+| Montagem (JVM) | Rodada 1 | Rodada 2 |
+| --- | ---: | ---: |
+| A. Wrapper atual, 1 suíte | 9,9 s | 9,8 s |
+| B. `kof test`, 9 arquivos (um programa por arquivo) | 27,8 s | 25,6 s |
+| C. Entrada única importando as 9 suítes | 9,2 s | 6,9 s |
+
+KofMut só no `Meteor.kf`, `testCommand` = `kof test --target jvm` (montagem B),
+resto do `kof-mut.json` igual (`kof-mut.probe.json`): exit 3, `status: incomplete`,
+18m58s; `candidates=41 killed=28 survived=2 timeout=11`. Os 41 `id`s são os mesmos
+do R0. **O veredito mudou:** 9 mutantes mortos no R0 e 2 sobreviventes do R0
+(`Meteor.kf:2526:>` e `:2647:<`, os limites de `touchesShip`) viraram `Timeout`.
+Duração por mutante: mínimo 12,7 s, mediana 32,0 s, máximo 45,5 s (R0: 6,1 / 6,2 /
+7,3 s), acima do `commandTimeoutMs` de 30 s. Parte disso é a carga da máquina, mas
+a montagem B custa de 2,6 a 2,8 vezes a A sob a mesma carga.
+
+Estado: ponto de parada 1 acionado (o veredito do KofMut mudou). Aguardando a
+decisão do usuário. A montagem C não foi medida no KofMut.

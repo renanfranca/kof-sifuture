@@ -1560,6 +1560,32 @@ Branch `sensor-debt-payoff` a partir de `f4af07a`. Aceite em
 `.agent/validation/sensor-debt-payoff.md`; evidência bruta em `.agent/tmp/debt-*/`.
 Sem commit nem push pela sessão executora.
 
+### Decisões de 07/11
+
+Do usuário, em 07/11/2026:
+
+1. Executar R1, R2 e R3 agora.
+2. O suporte a `enum` no KofMut foi autorizado e será feito em outro plano, no
+   repositório `kof-mut`.
+3. A decisão sobre a UI (`GameControls`, `GameView`, `ControlsGuide`; 199
+   sobreviventes, `kof.ui` sem efeito no JVM) continua pendente.
+4. R4 e R5 esperam as frentes 2 e 3.
+5. A1 depois do R3: a rodada completa do KofMut sai `incomplete` por causa do
+   `enum`. Comparar só os conjuntos de mortos e de sobreviventes pelo `id` do
+   mutante (`arquivo:offset:substituto`), sem considerar `status` nem exit code.
+6. Exceção de regra aprovada: no código de teste (`src/test/kof/` e as fixtures
+   `tests/*.kf`), `long-file` passa a valer 1000 linhas não vazias, em vez de ser
+   desligado, para ainda avisar arquivo gigante; o CPD não analisa código de
+   teste (testes DAMP, duplicação aceita quando ajuda a leitura). A produção
+   continua com 150 linhas e CPD de 50 tokens. Os limites por função não mudam.
+   Motivo: o 150 veio do `max-lines` do Katacombs e obrigaria dividir o
+   `GameJourney.kf` (2719 linhas) em uns 20 a 25 arquivos por um número, e não
+   por assunto.
+7. `kof.toml [sources]` (Kof #708, `D-CLI-SOURCE-ROOTS`, presente no 0.7.0 e no
+   0.6.4) só para os testes nesta etapa. O `kof test` ainda compila um programa
+   por arquivo, então medir numa cópia e parar no ponto de parada 1 antes do R1.
+   Build, check de tipos e jornadas continuam no `kof_project.py`.
+
 ### Progress
 
 - [x] R0. Linha de base, em `f4af07a`: dívida 415 lint + 23 CPD em 31
@@ -1570,8 +1596,17 @@ Sem commit nem push pela sessão executora.
   `Item`, `MenuEntrance`, `State` e `Subchief`; 2h48. `GameControls`,
   `GameView` e `ControlsGuide` com 0 mortos (199 sobreviventes; `kof.ui` é
   no-op no JVM). Linha "Pendente do usuário" corrigida.
-- [ ] Ponto de parada 4: aguardando a decisão do usuário sobre o tamanho do R5,
-  a camada `kof.ui` e a limitação de `enum` do KofMut, antes do R1.
+- [x] Ponto de parada 4: respondido em 07/11 (ver "Decisões de 07/11").
+- [x] S. Sensores com a exceção aprovada em 07/11: `long-file` 1000 e sem CPD
+  no código de teste; sensores 42/0 e Node 21/21 no 0.7.0 e no 0.6.4;
+  `sensors:debt` 412 lint + 3 CPD (só produção), 24 arquivos no CPD.
+- [x] Probe do ponto de parada 1 (ver o aceite): 9 arquivos por assunto com
+  `[sources]` dão 114/114 em JVM e JS (0.7.0 e 0.6.4), mas exigem import por
+  módulo (o `import sifuture.game.*` falha com `PKG007`). Um programa por arquivo
+  custa 2,6 a 2,8 vezes a suíte única sob a mesma carga; o KofMut no `Meteor.kf`
+  mudou o veredito (11 timeouts). Uma entrada única custa o mesmo que hoje.
+  Máquina carregada durante a medição: tempos absolutos não valem.
+- [ ] Ponto de parada 1: aguardando a decisão do usuário.
 - [ ] R1. Dividir a suíte (depende do ponto de parada 1).
 - [ ] R2. Regras de teste.
 - [ ] R3. Duplicação nas suítes.

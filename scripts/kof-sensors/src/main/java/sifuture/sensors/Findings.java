@@ -21,12 +21,19 @@ public final class Findings {
             new FunctionLimit("too-many-statements", 17, true, Analyzer.FunctionMetrics::statements));
 
     static final int FILE_LINES = 150;
+    static final int TEST_CODE_FILE_LINES = 1000;
+    static final List<String> TEST_CODE = List.of(Main.SUITE_SOURCES, "tests/");
+
+    static boolean testCode(String file) {
+        return TEST_CODE.stream().anyMatch(file::startsWith);
+    }
 
     static List<Finding> structural(Analyzer.FileMetrics file) {
         boolean suite = file.file().startsWith(Main.SUITE_SOURCES);
         var found = new ArrayList<Finding>();
-        if (Calibration.exceeds(file.lines(), FILE_LINES)) {
-            found.add(new Finding("long-file", file.file(), "file", 1, 1, file.lines(), FILE_LINES));
+        int fileLines = testCode(file.file()) ? TEST_CODE_FILE_LINES : FILE_LINES;
+        if (Calibration.exceeds(file.lines(), fileLines)) {
+            found.add(new Finding("long-file", file.file(), "file", 1, 1, file.lines(), fileLines));
         }
         for (var function : file.functions()) {
             for (var limit : FUNCTION_LIMITS) {
@@ -63,7 +70,7 @@ public final class Findings {
             Path path = root.resolve(argument).normalize();
             String relative = root.relativize(path).toString().replace('\\', '/');
             expected.add(relative);
-            paths.add(path);
+            if (!testCode(relative)) paths.add(path);
             try {
                 String source = Files.readString(path);
                 var parsed = Analyzer.parse(relative, source);
