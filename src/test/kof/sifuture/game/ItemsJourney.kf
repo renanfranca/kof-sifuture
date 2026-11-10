@@ -8,6 +8,7 @@ import sifuture.game.BossWeapons
 import sifuture.game.Credits
 import sifuture.game.Game
 import sifuture.game.Item
+import sifuture.game.JourneyScenarios
 import sifuture.game.Lasers
 import sifuture.game.MenuEntrance
 import sifuture.game.Meteor
@@ -30,7 +31,7 @@ test "background moves five units wraps at sixty and pauses" {
     g.step()
     assert(g.background.offset == 5)
     g.resume()
-    for (var i = 0; i < 11; i++) { g.step() }
+    advanceSteps(g, 11)
     assert(g.background.offset == 0)
     g.start(201)
     assert(g.background.offset == 0)
@@ -63,43 +64,48 @@ test "life collection adds one life above three and ten points exactly once" {
     g.step()
     assert(g.ship.lives == 4 && g.score == 10 && item.collected)
     assert(item.effectSteps == 0)
-    for (var i = 0; i < 5; i++) { g.step() }
+    advanceSteps(g, 5)
     assert(g.ship.lives == 4 && g.score == 10 && item.effectSteps == 5)
     g.step()
     assert(!item.collected && item.x >= 220 && g.score == 10)
 }
 
-test "evolution collections reach level three then add special charges" {
-    var g = Game()
-    g.start(204)
-    g.ship.phase = ShipPhase.Normal
-    for (var m in g.meteors) { m.y = 30 }
-    for (var i = 0; i < 5; i++) {
-        var item = g.items[0]
-        item.x = 11
-        item.y = 100
-        item.collected = false
-        g.step()
-        if (i < 3) { assert(g.weapons.level == i + 1 && g.weapons.charges == 0) }
-        else { assert(g.weapons.level == 3 && g.weapons.charges == i - 2) }
-    }
+test "first three evolution collections raise the level to three without special charges" {
+    var g = givenNormalShipWithMeteorsAtTop(204)
+    collectEvolution(g)
+    assert(g.weapons.level == 1 && g.weapons.charges == 0)
+    collectEvolution(g)
+    assert(g.weapons.level == 2 && g.weapons.charges == 0)
+    collectEvolution(g)
+    assert(g.weapons.level == 3 && g.weapons.charges == 0)
+}
+
+test "evolution collections after level three add special charges" {
+    var g = givenNormalShipWithMeteorsAtTop(204)
+    collectEvolution(g)
+    collectEvolution(g)
+    collectEvolution(g)
+    collectEvolution(g)
+    assert(g.weapons.level == 3 && g.weapons.charges == 1)
+    collectEvolution(g)
+    assert(g.weapons.level == 3 && g.weapons.charges == 2)
     assert(g.score == 50)
 }
 
 test "evolution cycles five frames and life travels eleven frames forward and back" {
     var g = Game()
     g.start(205)
-    for (var i = 0; i < 8; i++) { g.step() }
+    advanceSteps(g, 8)
     assert(g.items[0].frame == 4 && g.items[1].frame == 4)
     g.step()
     g.step()
     assert(g.items[0].frame == 0 && g.items[1].frame == 5)
-    for (var i = 0; i < 10; i++) { g.step() }
+    advanceSteps(g, 10)
     assert(g.items[1].frame == 10)
     g.step()
     g.step()
     assert(g.items[1].frame == 9)
-    for (var i = 0; i < 18; i++) { g.step() }
+    advanceSteps(g, 18)
     assert(g.items[1].frame == 0)
 }
 
@@ -118,4 +124,18 @@ test "invulnerable ship cannot collect until normal and collection uses inclusiv
     g.items[1].y = 84
     g.step()
     assert(g.score == 10 && g.ship.lives == 4)
+}
+
+Game givenNormalShipWithMeteorsAtTop(Int seed) {
+    var g = givenNormalShip(seed)
+    givenMeteorsAtHeight(g, 30)
+    return g
+}
+
+collectEvolution(Game g) {
+    var item = g.items[0]
+    item.x = 11
+    item.y = 100
+    item.collected = false
+    g.step()
 }

@@ -335,5 +335,239 @@ exige que todo `uses` seja travado por um SHA de 40 caracteres hexadecimais.
 | GREEN | mesmo comando, com o passo no workflow | exit 0, 29 PASS (eram 28), inclusive `PASS Kof tests run on a pinned Node.js 24` |
 
 `docs/ci-e-publicacao*.md` passou a citar o Node.js 24 instalado pelo
-`actions/setup-node`. Pendente: a CI real, que só roda num PR para a `main` ou num
-push na `main`. O push da branch `sensor-debt-payoff` não dispara o workflow.
+`actions/setup-node`. A CI real só roda num PR para a `main` ou num push na `main`;
+o push da branch `sensor-debt-payoff` não dispara o workflow.
+
+### CI real no PR em rascunho (09/11)
+
+PR em rascunho [#23](https://github.com/renanfranca/kof-sifuture/pull/23), aberto com
+`gh pr create --draft --base main --head sensor-debt-payoff` no HEAD `68a579d`.
+Run [42675189498](https://github.com/renanfranca/kof-sifuture/actions/runs/42675189498),
+evento `pull_request`, conclusão `success`.
+
+| Job | Resultado | Evidência no log |
+| --- | --- | --- |
+| Resolve verified Kof | success | |
+| [Kof tests (jvm)](https://github.com/renanfranca/kof-sifuture/actions/runs/42675189498/job/129355904495) | success | `node-version: 24`, `Found in cache @ /opt/hostedtoolcache/node/24.22.2/x64`, `0 failed of 114 tests` |
+| [Kof tests (js)](https://github.com/renanfranca/kof-sifuture/actions/runs/42675189498/job/129355904305) | success | `node-version: 24`, `Found in cache @ /opt/hostedtoolcache/node/24.22.2/x64`, `0 failed of 114 tests` |
+| Build complete Pages site | skipped | só roda num push na `main` |
+| Publish current main | skipped | só roda num push na `main` |
+
+Os dois jobs de teste rodaram `node scripts/kof-tests.mjs --target <alvo>` com o
+Node.js 24.22.2 e contaram 114 casos, o mesmo número local.
+
+## R2. Regras de teste (09/11)
+
+Uma suíte por vez, nesta ordem: Items, Stage, Menu, Result, Meteor, Weapons,
+Controls, Subchief, Boss. Depois de cada uma: `node scripts/lint-sensor.mjs <suíte>
+src/test/kof/sifuture/game/JourneyScenarios.kf` com `PASS (0 findings)` e
+`node scripts/kof-tests.mjs --target jvm` e `--target js` com `0 failed`.
+
+Como cada regra foi tratada:
+
+- laço que prepara o cenário → função com nome abaixo dos testes ou em
+  `JourneyScenarios.kf` (`advanceSteps`, `advanceWhilePlaying`, `evolveWeapons`,
+  `givenMeteorsAway`, `givenMeteorsAt`, `givenMeteorsAtHeight`, `givenItemsAway`,
+  `givenEveryBeamActiveAt`, `advanceThroughExplosion`…);
+- laço que confere um estado a cada passo → função `Bool` com nome que avança e
+  devolve a conjunção das mesmas condições (`noProjectileAppearsDuring`,
+  `laserStaysIdleDuring`, `explodingShipStaysStillWithoutFireDuring`,
+  `bossExplosionFollowsHistoricalOffsetsAndHoldsOnPause`…). O teste faz
+  `assert(<função>(g, passos))`;
+- teste com `if` → um teste por caminho (lista abaixo);
+- preparação com mais de 8 instruções antes do primeiro `assert` → função `given…`;
+- `high-complexity` nos testes vinha das cadeias `&&` dentro de `assert`; onde
+  passava de 10, cada `assert(a && b)` virou `assert(a)` e `assert(b)`. Asserts com
+  mensagem não foram divididos.
+
+### Desvio: `testRows` indisponível na entrada única
+
+O plano pede que laços de casos virem `testRows`. Medido em 09/11: dentro de um
+módulo importado pela entrada gerada por `scripts/kof-tests.mjs`, a chamada não
+compila.
+
+| Kof | Projeto mínimo (`[sources]`, `a/T.kf` com `import kof.test` e `testRows`, entrada `import a.T`) | Resultado |
+| --- | --- | --- |
+| 0.7.0 | `kof test src/test/kof/E.kf --target jvm` | `T.kf:7:1: error: Undefined function: 'testRows' [SEM015]` |
+| 0.6.4 | mesmo comando | mesmo `SEM015` |
+| 0.7.0 | entrada com `import kof.test` antes de `import a.T` | compila, mas falha ao rodar: `NoClassDefFoundError: a/T` |
+| 0.7.0 | `kof.test.testRows(...)` qualificado | `SEM011 Undefined variable or type: 'kof'` |
+
+O mesmo `testRows` roda num arquivo único (`kof test P.kf`), com falha por linha
+(`row 1 [0]: assertion failed`). Não há registro disso em `kof/docs` nem issue
+no KofLang/Kof4j. Escolha feita, sem decisão do usuário: os laços de casos
+viraram um teste por caso quando o caso tem nome próprio (nível de arma, seed,
+borda, arma), ou casos escritos um a um no mesmo teste quando todos verificam a
+mesma regra (bordas do laser no chefe e no subchefe, tabela do especial do chefe).
+
+### Contagem de casos (A2)
+
+| Suíte | Antes (R1) | Depois (R2/R3) | Linhas não vazias |
+| --- | ---: | ---: | ---: |
+| BossJourney | 19 | 43 | 960 |
+| ControlsJourney | 19 | 28 | 653 |
+| ItemsJourney | 6 | 7 | 131 |
+| MenuJourney | 8 | 8 | 304 |
+| MeteorJourney | 15 | 23 | 554 |
+| ResultJourney | 7 | 12 | 375 |
+| StageJourney | 7 | 10 | 211 |
+| SubchiefJourney | 18 | 26 | 883 |
+| WeaponsJourney | 15 | 15 | 334 |
+| **Total** | **114** | **172** | |
+
+`node scripts/kof-tests.mjs --target jvm` e `--target js`: `0 failed of 172 tests`
+no Kof 0.7.0 e no 0.6.4 (`KOF=~/.local/share/kof/kof-0.6.4-linux-x86_64/bin/kof`).
+`BossJourney.kf` (960) e `SubchiefJourney.kf` (883) ficaram perto do limite de
+1000 linhas não vazias do código de teste.
+
+### Testes divididos (de → para)
+
+#### ItemsJourney
+- "evolution collections reach level three then add special charges" →
+  - "first three evolution collections raise the level to three without special charges"
+  - "evolution collections after level three add special charges"
+
+#### StageJourney
+- "vertical contacts preserve ship laser blaster special priority and one reward" →
+  - "vertical contact with the ship explodes the ship before any weapon and rewards once"
+  - "vertical contact away from the ship hits the laser before blaster and special and rewards once"
+  - "vertical contact without ship or laser hits the blaster before special and rewards once"
+  - "vertical contact with only the special hits the beam and rewards once"
+
+#### ResultJourney
+- "defeat ends explosion without new projectiles or another loss at every weapon level" →
+  - "defeat at weapon level 0 ends explosion without new projectiles or another loss"
+  - "defeat at weapon level 1 ends explosion without new projectiles or another loss"
+  - "defeat at weapon level 2 ends explosion without new projectiles or another loss"
+  - "defeat at weapon level 3 ends explosion without new projectiles or another loss"
+- "laser blaster and special impacts finish after one four and six result steps" →
+  - "laser impact pending at defeat finishes after one result step"
+  - "blaster impact pending at defeat finishes after four result steps"
+  - "special impact pending at defeat changes sprite at three and finishes after six result steps"
+
+#### MeteorJourney
+- "vertical initial and impact resets keep reduced range while bottom exits include both full endpoints" →
+  - "vertical meteors start waiting inside the reduced range"
+  - "vertical seed 71 resets to x 70 y -103 after impact and exits the bottom to y -171"
+  - "vertical seed 142 resets to x 143 y -100 after impact and exits the bottom to y 0"
+  - "vertical seed 276 resets to x 8 y -153 after impact and exits the bottom to y -145"
+  - "vertical seed 303 resets to x 145 y 0 after impact and exits the bottom to y -84"
+  - "vertical resets keep the reduced range while bottom exits include both full endpoints for five hundred seeds"
+- "ship meteor contact includes each boundary and excludes adjacent positions" →
+  - "ship meteor contact includes the left and right boundaries"
+  - "ship meteor contact excludes the positions beside the left and right boundaries"
+  - "ship meteor contact includes the top and bottom boundaries"
+  - "ship meteor contact excludes the positions beside the top and bottom boundaries"
+
+#### WeaponsJourney
+- nenhum teste dividido; o laço com `if` de "explosion completion loses a charge before level exactly once and never below basic" percorria uma sequência de estados do mesmo jogo e virou quatro chamadas de `advanceThroughExplosion` com o nível esperado de cada uma.
+
+#### MenuJourney
+- nenhum teste dividido; as três voltas de "repeated controls returns start entry and can leave before braking" viraram três `assert(controlsReturnReplaysEntryUntilReady(g))`.
+
+#### ControlsJourney
+- "pause and lost keyboard focus clear right image without changing opposing direction priority" →
+  - "lost keyboard focus clears right image without changing opposing direction priority"
+  - "pause clears right image without changing opposing direction priority"
+- "four pad arrows move by axis and stop on release" →
+  - "pad up arrow moves five units up and stops on release"
+  - "pad left arrow moves five units left and stops on release"
+  - "pad right arrow moves five units right and stops on release"
+  - "pad down arrow moves five units down and stops on release"
+- "pause holds explosion and restart frames without consuming a life" →
+  - "pause holds explosion frames without consuming a life"
+  - "pause holds restart frames without consuming a life"
+- "four diagonals preserve either held axis in both press and release orders" (16 casos) →
+  - "a diagonal pressed horizontal first keeps the vertical axis after the horizontal release and then stops"
+  - "a diagonal pressed horizontal first keeps the horizontal axis after the vertical release and then stops"
+  - "a diagonal pressed vertical first keeps the vertical axis after the horizontal release and then stops"
+  - "a diagonal pressed vertical first keeps the horizontal axis after the vertical release and then stops"
+  (cada um com as quatro diagonais)
+- "last opposite pad press wins in either axis until its own release" (8 casos) →
+  - "releasing the last opposite pad arrow returns to the first arrow on either axis"
+  - "releasing the first opposite pad arrow keeps the last arrow on either axis"
+  (cada um com os quatro pares)
+
+#### SubchiefJourney
+- "subchief blaster spends remaining resistance before meteor contacts" →
+  - "subchief blaster spends its one remaining resistance before meteor contacts"
+  - "subchief blaster spends its two remaining resistance before meteor contacts"
+- "fatal subchief hit rewards once at lifetime boundaries and leaves recurring items in place" (16 casos) →
+  - "fatal subchief contact with the ship rewards once at lifetime boundaries and leaves recurring items in place"
+  - "fatal subchief contact with a laser rewards once at lifetime boundaries and leaves recurring items in place"
+  - "fatal subchief contact with the blaster rewards once at lifetime boundaries and leaves recurring items in place"
+  - "fatal subchief contact with the special rewards once at lifetime boundaries and leaves recurring items in place"
+  (cada um com os tempos de vida 30, 31, 60 e 61)
+- "simultaneous fatal contacts preserve ship laser blaster special precedence" (5 casos, 4 caminhos) →
+  - "a one-life subchief falls to the ship before laser blaster or special touch it"
+  - "a two-life subchief takes the ship and the laser before blaster or special"
+  - "a subchief with three or four lives also spends the blaster before the special"
+  - "a five-life subchief needs the special after ship laser and blaster"
+- "nonfatal contacts still move fire and increment the lifetime clock at thirty and sixty" →
+  - "nonfatal contacts still move fire and increment the lifetime clock at thirty"
+  - "nonfatal contacts still move fire and increment the lifetime clock at sixty"
+
+## R3. Preparação compartilhada nas suítes (09/11)
+
+Pela decisão de 07/11 não há meta de CPD nos testes. Foi para `JourneyScenarios.kf`
+só a preparação usada por mais de um arquivo: `advanceSteps`, `advanceWhilePlaying`,
+`givenNormalShip`, `givenShipAt`, `givenNormalShipWithMeteorsAt`,
+`givenVerticalPairInPlay`/`startVerticalPairInPlay`, `givenMeteorsAway`,
+`givenMeteorsAt`, `givenMeteorsAtHeight`, `givenItemsAway`, `givenEveryBeamActiveAt`,
+`evolveWeapons`, `advanceThroughExplosion`, `noProjectileActive`,
+`noProjectileAppearsDuring` e `noSubchiefShotActive`. Os `prepareSubchief`,
+`prepareAudit` e `prepareBoss` passaram a usar `givenMeteorsAway` e `givenItemsAway`;
+o `prepareFatalContact` usa `givenEveryBeamActiveAt`; seis funções `given…` que
+repetiam `Game()`, `start` e nave `Normal` passaram a chamar `givenNormalShip`.
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm run lint:sensor -- src/test/kof/sifuture/game/*.kf` | `SENSOR lint: PASS (0 findings)` |
+| `npm run sensors:debt` | `SENSORS DEBT (report only, 40 Kof files)`; `SENSOR lint: FAIL (78 findings)`, nenhum em `src/test/kof`: 64 na produção (mesmos do R0) e 14 nas fixtures `tests/*.kf` (`high-complexity` 1, `long-function` 5, `too-many-statements` 8, que a decisão de 07/11 manteve); `SENSOR dup: FAIL (3 findings)`, os 3 grupos de produção do R0; `24 files expected, 24 tokenized` |
+| `npm run check` | exit 0 |
+| `node scripts/kof-tests.mjs` JVM e JS, 0.7.0 e 0.6.4 | `0 failed of 172 tests` nos quatro |
+| `git diff e6703db -- src/main` | vazio |
+
+Saída completa em `.agent/tmp/debt-r2/sensors-debt-after-r3.txt`.
+
+## A1. KofMut completo depois do R3 (09/11)
+
+Pré-condições, em `.agent/tmp/debt-a1/`:
+
+| Item | Observado |
+| --- | --- |
+| `git diff e6703db -- src/main` | 0 linhas |
+| HEAD | `68a579d` mais as mudanças não commitadas do R2/R3 (só `src/test/kof`) |
+| `uptime` antes | `load average: 8.82, 9.96, 7.64` em 32 núcleos (abaixo da metade) |
+| `uptime` depois | `load average: 6.85, 6.00, 5.78` |
+| Kof | `kof 0.7.0` |
+| Escopo | o mesmo `mut-scope.json` do R0 (24 `.kf` de `src/main/kof`) |
+
+Comando: `kof-mut run --project . --files .agent/tmp/debt-a1/mut-scope.json --config kof-mut.json --report-dir .agent/tmp/debt-a1/kof-mut-reports --run-id <uuid>`.
+Início 15:56:31, fim 17:54:32 (1h58min, `durationMs` 7077815; R0 levou 2h48min
+com a máquina mais carregada). Exit **1**, `status: complete`, baseline `passed`,
+**0 limitações**.
+
+O exit e o status mudaram porque o KofMut instalado mudou entre o R0 e o A1: o
+`kof-mut` agora inclui o PR #3 (`7a3df14`, `feat(frontend): traverse enum
+declarations`). As 8 limitações `EnumDeclarationNode` do R0 sumiram, e o exit 1
+quer dizer "terminou com sobreviventes", não "incompleto". O `toolVersion`
+continua `0.1.0` nos dois relatórios. O conjunto de candidatos é o mesmo, então a
+comparação pelo `id` vale.
+
+Comparação pelo `id` (`python3 .agent/tmp/debt-a1/compare.py`, saída em
+`.agent/tmp/debt-a1/compare.txt`):
+
+| Verificação | R0 | A1 | Resultado |
+| --- | ---: | ---: | --- |
+| `id`s | 1167 | 1167 | mesmo conjunto |
+| Mortos | 678 | 678 | os 678 do R0 continuam mortos |
+| Sobreviventes | 489 | 489 | subconjunto (igual) dos do R0 |
+| Mortos no R0 e não mortos no A1 | | 0 | |
+| Mortos novos no A1 | | 0 | |
+| Timeout, erro de compilação, erro de teste | 0 | 0 | |
+
+A1 atendido: nenhum mutante morto no R0 voltou a sobreviver depois do R2 e do R3,
+com a produção idêntica. Os testes novos não mataram nenhum mutante a mais, o que
+é esperado: o R2 e o R3 só reorganizaram asserções existentes. Relatório:
+`.agent/tmp/debt-a1/kofmut-a1-report.json`.

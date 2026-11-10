@@ -1642,10 +1642,31 @@ a documentação que cita `kof_project.py test`.
   118 blocos idênticos ao original; 114 casos em JVM e JS no 0.7.0 e no 0.6.4.
   `npm run check` para em `lint:sensor` com os 333 achados das suítes (R2).
 - [x] Node.js 24 fixado no job de testes da CI (`actions/setup-node` v7.1.0,
-  `949feb24…`); `tests/ci-contract.sh` verifica o passo (29 PASS). CI real pendente
-  de um PR para a `main`.
-- [ ] R2. Regras de teste.
-- [ ] R3. Duplicação nas suítes.
+  `949feb24…`); `tests/ci-contract.sh` verifica o passo (29 PASS). CI real no PR
+  em rascunho #23, [run 42675189498](https://github.com/renanfranca/kof-sifuture/actions/runs/42675189498):
+  `Kof tests (jvm)` e `Kof tests (js)` verdes com Node.js 24.22.2 e 114 casos cada.
+- [x] R2. Regras de teste, uma suíte por vez (Items, Stage, Menu, Result, Meteor,
+  Weapons, Controls, Subchief, Boss), verde em JVM e JS a cada suíte. Laços de
+  preparação viraram funções `given…`/`advance…` com nome; laços que conferem um
+  estado a cada passo viraram funções `Bool` com nome (`noProjectileAppearsDuring`,
+  `laserStaysIdleDuring`…); testes com `if` viraram um teste por caminho;
+  `assert(a && b)` virou um `assert` por condição onde a complexidade passava de 10.
+  Casos: 114 → 172 em JVM e JS, no 0.7.0 e no 0.6.4. Lista "de → para" no aceite.
+  Desvio: o `testRows` do `kof.test` não compila dentro de um módulo importado pela
+  entrada única (`SEM015 Undefined function: 'testRows'`, 0.7.0 e 0.6.4); os laços
+  de casos viraram um teste por caso ou casos escritos um a um no mesmo teste.
+- [x] R3. Duplicação nas suítes: sem meta de zerar CPD (decisão de 07/11). Só a
+  preparação usada por mais de um arquivo foi para `JourneyScenarios.kf`
+  (`advanceSteps`, `advanceWhilePlaying`, `givenNormalShip`, `givenShipAt`,
+  `givenMeteorsAway`, `givenMeteorsAt`, `givenVerticalPairInPlay`…), e os
+  `prepare*` passaram a usá-la. `sensors:debt`: 0 achado em `src/test/kof`; a
+  produção segue com 64 achados e 3 grupos CPD, como no R0.
+- [x] A1. KofMut completo depois do R3 (máquina com load 8,8 em 32 núcleos):
+  1167 `id`s iguais aos do R0, os 678 mortos continuam mortos, os 489
+  sobreviventes são os mesmos; `git diff e6703db -- src/main` vazio; 1h58min.
+  Saiu `complete` com exit 1 (não `incomplete`/3) porque o `kof-mut` instalado já
+  traz o PR #3 (suporte a `enum`): 0 limitações. A frente do `enum` está entregue;
+  R4 e R5 ainda esperam a decisão sobre a UI.
 - [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).
 - [ ] R5. Sobreviventes por TDD.
 - [ ] R6. Fixtures `tests/*.kf`.

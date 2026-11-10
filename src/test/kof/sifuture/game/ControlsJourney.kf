@@ -1,4 +1,5 @@
 package sifuture.game
+import sifuture.game.JourneyScenarios
 import sifuture.game.Background
 import sifuture.game.Blaster
 import sifuture.game.Boss
@@ -20,52 +21,81 @@ import sifuture.game.Subchief
 import sifuture.game.SubchiefShot
 import sifuture.game.Weapons
 
-test "pause and lost keyboard focus clear right image without changing opposing direction priority" {
-    for (var pause = 0; pause < 2; pause++) {
-        var g = Game()
-        g.start(909)
-        g.ship.phase = ShipPhase.Normal
-        g.ship.x = 60
-        for (var m in g.meteors) { m.x = 10000; m.y = -100 }
-        g.keyboard(Direction.Left, true)
-        g.keyboard(Direction.Right, true)
-        g.step()
-        assert(g.ship.x == 65 && g.ship.rightFrame)
-
-        if (pause == 1) { g.pause() }
-        else { g.clearKeyboard() }
-        assert(!g.ship.rightFrame && !g.ship.left && !g.ship.right)
-        g.step()
-        assert(g.ship.x == 65 && !g.ship.rightFrame)
-        if (pause == 1) { g.resume() }
-        g.keyboard(Direction.Left, false)
-        g.keyboard(Direction.Right, false)
-        g.keyboard(Direction.Right, true)
-        g.keyboard(Direction.Left, true)
-        g.step()
-        assert(g.ship.x == 60 && !g.ship.rightFrame)
-        g.keyboard(Direction.Left, false)
-        g.step()
-        assert(g.ship.x == 65 && g.ship.rightFrame)
-    }
+test "lost keyboard focus clears right image without changing opposing direction priority" {
+    var g = givenNormalShipMovingRightWithLeftAlsoHeld(909)
+    assert(g.ship.x == 65 && g.ship.rightFrame)
+    g.clearKeyboard()
+    assert(!g.ship.rightFrame && !g.ship.left && !g.ship.right)
+    g.step()
+    assert(g.ship.x == 65 && !g.ship.rightFrame)
+    g.keyboard(Direction.Left, false)
+    g.keyboard(Direction.Right, false)
+    g.keyboard(Direction.Right, true)
+    g.keyboard(Direction.Left, true)
+    g.step()
+    assert(g.ship.x == 60 && !g.ship.rightFrame)
+    g.keyboard(Direction.Left, false)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.rightFrame)
 }
 
-test "four pad arrows move by axis and stop on release" {
-    var directions = listOf(Direction.Up, Direction.Left, Direction.Right, Direction.Down)
-    var dx = listOf(0, -5, 5, 0)
-    var dy = listOf(-5, 0, 0, 5)
-    for (var i = 0; i < 4; i++) {
-        var g = Game()
-        g.start(100 + i)
-        g.ship.x = 60
-        g.ship.y = 100
-        g.movement(directions[i], true)
-        g.step()
-        assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
-        g.movement(directions[i], false)
-        g.step()
-        assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
-    }
+test "pause clears right image without changing opposing direction priority" {
+    var g = givenNormalShipMovingRightWithLeftAlsoHeld(909)
+    assert(g.ship.x == 65 && g.ship.rightFrame)
+    g.pause()
+    assert(!g.ship.rightFrame && !g.ship.left && !g.ship.right)
+    g.step()
+    assert(g.ship.x == 65 && !g.ship.rightFrame)
+    g.resume()
+    g.keyboard(Direction.Left, false)
+    g.keyboard(Direction.Right, false)
+    g.keyboard(Direction.Right, true)
+    g.keyboard(Direction.Left, true)
+    g.step()
+    assert(g.ship.x == 60 && !g.ship.rightFrame)
+    g.keyboard(Direction.Left, false)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.rightFrame)
+}
+
+test "pad up arrow moves five units up and stops on release" {
+    var g = givenShipAt(100, 60, 100)
+    g.movement(Direction.Up, true)
+    g.step()
+    assert(g.ship.x == 60 && g.ship.y == 95)
+    g.movement(Direction.Up, false)
+    g.step()
+    assert(g.ship.x == 60 && g.ship.y == 95)
+}
+
+test "pad left arrow moves five units left and stops on release" {
+    var g = givenShipAt(101, 60, 100)
+    g.movement(Direction.Left, true)
+    g.step()
+    assert(g.ship.x == 55 && g.ship.y == 100)
+    g.movement(Direction.Left, false)
+    g.step()
+    assert(g.ship.x == 55 && g.ship.y == 100)
+}
+
+test "pad right arrow moves five units right and stops on release" {
+    var g = givenShipAt(102, 60, 100)
+    g.movement(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 100)
+    g.movement(Direction.Right, false)
+    g.step()
+    assert(g.ship.x == 65 && g.ship.y == 100)
+}
+
+test "pad down arrow moves five units down and stops on release" {
+    var g = givenShipAt(103, 60, 100)
+    g.movement(Direction.Down, true)
+    g.step()
+    assert(g.ship.x == 60 && g.ship.y == 105)
+    g.movement(Direction.Down, false)
+    g.step()
+    assert(g.ship.x == 60 && g.ship.y == 105)
 }
 
 test "pad owns movement until held keyboard keys are released and pressed again" {
@@ -93,19 +123,14 @@ test "pad owns movement until held keyboard keys are released and pressed again"
 }
 
 test "pause freezes ship lasers meteors and counters then resumes without movement" {
-    var g = Game()
-    g.start(102)
-    g.ship.phase = ShipPhase.Normal
-    g.keyboard(Direction.Right, true)
-    g.step()
-    g.pause()
+    var g = givenPausedNormalShipAfterMovingRight(102)
     var x = g.ship.x
     var meteorX = g.meteors[0].x
     var steps = g.steps
     var fireSteps = g.weapons.fireSteps
     var score = g.score
     var lives = g.ship.lives
-    for (var i = 0; i < 50; i++) { g.step() }
+    advanceSteps(g, 50)
     assert(g.screen == Screen.Pause && g.ship.x == x)
     assert(g.meteors[0].x == meteorX && g.steps == steps)
     assert(g.weapons.fireSteps == fireSteps && g.score == score && g.ship.lives == lives)
@@ -115,13 +140,7 @@ test "pause freezes ship lasers meteors and counters then resumes without moveme
 }
 
 test "held arrow cannot restart movement after resume without a release" {
-    var g = Game()
-    g.start(103)
-    g.ship.x = 60
-    g.keyboard(Direction.Right, true)
-    g.step()
-    g.pause()
-    g.resume()
+    var g = givenShipResumedWhileHoldingRight(103)
     g.keyboard(Direction.Right, true)
     g.step()
     assert(g.ship.x == 65)
@@ -181,25 +200,22 @@ test "canvas click preserves active pad movement and rearms keyboard" {
     assert(g.ship.x == 60)
 }
 
-test "pause holds explosion and restart frames without consuming a life" {
-    var phases = listOf(ShipPhase.Explosion, ShipPhase.Restart)
-    for (var i = 0; i < 2; i++) {
-        var g = Game()
-        g.start(104 + i)
-        g.ship.phase = phases[i]
-        g.ship.explosionSteps = 12
-        g.ship.restartFrame = 20
-        g.meteors[0].collided = true
-        g.meteors[0].collisionSteps = 2
-        g.weapons.lasers.shots[0].active = true
-        g.weapons.lasers.shots[0].x = 44
-        g.pause()
-        for (var j = 0; j < 50; j++) { g.step() }
-        assert(g.ship.phase == phases[i] && g.ship.lives == 3)
-        assert(g.ship.explosionSteps == 12 && g.ship.restartFrame == 20)
-        assert(g.meteors[0].collisionSteps == 2 && g.weapons.lasers.shots[0].x == 44)
-        assert(g.steps == 0)
-    }
+test "pause holds explosion frames without consuming a life" {
+    var g = givenPausedShipWithPendingEffects(104, ShipPhase.Explosion)
+    advanceSteps(g, 50)
+    assert(g.ship.phase == ShipPhase.Explosion && g.ship.lives == 3)
+    assert(g.ship.explosionSteps == 12 && g.ship.restartFrame == 20)
+    assert(g.meteors[0].collisionSteps == 2 && g.weapons.lasers.shots[0].x == 44)
+    assert(g.steps == 0)
+}
+
+test "pause holds restart frames without consuming a life" {
+    var g = givenPausedShipWithPendingEffects(105, ShipPhase.Restart)
+    advanceSteps(g, 50)
+    assert(g.ship.phase == ShipPhase.Restart && g.ship.lives == 3)
+    assert(g.ship.explosionSteps == 12 && g.ship.restartFrame == 20)
+    assert(g.meteors[0].collisionSteps == 2 && g.weapons.lasers.shots[0].x == 44)
+    assert(g.steps == 0)
 }
 
 test "pausing and returning from result leave no directional movement" {
@@ -222,10 +238,7 @@ test "pausing and returning from result leave no directional movement" {
 }
 
 test "last pressed opposite direction wins until released" {
-    var g = Game()
-    g.start(9)
-    g.ship.x = 60
-    g.ship.y = 100
+    var g = givenShipAt(9, 60, 100)
     g.ship.direction(Direction.Left, true)
     g.ship.direction(Direction.Right, true)
     g.ship.direction(Direction.Up, true)
@@ -239,12 +252,9 @@ test "last pressed opposite direction wins until released" {
 }
 
 test "reversed opposing keys choose the latest and restore the held key on release" {
-    var g = Game()
-    g.start(91)
+    var g = givenShipAt(91, 60, 100)
     g.ship.phase = ShipPhase.Normal
-    g.ship.x = 60
-    g.ship.y = 100
-    for (var m in g.meteors) { m.x = 400; m.y = 30 }
+    givenMeteorsAt(g, 400, 30)
 
     g.ship.direction(Direction.Right, true)
     g.ship.direction(Direction.Left, true)
@@ -289,7 +299,7 @@ test "independent pad arrows combine axes and release only their own direction" 
     g.start(77)
     g.ship.x = 60
     g.ship.y = 100
-    for (var meteor in g.meteors) { meteor.y = 30 }
+    givenMeteorsAtHeight(g, 30)
 
     g.movement(Direction.Right, true)
     g.step()
@@ -310,7 +320,7 @@ test "duplicate pad events preserve opposite priority and ignore unheld releases
     g.start(77)
     g.ship.x = 60
     g.ship.phase = ShipPhase.Normal
-    for (var meteor in g.meteors) { meteor.y = 30 }
+    givenMeteorsAtHeight(g, 30)
 
     g.movement(Direction.Right, true)
     g.step()
@@ -331,88 +341,238 @@ test "duplicate pad events preserve opposite priority and ignore unheld releases
     assert(g.ship.x == 65 && g.ship.y == 95, "unheld pad release must not clear keyboard movement")
 }
 
-test "four diagonals preserve either held axis in both press and release orders" {
-    var horizontal = listOf(Direction.Right, Direction.Left)
-    var vertical = listOf(Direction.Up, Direction.Down)
-    var dx = listOf(5, -5)
-    var dy = listOf(-5, 5)
-    for (var x = 0; x < 2; x++) {
-        for (var y = 0; y < 2; y++) {
-            for (var order = 0; order < 2; order++) {
-                for (var release = 0; release < 2; release++) {
-                    var g = Game()
-                    g.start(77)
-                    g.ship.x = 60
-                    g.ship.y = 100
-                    g.ship.phase = ShipPhase.Normal
-                    for (var meteor in g.meteors) { meteor.y = 30 }
-                    if (order == 0) { g.movement(horizontal[x], true); g.movement(vertical[y], true) }
-                    else { g.movement(vertical[y], true); g.movement(horizontal[x], true) }
-                    g.step()
-                    assert(g.ship.x == 60 + dx[x] && g.ship.y == 100 + dy[y])
-                    assert(g.ship.rightFrame == (x == 0))
-                    if (release == 0) {
-                        g.movement(horizontal[x], false)
-                        g.step()
-                        assert(g.ship.x == 60 + dx[x] && g.ship.y == 100 + 2 * dy[y])
-                        assert(!g.ship.rightFrame)
-                        g.movement(vertical[y], false)
-                    } else {
-                        g.movement(vertical[y], false)
-                        g.step()
-                        assert(g.ship.x == 60 + 2 * dx[x] && g.ship.y == 100 + dy[y])
-                        assert(g.ship.rightFrame == (x == 0))
-                        g.movement(horizontal[x], false)
-                    }
-                    var stoppedX = g.ship.x
-                    var stoppedY = g.ship.y
-                    g.step()
-                    assert(g.ship.x == stoppedX && g.ship.y == stoppedY && !g.padPressed() && !g.ship.rightFrame)
-                }
-            }
-        }
-    }
+test "a diagonal pressed horizontal first keeps the vertical axis after the horizontal release and then stops" {
+    var rightUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    rightUp.movement(Direction.Right, true)
+    rightUp.movement(Direction.Up, true)
+    rightUp.step()
+    assert(rightUp.ship.x == 65 && rightUp.ship.y == 95)
+    assert(rightUp.ship.rightFrame)
+    assert(releasingMovesShipTo(rightUp, Direction.Right, 65, 90))
+    assert(!rightUp.ship.rightFrame)
+    assert(releasingStopsShip(rightUp, Direction.Up))
+    assert(!rightUp.padPressed() && !rightUp.ship.rightFrame)
+    var rightDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    rightDown.movement(Direction.Right, true)
+    rightDown.movement(Direction.Down, true)
+    rightDown.step()
+    assert(rightDown.ship.x == 65 && rightDown.ship.y == 105)
+    assert(rightDown.ship.rightFrame)
+    assert(releasingMovesShipTo(rightDown, Direction.Right, 65, 110))
+    assert(!rightDown.ship.rightFrame)
+    assert(releasingStopsShip(rightDown, Direction.Down))
+    assert(!rightDown.padPressed() && !rightDown.ship.rightFrame)
+    var leftUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    leftUp.movement(Direction.Left, true)
+    leftUp.movement(Direction.Up, true)
+    leftUp.step()
+    assert(leftUp.ship.x == 55 && leftUp.ship.y == 95)
+    assert(!leftUp.ship.rightFrame)
+    assert(releasingMovesShipTo(leftUp, Direction.Left, 55, 90))
+    assert(!leftUp.ship.rightFrame)
+    assert(releasingStopsShip(leftUp, Direction.Up))
+    assert(!leftUp.padPressed() && !leftUp.ship.rightFrame)
+    var leftDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    leftDown.movement(Direction.Left, true)
+    leftDown.movement(Direction.Down, true)
+    leftDown.step()
+    assert(leftDown.ship.x == 55 && leftDown.ship.y == 105)
+    assert(!leftDown.ship.rightFrame)
+    assert(releasingMovesShipTo(leftDown, Direction.Left, 55, 110))
+    assert(!leftDown.ship.rightFrame)
+    assert(releasingStopsShip(leftDown, Direction.Down))
+    assert(!leftDown.padPressed() && !leftDown.ship.rightFrame)
 }
 
-test "last opposite pad press wins in either axis until its own release" {
-    var first = listOf(Direction.Right, Direction.Left, Direction.Up, Direction.Down)
-    var second = listOf(Direction.Left, Direction.Right, Direction.Down, Direction.Up)
-    var dx = listOf(5, -5, 0, 0)
-    var dy = listOf(0, 0, -5, 5)
-    for (var i = 0; i < 4; i++) {
-        for (var releaseWinner = 0; releaseWinner < 2; releaseWinner++) {
-            var g = Game()
-            g.start(77)
-            g.ship.x = 60
-            g.ship.y = 100
-            g.ship.phase = ShipPhase.Normal
-            for (var meteor in g.meteors) { meteor.y = 30 }
-            g.movement(first[i], true)
-            g.step()
-            assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
-            g.movement(second[i], true)
-            g.step()
-            assert(g.ship.x == 60 && g.ship.y == 100)
-            assert(g.ship.rightFrame == (i == 1))
-            if (releaseWinner == 1) {
-                g.movement(second[i], false)
-                g.step()
-                assert(g.ship.x == 60 + dx[i] && g.ship.y == 100 + dy[i])
-                assert(g.ship.rightFrame == (i == 0))
-                g.movement(first[i], false)
-            } else {
-                g.movement(first[i], false)
-                g.step()
-                assert(g.ship.x == 60 - dx[i] && g.ship.y == 100 - dy[i])
-                assert(g.ship.rightFrame == (i == 1))
-                g.movement(second[i], false)
-            }
-            var stoppedX = g.ship.x
-            var stoppedY = g.ship.y
-            g.step()
-            assert(g.ship.x == stoppedX && g.ship.y == stoppedY)
-        }
-    }
+test "a diagonal pressed horizontal first keeps the horizontal axis after the vertical release and then stops" {
+    var rightUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    rightUp.movement(Direction.Right, true)
+    rightUp.movement(Direction.Up, true)
+    rightUp.step()
+    assert(rightUp.ship.x == 65 && rightUp.ship.y == 95)
+    assert(rightUp.ship.rightFrame)
+    assert(releasingMovesShipTo(rightUp, Direction.Up, 70, 95))
+    assert(rightUp.ship.rightFrame)
+    assert(releasingStopsShip(rightUp, Direction.Right))
+    assert(!rightUp.padPressed() && !rightUp.ship.rightFrame)
+    var rightDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    rightDown.movement(Direction.Right, true)
+    rightDown.movement(Direction.Down, true)
+    rightDown.step()
+    assert(rightDown.ship.x == 65 && rightDown.ship.y == 105)
+    assert(rightDown.ship.rightFrame)
+    assert(releasingMovesShipTo(rightDown, Direction.Down, 70, 105))
+    assert(rightDown.ship.rightFrame)
+    assert(releasingStopsShip(rightDown, Direction.Right))
+    assert(!rightDown.padPressed() && !rightDown.ship.rightFrame)
+    var leftUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    leftUp.movement(Direction.Left, true)
+    leftUp.movement(Direction.Up, true)
+    leftUp.step()
+    assert(leftUp.ship.x == 55 && leftUp.ship.y == 95)
+    assert(!leftUp.ship.rightFrame)
+    assert(releasingMovesShipTo(leftUp, Direction.Up, 50, 95))
+    assert(!leftUp.ship.rightFrame)
+    assert(releasingStopsShip(leftUp, Direction.Left))
+    assert(!leftUp.padPressed() && !leftUp.ship.rightFrame)
+    var leftDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    leftDown.movement(Direction.Left, true)
+    leftDown.movement(Direction.Down, true)
+    leftDown.step()
+    assert(leftDown.ship.x == 55 && leftDown.ship.y == 105)
+    assert(!leftDown.ship.rightFrame)
+    assert(releasingMovesShipTo(leftDown, Direction.Down, 50, 105))
+    assert(!leftDown.ship.rightFrame)
+    assert(releasingStopsShip(leftDown, Direction.Left))
+    assert(!leftDown.padPressed() && !leftDown.ship.rightFrame)
+}
+
+test "a diagonal pressed vertical first keeps the vertical axis after the horizontal release and then stops" {
+    var rightUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    rightUp.movement(Direction.Up, true)
+    rightUp.movement(Direction.Right, true)
+    rightUp.step()
+    assert(rightUp.ship.x == 65 && rightUp.ship.y == 95)
+    assert(rightUp.ship.rightFrame)
+    assert(releasingMovesShipTo(rightUp, Direction.Right, 65, 90))
+    assert(!rightUp.ship.rightFrame)
+    assert(releasingStopsShip(rightUp, Direction.Up))
+    assert(!rightUp.padPressed() && !rightUp.ship.rightFrame)
+    var rightDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    rightDown.movement(Direction.Down, true)
+    rightDown.movement(Direction.Right, true)
+    rightDown.step()
+    assert(rightDown.ship.x == 65 && rightDown.ship.y == 105)
+    assert(rightDown.ship.rightFrame)
+    assert(releasingMovesShipTo(rightDown, Direction.Right, 65, 110))
+    assert(!rightDown.ship.rightFrame)
+    assert(releasingStopsShip(rightDown, Direction.Down))
+    assert(!rightDown.padPressed() && !rightDown.ship.rightFrame)
+    var leftUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    leftUp.movement(Direction.Up, true)
+    leftUp.movement(Direction.Left, true)
+    leftUp.step()
+    assert(leftUp.ship.x == 55 && leftUp.ship.y == 95)
+    assert(!leftUp.ship.rightFrame)
+    assert(releasingMovesShipTo(leftUp, Direction.Left, 55, 90))
+    assert(!leftUp.ship.rightFrame)
+    assert(releasingStopsShip(leftUp, Direction.Up))
+    assert(!leftUp.padPressed() && !leftUp.ship.rightFrame)
+    var leftDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    leftDown.movement(Direction.Down, true)
+    leftDown.movement(Direction.Left, true)
+    leftDown.step()
+    assert(leftDown.ship.x == 55 && leftDown.ship.y == 105)
+    assert(!leftDown.ship.rightFrame)
+    assert(releasingMovesShipTo(leftDown, Direction.Left, 55, 110))
+    assert(!leftDown.ship.rightFrame)
+    assert(releasingStopsShip(leftDown, Direction.Down))
+    assert(!leftDown.padPressed() && !leftDown.ship.rightFrame)
+}
+
+test "a diagonal pressed vertical first keeps the horizontal axis after the vertical release and then stops" {
+    var rightUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    rightUp.movement(Direction.Up, true)
+    rightUp.movement(Direction.Right, true)
+    rightUp.step()
+    assert(rightUp.ship.x == 65 && rightUp.ship.y == 95)
+    assert(rightUp.ship.rightFrame)
+    assert(releasingMovesShipTo(rightUp, Direction.Up, 70, 95))
+    assert(rightUp.ship.rightFrame)
+    assert(releasingStopsShip(rightUp, Direction.Right))
+    assert(!rightUp.padPressed() && !rightUp.ship.rightFrame)
+    var rightDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    rightDown.movement(Direction.Down, true)
+    rightDown.movement(Direction.Right, true)
+    rightDown.step()
+    assert(rightDown.ship.x == 65 && rightDown.ship.y == 105)
+    assert(rightDown.ship.rightFrame)
+    assert(releasingMovesShipTo(rightDown, Direction.Down, 70, 105))
+    assert(rightDown.ship.rightFrame)
+    assert(releasingStopsShip(rightDown, Direction.Right))
+    assert(!rightDown.padPressed() && !rightDown.ship.rightFrame)
+    var leftUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    leftUp.movement(Direction.Up, true)
+    leftUp.movement(Direction.Left, true)
+    leftUp.step()
+    assert(leftUp.ship.x == 55 && leftUp.ship.y == 95)
+    assert(!leftUp.ship.rightFrame)
+    assert(releasingMovesShipTo(leftUp, Direction.Up, 50, 95))
+    assert(!leftUp.ship.rightFrame)
+    assert(releasingStopsShip(leftUp, Direction.Left))
+    assert(!leftUp.padPressed() && !leftUp.ship.rightFrame)
+    var leftDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    leftDown.movement(Direction.Down, true)
+    leftDown.movement(Direction.Left, true)
+    leftDown.step()
+    assert(leftDown.ship.x == 55 && leftDown.ship.y == 105)
+    assert(!leftDown.ship.rightFrame)
+    assert(releasingMovesShipTo(leftDown, Direction.Down, 50, 105))
+    assert(!leftDown.ship.rightFrame)
+    assert(releasingStopsShip(leftDown, Direction.Left))
+    assert(!leftDown.padPressed() && !leftDown.ship.rightFrame)
+}
+
+test "releasing the last opposite pad arrow returns to the first arrow on either axis" {
+    var rightThenLeft = givenNormalShipAtCenterWithMeteorsLowered(77)
+    assert(pressingMovesShipTo(rightThenLeft, Direction.Right, 65, 100))
+    assert(pressingMovesShipTo(rightThenLeft, Direction.Left, 60, 100))
+    assert(!rightThenLeft.ship.rightFrame)
+    assert(releasingMovesShipTo(rightThenLeft, Direction.Left, 65, 100))
+    assert(rightThenLeft.ship.rightFrame)
+    assert(releasingStopsShip(rightThenLeft, Direction.Right))
+    var leftThenRight = givenNormalShipAtCenterWithMeteorsLowered(77)
+    assert(pressingMovesShipTo(leftThenRight, Direction.Left, 55, 100))
+    assert(pressingMovesShipTo(leftThenRight, Direction.Right, 60, 100))
+    assert(leftThenRight.ship.rightFrame)
+    assert(releasingMovesShipTo(leftThenRight, Direction.Right, 55, 100))
+    assert(!leftThenRight.ship.rightFrame)
+    assert(releasingStopsShip(leftThenRight, Direction.Left))
+    var upThenDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    assert(pressingMovesShipTo(upThenDown, Direction.Up, 60, 95))
+    assert(pressingMovesShipTo(upThenDown, Direction.Down, 60, 100))
+    assert(!upThenDown.ship.rightFrame)
+    assert(releasingMovesShipTo(upThenDown, Direction.Down, 60, 95))
+    assert(!upThenDown.ship.rightFrame)
+    assert(releasingStopsShip(upThenDown, Direction.Up))
+    var downThenUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    assert(pressingMovesShipTo(downThenUp, Direction.Down, 60, 105))
+    assert(pressingMovesShipTo(downThenUp, Direction.Up, 60, 100))
+    assert(!downThenUp.ship.rightFrame)
+    assert(releasingMovesShipTo(downThenUp, Direction.Up, 60, 105))
+    assert(!downThenUp.ship.rightFrame)
+    assert(releasingStopsShip(downThenUp, Direction.Down))
+}
+
+test "releasing the first opposite pad arrow keeps the last arrow on either axis" {
+    var rightThenLeft = givenNormalShipAtCenterWithMeteorsLowered(77)
+    assert(pressingMovesShipTo(rightThenLeft, Direction.Right, 65, 100))
+    assert(pressingMovesShipTo(rightThenLeft, Direction.Left, 60, 100))
+    assert(!rightThenLeft.ship.rightFrame)
+    assert(releasingMovesShipTo(rightThenLeft, Direction.Right, 55, 100))
+    assert(!rightThenLeft.ship.rightFrame)
+    assert(releasingStopsShip(rightThenLeft, Direction.Left))
+    var leftThenRight = givenNormalShipAtCenterWithMeteorsLowered(77)
+    assert(pressingMovesShipTo(leftThenRight, Direction.Left, 55, 100))
+    assert(pressingMovesShipTo(leftThenRight, Direction.Right, 60, 100))
+    assert(leftThenRight.ship.rightFrame)
+    assert(releasingMovesShipTo(leftThenRight, Direction.Left, 65, 100))
+    assert(leftThenRight.ship.rightFrame)
+    assert(releasingStopsShip(leftThenRight, Direction.Right))
+    var upThenDown = givenNormalShipAtCenterWithMeteorsLowered(77)
+    assert(pressingMovesShipTo(upThenDown, Direction.Up, 60, 95))
+    assert(pressingMovesShipTo(upThenDown, Direction.Down, 60, 100))
+    assert(!upThenDown.ship.rightFrame)
+    assert(releasingMovesShipTo(upThenDown, Direction.Up, 60, 105))
+    assert(!upThenDown.ship.rightFrame)
+    assert(releasingStopsShip(upThenDown, Direction.Down))
+    var downThenUp = givenNormalShipAtCenterWithMeteorsLowered(77)
+    assert(pressingMovesShipTo(downThenUp, Direction.Down, 60, 105))
+    assert(pressingMovesShipTo(downThenUp, Direction.Up, 60, 100))
+    assert(!downThenUp.ship.rightFrame)
+    assert(releasingMovesShipTo(downThenUp, Direction.Down, 60, 95))
+    assert(!downThenUp.ship.rightFrame)
+    assert(releasingStopsShip(downThenUp, Direction.Up))
 }
 
 test "pausing a diagonal clears every pad arrow and requires a new press" {
@@ -420,7 +580,7 @@ test "pausing a diagonal clears every pad arrow and requires a new press" {
     g.start(77)
     g.ship.x = 60
     g.ship.y = 100
-    for (var meteor in g.meteors) { meteor.y = 30 }
+    givenMeteorsAtHeight(g, 30)
     g.movement(Direction.Right, true)
     g.movement(Direction.Up, true)
     g.step()
@@ -443,11 +603,8 @@ test "pausing a diagonal clears every pad arrow and requires a new press" {
 }
 
 test "keyboard memory stays separate while both pad axes own movement" {
-    var g = Game()
-    g.start(77)
-    g.ship.x = 60
-    g.ship.y = 100
-    for (var meteor in g.meteors) { meteor.y = 30 }
+    var g = givenShipAt(77, 60, 100)
+    givenMeteorsAtHeight(g, 30)
     g.keyboard(Direction.Left, true)
     g.keyboard(Direction.Down, true)
     g.movement(Direction.Right, true)
@@ -469,4 +626,74 @@ test "keyboard memory stays separate while both pad axes own movement" {
     g.keyboard(Direction.Left, true)
     g.step()
     assert(g.ship.x == 65 && g.ship.y == 95)
+}
+
+Game givenNormalShipMovingRightWithLeftAlsoHeld(Int seed) {
+    var g = givenNormalShip(seed)
+    g.ship.x = 60
+    givenMeteorsAway(g)
+    g.keyboard(Direction.Left, true)
+    g.keyboard(Direction.Right, true)
+    g.step()
+    return g
+}
+
+Game givenPausedNormalShipAfterMovingRight(Int seed) {
+    var g = givenNormalShip(seed)
+    g.keyboard(Direction.Right, true)
+    g.step()
+    g.pause()
+    return g
+}
+
+Game givenShipResumedWhileHoldingRight(Int seed) {
+    var g = Game()
+    g.start(seed)
+    g.ship.x = 60
+    g.keyboard(Direction.Right, true)
+    g.step()
+    g.pause()
+    g.resume()
+    return g
+}
+
+Game givenPausedShipWithPendingEffects(Int seed, ShipPhase phase) {
+    var g = Game()
+    g.start(seed)
+    g.ship.phase = phase
+    g.ship.explosionSteps = 12
+    g.ship.restartFrame = 20
+    g.meteors[0].collided = true
+    g.meteors[0].collisionSteps = 2
+    g.weapons.lasers.shots[0].active = true
+    g.weapons.lasers.shots[0].x = 44
+    g.pause()
+    return g
+}
+
+Game givenNormalShipAtCenterWithMeteorsLowered(Int seed) {
+    var g = givenShipAt(seed, 60, 100)
+    g.ship.phase = ShipPhase.Normal
+    givenMeteorsAtHeight(g, 30)
+    return g
+}
+
+Bool pressingMovesShipTo(Game g, Direction direction, Int x, Int y) {
+    g.movement(direction, true)
+    g.step()
+    return g.ship.x == x && g.ship.y == y
+}
+
+Bool releasingMovesShipTo(Game g, Direction direction, Int x, Int y) {
+    g.movement(direction, false)
+    g.step()
+    return g.ship.x == x && g.ship.y == y
+}
+
+Bool releasingStopsShip(Game g, Direction direction) {
+    g.movement(direction, false)
+    var x = g.ship.x
+    var y = g.ship.y
+    g.step()
+    return g.ship.x == x && g.ship.y == y
 }
