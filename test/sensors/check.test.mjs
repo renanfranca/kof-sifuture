@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chmodSync, readFileSync } from 'node:fs';
+import { chmodSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 
@@ -116,34 +116,52 @@ test('mutation runs on changed production Kof files and its verdict decides chec
   assert.match(killed.out, /\n {2}mutation +PASS\n/);
 });
 
+const reportingKofMut = `#!/usr/bin/env node
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+const argument = (name) => process.argv[process.argv.indexOf(name) + 1];
+const dir = path.join(argument('--report-dir'), 'run');
+const file = path.join(dir, 'report.json');
+const received = {
+  runId: argument('--run-id'),
+  scope: [...new Set(JSON.parse(readFileSync(argument('--files'), 'utf8')))].sort(),
+  discardedCandidates: [],
+};
+
+function reportText(text) {
+  try {
+    const report = { ...received, ...JSON.parse(text) };
+    for (const field of (process.env.KOF_MUT_OMIT ?? '').split(',')) delete report[field];
+    return JSON.stringify(report);
+  } catch {
+    return text;
+  }
+}
+
+mkdirSync(dir, { recursive: true });
+writeFileSync(file, reportText(process.env.KOF_MUT_REPORT ?? '{}'));
+const announce = (announced) => process.stdout.write(\`reportPath=\${JSON.stringify(announced)}\\n\`);
+const announcements = {
+  once: () => announce(file),
+  twice: () => { announce(file); announce(file); },
+  missing: () => announce(path.join(dir, 'absent.json')),
+  relative: () => announce(path.relative(process.env.KOF_MUT_RELATIVE_FROM, file)),
+  none: () => {},
+};
+announcements[process.env.KOF_MUT_ANNOUNCE ?? 'once']();
+process.exitCode = Number(process.env.KOF_MUT_EXIT ?? 0);
+`;
+
 function withReportingKofMut(root) {
   const env = withKofMutStub(root);
-  writeInto(
-    root,
-    'stub-bin/kof-mut',
-    `#!/bin/sh
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --report-dir) dir="$2/run";;
-  esac
-  shift
-done
-mkdir -p "$dir"
-printf '%s' "$KOF_MUT_REPORT" > "$dir/report.json"
-case "\${KOF_MUT_ANNOUNCE:-once}" in
-  once) echo "reportPath=\\"$dir/report.json\\"";;
-  twice) echo "reportPath=\\"$dir/report.json\\""; echo "reportPath=\\"$dir/report.json\\"";;
-  missing) echo "reportPath=\\"$dir/absent.json\\"";;
-esac
-exit \${KOF_MUT_EXIT:-0}
-`,
-  );
+  writeInto(root, 'stub-bin/kof-mut', reportingKofMut);
   return env;
 }
 
-function checkWithKofMutReport(report, overrides = {}) {
+function checkWithKofMutReport(report, overrides = {}, production = { 'src/main/kof/Game.kf': 'main() {\n    println(1)\n}\n' }) {
   const root = aCheckedProject();
-  writeInto(root, 'src/main/kof/Game.kf', 'main() {\n    println(1)\n}\n');
+  Object.entries(production).forEach(([name, content]) => writeInto(root, name, content));
   const env = { ...withReportingKofMut(root), KOF_MUT_EXIT: '3', KOF_MUT_REPORT: JSON.stringify(report), ...overrides };
   return runSensorWith(env, 'check.mjs', root);
 }
@@ -154,6 +172,50 @@ test('KofMut no_mutants without limitations skips mutation without failing check
   assert.match(report.out, /\n {2}mutation +SKIP \(KofMut no_mutants: no applicable mutants\)\n/);
   assert.match(report.out, /\nCHECK: PASS\n$/);
   assert.equal(report.code, 0);
+});
+
+test('KofMut no_mutants from discarded candidates still skips mutation and shows how many were discarded', () => {
+  const discarded = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+
+  const report = checkWithKofMutReport({ status: 'no_mutants', limitations: [], discardedCandidates: discarded });
+
+  assert.match(report.out, /\n {2}mutation +SKIP \(KofMut no_mutants: no applicable mutants, 3 discarded\)\n/);
+  assert.match(report.out, /\nCHECK: PASS\n$/);
+  assert.equal(report.code, 0);
+});
+
+test('a KofMut report from another run never skips mutation', () => {
+  const report = checkWithKofMutReport({ status: 'no_mutants', limitations: [], runId: '6f1c2a54-0b8e-4c1e-9d3a-2b7e5f4a9c10' });
+
+  assert.match(report.out, /\n {2}mutation +FAIL \(KofMut exit 3 report is not from this run: runId [^\n]+; quality not approved\)\n/);
+  assert.match(report.out, /\nCHECK: FAIL at mutation\n$/);
+  assert.equal(report.code, 1);
+});
+
+test('a KofMut report skips mutation only when its scope is the requested sorted scope', () => {
+  const twoFiles = { 'src/main/kof/A.kf': 'main() {\n}\n', 'src/main/kof/B.kf': 'main() {\n}\n' };
+  const reportWithScope = (scope) => checkWithKofMutReport({ status: 'no_mutants', limitations: [], scope }, {}, twoFiles);
+
+  const sorted = reportWithScope(['src/main/kof/A.kf', 'src/main/kof/B.kf']);
+  const missingOne = reportWithScope(['src/main/kof/A.kf']);
+  const empty = reportWithScope([]);
+
+  assert.match(sorted.out, /\n {2}mutation +SKIP \(KofMut no_mutants: no applicable mutants\)\n/);
+  assert.equal(sorted.code, 0);
+  for (const [name, report] of Object.entries({ missingOne, empty })) {
+    assert.match(report.out, /\n {2}mutation +FAIL \(KofMut exit 3 report is not from this run: scope [^\n]+; quality not approved\)\n/, name);
+    assert.equal(report.code, 1, name);
+  }
+});
+
+test('a relative reportPath fails mutation as unreadable even when the file exists there', () => {
+  const report = checkWithKofMutReport({ status: 'no_mutants', limitations: [] }, { KOF_MUT_ANNOUNCE: 'relative', KOF_MUT_RELATIVE_FROM: process.cwd() });
+
+  const announced = JSON.parse(report.out.match(/^reportPath=(.+)$/m)[1]);
+  assert.ok(!path.isAbsolute(announced), announced);
+  assert.ok(existsSync(announced), announced);
+  assert.match(report.out, /\n {2}mutation +FAIL \(KofMut exit 3 report unreadable: reportPath is not absolute; quality not approved\)\n/);
+  assert.equal(report.code, 1);
 });
 
 test('KofMut incomplete still fails check and shows its limitation', () => {
@@ -191,6 +253,8 @@ test('an unusable KofMut report on exit 3 fails mutation as unreadable, never as
     'announced path missing': checkWithKofMutReport(noMutants, { KOF_MUT_ANNOUNCE: 'missing' }),
     'invalid JSON': checkWithKofMutReport(noMutants, { KOF_MUT_REPORT: '{"status":' }),
     'limitations not an array': checkWithKofMutReport({ status: 'no_mutants' }),
+    'discardedCandidates missing': checkWithKofMutReport(noMutants, { KOF_MUT_OMIT: 'discardedCandidates' }),
+    'discardedCandidates not an array': checkWithKofMutReport({ ...noMutants, discardedCandidates: 'none' }),
   };
 
   for (const [name, report] of Object.entries(cases)) {
