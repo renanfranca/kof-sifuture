@@ -98,7 +98,7 @@ Relatório real: `status: "complete"`, `limitations: []`, `scope: ["src/main/kof
 
 ## Lacunas
 
-- O consumidor não confere `runId` e `scope` do relatório contra a execução, nem exige caminho absoluto, como recomenda o procedimento de `report-format.md`. Fica fora deste plano, junto com validar o JSON nos exits 0, 1 e 2.
+- O consumidor não confere `runId` e `scope` do relatório contra a execução, nem exige caminho absoluto, como recomenda o procedimento de `report-format.md`. Fica fora deste plano, junto com validar o JSON nos exits 0, 1 e 2. No exit 3, essa lacuna foi fechada em [`mutation-report-identity.md`](mutation-report-identity.md).
 - O C5 tem um quinto caso além dos quatro do plano: JSON válido sem `limitations` como array. Sem ele, o `check` quebraria com `TypeError` em vez de dar FAIL.
 - `no_mutants` também cobre "todos os candidatos descartados" (por exemplo, `ARITH001`). Esse caso vira SKIP, como manda a decisão do plano; ele não foi provado com o KofMut real.
 - O RED do C3 não existiu na ordem dos ciclos; o poder de distinção foi mostrado pela mutação manual descrita acima.

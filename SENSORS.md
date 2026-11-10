@@ -36,10 +36,14 @@ Kof tests on JVM and JS, `lint:sensor`, `dup:sensor`, `docs:sensor` and then
 mutation. Mutation runs KofMut with `kof-mut.json` on the production `.kf` files
 changed against `main`; without such a file it prints SKIP and claims nothing.
 KofMut exit 1 (a survivor) or 2 fails the check. On exit 3 the check reads the
-report announced on the `reportPath=` line: `no_mutants` without limitations
-prints SKIP, which, like the case without changed files, approves nothing;
-`incomplete`, `no_scope`, a report that contradicts exit 3, or one that cannot
-be read fails the check.
+report announced on the `reportPath=` line, which counts only when it is from
+this run: the path is absolute, `runId` is the one the check passed and `scope`
+is the requested scope, deduplicated and sorted. `no_mutants` without
+limitations prints SKIP, which, like the case without changed files, approves
+nothing; when KofMut discarded candidates that the compiler rejected, the SKIP
+shows how many (`, N discarded`). `incomplete`, `no_scope`, a report that
+contradicts exit 3, one from another run, or one that cannot be read fails the
+check.
 
 ## Rules and limits
 

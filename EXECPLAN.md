@@ -1675,3 +1675,7 @@ a documentação que cita `kof_project.py test`.
 ## `check`: `no_mutants` do KofMut vira SKIP — 10/11/2026
 
 - [x] No exit 3, o `check` lê o relatório do `reportPath=`: `no_mutants` sem limitação vira SKIP (não aprova), `incomplete`, `no_scope`, relatório contraditório ou ilegível continuam FAIL; prova real com o KofMut instalado e aceite em [`.agent/validation/mutation-no-mutants-skip.md`](.agent/validation/mutation-no-mutants-skip.md).
+
+## `check`: identidade do relatório do KofMut e descartes no SKIP — 10/11/2026
+
+- [x] No exit 3, o relatório só vale se for desta execução (caminho absoluto, `runId` e `scope`); `discardedCandidates` é obrigatório e o SKIP mostra `, N discarded`; prova real com o KofMut instalado (inclusive um descarte `ARITH001`) e aceite em [`.agent/validation/mutation-report-identity.md`](.agent/validation/mutation-report-identity.md).
