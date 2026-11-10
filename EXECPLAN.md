@@ -1683,3 +1683,7 @@ a documentação que cita `kof_project.py test`.
 ## Piloto da UI: lógica do `ControlsGuide` fora da tela — 10/11/2026
 
 - [x] Classe pura `GuideDisclosure` (`expanded`, `toggle()`, `close()`); o `ControlsGuide` delega a ela e ganha `clicked()`, `pointerDown()` e `blurred()`, chamados pelos handlers sem literal booleano. `GameControls.kf` sem diff. KofMut nos dois arquivos: 6 candidatos, 6 mortos, 0 na parte de tela; 172 → 181 casos. Plano em [`.agent/execplans/ui-pilot-controls-guide.md`](.agent/execplans/ui-pilot-controls-guide.md), aceite em [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md) (seção "Piloto da UI").
+
+## `check`: tipos das fixtures de navegador — 10/11/2026
+
+- [x] Passo `types:fixtures` depois de `types:js`: checa no alvo JS cada `tests/*.kf` como entrada real (`kof_project.py check --fixture`), como as jornadas montam o build; um `import` faltando em arquivo alcançado por uma fixture reprova o `check` e o sumário nomeia a fixture. Produção sem diff. Plano em [`.agent/execplans/check-fixture-imports.md`](.agent/execplans/check-fixture-imports.md), aceite em [`.agent/validation/check-fixture-imports.md`](.agent/validation/check-fixture-imports.md).

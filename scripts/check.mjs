@@ -1,4 +1,6 @@
 import { spawnSync } from 'node:child_process';
+import { existsSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 
 import { changedKofFiles } from './git-changes.mjs';
 import { mutate } from './mutation-step.mjs';
@@ -12,6 +14,7 @@ export const checkSteps = [
   command('secret:sensor', 'node', ['scripts/gitleaks-sensor.mjs']),
   command('types:jvm', 'python3', ['scripts/kof_project.py', 'check', '--target', 'jvm', '--json']),
   command('types:js', 'python3', ['scripts/kof_project.py', 'check', '--target', 'js', '--json']),
+  { name: 'types:fixtures', run: fixturesStep },
   command('python tests', 'python3', ['-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py']),
   command('kof tests:jvm', 'node', ['scripts/kof-tests.mjs', '--target', 'jvm']),
   command('kof tests:js', 'node', ['scripts/kof-tests.mjs', '--target', 'js']),
@@ -31,6 +34,23 @@ function spawned(root, program, args) {
 
   const skipped = (result.stdout ?? '').match(SKIPPED);
   return skipped ? { state: 'SKIP', detail: skipped[1] } : { state: 'PASS' };
+}
+
+function browserFixtures(root) {
+  const tests = path.join(root, 'tests');
+  if (!existsSync(tests)) return [];
+  return readdirSync(tests).filter((name) => name.endsWith('.kf')).sort().map((name) => `tests/${name}`);
+}
+
+function fixturesStep(root) {
+  const fixtures = browserFixtures(root);
+  if (fixtures.length === 0) return { state: 'SKIP', detail: 'no browser fixture in tests' };
+
+  for (const fixture of fixtures) {
+    const result = spawned(root, 'python3', ['scripts/kof_project.py', 'check', '--target', 'js', '--json', '--fixture', fixture]);
+    if (result.state === 'FAIL') return { state: 'FAIL', detail: `${fixture}: ${result.detail}` };
+  }
+  return { state: 'PASS' };
 }
 
 function mutationStep(root) {
