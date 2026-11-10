@@ -127,6 +127,20 @@ class FindingsTest {
         assertEquals(150, big.getFirst().get("limit").asInt());
     }
 
+    @Test void testCodeLongFileIsReportedAboveOneThousandLinesAndNotAtOneThousand() throws Exception {
+        var suiteAtLimit = aCheckedSource("src/test/kof/AtLimit.kf", oneLiners("at", 1000));
+        var suiteAboveLimit = aCheckedSource("src/test/kof/AboveLimit.kf", oneLiners("above", 1001));
+        var fixtureAboveLimit = aCheckedSource("tests/fixture.kf", oneLiners("fixture", 1001));
+
+        var report = findingsFor(0, suiteAtLimit, suiteAboveLimit, fixtureAboveLimit);
+
+        var big = withRule(report, "long-file");
+        assertEquals(List.of("src/test/kof/AboveLimit.kf", "tests/fixture.kf"),
+                big.stream().map(f -> f.get("file").asText()).sorted().toList(), report.toPrettyString());
+        assertEquals(List.of(1001, 1001), big.stream().map(f -> f.get("value").asInt()).toList());
+        assertEquals(List.of(1000, 1000), big.stream().map(f -> f.get("limit").asInt()).toList());
+    }
+
     @Test void duplicationReportsAFiftyTokenFiveLineCloneWithRelativeLocations() throws Exception {
         var source = """
             main() {
@@ -153,6 +167,34 @@ class FindingsTest {
         clone.get("locations").forEach(location -> files.add(location.get("file").asText()));
         assertEquals(List.of("src/main/kof/First.kf", "src/main/kof/Second.kf"), files.stream().sorted().toList());
         assertEquals(1, clone.get("locations").get(0).get("line").asInt());
+    }
+
+    @Test void duplicationLeavesTestCodeOutAndStillReportsProductionClones() throws Exception {
+        var source = """
+            main() {
+                var alpha = 101 + 102 + 103 + 104 + 105
+                var beta = 201 + 202 + 203 + 204 + 205
+                var gamma = 301 + 302 + 303 + 304 + 305
+                var delta = 401 + 402 + 403 + 404 + 405
+                println(alpha + beta + gamma + delta)
+            }
+            """;
+        var suite = aCheckedSource("src/test/kof/Journey.kf", source);
+        var fixture = aCheckedSource("tests/fixture.kf", source);
+        var production = aCheckedSource("src/main/kof/First.kf", source);
+        var copy = aCheckedSource("src/main/kof/Second.kf", source);
+
+        var report = findingsFor(0, suite, fixture, production, copy);
+
+        var duplication = report.get("duplication");
+        assertEquals(List.of("src/test/kof/Journey.kf", "tests/fixture.kf", "src/main/kof/First.kf", "src/main/kof/Second.kf"),
+                texts(report.get("expected")));
+        assertEquals(List.of("src/main/kof/First.kf", "src/main/kof/Second.kf"), texts(duplication.get("expected")));
+        assertEquals(List.of("src/main/kof/First.kf", "src/main/kof/Second.kf"), texts(duplication.get("tokenized")));
+        assertEquals(1, duplication.get("clones").size(), duplication.toPrettyString());
+        var files = new ArrayList<String>();
+        duplication.get("clones").get(0).get("locations").forEach(location -> files.add(location.get("file").asText()));
+        assertEquals(List.of("src/main/kof/First.kf", "src/main/kof/Second.kf"), files.stream().sorted().toList());
     }
 
     @Test void assertionFreeTestIsReportedWhileAssertingTestsAreNot() throws Exception {

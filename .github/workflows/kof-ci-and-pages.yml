@@ -70,12 +70,15 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SIFUTURE_SHA"
           bash scripts/kof_ci.sh install "$RUNNER_TEMP/kof-bundle" "$RUNNER_TEMP/kof-install" "$SIFUTURE_SHA"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
       - name: Run complete Kof suite
         env:
           TARGET: ${{ matrix.target }}
         run: |
           set -euo pipefail
-          python3 scripts/kof_project.py test --target "$TARGET" 2>&1 | tee "$RUNNER_TEMP/kof-$TARGET.log"
+          node scripts/kof-tests.mjs --target "$TARGET" 2>&1 | tee "$RUNNER_TEMP/kof-$TARGET.log"
       - name: Keep target log
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

@@ -346,7 +346,7 @@ still applies; current typography is covered in the [font guide](../fonts/README
 
 The Kof excerpts above come from existing source code. Their execution belongs
 to the recorded revisions; they are not new examples claimed to have been run.
-[GameJourney.kf](../src/test/kof/sifuture/game/GameJourney.kf) exercises rules
+[The suites in src/test/kof](../src/test/kof/sifuture/game/) exercise rules
 on JVM and JS. Browser scripts use the same real components and deterministic
 positions to observe pixels, timing, and interactions. The [development
 guide](desenvolvimento.md#what-the-checks-demonstrate) lists commands,

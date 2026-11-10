@@ -1549,4 +1549,125 @@ resumo no [aceite](.agent/validation/sensors-adoption.md).
 - [x] Commit do M2: `236f8b4` (feito pelo usuário com Luna). Depois dele, o
   link de `controls-guide.md:127` foi corrigido para o arquivo em `3829df1` e
   o `check` foi repetido (ver o aceite).
-- [ ] Pendente do usuário: commit desta correção e push.
+- [x] Commit desta correção e push: `6b17e1c`, mergeado na `main` em `f4af07a`
+  (PR #22).
+
+## Pagamento da dívida dos sensores antes do M3 — 05/11/2026
+
+Plano decidido com o usuário em 05/11; cópia de trabalho em
+`~/.agents/skills/_temporary/codex-skills-ai-context/2026-11-05_FEATURE_sifuture-sensor-debt-payoff.md`.
+Branch `sensor-debt-payoff` a partir de `f4af07a`. Aceite em
+`.agent/validation/sensor-debt-payoff.md`; evidência bruta em `.agent/tmp/debt-*/`.
+Sem commit nem push pela sessão executora.
+
+### Decisões de 07/11
+
+Do usuário, em 07/11/2026:
+
+1. Executar R1, R2 e R3 agora.
+2. O suporte a `enum` no KofMut foi autorizado e será feito em outro plano, no
+   repositório `kof-mut`.
+3. A decisão sobre a UI (`GameControls`, `GameView`, `ControlsGuide`; 199
+   sobreviventes, `kof.ui` sem efeito no JVM) continua pendente.
+4. R4 e R5 esperam as frentes 2 e 3.
+5. A1 depois do R3: a rodada completa do KofMut sai `incomplete` por causa do
+   `enum`. Comparar só os conjuntos de mortos e de sobreviventes pelo `id` do
+   mutante (`arquivo:offset:substituto`), sem considerar `status` nem exit code.
+6. Exceção de regra aprovada: no código de teste (`src/test/kof/` e as fixtures
+   `tests/*.kf`), `long-file` passa a valer 1000 linhas não vazias, em vez de ser
+   desligado, para ainda avisar arquivo gigante; o CPD não analisa código de
+   teste (testes DAMP, duplicação aceita quando ajuda a leitura). A produção
+   continua com 150 linhas e CPD de 50 tokens. Os limites por função não mudam.
+   Motivo: o 150 veio do `max-lines` do Katacombs e obrigaria dividir o
+   `GameJourney.kf` (2719 linhas) em uns 20 a 25 arquivos por um número, e não
+   por assunto.
+7. `kof.toml [sources]` (Kof #708, `D-CLI-SOURCE-ROOTS`, presente no 0.7.0 e no
+   0.6.4) só para os testes nesta etapa. O `kof test` ainda compila um programa
+   por arquivo, então medir numa cópia e parar no ponto de parada 1 antes do R1.
+   Build, check de tipos e jornadas continuam no `kof_project.py`.
+
+### Decisões de 09/11
+
+Do usuário, em 09/11/2026, respondendo ao ponto de parada 1 (registro completo em
+`.agent/tmp/debt-stop-point-1-handoff.md`):
+
+1. Dividir o `GameJourney.kf` em 9 arquivos por assunto, como no probe, com
+   `kof.toml [sources]` e um import por módulo (`import sifuture.game.*` dá `PKG007`).
+2. Os testes Kof passam a rodar por `scripts/kof-tests.mjs`: descobre os `.kf` de
+   `src/test/kof` sem lista à mão, gera uma entrada temporária que importa todos,
+   roda `kof test <entrada> --module-root src/test/kof --target <jvm|js>` uma vez e
+   apaga a entrada no fim.
+3. É uma ponte temporária até o Kof ter o modo nativo (rascunho de issue em
+   `.agent/tmp/kof-test-grouped-suite-issue.md`); documentar isso.
+4. Aposentar o `kof_project.py test`; os testes Python desse comportamento viram
+   testes Node equivalentes. O Python fica só com `check` e `build`.
+5. Continua em `.mjs`, sem TypeScript (migração planejada à parte em
+   `.agent/tmp/typescript-migration-plan.md`).
+6. Na mesma data, durante a execução: a entrada temporária fica em
+   `src/test/kof/KofTestsEntry<aleatório>.kf`, ignorada pelo Git e pela descoberta,
+   sem `--module-root`, porque o Kof 0.6.4 não tem essa opção.
+
+Critérios E1 a E10 do handoff entram no aceite. Chamadores do script: `check.mjs`,
+`testCommand` do `kof-mut.json`, CI (`.github/workflows/kof-ci-and-pages.yml:78`) e
+a documentação que cita `kof_project.py test`.
+
+### Progress
+
+- [x] R0. Linha de base, em `f4af07a`: dívida 415 lint + 23 CPD em 31
+  arquivos; 114 casos em JVM e JS; build com 113 arquivos; sete jornadas
+  determinísticas (186 PNG, 0 diferença de pixels entre duas execuções).
+  KofMut nos 20 `.kf` de produção: 1167 candidatos, 678 mortos, 489
+  sobreviventes, exit 3 `incomplete` por `EnumDeclarationNode` em `Boss`,
+  `Item`, `MenuEntrance`, `State` e `Subchief`; 2h48. `GameControls`,
+  `GameView` e `ControlsGuide` com 0 mortos (199 sobreviventes; `kof.ui` é
+  no-op no JVM). Linha "Pendente do usuário" corrigida.
+- [x] Ponto de parada 4: respondido em 07/11 (ver "Decisões de 07/11").
+- [x] S. Sensores com a exceção aprovada em 07/11: `long-file` 1000 e sem CPD
+  no código de teste; sensores 42/0 e Node 21/21 no 0.7.0 e no 0.6.4;
+  `sensors:debt` 412 lint + 3 CPD (só produção), 24 arquivos no CPD.
+- [x] Probe do ponto de parada 1 (ver o aceite): 9 arquivos por assunto com
+  `[sources]` dão 114/114 em JVM e JS (0.7.0 e 0.6.4), mas exigem import por
+  módulo (o `import sifuture.game.*` falha com `PKG007`). Um programa por arquivo
+  custa 2,6 a 2,8 vezes a suíte única sob a mesma carga; o KofMut no `Meteor.kf`
+  mudou o veredito (11 timeouts). Uma entrada única custa o mesmo que hoje.
+  Máquina carregada durante a medição: tempos absolutos não valem.
+- [x] Ponto de parada 1: respondido em 09/11 (ver "Decisões de 09/11").
+- [x] E. `scripts/kof-tests.mjs` e aposentadoria do `kof_project.py test`: E1 a
+  E10 verificados (ver o aceite). Entrada em `src/test/kof/KofTestsEntry*.kf`
+  (decisão do usuário em 09/11, porque o 0.6.4 não tem `--module-root`). KofMut no
+  `Meteor.kf` igual ao R0, sem timeout; tempo igual ao wrapper antigo; Python
+  16 → 13, Node 21 → 27. 294 links históricos para o `GameJourney.kf` viraram
+  links permanentes em `f4af07a`. Pendente: CI real, depois do push.
+- [x] R1. Suíte dividida em 9 arquivos por assunto mais `JourneyScenarios.kf`;
+  118 blocos idênticos ao original; 114 casos em JVM e JS no 0.7.0 e no 0.6.4.
+  `npm run check` para em `lint:sensor` com os 333 achados das suítes (R2).
+- [x] Node.js 24 fixado no job de testes da CI (`actions/setup-node` v7.1.0,
+  `949feb24…`); `tests/ci-contract.sh` verifica o passo (29 PASS). CI real no PR
+  em rascunho #23, [run 42675189498](https://github.com/renanfranca/kof-sifuture/actions/runs/42675189498):
+  `Kof tests (jvm)` e `Kof tests (js)` verdes com Node.js 24.22.2 e 114 casos cada.
+- [x] R2. Regras de teste, uma suíte por vez (Items, Stage, Menu, Result, Meteor,
+  Weapons, Controls, Subchief, Boss), verde em JVM e JS a cada suíte. Laços de
+  preparação viraram funções `given…`/`advance…` com nome; laços que conferem um
+  estado a cada passo viraram funções `Bool` com nome (`noProjectileAppearsDuring`,
+  `laserStaysIdleDuring`…); testes com `if` viraram um teste por caminho;
+  `assert(a && b)` virou um `assert` por condição onde a complexidade passava de 10.
+  Casos: 114 → 172 em JVM e JS, no 0.7.0 e no 0.6.4. Lista "de → para" no aceite.
+  Desvio: o `testRows` do `kof.test` não compila dentro de um módulo importado pela
+  entrada única (`SEM015 Undefined function: 'testRows'`, 0.7.0 e 0.6.4); os laços
+  de casos viraram um teste por caso ou casos escritos um a um no mesmo teste.
+- [x] R3. Duplicação nas suítes: sem meta de zerar CPD (decisão de 07/11). Só a
+  preparação usada por mais de um arquivo foi para `JourneyScenarios.kf`
+  (`advanceSteps`, `advanceWhilePlaying`, `givenNormalShip`, `givenShipAt`,
+  `givenMeteorsAway`, `givenMeteorsAt`, `givenVerticalPairInPlay`…), e os
+  `prepare*` passaram a usá-la. `sensors:debt`: 0 achado em `src/test/kof`; a
+  produção segue com 64 achados e 3 grupos CPD, como no R0.
+- [x] A1. KofMut completo depois do R3 (máquina com load 8,8 em 32 núcleos):
+  1167 `id`s iguais aos do R0, os 678 mortos continuam mortos, os 489
+  sobreviventes são os mesmos; `git diff e6703db -- src/main` vazio; 1h58min.
+  Saiu `complete` com exit 1 (não `incomplete`/3) porque o `kof-mut` instalado já
+  traz o PR #3 (suporte a `enum`): 0 limitações. A frente do `enum` está entregue;
+  R4 e R5 ainda esperam a decisão sobre a UI.
+- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).
+- [ ] R5. Sobreviventes por TDD.
+- [ ] R6. Fixtures `tests/*.kf`.
+- [ ] R7. Fechamento.

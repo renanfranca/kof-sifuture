@@ -77,37 +77,38 @@ separadas.
 ## Executar os testes de regras
 
 Uma **suíte** é um arquivo com casos de teste que exercitam comportamento.
-As suítes Kof canônicas ficam em `src/test/kof`; atualmente
-[GameJourney.kf](../src/test/kof/sifuture/game/GameJourney.kf) usa a implementação
-real de `src/main/kof`.
+As suítes Kof canônicas ficam em `src/test/kof/sifuture/game/`, um arquivo por
+assunto (menu, controles, meteoros, armas, itens, fase, resultado, subchefe e
+chefe), e usam a implementação real de `src/main/kof`. O `JourneyScenarios.kf`
+guarda funções de preparação compartilhadas e não tem testes.
 
 ```bash
-python3 scripts/kof_project.py test --target jvm
-python3 scripts/kof_project.py test --target js
-python3 scripts/kof_project.py test --target jvm --suite sifuture/game/GameJourney.kf
+node scripts/kof-tests.mjs --target jvm
+node scripts/kof-tests.mjs --target js
+kof test src/test/kof/sifuture/game/BossJourney.kf --module-root src/test/kof --target jvm
 ```
 
-Na revisão examinada `e38f5e0ccb98bfd443a0d57833b6be0b6bed6aee`, cada execução
-completa deve mostrar 114 testes aprovados. Essa contagem pertence à revisão;
-novos casos podem aumentá-la. Texto e geometria são verificados no navegador.
-`--suite` seleciona um arquivo relativo à raiz de testes. Sem essa opção,
-o wrapper descobre `.kf` recursivamente e executa em ordem de caminho, usando
-uma árvore temporária nova para cada suíte. Uma falha não impede as seguintes;
-o comando devolve a primeira falha observada. Em
-[scripts/kof_project.py](../scripts/kof_project.py#L146):
+O [kof.toml](../kof.toml) declara as duas raízes em `[sources]`, então uma
+suíte alcança a aplicação. O [scripts/kof-tests.mjs](../scripts/kof-tests.mjs)
+descobre todos os `.kf` de `src/test/kof`, sem lista para manter, grava uma
+entrada temporária `src/test/kof/KofTestsEntry*.kf` que importa todos (ignorada
+pelo Git e pela descoberta), roda `kof test` uma vez sobre ela e a apaga,
+inclusive em falha. Na raiz dos testes, a entrada dispensa o `--module-root`,
+então o script funciona com o Kof 0.6.4 e o 0.7.0. Um teste que falha reprova a
+execução, e uma execução em que nenhum teste rodou também. A execução completa
+mostra hoje 114 testes. O último comando roda um arquivo sozinho (o
+`--module-root` exige Kof 0.7.0 ou mais novo).
 
-```python
-first_failure = 0
-for path in suites:
-    print(f"Suite: {path.relative_to(tests)}", flush=True)
-    with prepared_sources(suite=path, root=root) as source:
-        code = _run([str(kof_executable(kof)), "test", str(source / "Main.kf"), "--target", target])
-        if code and not first_failure:
-            first_failure = code
-return first_failure
-```
+**Ponte temporária:** o `kof test <pasta>` compila cada arquivo como um
+programa separado. Medido em 07/11/2026, isso ficou cerca de três vezes mais
+lento e fez o KofMut estourar o tempo
+([registro de aceite](../.agent/validation/sensor-debt-payoff.md)). O script
+junta as suítes num só programa até o Kof oferecer isso de forma nativa; então
+o script dá lugar à opção do Kof. Como todas as suítes dividem um programa,
+estado deixado por uma poderia chegar a outra; a regra `mystery-guest` vigia
+hooks que preenchem estado compartilhado.
 
-Cada chamada usa o runner oficial. O [Learn Kof, Testing](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/23-testing.md#L42)
+A execução usa o runner oficial. O [Learn Kof, Testing](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/23-testing.md#L42)
 ensina:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
@@ -129,8 +130,9 @@ npm run lint:sensor
 npm run sensors:debt
 ```
 
-Limites: arquivo 150 linhas, função 25, complexidade 10, parâmetros 4,
-profundidade 2, statements 17; CPD com 50 tokens e 5 linhas. O
+Limites: arquivo 150 linhas (1000 no código de teste), função 25,
+complexidade 10, parâmetros 4, profundidade 2, statements 17; CPD com 50 tokens
+e 5 linhas, fora do código de teste. O
 [SENSORS.md](../SENSORS.md) lista todos os comandos e regras (em inglês).
 
 ## Conferir e mutar um arquivo manualmente
@@ -140,12 +142,13 @@ Execute o check JSON e a suíte completa nos dois alvos do projeto:
 ```bash
 python3 scripts/kof_project.py check --target jvm --json --kof kof
 python3 scripts/kof_project.py check --target js --json --kof kof
-python3 scripts/kof_project.py test --target jvm --kof kof
-python3 scripts/kof_project.py test --target js --kof kof
+node scripts/kof-tests.mjs --target jvm
+node scripts/kof-tests.mjs --target js
 ```
 
-`kof-mut.json` configura o KofMut para usar as versões JVM pelo mesmo wrapper
-e o executável `kof` resolvido no `PATH`. Cada comando completo de check ou
+`kof-mut.json` configura o KofMut para usar as versões JVM: o check de tipos
+pelo wrapper e os testes pelo `scripts/kof-tests.mjs`, com o executável `kof`
+resolvido no `PATH`. Cada comando completo de check ou
 teste tem timeout de 30 segundos; `budgetMs: 0` remove apenas o orçamento total
 da avaliação. O escopo explícito atual em
 [`kof-mut-scope.json`](../kof-mut-scope.json) seleciona os arquivos inteiros `Background.kf` e `Meteor.kf`. Edite esse array JSON para escolher outros
@@ -272,15 +275,17 @@ define:
 > Kof's "module" is the **root directory** passed to the compiler (module root),
 > used to expand directory imports.
 
-Assim, `import sifuture.game.GameJourney` localiza a suíte relativa à raiz
-preparada; a própria suíte importa `sifuture.game.*` para alcançar as regras.
+Assim, `import sifuture.*` localiza a aplicação relativa à raiz preparada do
+build e do check de tipos. Os testes não usam essa árvore: com `[sources]`, cada
+suíte declara `package sifuture.game` e importa cada módulo das regras pelo
+nome, como `import sifuture.game.Game`; `import sifuture.game.*` importaria o
+próprio pacote (`PKG007`).
 
 **WORKAROUND de organização/build:** na instalação 0.5.0-beta examinada, os
 comandos do projeto preparam uma árvore descartável fora do checkout e sem
 `kof.toml` ancestral. Copiam os bytes das fontes canônicas, geram uma pequena
 entrada de import e chamam o CLI oficial. O build inclui somente a aplicação,
-com entrada `import sifuture.*`. Cada suíte recebe a aplicação e somente seu
-arquivo de testes, com uma entrada específica. A árvore é removida após o
+com entrada `import sifuture.*`. A árvore é removida após o
 comando, inclusive em falha. Não é preciso preparar fontes ou assets à mão.
 
 O wrapper verifica `index.html` e `Default.mjs` antes de copiar a saída e os

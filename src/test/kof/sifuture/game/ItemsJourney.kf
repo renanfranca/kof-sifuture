@@ -1,0 +1,141 @@
+package sifuture.game
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.JourneyScenarios
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "background moves five units wraps at sixty and pauses" {
+    var g = Game()
+    g.start(201)
+    assert(g.background.offset == 0)
+    g.step()
+    assert(g.background.offset == 5)
+    g.pause()
+    g.step()
+    assert(g.background.offset == 5)
+    g.resume()
+    advanceSteps(g, 11)
+    assert(g.background.offset == 0)
+    g.start(201)
+    assert(g.background.offset == 0)
+}
+
+test "both items start offscreen reproduce their seed and relaunch after exit" {
+    var g = Game()
+    g.start(202)
+    var x = g.items[0].x
+    var y = g.items[0].y
+    assert(x >= 220 && x < 420 && y >= 30 && y < 204)
+    assert(g.items[1].x >= 220 && g.items[1].x < 420)
+    g.step()
+    assert(g.items[0].x == x - 1)
+    g.start(202)
+    assert(g.items[0].x == x && g.items[0].y == y)
+    g.items[0].x = -20
+    g.step()
+    assert(g.items[0].x >= 220 && g.items[0].frame == 0)
+}
+
+test "life collection adds one life above three and ten points exactly once" {
+    var g = Game()
+    g.start(203)
+    g.ship.phase = ShipPhase.Normal
+    var item = g.items[1]
+    item.x = 11
+    item.y = 100
+
+    g.step()
+    assert(g.ship.lives == 4 && g.score == 10 && item.collected)
+    assert(item.effectSteps == 0)
+    advanceSteps(g, 5)
+    assert(g.ship.lives == 4 && g.score == 10 && item.effectSteps == 5)
+    g.step()
+    assert(!item.collected && item.x >= 220 && g.score == 10)
+}
+
+test "first three evolution collections raise the level to three without special charges" {
+    var g = givenNormalShipWithMeteorsAtTop(204)
+    collectEvolution(g)
+    assert(g.weapons.level == 1 && g.weapons.charges == 0)
+    collectEvolution(g)
+    assert(g.weapons.level == 2 && g.weapons.charges == 0)
+    collectEvolution(g)
+    assert(g.weapons.level == 3 && g.weapons.charges == 0)
+}
+
+test "evolution collections after level three add special charges" {
+    var g = givenNormalShipWithMeteorsAtTop(204)
+    collectEvolution(g)
+    collectEvolution(g)
+    collectEvolution(g)
+    collectEvolution(g)
+    assert(g.weapons.level == 3 && g.weapons.charges == 1)
+    collectEvolution(g)
+    assert(g.weapons.level == 3 && g.weapons.charges == 2)
+    assert(g.score == 50)
+}
+
+test "evolution cycles five frames and life travels eleven frames forward and back" {
+    var g = Game()
+    g.start(205)
+    advanceSteps(g, 8)
+    assert(g.items[0].frame == 4 && g.items[1].frame == 4)
+    g.step()
+    g.step()
+    assert(g.items[0].frame == 0 && g.items[1].frame == 5)
+    advanceSteps(g, 10)
+    assert(g.items[1].frame == 10)
+    g.step()
+    g.step()
+    assert(g.items[1].frame == 9)
+    advanceSteps(g, 18)
+    assert(g.items[1].frame == 0)
+}
+
+test "invulnerable ship cannot collect until normal and collection uses inclusive left edge" {
+    var g = Game()
+    g.start(215)
+    g.items[1].x = 11
+    g.items[1].y = 100
+    g.step()
+    assert(g.score == 0 && g.ship.lives == 3 && !g.items[1].collected)
+    g.ship.phase = ShipPhase.Normal
+    g.items[1].x = -1
+    g.step()
+    assert(g.score == 0)
+    g.items[1].x = 51
+    g.items[1].y = 84
+    g.step()
+    assert(g.score == 10 && g.ship.lives == 4)
+}
+
+Game givenNormalShipWithMeteorsAtTop(Int seed) {
+    var g = givenNormalShip(seed)
+    givenMeteorsAtHeight(g, 30)
+    return g
+}
+
+collectEvolution(Game g) {
+    var item = g.items[0]
+    item.x = 11
+    item.y = 100
+    item.collected = false
+    g.step()
+}

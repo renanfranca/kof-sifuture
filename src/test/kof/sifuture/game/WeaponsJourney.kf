@@ -1,0 +1,353 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "normal fire starts on thirteenth step and earns five points" {
+    var g = Game()
+    g.start(2)
+    g.ship.phase = ShipPhase.Normal
+    advanceSteps(g, 12)
+    assert(!g.weapons.lasers.shots[0].active)
+    g.step()
+    assert(g.weapons.lasers.shots[0].active)
+    g.ship.y = 50
+    g.meteors[0].x = g.weapons.lasers.shots[0].x + 4
+    g.meteors[0].y = g.weapons.lasers.shots[0].y
+    g.step()
+    assert(g.score == 5)
+    assert(g.weapons.lasers.shots[0].active && g.weapons.lasers.shots[0].impact)
+}
+
+test "basic laser allows only one active shot and retries each thirteen normal steps" {
+    var g = Game()
+    g.start(7)
+    g.ship.phase = ShipPhase.Normal
+    advanceSteps(g, 13)
+    assert(g.weapons.lasers.shots[0].active)
+    var firstX = g.weapons.lasers.shots[0].x
+    advanceSteps(g, 13)
+    assert(g.weapons.lasers.shots[0].active && g.weapons.lasers.shots[0].x > firstX)
+    assert(!g.weapons.lasers.shots[1].active && !g.weapons.lasers.shots[2].active)
+    g.weapons.lasers.shots[0].active = false
+    advanceSteps(g, 13)
+    assert(g.weapons.lasers.shots[0].active)
+}
+
+test "evolved laser launches one per attempt into first free slot and animates" {
+    var g = Game()
+    g.start(206)
+    g.ship.phase = ShipPhase.Normal
+    g.weapons.evolve()
+    givenMeteorsAtHeight(g, 30)
+    advanceSteps(g, 13)
+    assert(g.weapons.lasers.shots[0].active && !g.weapons.lasers.shots[1].active)
+    advanceSteps(g, 13)
+    assert(g.weapons.lasers.shots[0].active && g.weapons.lasers.shots[1].active)
+    assert(!g.weapons.lasers.shots[2].active)
+    assert(g.weapons.lasers.shots[0].spriteFrame() == 2)
+    g.weapons.lasers.shots[0].active = false
+    advanceSteps(g, 13)
+    assert(g.weapons.lasers.shots[0].active && !g.weapons.lasers.shots[2].active)
+}
+
+test "second evolution blaster begins after six laser cycles and third begins on step six" {
+    var g = Game()
+    g.start(207)
+    g.ship.phase = ShipPhase.Normal
+    g.weapons.evolve()
+    g.weapons.evolve()
+    givenMeteorsAt(g, 400, 30)
+    advanceSteps(g, 89)
+    assert(!g.weapons.blaster.active)
+    g.step()
+    assert(g.weapons.blaster.active && g.weapons.blaster.x == 5)
+    assert(g.weapons.blaster.y == 100 && g.weapons.blaster.spriteFrame() == 0)
+
+    g.start(207)
+    g.ship.phase = ShipPhase.Normal
+    evolveWeapons(g, 3)
+    advanceSteps(g, 5)
+    assert(!g.weapons.blaster.active)
+    g.step()
+    assert(g.weapons.blaster.active && g.weapons.blaster.x == 5)
+}
+
+test "blaster destroys two meteors scores once each and finishes four impact frames" {
+    var g = givenNormalShipWithMeteorsAt(208, 400, 30)
+    g.weapons.blaster.fire(g.ship)
+    g.ship.y = 30
+    g.meteors[0].x = 11
+    g.meteors[0].y = 100
+    g.meteors[1].x = 21
+    g.meteors[1].y = 100
+
+    g.step()
+    assert(g.score == 5 && g.weapons.blaster.lives == 1)
+    g.step()
+    assert(g.score == 10 && g.weapons.blaster.lives == 0)
+    assert(g.meteors[0].collided && g.meteors[1].collided)
+    assert(g.weapons.blaster.active && g.weapons.blaster.impactSteps == 0)
+    g.step()
+    assert(g.weapons.blaster.x == 12 && g.weapons.blaster.impactSteps == 1)
+    g.step()
+    assert(g.weapons.blaster.x == 14 && g.weapons.blaster.impactSteps == 2)
+    g.step()
+    assert(g.weapons.blaster.x == 17 && g.weapons.blaster.impactSteps == 3)
+    g.step()
+    assert(!g.weapons.blaster.active && g.score == 10)
+}
+
+test "special requires active normal charged idle ship consumes on start and launches three beams" {
+    var g = Game()
+    g.start(209)
+    assert(!g.trySpecial())
+    evolveWeapons(g, 5)
+    assert(!g.trySpecial() && g.weapons.charges == 2)
+    g.ship.phase = ShipPhase.Normal
+    g.pause()
+    assert(!g.trySpecial() && g.weapons.charges == 2)
+    g.resume()
+    assert(g.trySpecial() && g.weapons.charges == 1)
+    assert(!g.trySpecial() && g.weapons.charges == 1)
+    assert(g.weapons.beams[0].x == -638 && g.weapons.beams[0].y == 40)
+    assert(g.weapons.beams[1].x == -319 && g.weapons.beams[1].y == 94)
+    assert(g.weapons.beams[2].x == -638 && g.weapons.beams[2].y == 160)
+    g.step()
+    assert(g.weapons.beams[0].x == -633 && g.weapons.beams[1].x == -313)
+    assert(g.weapons.beams[2].x == -633 && g.weapons.beams[2].lives == 10)
+}
+
+test "special resists ten meteor hits shows hit and death effects without duplicate rewards" {
+    var g = Game()
+    g.start(210)
+    g.ship.phase = ShipPhase.Normal
+    evolveWeapons(g, 4)
+    assert(g.trySpecial())
+    g.ship.y = 200
+    givenMeteorsAt(g, 400, 30)
+    var beam = g.weapons.beams[1]
+    beam.x = 0
+    assert(beamLosesOneLifeAndScoresFivePerMeteorHit(g, beam, 10))
+    var x = beam.x
+    advanceSteps(g, 3)
+    assert(beam.active && beam.spriteFrame() == 2 && beam.x == x)
+    advanceSteps(g, 3)
+    assert(!beam.active && g.score == 50)
+}
+
+test "explosion completion loses a charge before level exactly once and never below basic" {
+    var g = Game()
+    g.start(211)
+    evolveWeapons(g, 4)
+    g.ship.explode()
+    advanceSteps(g, 29)
+    assert(g.weapons.level == 3 && g.weapons.charges == 1 && g.ship.lives == 3)
+    g.step()
+    assert(g.weapons.level == 3 && g.weapons.charges == 0 && g.ship.lives == 2)
+    g.step()
+    assert(g.weapons.level == 3 && g.ship.lives == 2)
+    g.ship.lives = 6
+    advanceThroughExplosion(g)
+    assert(g.weapons.level == 2)
+    advanceThroughExplosion(g)
+    assert(g.weapons.level == 1)
+    advanceThroughExplosion(g)
+    assert(g.weapons.level == 0)
+    advanceThroughExplosion(g)
+    assert(g.weapons.level == 0)
+    assert(g.ship.lives == 2 && g.weapons.charges == 0)
+}
+
+test "launched weapons finish after downgrade and pause freezes every moving state" {
+    var g = Game()
+    g.start(212)
+    g.ship.phase = ShipPhase.Normal
+    evolveWeapons(g, 4)
+    assert(g.trySpecial())
+    g.weapons.blaster.fire(g.ship)
+    g.weapons.lasers.shots[2].fire(0, 100)
+    g.items[0].collected = true
+    g.step()
+    var beamX = g.weapons.beams[0].x
+    var shotX = g.weapons.lasers.shots[2].x
+    var blasterX = g.weapons.blaster.x
+    var offset = g.background.offset
+    var itemX = g.items[0].x
+    var effectSteps = g.items[0].effectSteps
+    var fireSteps = g.weapons.fireSteps
+    g.pause()
+    advanceSteps(g, 10)
+    assert(g.weapons.beams[0].x == beamX)
+    assert(g.weapons.blaster.x == blasterX)
+    assert(g.weapons.lasers.shots[2].x == shotX)
+    assert(g.background.offset == offset)
+    assert(g.items[0].x == itemX)
+    assert(g.items[0].effectSteps == effectSteps)
+    assert(g.weapons.fireSteps == fireSteps)
+    g.weapons.level = 0
+    g.resume()
+    g.ship.phase = ShipPhase.Restart
+    advanceSteps(g, 170)
+    assert(!g.weapons.blaster.active)
+    assert(!g.weapons.beams[0].active)
+    assert(!g.weapons.beams[1].active)
+    assert(!g.weapons.beams[2].active)
+    assert(!g.weapons.lasers.shots[2].active)
+    g.start(212)
+    assert(g.weapons.level == 0)
+    assert(g.weapons.charges == 0)
+    assert(g.weapons.fireSteps == 0)
+    assert(g.ship.lives == 3)
+    assert(g.background.offset == 0)
+    assert(g.score == 0)
+    assert(!g.items[0].collected)
+    assert(g.items[0].frame == 0)
+}
+
+test "one blaster collision per step retains resistance for the next meteor" {
+    var g = givenNormalShipWithMeteorsAt(213, 400, 30)
+    g.weapons.blaster.fire(g.ship)
+    g.ship.y = 30
+    g.meteors[0].x = 11
+    g.meteors[0].y = 100
+    g.meteors[1].x = 21
+    g.meteors[1].y = 100
+    g.step()
+    assert(g.score == 5 && g.weapons.blaster.lives == 1)
+    assert(g.meteors[0].collided && !g.meteors[1].collided)
+    g.step()
+    assert(g.score == 10 && g.weapons.blaster.lives == 0 && g.meteors[1].collided)
+}
+
+test "special resolves one historical beam contact per step in color order" {
+    var g = Game()
+    g.start(214)
+    g.ship.phase = ShipPhase.Normal
+    evolveWeapons(g, 4)
+    assert(g.trySpecial())
+    g.ship.y = 200
+    givenMeteorsAt(g, 1000, 30)
+    g.weapons.beams[0].x = 0
+    g.weapons.beams[1].x = 0
+    g.meteors[0].x = 11
+    g.meteors[0].y = 94
+    g.meteors[1].x = 11
+    g.meteors[1].y = 40
+    g.step()
+    assert(g.score == 5 && g.weapons.beams[0].lives == 9)
+    assert(g.weapons.beams[1].lives == 10)
+    assert(!g.meteors[0].collided && g.meteors[1].collided)
+}
+
+test "laser then blaster then special claims a contested meteor exactly once" {
+    var g = Game()
+    g.start(216)
+    g.ship.phase = ShipPhase.Normal
+    givenMeteorsAt(g, 1000, 30)
+    g.weapons.lasers.shots[0].fire(0, 100)
+    g.weapons.lasers.shots[1].fire(0, 100)
+    g.weapons.blaster.fire(g.ship)
+    evolveWeapons(g, 4)
+    assert(g.trySpecial())
+    g.weapons.beams[1].x = 0
+    g.ship.y = 200
+    g.meteors[0].x = 36
+    g.meteors[0].y = 108
+    g.step()
+    assert(g.score == 5 && g.weapons.lasers.shots[0].impact)
+    assert(!g.weapons.lasers.shots[1].impact)
+    assert(g.weapons.blaster.lives == 2 && g.weapons.beams[1].lives == 10)
+    g.weapons.lasers.shots[0].active = false
+    g.weapons.lasers.shots[1].active = false
+    g.meteors[0].collided = false
+    g.step()
+    assert(g.score == 10 && g.weapons.blaster.lives == 1 && g.weapons.beams[1].lives == 10)
+    g.weapons.blaster.active = false
+    g.meteors[0].collided = false
+    g.step()
+    assert(g.score == 15 && g.weapons.beams[1].lives == 9)
+}
+
+test "a newly fired basic laser stays basic after evolved projectiles finish" {
+    var g = givenNormalShipWithMeteorsAt(217, 1000, 30)
+    g.weapons.evolve()
+    advanceSteps(g, 13)
+    g.weapons.level = 0
+    g.weapons.lasers.shots[0].active = false
+    advanceSteps(g, 17)
+    assert(g.weapons.lasers.shots[0].active && g.weapons.lasers.shots[0].spriteFrame() == 0)
+}
+
+test "evolved laser holds its first two launch frames for two steps each" {
+    var g = Game()
+    g.start(218)
+    g.ship.phase = ShipPhase.Normal
+    g.weapons.evolve()
+    givenMeteorsAt(g, 1000, 30)
+    advanceSteps(g, 13)
+    var shot = g.weapons.lasers.shots[0]
+    assert(shot.spriteFrame() == 0)
+    g.step()
+    assert(shot.spriteFrame() == 0)
+    g.step()
+    assert(shot.spriteFrame() == 1)
+    g.step()
+    assert(shot.spriteFrame() == 1)
+    g.step()
+    assert(shot.spriteFrame() == 2)
+}
+
+test "three evolved lasers circulate together and blocked attempts still drive blaster cadence" {
+    var g = Game()
+    g.start(219)
+    g.ship.phase = ShipPhase.Normal
+    g.weapons.evolve()
+    givenMeteorsAt(g, 1000, 30)
+    advanceSteps(g, 39)
+    assert(g.weapons.lasers.shots[0].active)
+    assert(g.weapons.lasers.shots[1].active && g.weapons.lasers.shots[2].active)
+    g.start(219)
+    g.ship.phase = ShipPhase.Normal
+    g.weapons.evolve()
+    g.weapons.evolve()
+    givenMeteorsAt(g, 1000, 30)
+    givenLasersStuckOffscreen(g)
+    advanceSteps(g, 90)
+    assert(g.weapons.blaster.active && g.weapons.blaster.x == 5)
+    assert(g.weapons.laserAttempts == 6)
+}
+
+Bool beamLosesOneLifeAndScoresFivePerMeteorHit(Game g, SpecialBeam beam, Int hits) {
+    var each = true
+    for (var i = 0; i < hits; i++) {
+        g.meteors[0].x = beam.x + 10
+        g.meteors[0].y = 94
+        g.meteors[0].collided = false
+        g.step()
+        each = each && beam.lives == 9 - i && g.score == (i + 1) * 5 && beam.spriteFrame() == 1
+    }
+    return each
+}
+
+givenLasersStuckOffscreen(Game g) {
+    for (var shot in g.weapons.lasers.shots) { shot.active = true; shot.x = -1000; shot.y = 80 }
+}

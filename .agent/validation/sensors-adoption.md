@@ -593,7 +593,7 @@ relançar. O cenário ampliado verifica os dois lados do limite estrito.
 A animação histórica em [Meteor.java](../../../sifuture/src/Meteor.java#L190)
 usa `timing=2` no reset horizontal e avança `collisionDraw` até três imagens.
 A expectativa permanente lê a API usada pelo desenho, em
-[GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L722):
+[GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L722):
 
 ```kof
 assert(g.meteors[0].impactFrame() == 0)
@@ -959,7 +959,7 @@ Consulta estática, sem executar Java ME. No port,
 ```
 
 O cenário existente em
-[`GameJourney.kf:1639`](../../src/test/kof/sifuture/game/GameJourney.kf#L1639)
+[`GameJourney.kf:1639`](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1639)
 observa os instantes discriminatórios:
 
 ```kof

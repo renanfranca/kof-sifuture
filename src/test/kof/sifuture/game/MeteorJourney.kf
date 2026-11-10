@@ -1,0 +1,591 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "vertical bottom exit uses full historical range and waits inactive with clean animation" {
+    var g = givenCollidedVerticalMeteorLeavingAtBottom(904, 71)
+    var first = g.meteors[6]
+    var second = g.meteors[7]
+
+    g.step()
+    assert(first.x == 70)
+    assert(first.y == -171)
+    assert(!first.active)
+    assert(!first.collided)
+    assert(first.collisionSteps == 0)
+    assert(first.frame == 0)
+    assert(first.frameDirection == 1)
+    assert(first.frameSteps == 0)
+    var nextDraw = rng.int(1000)
+    g.step()
+    assert(!first.active)
+    assert(first.y == -171)
+    assert(second.active)
+    second.y = 220
+    g.step()
+    assert(!first.active)
+    assert(!second.active)
+    g.step()
+    assert(first.active)
+    assert(second.active)
+    assert(first.y == -170)
+
+    startVerticalPairInPlay(g, 904)
+    g.meteors[6].y = 220
+    g.meteors[7].y = -100
+    rng.seed(71)
+    g.step()
+    assert(g.meteors[6].x == 70)
+    assert(g.meteors[6].y == -171)
+    assert(rng.int(1000) == nextDraw)
+    rng.seed(71)
+    assert(rng.int(176) == 70)
+    assert(rng.int(172) == 171)
+    assert(rng.int(1000) == nextDraw)
+}
+
+test "vertical meteors start waiting inside the reduced range" {
+    var g = Game()
+    g.start(910)
+    assert(!g.meteors[6].active && g.meteors[6].x >= 0 && g.meteors[6].x < 176)
+    assert(g.meteors[6].y >= -153 && g.meteors[6].y <= 0)
+    assert(!g.meteors[7].active && g.meteors[7].x >= 0 && g.meteors[7].x < 176)
+    assert(g.meteors[7].y >= -153 && g.meteors[7].y <= 0)
+}
+
+test "vertical seed 71 resets to x 70 y -103 after impact and exits the bottom to y -171" {
+    var m = givenVerticalMeteor(910)
+    rng.seed(71)
+    m.reset()
+    assert(m.x == 70 && m.y == -103 && !m.active)
+    var afterReset = rng.int(1000)
+    givenCollidedInFlight(m)
+    rng.seed(71)
+    advanceMeteor(m, 3)
+    assert(m.x == 70 && m.y == -103 && !m.active)
+    assert(!m.collided && m.collisionSteps == 0)
+    assert(m.frame == 0 && m.frameDirection == 1 && m.frameSteps == 0)
+    assert(rng.int(1000) == afterReset)
+    m.active = true
+    m.y = 220
+    rng.seed(71)
+    m.advance()
+    assert(m.x == 70 && m.y == -171 && !m.active)
+    assert(rng.int(1000) == afterReset)
+}
+
+test "vertical seed 142 resets to x 143 y -100 after impact and exits the bottom to y 0" {
+    var m = givenVerticalMeteor(910)
+    rng.seed(142)
+    m.reset()
+    assert(m.x == 143 && m.y == -100 && !m.active)
+    var afterReset = rng.int(1000)
+    givenCollidedInFlight(m)
+    rng.seed(142)
+    advanceMeteor(m, 3)
+    assert(m.x == 143 && m.y == -100 && !m.active)
+    assert(!m.collided && m.collisionSteps == 0)
+    assert(m.frame == 0 && m.frameDirection == 1 && m.frameSteps == 0)
+    assert(rng.int(1000) == afterReset)
+    m.active = true
+    m.y = 220
+    rng.seed(142)
+    m.advance()
+    assert(m.x == 143 && m.y == 0 && !m.active)
+    assert(rng.int(1000) == afterReset)
+}
+
+test "vertical seed 276 resets to x 8 y -153 after impact and exits the bottom to y -145" {
+    var m = givenVerticalMeteor(910)
+    rng.seed(276)
+    m.reset()
+    assert(m.x == 8 && m.y == -153 && !m.active)
+    var afterReset = rng.int(1000)
+    givenCollidedInFlight(m)
+    rng.seed(276)
+    advanceMeteor(m, 3)
+    assert(m.x == 8 && m.y == -153 && !m.active)
+    assert(!m.collided && m.collisionSteps == 0)
+    assert(m.frame == 0 && m.frameDirection == 1 && m.frameSteps == 0)
+    assert(rng.int(1000) == afterReset)
+    m.active = true
+    m.y = 220
+    rng.seed(276)
+    m.advance()
+    assert(m.x == 8 && m.y == -145 && !m.active)
+    assert(rng.int(1000) == afterReset)
+}
+
+test "vertical seed 303 resets to x 145 y 0 after impact and exits the bottom to y -84" {
+    var m = givenVerticalMeteor(910)
+    rng.seed(303)
+    m.reset()
+    assert(m.x == 145 && m.y == 0 && !m.active)
+    var afterReset = rng.int(1000)
+    givenCollidedInFlight(m)
+    rng.seed(303)
+    advanceMeteor(m, 3)
+    assert(m.x == 145 && m.y == 0 && !m.active)
+    assert(!m.collided && m.collisionSteps == 0)
+    assert(m.frame == 0 && m.frameDirection == 1 && m.frameSteps == 0)
+    assert(rng.int(1000) == afterReset)
+    m.active = true
+    m.y = 220
+    rng.seed(303)
+    m.advance()
+    assert(m.x == 145 && m.y == -84 && !m.active)
+    assert(rng.int(1000) == afterReset)
+}
+
+test "vertical resets keep the reduced range while bottom exits include both full endpoints for five hundred seeds" {
+    var m = givenVerticalMeteor(910)
+    assert(verticalResetsAndBottomExitsStayInRange(m, 500))
+}
+
+test "same seed reproduces meteors and horizontal resets stay below the header" {
+    var a = Game()
+    a.start(42)
+    var x = a.meteors[0].x
+    var y = a.meteors[0].y
+    a.start(42)
+    assert(a.meteors[0].x == x && a.meteors[0].y == y)
+    var meteor = Meteor()
+    rng.seed(71)
+    meteor.reset()
+    assert(meteor.y == 201)
+    assert(horizontalResetsStayBelowTheHeader(meteor, 100))
+}
+
+test "ship moves five units and stops at bounds and release" {
+    var g = Game()
+    g.start(1)
+    g.ship.direction(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 5)
+    g.ship.direction(Direction.Right, false)
+    g.step()
+    assert(g.ship.x == 5)
+    g.ship.x = 125
+    g.ship.direction(Direction.Right, true)
+    g.step()
+    assert(g.ship.x == 126)
+    g.ship.y = 31
+    g.ship.direction(Direction.Up, true)
+    g.step()
+    assert(g.ship.y == 30)
+    g.ship.direction(Direction.Up, false)
+    g.ship.y = 199
+    g.ship.direction(Direction.Down, true)
+    g.step()
+    assert(g.ship.y == 200)
+}
+
+test "three meteor hits end the attempt and result persists" {
+    var g = Game()
+    g.start(3)
+    hitNormalShipWithMeteor(g)
+    assert(g.ship.phase == ShipPhase.Explosion && g.ship.lives == 3)
+    advanceSteps(g, 30)
+    hitNormalShipWithMeteor(g)
+    assert(g.ship.phase == ShipPhase.Explosion && g.ship.lives == 2)
+    advanceSteps(g, 30)
+    hitNormalShipWithMeteor(g)
+    assert(g.ship.phase == ShipPhase.Explosion && g.ship.lives == 1)
+    advanceSteps(g, 30)
+    assert(g.ship.lives == 0 && g.screen == Screen.Result)
+    g.step()
+    assert(g.screen == Screen.Result)
+    g.confirm()
+    assert(g.screen == Screen.Result && g.countComplete())
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+    g.start(3)
+    assert(g.ship.lives == 3 && g.score == 0 && g.steps == 0)
+    givenMeteorsAway(g)
+    givenItemsAway(g)
+    advanceSteps(g, 45)
+    assert(g.ship.phase == ShipPhase.Normal && !g.weapons.lasers.shots[0].active)
+    assert(laserStaysIdleDuring(g, 12))
+    g.step()
+    assert(g.weapons.lasers.shots[0].active && g.weapons.fireSteps == 0)
+}
+
+test "initial restart is invulnerable for fifteen three-step alternations" {
+    var g = Game()
+    g.start(11)
+    assert(g.ship.phase == ShipPhase.Restart && g.ship.restartFrame == 0)
+    assert(restartingShipIgnoresMeteorContactDuring(g, 44))
+    assert(g.ship.restartFrame == 44)
+    g.meteors[0].x = 400
+    g.step()
+    assert(g.ship.phase == ShipPhase.Normal && g.ship.lives == 3)
+}
+
+test "restart ends before collision on step forty five but fire waits" {
+    var g = Game()
+    g.start(71)
+    g.ship.restartFrame = 43
+    g.weapons.fireSteps = 12
+    givenMeteorsAt(g, 400, 30)
+    g.meteors[0].x = 11
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.ship.phase == ShipPhase.Restart && g.score == 0 && g.weapons.fireSteps == 12)
+    g.meteors[0].x = 11
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && g.score == 5)
+    assert(g.weapons.fireSteps == 12 && !g.weapons.lasers.shots[0].active)
+}
+
+test "one ship collision marks every overlapping meteor and scores once" {
+    var g = givenNormalShipWithMeteorsAt(73, 400, 30)
+    g.meteors[0].x = 20
+    g.meteors[0].y = 100
+    g.meteors[1].x = 30
+    g.meteors[1].y = 100
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && g.score == 5)
+    assert(g.meteors[0].collided && g.meteors[1].collided)
+    advanceSteps(g, 5)
+    assert(g.meteors[0].collided && g.meteors[1].collided && g.score == 5)
+    g.step()
+    assert(!g.meteors[0].collided && !g.meteors[1].collided)
+    assert(g.meteors[0].x >= 176 && g.meteors[1].x >= 176 && g.score == 5)
+}
+
+test "ship collision scores once and explosion blocks movement and fire for thirty steps" {
+    var g = Game()
+    g.start(17)
+    g.ship.phase = ShipPhase.Normal
+    g.ship.direction(Direction.Right, true)
+    g.meteors[0].x = 20
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.score == 5 && g.ship.lives == 3 && g.ship.phase == ShipPhase.Explosion)
+    assert(explodingShipStaysStillWithoutFireDuring(g, 29))
+    assert(g.ship.explosionSteps == 29)
+    g.step()
+    assert(g.ship.lives == 2 && g.ship.phase == ShipPhase.Restart && g.ship.x == 5)
+}
+
+test "laser hit holds meteor collision images for three pairs of steps" {
+    var g = Game()
+    g.start(21)
+    g.ship.phase = ShipPhase.Normal
+    advanceSteps(g, 13)
+    g.ship.y = 50
+    g.meteors[0].x = g.weapons.lasers.shots[0].x + 4
+    g.meteors[0].y = g.weapons.lasers.shots[0].y
+    g.step()
+    assert(g.score == 5)
+    assert(g.meteors[0].collided)
+    assert(g.meteors[0].impactFrame() == 0)
+    var x = g.meteors[0].x
+    g.step()
+    assert(g.meteors[0].collided)
+    assert(g.meteors[0].x == x - 1)
+    assert(g.score == 5)
+    assert(g.meteors[0].impactFrame() == 0)
+    g.step()
+    assert(g.meteors[0].collided)
+    assert(g.meteors[0].x == x - 2)
+    assert(g.score == 5)
+    assert(g.meteors[0].impactFrame() == 1)
+    g.step()
+    assert(g.meteors[0].collided)
+    assert(g.meteors[0].x == x - 3)
+    assert(g.score == 5)
+    assert(g.meteors[0].impactFrame() == 1)
+    g.step()
+    assert(g.meteors[0].collided)
+    assert(g.meteors[0].x == x - 4)
+    assert(g.score == 5)
+    assert(g.meteors[0].impactFrame() == 2)
+    g.step()
+    assert(g.meteors[0].collided)
+    assert(g.meteors[0].x == x - 5)
+    assert(g.score == 5)
+    assert(g.meteors[0].impactFrame() == 2)
+    g.step()
+    assert(!g.meteors[0].collided)
+    assert(g.meteors[0].x >= 176)
+}
+
+test "meteor sprite advances every two steps and returns through the historical frames" {
+    var g = Game()
+    g.start(31)
+    var m = g.meteors[0]
+    assert(m.frame == 0)
+    g.step()
+    assert(m.frame == 0)
+    g.step()
+    assert(m.frame == 1)
+    advanceSteps(g, 8)
+    assert(m.frame == 5)
+    g.step()
+    g.step()
+    assert(m.frame == 4)
+    m.x = -24
+    m.y = 80
+    m.advance()
+    assert(m.x == -25 && m.y == 80)
+    m.advance()
+    assert(m.x >= 176 && m.x <= 375 && m.y >= 30 && m.y <= 201)
+}
+
+test "ship collision takes priority when its laser reaches the same meteor" {
+    var g = givenNormalShip(33)
+    g.meteors[0].x = 20
+    g.meteors[0].y = 100
+    g.weapons.lasers.shots[0].x = 20
+    g.weapons.lasers.shots[0].y = 100
+    g.weapons.lasers.shots[0].active = true
+    g.step()
+    assert(g.ship.phase == ShipPhase.Explosion && g.score == 5 && g.weapons.lasers.shots[0].active)
+}
+
+test "ship meteor contact includes the left and right boundaries" {
+    var meteor = Meteor()
+    meteor.y = 105
+    meteor.x = 60
+    assert(meteor.touchesShip(60, 100))
+    var at60 = givenMeteorApproachingNormalShip(60 + 1, 105)
+    at60.step()
+    assert(at60.meteors[0].x == 60)
+    assert(at60.meteors[0].collided)
+    assert(at60.score == 5 && at60.ship.phase == ShipPhase.Explosion)
+    at60.step()
+    assert(at60.score == 5 && at60.ship.phase == ShipPhase.Explosion)
+    meteor.x = 110
+    assert(meteor.touchesShip(60, 100))
+    var at110 = givenMeteorApproachingNormalShip(110 + 1, 105)
+    at110.step()
+    assert(at110.meteors[0].x == 110)
+    assert(at110.meteors[0].collided)
+    assert(at110.score == 5 && at110.ship.phase == ShipPhase.Explosion)
+    at110.step()
+    assert(at110.score == 5 && at110.ship.phase == ShipPhase.Explosion)
+}
+
+test "ship meteor contact excludes the positions beside the left and right boundaries" {
+    var meteor = Meteor()
+    meteor.y = 105
+    meteor.x = 59
+    assert(!meteor.touchesShip(60, 100))
+    var at59 = givenMeteorApproachingNormalShip(59 + 1, 105)
+    at59.step()
+    assert(at59.meteors[0].x == 59)
+    assert(!at59.meteors[0].collided)
+    assert(at59.score == 0 && at59.ship.phase == ShipPhase.Normal)
+    meteor.x = 111
+    assert(!meteor.touchesShip(60, 100))
+    var at111 = givenMeteorApproachingNormalShip(111 + 1, 105)
+    at111.step()
+    assert(at111.meteors[0].x == 111)
+    assert(!at111.meteors[0].collided)
+    assert(at111.score == 0 && at111.ship.phase == ShipPhase.Normal)
+}
+
+test "ship meteor contact includes the top and bottom boundaries" {
+    var meteor = Meteor()
+    meteor.x = 80
+    meteor.y = 82
+    assert(meteor.touchesShip(60, 100))
+    var at82 = givenMeteorApproachingNormalShip(81, 82)
+    at82.step()
+    assert(at82.meteors[0].collided)
+    assert(at82.score == 5 && at82.ship.phase == ShipPhase.Explosion)
+    at82.step()
+    assert(at82.score == 5 && at82.ship.phase == ShipPhase.Explosion)
+    meteor.y = 120
+    assert(meteor.touchesShip(60, 100))
+    var at120 = givenMeteorApproachingNormalShip(81, 120)
+    at120.step()
+    assert(at120.meteors[0].collided)
+    assert(at120.score == 5 && at120.ship.phase == ShipPhase.Explosion)
+    at120.step()
+    assert(at120.score == 5 && at120.ship.phase == ShipPhase.Explosion)
+}
+
+test "ship meteor contact excludes the positions beside the top and bottom boundaries" {
+    var meteor = Meteor()
+    meteor.x = 80
+    meteor.y = 81
+    assert(!meteor.touchesShip(60, 100))
+    var at81 = givenMeteorApproachingNormalShip(81, 81)
+    at81.step()
+    assert(!at81.meteors[0].collided)
+    assert(at81.score == 0 && at81.ship.phase == ShipPhase.Normal)
+    at81.step()
+    assert(at81.score == 0 && at81.ship.phase == ShipPhase.Normal)
+    meteor.y = 121
+    assert(!meteor.touchesShip(60, 100))
+    var at121 = givenMeteorApproachingNormalShip(81, 121)
+    at121.step()
+    assert(!at121.meteors[0].collided)
+    assert(at121.score == 0 && at121.ship.phase == ShipPhase.Normal)
+    at121.step()
+    assert(at121.score == 0 && at121.ship.phase == ShipPhase.Normal)
+}
+
+test "laser meteor collision uses historical tip and bottom conditions" {
+    var g = givenNormalShipWithLaserFlyingAt(53, 0, 110)
+    g.meteors[0].x = 10
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.score == 0 && !g.meteors[0].collided)
+    g.weapons.lasers.shots[0].x = 0
+    g.weapons.lasers.shots[0].y = 100
+    g.meteors[0].x = 36
+    g.step()
+    assert(g.score == 5 && g.meteors[0].collided)
+}
+
+test "laser impact remains at meteor for one rendered step without scoring twice" {
+    var g = givenNormalShipWithLaserFlyingAt(55, 0, 100)
+    g.meteors[0].x = 36
+    g.meteors[0].y = 100
+    g.step()
+    assert(g.score == 5 && g.weapons.lasers.shots[0].active && g.weapons.lasers.shots[0].impact)
+    assert(g.weapons.lasers.shots[0].x == g.meteors[0].x && g.weapons.lasers.shots[0].y == g.meteors[0].y)
+    g.step()
+    assert(g.score == 5 && !g.weapons.lasers.shots[0].active && !g.weapons.lasers.shots[0].impact)
+    assert(g.meteors[0].collided)
+}
+
+Game givenCollidedVerticalMeteorLeavingAtBottom(Int seed, Int rngSeed) {
+    var g = givenVerticalPairInPlay(seed)
+    var first = g.meteors[6]
+    first.x = 80
+    first.y = 220
+    first.frame = 2
+    first.frameDirection = -1
+    first.frameSteps = 1
+    first.collide()
+    first.collisionSteps = 1
+    g.meteors[7].x = 120
+    g.meteors[7].y = -100
+    rng.seed(rngSeed)
+    return g
+}
+
+Meteor givenVerticalMeteor(Int seed) {
+    var g = Game()
+    g.start(seed)
+    return g.meteors[6]
+}
+
+givenCollidedInFlight(Meteor m) {
+    m.active = true
+    m.x = 80
+    m.y = 50
+    m.frame = 2
+    m.frameDirection = -1
+    m.collide()
+}
+
+advanceMeteor(Meteor m, Int steps) {
+    for (var i = 0; i < steps; i++) { m.advance() }
+}
+
+Bool verticalResetsAndBottomExitsStayInRange(Meteor m, Int seeds) {
+    var inRange = true
+    for (var seed = 0; seed < seeds; seed++) {
+        rng.seed(seed)
+        m.reset()
+        inRange = inRange && m.x >= 0 && m.x < 176 && m.y >= -153 && m.y <= 0
+        m.active = true
+        m.y = 220
+        rng.seed(seed)
+        m.advance()
+        inRange = inRange && m.x >= 0 && m.x < 176 && m.y >= -171 && m.y <= 0
+    }
+    return inRange
+}
+
+Bool horizontalResetsStayBelowTheHeader(Meteor meteor, Int resets) {
+    var inRange = true
+    for (var i = 0; i < resets; i++) {
+        meteor.reset()
+        inRange = inRange && meteor.x >= 176 && meteor.x <= 375 && meteor.y >= 30 && meteor.y <= 201
+    }
+    return inRange
+}
+
+hitNormalShipWithMeteor(Game g) {
+    g.ship.phase = ShipPhase.Normal
+    g.meteors[0].x = g.ship.x + 10
+    g.meteors[0].y = g.ship.y
+    g.step()
+}
+
+Bool laserStaysIdleDuring(Game g, Int steps) {
+    var idle = true
+    for (var i = 0; i < steps; i++) {
+        g.step()
+        idle = idle && !g.weapons.lasers.shots[0].active
+    }
+    return idle
+}
+
+Bool restartingShipIgnoresMeteorContactDuring(Game g, Int steps) {
+    var ignored = true
+    for (var i = 0; i < steps; i++) {
+        g.meteors[0].x = g.ship.x + 10
+        g.meteors[0].y = g.ship.y
+        g.step()
+        ignored = ignored && g.ship.lives == 3 && g.ship.phase == ShipPhase.Restart
+    }
+    return ignored
+}
+
+Bool explodingShipStaysStillWithoutFireDuring(Game g, Int steps) {
+    var x = g.ship.x
+    var still = true
+    for (var i = 0; i < steps; i++) {
+        g.step()
+        still = still && g.ship.x == x && g.ship.lives == 3 && !g.weapons.lasers.shots[0].active
+    }
+    return still
+}
+
+Game givenMeteorApproachingNormalShip(Int x, Int y) {
+    var g = Game()
+    g.start(51)
+    g.ship.phase = ShipPhase.Normal
+    g.ship.x = 60
+    g.ship.y = 100
+    for (var m in g.meteors) { m.active = false }
+    g.meteors[0].active = true
+    g.meteors[0].x = x
+    g.meteors[0].y = y
+    return g
+}
+
+Game givenNormalShipWithLaserFlyingAt(Int seed, Int x, Int y) {
+    var g = givenNormalShip(seed)
+    g.ship.y = 50
+    g.weapons.lasers.shots[0].active = true
+    g.weapons.lasers.shots[0].x = x
+    g.weapons.lasers.shots[0].y = y
+    return g
+}

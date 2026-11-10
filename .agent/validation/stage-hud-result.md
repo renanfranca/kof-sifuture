@@ -160,7 +160,7 @@ Todos os critérios abaixo usam o SHA de código/testes e os comandos acima. Int
 
 ### Trechos que sustentam o aceite
 
-Entrada, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1287), executada nos dois alvos:
+Entrada, em [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1287), executada nos dois alvos:
 
 ```kof
     assert(g.stagePosition() == 87 && g.subchief.phase == SubchiefPhase.Inactive)
@@ -173,7 +173,7 @@ O contador de passos da partida e o da trilha têm ritmos diferentes durante o e
 
 > If a value can be derived from another, derive it (method or function).
 
-Capacidade cheia, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1332):
+Capacidade cheia, em [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1332):
 
 ```kof
     var shotX = chief.shots[2].x
@@ -185,7 +185,7 @@ Capacidade cheia, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourn
 
 O primeiro e o terceiro tiros conservam o avanço de 12×4; uma tentativa com capacidade cheia não substitui nenhum deles. O cenário libera o primeiro slot e comprova sua reutilização. O teste de chegada também observa ambos os eixos e a reprodução do novo destino.
 
-Dano e invulnerabilidade, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1363), com omissão explícita das preparações intermediárias:
+Dano e invulnerabilidade, em [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1363), com omissão explícita das preparações intermediárias:
 
 ```kof
     assert(g.subchief.lives == 29 && laser.impact && laser.x == 121 && laser.y == 100)
@@ -198,7 +198,7 @@ Dano e invulnerabilidade, em [GameJourney.kf](../../src/test/kof/sifuture/game/G
 
 O primeiro trecho mostra o laser consumido pelo subchefe antes de reclamar o meteoro. O segundo demonstra a exceção aprovada: contato corporal no reinício não explode a nave nem retira resistência do subchefe. O novo teste simultâneo observa quais armas permanecem intactas quando uma família anterior produz o golpe fatal.
 
-Especial, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1410):
+Especial, em [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1410):
 
 ```kof
     assert(g.subchief.lives == 29 && g.weapons.beams[0].lives == 9)
@@ -211,7 +211,7 @@ Especial, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1
 
 O dano 1/2/3 preserva a busca por uma nova cor seguida do consumo de todos os marcadores. A expiração impede reaplicação sem nova entrada, e o cenário separado de esgotamento verifica que resistência zero não apaga antecipadamente o marcador histórico.
 
-Recompensa, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1449):
+Recompensa, em [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1449):
 
 ```kof
     var lifetimes = listOf(30, 31, 60, 61)
@@ -232,7 +232,7 @@ return VALUE/2;
 
 `VALUE = 300`; comparações inclusivas explicam por que 30 ainda vale 600 e 60 ainda vale 300.
 
-Transições, em [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1554):
+Transições, em [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1554):
 
 ```kof
     assert(g.subchief.lives == 1 && g.score == 17 && g.ship.lives == 0 && g.stagePosition() == 89)
@@ -375,7 +375,7 @@ Cada reaplicação com resistência zero ou negativa reinicia a animação. Em [
 if (lives == 0) { deathSteps = 0 }
 ```
 
-Com resistência inicial 1, os contatos sucessivos deixam o laranja em 0, -1 e -2. O contador de morte continua, em vez de reiniciar; no sétimo passo o feixe já está inativo, enquanto o histórico ainda o manteria animando e marcado. [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1628) aceita exatamente esse término antecipado. A consequência inclui remover cedo o marcador que participa de reaplicações posteriores.
+Com resistência inicial 1, os contatos sucessivos deixam o laranja em 0, -1 e -2. O contador de morte continua, em vez de reiniciar; no sétimo passo o feixe já está inativo, enquanto o histórico ainda o manteria animando e marcado. [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1628) aceita exatamente esse término antecipado. A consequência inclui remover cedo o marcador que participa de reaplicações posteriores.
 
 #### Provas direcionadas e lacunas restantes
 
@@ -595,7 +595,7 @@ FAIL defeat ends explosion without new projectiles or another loss at every weap
 1 failed of 85 tests
 ```
 
-Após a correção, [GameJourney.kf](../../src/test/kof/sifuture/game/GameJourney.kf#L1278)
+Após a correção, [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L1278)
 verifica os critérios separadamente por `Game.step()`:
 
 | Critério | Evidência e resultado no commit testado |

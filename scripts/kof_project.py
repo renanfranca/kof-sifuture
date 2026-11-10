@@ -19,7 +19,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "src/main/kof"
-TEST = ROOT / "src/test/kof"
 ASSETS = ROOT / "assets"
 
 
@@ -65,7 +64,7 @@ def _copy_sources(source, destination):
 
 
 @contextlib.contextmanager
-def prepared_sources(*, suite=None, fixture=None, model_only=False, root=ROOT):
+def prepared_sources(*, fixture=None, model_only=False, root=ROOT):
     """Yield a fresh source tree; copy source bytes and write a root entry."""
     root = Path(root).resolve()
     with tempfile.TemporaryDirectory(prefix="sifuture-kof-") as name:
@@ -77,23 +76,10 @@ def prepared_sources(*, suite=None, fixture=None, model_only=False, root=ROOT):
             _copy_sources(main / "sifuture/game", source / "sifuture/game")
         else:
             _copy_sources(main, source)
-        if suite is not None:
-            suite = Path(suite).resolve()
-            tests = (root / "src/test/kof").resolve()
-            if tests not in suite.parents or suite.suffix != ".kf" or not suite.is_file():
-                raise PreparationError(f"suite must be an existing .kf file under {tests}: {suite}")
-            relative = suite.relative_to(tests)
-            target = source / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(suite, target)
-            entry = f"import {'.'.join(relative.with_suffix('').parts)}\n"
-        elif fixture is not None:
+        if fixture is not None:
             shutil.copyfile(fixture, source / "Main.kf")
-            entry = None
         else:
-            entry = "import sifuture.*\n"
-        if entry is not None:
-            (source / "Main.kf").write_text(entry)
+            (source / "Main.kf").write_text("import sifuture.*\n")
         yield source
 
 
@@ -134,28 +120,6 @@ def build(output, *, kof=None, root=ROOT, fixture=None, model_only=False, assets
             for asset in assets:
                 shutil.copyfile(asset, destination / Path(asset).name)
             return 0
-
-
-def test(*, target="jvm", suite=None, kof=None, root=ROOT):
-    root = Path(root).resolve()
-    tests = (root / "src/test/kof").resolve()
-    if suite:
-        selected = (tests / suite).resolve()
-        if tests not in selected.parents or selected.suffix != ".kf" or not selected.is_file():
-            raise PreparationError(f"suite must be an existing .kf file under {tests}: {suite}")
-        suites = [selected]
-    else:
-        suites = sorted(tests.rglob("*.kf"))
-    if not suites:
-        raise PreparationError(f"no Kof suites in {tests}")
-    first_failure = 0
-    for path in suites:
-        print(f"Suite: {path.relative_to(tests)}", flush=True)
-        with prepared_sources(suite=path, root=root) as source:
-            code = _run([str(kof_executable(kof)), "test", str(source / "Main.kf"), "--target", target])
-            if code and not first_failure:
-                first_failure = code
-    return first_failure
 
 
 def _check_report(output, code):
@@ -242,24 +206,19 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kof", help="Kof executable (also accepted after subcommand)")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("build", "test", "check"):
+    for name in ("build", "check"):
         sub = commands.add_parser(name)
         sub.add_argument("--kof", dest="sub_kof")
         if name == "build":
             sub.add_argument("--output", required=True)
         else:
             sub.add_argument("--target", choices=("jvm", "js"), default="jvm")
-            if name == "test":
-                sub.add_argument("--suite")
-            else:
-                sub.add_argument("--json", action="store_true")
+            sub.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.command == "build":
             return build(args.output, kof=args.sub_kof or args.kof)
-        if args.command == "check":
-            return check(target=args.target, json_output=args.json, kof=args.sub_kof or args.kof)
-        return test(target=args.target, suite=args.suite, kof=args.sub_kof or args.kof)
+        return check(target=args.target, json_output=args.json, kof=args.sub_kof or args.kof)
     except PreparationError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

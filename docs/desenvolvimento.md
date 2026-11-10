@@ -89,37 +89,36 @@ separate checks.
 ## Run the rules tests
 
 A **suite** is a file containing test cases that exercise behavior. Canonical
-Kof suites live in `src/test/kof`; currently
-[GameJourney.kf](../src/test/kof/sifuture/game/GameJourney.kf) uses the real
-implementation in `src/main/kof`.
+Kof suites live in `src/test/kof/sifuture/game/`, one file per subject (menu,
+controls, meteors, weapons, items, stage, result, subchief and boss), and use
+the real implementation in `src/main/kof`. `JourneyScenarios.kf` holds shared
+preparation functions and has no tests.
 
 ```bash
-python3 scripts/kof_project.py test --target jvm
-python3 scripts/kof_project.py test --target js
-python3 scripts/kof_project.py test --target jvm --suite sifuture/game/GameJourney.kf
+node scripts/kof-tests.mjs --target jvm
+node scripts/kof-tests.mjs --target js
+kof test src/test/kof/sifuture/game/BossJourney.kf --module-root src/test/kof --target jvm
 ```
 
-At examined revision `e38f5e0ccb98bfd443a0d57833b6be0b6bed6aee`, each full
-run should report 114 passing tests. That count belongs to that revision;
-additional cases can increase it. Text and geometry are checked in the
-browser. `--suite` selects a file relative to the test root. Without it, the
-wrapper recursively finds `.kf` files and runs them in path order, using a new
-temporary tree for each suite. A failure does not stop later suites; the
-command returns the first failure observed. In
-[scripts/kof_project.py](../scripts/kof_project.py#L146):
+[kof.toml](../kof.toml) declares both roots in `[sources]`, so a suite reaches
+the app. [scripts/kof-tests.mjs](../scripts/kof-tests.mjs) finds every `.kf`
+under `src/test/kof`, with no list to maintain, writes a temporary entry
+`src/test/kof/KofTestsEntry*.kf` that imports all of them (ignored by Git and
+by the discovery), runs `kof test` once on it and deletes it, also on failure.
+Placed at the test root, the entry needs no `--module-root`, so the script
+works with Kof 0.6.4 and 0.7.0. A failing test fails the run, and so does a run
+in which no test executed. The full run currently reports 114 tests. The last
+command runs one file alone (`--module-root` needs Kof 0.7.0 or later).
 
-```python
-first_failure = 0
-for path in suites:
-    print(f"Suite: {path.relative_to(tests)}", flush=True)
-    with prepared_sources(suite=path, root=root) as source:
-        code = _run([str(kof_executable(kof)), "test", str(source / "Main.kf"), "--target", target])
-        if code and not first_failure:
-            first_failure = code
-return first_failure
-```
+**Temporary bridge:** `kof test <dir>` compiles each file as its own program.
+Measured on 07/11/2026, that was about three times slower and made KofMut
+time out ([acceptance record](../.agent/validation/sensor-debt-payoff.md)).
+The script groups the suites into one program until Kof offers this natively;
+then the script gives way to the Kof option. Because all suites share one
+program, state left by one suite could reach another; the `mystery-guest`
+rule guards hooks that fill shared state.
 
-Each call uses the official runner. [Learn Kof: Testing](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/23-testing.md#L42)
+The run uses the official runner. [Learn Kof: Testing](https://github.com/KofLang/Kof4j/blob/317d9f6b1c3e27032cc955a05f859f6c627d9338/learn/23-testing.md#L42)
 teaches:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
@@ -141,8 +140,9 @@ npm run lint:sensor
 npm run sensors:debt
 ```
 
-Limits: file 150 lines, function 25, complexity 10, parameters 4, depth 2,
-statements 17; CPD 50 tokens and 5 lines. [SENSORS.md](../SENSORS.md) lists
+Limits: file 150 lines (1000 in test code), function 25, complexity 10,
+parameters 4, depth 2, statements 17; CPD 50 tokens and 5 lines, not applied
+to test code. [SENSORS.md](../SENSORS.md) lists
 every command and rule.
 
 ## Check and mutate a source file manually
@@ -152,12 +152,13 @@ Run the JSON check and complete test suite on both supported project targets:
 ```bash
 python3 scripts/kof_project.py check --target jvm --json --kof kof
 python3 scripts/kof_project.py check --target js --json --kof kof
-python3 scripts/kof_project.py test --target jvm --kof kof
-python3 scripts/kof_project.py test --target js --kof kof
+node scripts/kof-tests.mjs --target jvm
+node scripts/kof-tests.mjs --target js
 ```
 
-`kof-mut.json` configures KofMut to use the JVM versions through the same
-wrapper and the `kof` executable resolved from `PATH`. Each complete check or
+`kof-mut.json` configures KofMut to use the JVM versions: the type check
+through the wrapper and the tests through `scripts/kof-tests.mjs`, with the
+`kof` executable resolved from `PATH`. Each complete check or
 test command has a timeout of 30 seconds; `budgetMs: 0` removes only the
 overall evaluation budget. The current explicit scope in
 [`kof-mut-scope.json`](../kof-mut-scope.json) selects the whole `Background.kf` and `Meteor.kf` files. Edit this JSON array to select other
@@ -285,15 +286,17 @@ defines:
 > Kof's "module" is the **root directory** passed to the compiler (module root),
 > used to expand directory imports.
 
-So `import sifuture.game.GameJourney` finds the suite relative to the prepared
-root; the suite itself imports `sifuture.game.*` to reach the rules.
+So `import sifuture.*` finds the app relative to the prepared root of the
+build and type check. Tests do not use that tree: with `[sources]`, each suite
+declares `package sifuture.game` and imports each rules module by name, such
+as `import sifuture.game.Game`; `import sifuture.game.*` would import its own
+package (`PKG007`).
 
 **Build/source-root WORKAROUND:** with the examined 0.5.0-beta installation,
 project commands prepare a disposable tree outside the checkout and without
 an ancestor `kof.toml`. They copy canonical source bytes, generate a small
 import entry, and invoke the official CLI. The build includes only the app,
-with entry `import sifuture.*`. Each suite receives the app and only its own
-test file, with a specific entry. The tree is removed after the command,
+with entry `import sifuture.*`. The tree is removed after the command,
 including on failure. There is no need to prepare sources or assets by hand.
 
 The wrapper checks for `index.html` and `Default.mjs` before copying output

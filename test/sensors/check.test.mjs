@@ -13,6 +13,12 @@ open('calls.log', 'a').write(step + '\\n')
 sys.exit(int(os.environ.get('FAIL_' + '_'.join(sys.argv[1:4:2]), '0')))
 `;
 
+const kofTestsStub = `import { appendFileSync } from 'node:fs';
+const target = process.argv[process.argv.indexOf('--target') + 1];
+appendFileSync('calls.log', \`kof-tests --target \${target}\\n\`);
+process.exitCode = Number(process.env[\`FAIL_test_\${target}\`] ?? 0);
+`;
+
 const unittestStub = `import unittest
 class Stub(unittest.TestCase):
     def test_logs(self):
@@ -26,6 +32,7 @@ function aCheckedProject() {
     'scripts/dup-sensor.mjs': nodeStub('dup'),
     'scripts/docs-sensor.mjs': nodeStub('docs'),
     'scripts/kof_project.py': kofProjectStub,
+    'scripts/kof-tests.mjs': kofTestsStub,
     'tests/test_stub.py': unittestStub,
     'src/main/kof/Game.kf': 'main() {\n}\n',
     '.gitignore': 'calls.log\n__pycache__/\n',
@@ -49,8 +56,8 @@ test('check runs the cheap and expensive steps in order and skips mutation when 
     'kof_project check --target jvm --json',
     'kof_project check --target js --json',
     'unittest',
-    'kof_project test --target jvm',
-    'kof_project test --target js',
+    'kof-tests --target jvm',
+    'kof-tests --target js',
     'lint',
     'dup',
     'docs',
@@ -74,7 +81,7 @@ test('a red Kof test run stops check before lint, dup, docs and mutation, even w
   const report = runSensorWith(env, 'check.mjs', root);
 
   assert.equal(report.code, 1);
-  assert.equal(calls(root).at(-1), 'kof_project test --target jvm');
+  assert.equal(calls(root).at(-1), 'kof-tests --target jvm');
   assert.ok(!calls(root).some((call) => call.startsWith('kof-mut')), 'mutation must not run on a red baseline');
   for (const step of ['kof tests:js', 'lint:sensor', 'dup:sensor', 'docs:sensor', 'mutation']) {
     assert.match(report.out, new RegExp(`\\n  ${step} +NOT RUN \\(an earlier step failed\\)\\n`), step);

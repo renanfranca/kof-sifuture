@@ -1,0 +1,165 @@
+package sifuture.game
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+prepareSubchief(Game g) {
+    g.start(922)
+    g.stageSteps = 840
+    g.subchief.phase = SubchiefPhase.Normal
+    g.subchief.x = 120
+    g.subchief.y = 100
+    g.subchief.endX = 147
+    g.subchief.endY = 100
+    g.ship.phase = ShipPhase.Normal
+    givenMeteorsAway(g)
+    givenItemsAway(g)
+}
+
+prepareAudit(Game g) {
+    g.start(922)
+    g.stageSteps = 840
+    g.subchief.phase = SubchiefPhase.Normal
+    g.subchief.x = 120
+    g.subchief.y = 100
+    g.subchief.endX = 120
+    g.subchief.endY = 100
+    g.ship.phase = ShipPhase.Normal
+    g.ship.y = 100
+    givenMeteorsAway(g)
+    givenItemsAway(g)
+}
+
+prepareFatalContact(Game g, Int weapon) {
+    if (weapon == 0) { g.ship.x = 100 }
+    if (weapon == 1) {
+        g.weapons.lasers.shots[0].fire(0, 100)
+        g.weapons.lasers.shots[0].x = 86
+    }
+    if (weapon == 2) { g.weapons.blaster.fire(g.ship); g.weapons.blaster.x = 60 }
+    if (weapon == 3) { givenEveryBeamActiveAt(g, 0, 100) }
+}
+
+prepareBoss(Game g) {
+    g.start(943)
+    g.stageSteps = 1420
+    g.boss.phase = BossPhase.Normal
+    g.boss.x = 120
+    g.boss.y = 100
+    g.boss.endX = 135
+    g.boss.endY = 110
+    g.ship.phase = ShipPhase.Normal
+    g.ship.y = 200
+    givenMeteorsAway(g)
+    givenItemsAway(g)
+}
+
+advanceSteps(Game g, Int steps) {
+    for (var i = 0; i < steps; i++) { g.step() }
+}
+
+advanceWhilePlaying(Game g, Int limit) {
+    for (var i = 0; i < limit && g.screen == Screen.Play; i++) { g.step() }
+}
+
+givenMeteorsAway(Game g) {
+    for (var m in g.meteors) { m.x = 10000; m.y = -100 }
+}
+
+Bool noProjectileActive(Game g) {
+    var active = g.weapons.blaster.active
+    for (var shot in g.weapons.lasers.shots) { active = active || shot.active }
+    for (var beam in g.weapons.beams) { active = active || beam.active }
+    return !active
+}
+
+Bool noProjectileAppearsDuring(Game g, Int steps) {
+    var absent = noProjectileActive(g)
+    for (var i = 0; i < steps; i++) {
+        g.step()
+        absent = absent && noProjectileActive(g)
+    }
+    return absent
+}
+
+Game givenVerticalPairInPlay(Int seed) {
+    var g = Game()
+    startVerticalPairInPlay(g, seed)
+    return g
+}
+
+startVerticalPairInPlay(Game g, Int seed) {
+    g.start(seed)
+    g.steps = 260
+    g.stageSteps = 260
+    g.step()
+}
+
+givenMeteorsAt(Game g, Int x, Int y) {
+    for (var m in g.meteors) { m.x = x; m.y = y }
+}
+
+givenItemsAway(Game g) {
+    for (var item in g.items) { item.x = 10000 }
+}
+
+Game givenNormalShip(Int seed) {
+    var g = Game()
+    g.start(seed)
+    g.ship.phase = ShipPhase.Normal
+    return g
+}
+
+Game givenNormalShipWithMeteorsAt(Int seed, Int x, Int y) {
+    var g = givenNormalShip(seed)
+    givenMeteorsAt(g, x, y)
+    return g
+}
+
+evolveWeapons(Game g, Int times) {
+    for (var i = 0; i < times; i++) { g.weapons.evolve() }
+}
+
+givenMeteorsAtHeight(Game g, Int y) {
+    for (var m in g.meteors) { m.y = y }
+}
+
+advanceThroughExplosion(Game g) {
+    g.ship.explode()
+    advanceSteps(g, 30)
+}
+
+Game givenShipAt(Int seed, Int x, Int y) {
+    var g = Game()
+    g.start(seed)
+    g.ship.x = x
+    g.ship.y = y
+    return g
+}
+
+givenEveryBeamActiveAt(Game g, Int x, Int y) {
+    for (var beam in g.weapons.beams) { beam.active = true; beam.x = x; beam.y = y }
+}
+
+Bool noSubchiefShotActive(Game g) {
+    var active = false
+    for (var shot in g.subchief.shots) { active = active || shot.active }
+    return !active
+}

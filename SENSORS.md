@@ -15,7 +15,7 @@ paths it finds; it does not certify quality.
 
 ```bash
 npm run lint:sensor      # structural, test and comment rules on .kf files changed against main
-npm run dup:sensor       # PMD CPD 7.17.0 on the same files (50 tokens, 5 lines)
+npm run dup:sensor       # PMD CPD 7.17.0 on the same files, except test code (50 tokens, 5 lines)
 npm run secret:sensor    # Gitleaks on the files Git would publish
 npm run docs:sensor      # npm scripts named in Markdown exist; relative links resolve
 npm run sensors:debt     # all rules on every .kf file, report only (exit 0)
@@ -41,13 +41,13 @@ KofMut exit 1 (a survivor), 2 or 3 fails the check.
 
 | Rule | Finding |
 | --- | --- |
-| `long-file` | more than 150 non-blank lines |
+| `long-file` | more than 150 non-blank lines; more than 1000 in test code (`src/test/kof/` and `tests/`) |
 | `long-function` | more than 25 lines (not in `src/test/kof/`) |
 | `high-complexity` | complexity above 10 |
 | `too-many-parameters` | more than 4 parameters |
 | `deep-nesting` | nesting deeper than 2 |
 | `too-many-statements` | more than 17 statements (not in `src/test/kof/`) |
-| `duplicated-code` | a CPD clone of at least 50 tokens and 5 lines |
+| `duplicated-code` | a CPD clone of at least 50 tokens and 5 lines (test code is not analysed) |
 | `assertion-free-test` | a `test` block with no `assert` or assertion call |
 | `branching-test` | `if`, if-expression or `switch` inside a test |
 | `looping-test` | a loop inside a test; use `testRows` for case tables |
@@ -61,6 +61,8 @@ KofMut exit 1 (a survivor), 2 or 3 fails the check.
 | `stale-doc` | `missing-script` or `broken-link` in tracked Markdown |
 
 The limits and their calibration are recorded in
-[sensor-calibration.md](.agent/validation/sensor-calibration.md). The comment
+[sensor-calibration.md](.agent/validation/sensor-calibration.md). The test code
+limits were decided on 07/11/2026: tests favour readable repetition, so CPD
+skips them and their file limit only warns about giant files. The comment
 rules do not relax [AGENTS.md](AGENTS.md), which allows no explanatory comments
 in source code at all.

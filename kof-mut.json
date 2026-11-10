@@ -2,14 +2,13 @@
   "schemaVersion": 1,
   "sourceRoots": ["src/main/kof"],
   "testRoots": ["src/test/kof"],
-  "inputs": ["kof.toml", "src", "scripts/kof_project.py"],
+  "inputs": ["kof.toml", "src", "scripts/kof_project.py", "scripts/kof-tests.mjs", "scripts/sensor-arguments.mjs"],
   "checkCommand": [
     "python3", "scripts/kof_project.py", "check",
     "--target", "jvm", "--json", "--kof", "kof"
   ],
   "testCommand": [
-    "python3", "scripts/kof_project.py", "test",
-    "--target", "jvm", "--kof", "kof"
+    "node", "scripts/kof-tests.mjs", "--target", "jvm"
   ],
   "commandTimeoutMs": 30000,
   "budgetMs": 0,

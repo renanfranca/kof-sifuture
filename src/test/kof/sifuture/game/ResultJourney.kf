@@ -1,0 +1,397 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "finishing with right held restores normal ship while score counts and position freezes" {
+    var g = givenNormalShipTwoStepsBeforeTheEnd(908)
+    g.keyboard(Direction.Right, true)
+    g.step()
+    assert(g.ship.rightFrame && g.ship.x == 45)
+
+    g.step()
+    assert(g.screen == Screen.Result && !g.ship.rightFrame)
+    assert(!g.ship.right && g.ship.x == 50 && g.ship.y == 150)
+    g.keyboard(Direction.Right, false)
+    advanceSteps(g, 4)
+    assert(!g.ship.rightFrame && g.ship.x == 50 && g.ship.y == 150)
+    assert(g.displayedScore == 17 && g.score == 17 && g.steps == 1710)
+}
+
+test "all result boundaries select a message" {
+    var g = Game()
+    g.score = 1499
+    assert(g.resultIndex() == 0)
+    g.score = 1500
+    assert(g.resultIndex() == 1)
+    g.score = 2199
+    assert(g.resultIndex() == 1)
+    g.score = 2200
+    assert(g.resultIndex() == 2)
+    g.score = 3299
+    assert(g.resultIndex() == 2)
+    g.score = 3300
+    assert(g.resultIndex() == 3)
+}
+
+test "result counts by five to exact total then confirms in two stages" {
+    var g = Game()
+    g.start(905)
+    g.score = 17
+    g.ship.lives = 0
+    g.step()
+    assert(g.screen == Screen.Result)
+    assert(g.displayedScore == 0)
+    assert(!g.countComplete())
+    g.step()
+    assert(g.displayedScore == 5)
+    assert(g.score == 17)
+    g.step()
+    g.step()
+    assert(g.displayedScore == 15)
+    assert(!g.countComplete())
+    g.step()
+    assert(g.displayedScore == 17)
+    assert(g.countComplete())
+    g.step()
+    assert(g.displayedScore == 17)
+    assert(g.screen == Screen.Result)
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+    g.start(905)
+    g.score = 17
+    g.ship.lives = 0
+    g.step()
+    g.confirm()
+    assert(g.screen == Screen.Result)
+    assert(g.displayedScore == 17)
+    assert(g.countComplete())
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+    g.start(905)
+    g.ship.lives = 0
+    g.step()
+    assert(g.score == 0)
+    assert(g.displayedScore == 0)
+    assert(g.countComplete())
+    g.confirm()
+    assert(g.screen == Screen.Menu)
+}
+
+test "result keeps scenery and pending effects moving with frozen gameplay" {
+    var g = givenEvolvedShipExplodingOneStepBeforeTheEnd(906)
+    g.step()
+    assert(g.screen == Screen.Result)
+    assert(g.ship.explosionSteps == 29)
+    var background = g.background.offset
+    var meteorX = g.meteors[0].x
+    var itemX = g.items[1].x
+    g.keyboard(Direction.Right, true)
+    g.movement(Direction.Right, true)
+    assert(!g.trySpecial())
+    g.step()
+    assert(g.background.offset != background)
+    assert(g.meteors[0].x == meteorX - 1)
+    assert(g.items[1].x == itemX - 1)
+    assert(!g.items[1].collected)
+    assert(g.ship.phase == ShipPhase.Hidden)
+    assert(g.ship.explosionSteps == 30)
+    advanceSteps(g, 15)
+    assert(g.weapons.lasers.shots[0].active)
+    assert(g.ship.lives == 4)
+    assert(g.ship.x == 0)
+    assert(g.steps == 1710)
+    assert(g.stagePosition() == 176)
+    assert(g.score == 37)
+    assert(g.displayedScore == 37)
+    assert(g.weapons.level == 3)
+    assert(g.weapons.charges == 2)
+    assert(g.screen == Screen.Result)
+    assert(g.ship.explosionSteps == 30)
+}
+
+test "defeat at weapon level 0 ends explosion without new projectiles or another loss" {
+    var g = givenLastLifeExplodingWithWeaponsReady(910, 0)
+    g.step()
+    assert(g.screen == Screen.Result)
+    assert(g.ship.phase == ShipPhase.Hidden)
+    assert(g.ship.explosionSteps == 30)
+    assert(g.ship.lives == 0)
+    assert(g.weapons.charges == 0)
+    assert(g.weapons.level == 0)
+    var steps = g.steps
+    assert(noProjectileAppearsDuring(g, 100))
+    assert(g.ship.lives == 0)
+    assert(g.ship.explosionSteps == 30)
+    assert(g.steps == steps)
+    assert(g.score == 5)
+    assert(g.weapons.level == 0)
+    assert(g.displayedScore == 5)
+    assert(g.screen == Screen.Result)
+}
+
+test "defeat at weapon level 1 ends explosion without new projectiles or another loss" {
+    var g = givenLastLifeExplodingWithWeaponsReady(910, 1)
+    g.step()
+    assert(g.screen == Screen.Result)
+    assert(g.ship.phase == ShipPhase.Hidden)
+    assert(g.ship.explosionSteps == 30)
+    assert(g.ship.lives == 0)
+    assert(g.weapons.charges == 0)
+    assert(g.weapons.level == 1)
+    var steps = g.steps
+    assert(noProjectileAppearsDuring(g, 100))
+    assert(g.ship.lives == 0)
+    assert(g.ship.explosionSteps == 30)
+    assert(g.steps == steps)
+    assert(g.score == 5)
+    assert(g.weapons.level == 1)
+    assert(g.displayedScore == 5)
+    assert(g.screen == Screen.Result)
+}
+
+test "defeat at weapon level 2 ends explosion without new projectiles or another loss" {
+    var g = givenLastLifeExplodingWithWeaponsReady(910, 2)
+    g.step()
+    assert(g.screen == Screen.Result)
+    assert(g.ship.phase == ShipPhase.Hidden)
+    assert(g.ship.explosionSteps == 30)
+    assert(g.ship.lives == 0)
+    assert(g.weapons.charges == 0)
+    assert(g.weapons.level == 2)
+    var steps = g.steps
+    assert(noProjectileAppearsDuring(g, 100))
+    assert(g.ship.lives == 0)
+    assert(g.ship.explosionSteps == 30)
+    assert(g.steps == steps)
+    assert(g.score == 5)
+    assert(g.weapons.level == 2)
+    assert(g.displayedScore == 5)
+    assert(g.screen == Screen.Result)
+}
+
+test "defeat at weapon level 3 ends explosion without new projectiles or another loss" {
+    var g = givenLastLifeExplodingWithWeaponsReady(910, 3)
+    g.step()
+    assert(g.screen == Screen.Result)
+    assert(g.ship.phase == ShipPhase.Hidden)
+    assert(g.ship.explosionSteps == 30)
+    assert(g.ship.lives == 0)
+    assert(g.weapons.charges == 0)
+    assert(g.weapons.level == 3)
+    var steps = g.steps
+    assert(noProjectileAppearsDuring(g, 100))
+    assert(g.ship.lives == 0)
+    assert(g.ship.explosionSteps == 30)
+    assert(g.steps == steps)
+    assert(g.score == 5)
+    assert(g.weapons.level == 3)
+    assert(g.displayedScore == 5)
+    assert(g.screen == Screen.Result)
+}
+
+test "projectiles launched before defeat keep moving until all finish and stay absent" {
+    var g = givenEvolvedShipWithLasersAndBlasterLaunched(911)
+    assert(g.trySpecial())
+    g.ship.lives = 1
+    g.ship.explode()
+    g.ship.explosionSteps = 29
+    var laserX = g.weapons.lasers.shots[0].x
+    var blasterX = g.weapons.blaster.x
+    var upperX = g.weapons.beams[0].x
+    var middleX = g.weapons.beams[1].x
+    var lowerX = g.weapons.beams[2].x
+
+    g.step()
+    assert(g.screen == Screen.Result && g.ship.lives == 0)
+    assert(everyLaserActiveAt(g, laserX))
+    assert(g.weapons.blaster.active && g.weapons.blaster.x == blasterX)
+    assert(everyBeamActive(g))
+    assert(g.weapons.beams[0].x == upperX && g.weapons.beams[1].x == middleX && g.weapons.beams[2].x == lowerX)
+    g.step()
+    assert(everyLaserActiveAt(g, laserX + 5))
+    assert(g.weapons.blaster.active && g.weapons.blaster.x == blasterX + 5)
+    assert(g.weapons.beams[0].x == upperX + 5 && g.weapons.beams[1].x == middleX + 6 && g.weapons.beams[2].x == lowerX + 5)
+    advanceSteps(g, 169)
+    assert(noProjectileAppearsDuring(g, 52))
+}
+
+test "laser impact pending at defeat finishes after one result step" {
+    var g = givenLaserBlasterAndSpecialImpactsPendingAtDefeat(912)
+    var shot = g.weapons.lasers.shots[0]
+    g.step()
+    assert(g.screen == Screen.Result && g.ship.lives == 0)
+    assert(shot.active && shot.impact)
+    assert(laserImpactStaysFinishedDuring(g, 6))
+}
+
+test "blaster impact pending at defeat finishes after four result steps" {
+    var g = givenLaserBlasterAndSpecialImpactsPendingAtDefeat(912)
+    var blaster = g.weapons.blaster
+    g.step()
+    assert(g.screen == Screen.Result && g.ship.lives == 0)
+    assert(blaster.active && blaster.lives == 0 && blaster.impactSteps == 0)
+    g.step()
+    assert(blaster.active && blaster.impactSteps == 1)
+    g.step()
+    assert(blaster.active && blaster.impactSteps == 2)
+    g.step()
+    assert(blaster.active && blaster.impactSteps == 3)
+    g.step()
+    assert(!blaster.active)
+    g.step()
+    assert(!blaster.active)
+    g.step()
+    assert(!blaster.active)
+}
+
+test "special impact pending at defeat changes sprite at three and finishes after six result steps" {
+    var g = givenLaserBlasterAndSpecialImpactsPendingAtDefeat(912)
+    var beam = g.weapons.beams[1]
+    g.step()
+    assert(g.screen == Screen.Result)
+    assert(g.ship.lives == 0)
+    assert(beam.active)
+    assert(beam.lives == 0)
+    assert(beam.deathSteps == 0)
+    assert(beam.spriteFrame() == 1)
+    g.step()
+    assert(beam.active)
+    assert(beam.deathSteps == 1)
+    assert(beam.spriteFrame() == 1)
+    g.step()
+    assert(beam.active)
+    assert(beam.deathSteps == 2)
+    assert(beam.spriteFrame() == 1)
+    g.step()
+    assert(beam.active)
+    assert(beam.deathSteps == 3)
+    assert(beam.spriteFrame() == 2)
+    g.step()
+    assert(beam.active)
+    assert(beam.deathSteps == 4)
+    assert(beam.spriteFrame() == 2)
+    g.step()
+    assert(beam.active)
+    assert(beam.deathSteps == 5)
+    assert(beam.spriteFrame() == 2)
+    g.step()
+    assert(!beam.active)
+}
+
+Game givenNormalShipTwoStepsBeforeTheEnd(Int seed) {
+    var g = givenNormalShip(seed)
+    g.ship.x = 40
+    g.ship.y = 150
+    givenMeteorsAway(g)
+    g.score = 17
+    g.steps = 1708
+    g.stageSteps = 1708
+    return g
+}
+
+Game givenEvolvedShipExplodingOneStepBeforeTheEnd(Int seed) {
+    var g = Game()
+    g.start(seed)
+    g.steps = 1709
+    g.stageSteps = 1709
+    g.ship.explode()
+    g.ship.explosionSteps = 28
+    g.ship.lives = 4
+    g.weapons.level = 3
+    g.weapons.charges = 2
+    g.score = 37
+    g.items[1].x = g.ship.x + 10
+    g.items[1].y = g.ship.y - 16
+    g.meteors[0].x = 80
+    g.meteors[0].y = 100
+    g.meteors[0].collide()
+    return g
+}
+
+Game givenLastLifeExplodingWithWeaponsReady(Int seed, Int level) {
+    var g = Game()
+    g.start(seed)
+    g.ship.lives = 1
+    g.ship.explode()
+    g.ship.explosionSteps = 29
+    g.weapons.level = level
+    g.weapons.charges = 1
+    g.weapons.fireSteps = 12
+    g.weapons.laserAttempts = 6
+    g.score = 5
+    return g
+}
+
+Game givenEvolvedShipWithLasersAndBlasterLaunched(Int seed) {
+    var g = givenNormalShip(seed)
+    g.weapons.level = 3
+    g.weapons.charges = 2
+    g.weapons.fireSteps = 12
+    g.weapons.laserAttempts = 6
+    for (var shot in g.weapons.lasers.shots) { shot.fire(g.ship.x, g.ship.y) }
+    g.weapons.blaster.fire(g.ship)
+    return g
+}
+
+Game givenLaserBlasterAndSpecialImpactsPendingAtDefeat(Int seed) {
+    var g = Game()
+    g.start(seed)
+    g.weapons.level = 3
+    g.weapons.charges = 1
+    g.weapons.fireSteps = 12
+    var shot = g.weapons.lasers.shots[0]
+    shot.fire(g.ship.x, g.ship.y)
+    shot.impactAt(g.meteors[0])
+    var blaster = g.weapons.blaster
+    blaster.fire(g.ship)
+    blaster.hit()
+    blaster.hit()
+    var beam = g.weapons.beams[1]
+    beam.fire(g.ship)
+    for (var i = 0; i < 10; i++) { beam.hit() }
+    g.ship.lives = 1
+    g.ship.explode()
+    g.ship.explosionSteps = 29
+    return g
+}
+
+Bool everyLaserActiveAt(Game g, Int x) {
+    var all = true
+    for (var shot in g.weapons.lasers.shots) { all = all && shot.active && shot.x == x }
+    return all
+}
+
+Bool everyBeamActive(Game g) {
+    var all = true
+    for (var beam in g.weapons.beams) { all = all && beam.active }
+    return all
+}
+
+Bool laserImpactStaysFinishedDuring(Game g, Int steps) {
+    var shot = g.weapons.lasers.shots[0]
+    var finished = true
+    for (var i = 0; i < steps; i++) {
+        g.step()
+        finished = finished && !shot.active && !shot.impact
+    }
+    return finished
+}
