@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -8,7 +8,6 @@ const VERDICTS = {
   0: { state: 'PASS' },
   1: { state: 'FAIL', detail: 'KofMut exit 1: at least one mutant survived' },
   2: { state: 'FAIL', detail: 'KofMut exit 2: baseline_failed or error; unavailable' },
-  3: { state: 'FAIL', detail: 'KofMut exit 3: incomplete, no_scope or no_mutants; quality not approved' },
 };
 
 function evidence(root, runId, result) {
@@ -17,6 +16,44 @@ function evidence(root, runId, result) {
   writeFileSync(path.join(runs, `${runId}.stdout`), result.stdout ?? '');
   writeFileSync(path.join(runs, `${runId}.stderr`), result.stderr ?? '');
   writeFileSync(path.join(runs, `${runId}.exit`), `${result.status}\n`);
+}
+
+const REPORT_PATH = 'reportPath=';
+const NOT_APPROVED = new Set(['incomplete', 'no_scope', 'no_mutants']);
+
+function announcedReport(stdout) {
+  const announcements = stdout.split('\n').filter((line) => line.startsWith(REPORT_PATH));
+  if (announcements.length !== 1) throw new Error(`expected one ${REPORT_PATH} line, found ${announcements.length}`);
+
+  const report = JSON.parse(readFileSync(JSON.parse(announcements[0].slice(REPORT_PATH.length)), 'utf8'));
+  const limitations = report?.limitations;
+  if (typeof report?.status !== 'string' || !Array.isArray(limitations) || limitations.some((item) => typeof item !== 'string')) {
+    throw new Error('status or limitations missing');
+  }
+  return report;
+}
+
+const notApproved = (detail) => ({ state: 'FAIL', detail: `${detail}; quality not approved` });
+
+function unapprovedVerdict({ status, limitations }) {
+  if (!NOT_APPROVED.has(status)) return notApproved(`KofMut exit 3 contradicts report: ${status}`);
+  if (status !== 'no_mutants') return notApproved(`KofMut ${status}${limitations.length > 0 ? `: ${limitations.join('; ')}` : ''}`);
+  if (limitations.length > 0) return notApproved('KofMut exit 3 contradicts report: no_mutants with limitations');
+  return { state: 'SKIP', detail: 'KofMut no_mutants: no applicable mutants' };
+}
+
+function readAnnounced(stdout) {
+  try {
+    return { report: announcedReport(stdout) };
+  } catch (error) {
+    return { unreadable: error.message };
+  }
+}
+
+function exitThreeVerdict(stdout) {
+  const { report, unreadable } = readAnnounced(stdout);
+  if (unreadable) return notApproved(`KofMut exit 3 report unreadable: ${unreadable}`);
+  return unapprovedVerdict(report);
 }
 
 export function mutate(root, scope) {
@@ -35,6 +72,7 @@ export function mutate(root, scope) {
     if (result.error) return { state: 'FAIL', detail: `kof-mut did not run: ${result.error.code}; unavailable` };
 
     evidence(root, runId, result);
+    if (result.status === 3) return exitThreeVerdict(result.stdout ?? '');
     return VERDICTS[result.status] ?? { state: 'FAIL', detail: `KofMut exit ${result.status}: unexpected` };
   } finally {
     rmSync(workspace, { recursive: true, force: true });
