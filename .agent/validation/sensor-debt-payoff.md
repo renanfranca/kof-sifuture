@@ -595,15 +595,15 @@ Na JVM o texto do botão sempre lê vazio; só estado Kof comum mata mutante.
 
 Linha de base em `ControlsGuide.kf`: 6 candidatos, 0 mortos, 172 casos. Depois,
 `kof-mut run` com `ControlsGuide.kf` e `GuideDisclosure.kf`: exit 0,
-`status: complete`, 6 candidatos, 6 mortos, 0 limitações, Kof 0.7.0.
+`status: complete`, 6 candidatos, 6 mortos, 0 limitações, Kof 0.7.0. As posições "Depois" vêm da rodada de mutação do `check:task` final, já com `import sifuture.GuideDisclosure` (run `1074013c`): 6 candidatos, 6 mortos.
 
 | Antes | Depois | Teste que mata |
 | --- | --- | --- |
-| `8:25` `discardClick = false` | morto em `8:25` | clicking the disclosure of a new guide opens its details |
+| `8:25` `discardClick = false` | morto em `9:25` | clicking the disclosure of a new guide opens its details |
 | `10:29` `expanded = false` | deixou de existir (campo saiu do `ControlsGuide`) | ver `GuideDisclosure.kf:4:21` |
-| `59:58` reset no clique | morto em `112:44` (`clicked()`) | a click marked for discard keeps details closed and clears the mark |
-| `64:74` reset no `pointerdown` | morto em `117:24` (`pointerDown()`) | pressing the pointer on the disclosure clears the discard mark so the next click opens |
-| `66:67` reset no `blur` | morto em `121:24` (`blurred()`) | losing focus on the disclosure clears the discard mark so the next click opens |
+| `59:58` reset no clique | morto em `113:44` (`clicked()`) | a click marked for discard keeps details closed and clears the mark |
+| `64:74` reset no `pointerdown` | morto em `118:24` (`pointerDown()`) | pressing the pointer on the disclosure clears the discard mark so the next click opens |
+| `66:67` reset no `blur` | morto em `122:24` (`blurred()`) | losing focus on the disclosure clears the discard mark so the next click opens |
 | `95:20` `expanded = false` em `close()` | deixou de existir | ver `GuideDisclosure.kf:11:20` |
 | novo `GuideDisclosure.kf:4:21` | morto | new guide details start closed |
 | novo `GuideDisclosure.kf:11:20` | morto | closing open guide details closes them (e mais seis) |
