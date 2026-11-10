@@ -1671,3 +1671,7 @@ a documentação que cita `kof_project.py test`.
 - [ ] R5. Sobreviventes por TDD.
 - [ ] R6. Fixtures `tests/*.kf`.
 - [ ] R7. Fechamento.
+
+## `check`: `no_mutants` do KofMut vira SKIP — 10/11/2026
+
+- [x] No exit 3, o `check` lê o relatório do `reportPath=`: `no_mutants` sem limitação vira SKIP (não aprova), `incomplete`, `no_scope`, relatório contraditório ou ilegível continuam FAIL; prova real com o KofMut instalado e aceite em [`.agent/validation/mutation-no-mutants-skip.md`](.agent/validation/mutation-no-mutants-skip.md).

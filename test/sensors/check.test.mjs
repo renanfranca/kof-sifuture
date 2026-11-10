@@ -108,15 +108,95 @@ test('mutation runs on changed production Kof files and its verdict decides chec
   const survived = runSensorWith({ ...env, KOF_MUT_EXIT: '1' }, 'check.mjs', root);
   const survivedCalls = calls(root);
   const killed = runSensorWith({ ...env, KOF_MUT_EXIT: '0' }, 'check.mjs', root);
-  const incomplete = runSensorWith({ ...env, KOF_MUT_EXIT: '3' }, 'check.mjs', root);
 
   assert.deepEqual(survivedCalls.slice(-3), ['kof-mut run', '["src/main/kof/Game.kf"]', 'config kof-mut.json']);
   assert.equal(survived.code, 1);
   assert.match(survived.out, /\n {2}mutation +FAIL \(KofMut exit 1: at least one mutant survived\)\n/);
   assert.equal(killed.code, 0, killed.out);
   assert.match(killed.out, /\n {2}mutation +PASS\n/);
-  assert.equal(incomplete.code, 1);
-  assert.match(incomplete.out, /\n {2}mutation +FAIL \(KofMut exit 3: incomplete, no_scope or no_mutants; quality not approved\)\n/);
+});
+
+function withReportingKofMut(root) {
+  const env = withKofMutStub(root);
+  writeInto(
+    root,
+    'stub-bin/kof-mut',
+    `#!/bin/sh
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --report-dir) dir="$2/run";;
+  esac
+  shift
+done
+mkdir -p "$dir"
+printf '%s' "$KOF_MUT_REPORT" > "$dir/report.json"
+case "\${KOF_MUT_ANNOUNCE:-once}" in
+  once) echo "reportPath=\\"$dir/report.json\\"";;
+  twice) echo "reportPath=\\"$dir/report.json\\""; echo "reportPath=\\"$dir/report.json\\"";;
+  missing) echo "reportPath=\\"$dir/absent.json\\"";;
+esac
+exit \${KOF_MUT_EXIT:-0}
+`,
+  );
+  return env;
+}
+
+function checkWithKofMutReport(report, overrides = {}) {
+  const root = aCheckedProject();
+  writeInto(root, 'src/main/kof/Game.kf', 'main() {\n    println(1)\n}\n');
+  const env = { ...withReportingKofMut(root), KOF_MUT_EXIT: '3', KOF_MUT_REPORT: JSON.stringify(report), ...overrides };
+  return runSensorWith(env, 'check.mjs', root);
+}
+
+test('KofMut no_mutants without limitations skips mutation without failing check', () => {
+  const report = checkWithKofMutReport({ status: 'no_mutants', limitations: [] });
+
+  assert.match(report.out, /\n {2}mutation +SKIP \(KofMut no_mutants: no applicable mutants\)\n/);
+  assert.match(report.out, /\nCHECK: PASS\n$/);
+  assert.equal(report.code, 0);
+});
+
+test('KofMut incomplete still fails check and shows its limitation', () => {
+  const limitation = 'src/main/kof/Game.kf: Unsupported AST node: X';
+
+  const report = checkWithKofMutReport({ status: 'incomplete', limitations: [limitation] });
+
+  assert.match(report.out, /\n {2}mutation +FAIL \(KofMut incomplete: src\/main\/kof\/Game\.kf: Unsupported AST node: X; quality not approved\)\n/);
+  assert.match(report.out, /\nCHECK: FAIL at mutation\n$/);
+  assert.equal(report.code, 1);
+});
+
+test('KofMut no_scope still fails check even without limitations', () => {
+  const report = checkWithKofMutReport({ status: 'no_scope', limitations: [] });
+
+  assert.match(report.out, /\n {2}mutation +FAIL \(KofMut no_scope; quality not approved\)\n/);
+  assert.equal(report.code, 1);
+});
+
+test('a KofMut report that contradicts exit 3 never skips mutation', () => {
+  const limited = checkWithKofMutReport({ status: 'no_mutants', limitations: ['src/main/kof/Game.kf: Unsupported AST node: X'] });
+  const complete = checkWithKofMutReport({ status: 'complete', limitations: [] });
+
+  assert.match(limited.out, /\n {2}mutation +FAIL \(KofMut exit 3 contradicts report: no_mutants with limitations; quality not approved\)\n/);
+  assert.equal(limited.code, 1);
+  assert.match(complete.out, /\n {2}mutation +FAIL \(KofMut exit 3 contradicts report: complete; quality not approved\)\n/);
+  assert.equal(complete.code, 1);
+});
+
+test('an unusable KofMut report on exit 3 fails mutation as unreadable, never as SKIP', () => {
+  const noMutants = { status: 'no_mutants', limitations: [] };
+  const cases = {
+    'no reportPath line': checkWithKofMutReport(noMutants, { KOF_MUT_ANNOUNCE: 'none' }),
+    'two reportPath lines': checkWithKofMutReport(noMutants, { KOF_MUT_ANNOUNCE: 'twice' }),
+    'announced path missing': checkWithKofMutReport(noMutants, { KOF_MUT_ANNOUNCE: 'missing' }),
+    'invalid JSON': checkWithKofMutReport(noMutants, { KOF_MUT_REPORT: '{"status":' }),
+    'limitations not an array': checkWithKofMutReport({ status: 'no_mutants' }),
+  };
+
+  for (const [name, report] of Object.entries(cases)) {
+    assert.match(report.out, /\n {2}mutation +FAIL \(KofMut exit 3 report unreadable: [^\n]+; quality not approved\)\n/, name);
+    assert.equal(report.code, 1, name);
+  }
 });
 
 const browserStub = (name) => `import os, sys\nopen('calls.log', 'a').write('${name}\\n')\nsys.exit(0)\n`;

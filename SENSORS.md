@@ -35,7 +35,11 @@ UNAVAILABLE, never PASS. No suppression comments or baselines exist.
 Kof tests on JVM and JS, `lint:sensor`, `dup:sensor`, `docs:sensor` and then
 mutation. Mutation runs KofMut with `kof-mut.json` on the production `.kf` files
 changed against `main`; without such a file it prints SKIP and claims nothing.
-KofMut exit 1 (a survivor), 2 or 3 fails the check.
+KofMut exit 1 (a survivor) or 2 fails the check. On exit 3 the check reads the
+report announced on the `reportPath=` line: `no_mutants` without limitations
+prints SKIP, which, like the case without changed files, approves nothing;
+`incomplete`, `no_scope`, a report that contradicts exit 3, or one that cannot
+be read fails the check.
 
 ## Rules and limits
 
