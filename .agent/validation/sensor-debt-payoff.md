@@ -571,3 +571,77 @@ A1 atendido: nenhum mutante morto no R0 voltou a sobreviver depois do R2 e do R3
 com a produção idêntica. Os testes novos não mataram nenhum mutante a mais, o que
 é esperado: o R2 e o R3 só reorganizaram asserções existentes. Relatório:
 `.agent/tmp/debt-a1/kofmut-a1-report.json`.
+
+## Piloto da UI: `ControlsGuide` (10/11)
+
+Branch `refactor/ui-pilot-controls-guide`, a partir de `84a5dbf`; validado na
+árvore de trabalho antes do commit. Plano:
+`.agent/execplans/ui-pilot-controls-guide.md`.
+
+### Probe (M0)
+
+`kof test` direto no arquivo do probe dá `PKG004` (o pacote não confere com a
+pasta); o probe rodou por uma entrada em `src/test/kof`, como
+`scripts/kof-tests.mjs`. Saída depois de `toggle()` e de `close()`:
+
+```
+JVM: text=[] discard=false | text=[] discard=false
+JS:  text=[Menos detalhes] discard=false | text=[Mais detalhes] discard=false
+```
+
+Na JVM o texto do botão sempre lê vazio; só estado Kof comum mata mutante.
+
+### C1. Mutação
+
+Linha de base em `ControlsGuide.kf`: 6 candidatos, 0 mortos, 172 casos. Depois,
+`kof-mut run` com `ControlsGuide.kf` e `GuideDisclosure.kf`: exit 0,
+`status: complete`, 6 candidatos, 6 mortos, 0 limitações, Kof 0.7.0. As posições "Depois" vêm da rodada de mutação do `check:task` final, já com `import sifuture.GuideDisclosure` (run `1074013c`): 6 candidatos, 6 mortos.
+
+| Antes | Depois | Teste que mata |
+| --- | --- | --- |
+| `8:25` `discardClick = false` | morto em `9:25` | clicking the disclosure of a new guide opens its details |
+| `10:29` `expanded = false` | deixou de existir (campo saiu do `ControlsGuide`) | ver `GuideDisclosure.kf:4:21` |
+| `59:58` reset no clique | morto em `113:44` (`clicked()`) | a click marked for discard keeps details closed and clears the mark |
+| `64:74` reset no `pointerdown` | morto em `118:24` (`pointerDown()`) | pressing the pointer on the disclosure clears the discard mark so the next click opens |
+| `66:67` reset no `blur` | morto em `122:24` (`blurred()`) | losing focus on the disclosure clears the discard mark so the next click opens |
+| `95:20` `expanded = false` em `close()` | deixou de existir | ver `GuideDisclosure.kf:11:20` |
+| novo `GuideDisclosure.kf:4:21` | morto | new guide details start closed |
+| novo `GuideDisclosure.kf:11:20` | morto | closing open guide details closes them (e mais seis) |
+
+### C2. Casca
+
+0 candidatos nas linhas de handler, estilo e texto do `ControlsGuide` (o KofMut
+não muta `!`, strings nem chamadas). Os 4 candidatos restantes do arquivo são os
+literais de `discardClick`, todos mortos.
+
+### C3 a C5
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm run lint:sensor` nos dois arquivos | `PASS (0 findings)` (eram 2) |
+| `node scripts/kof-tests.mjs`, 0.7.0, JVM e JS | `0 failed of 181 tests` |
+| o mesmo com `KOF` 0.6.4, JVM e JS | `0 failed of 181 tests` |
+| `npm run check` | `CHECK: PASS`, mutação PASS (6/6) |
+| `npm run check:task` | `CHECK:TASK: PASS`, sete jornadas PASS; `tests/browser.py` sem diff |
+| `git diff --exit-code main -- src/main/kof/sifuture/GameControls.kf` | exit 0 |
+| `git diff --check` | exit 0 |
+
+A primeira rodada do `check:task` falhou em `browser:browser`:
+`ControlsGuide.kf:9:5: error: Undefined variable or type: 'GuideDisclosure'
+[SEM011]`. O build JS do app só segue imports, e a suíte Kof não pegou porque o
+teste importa as duas classes. Corrigido com `import sifuture.GuideDisclosure` no
+`ControlsGuide.kf`; a segunda rodada passou.
+
+TDD: os testes 4 e 6 nasceram verdes (comportamento já coberto pela delegação);
+sabotar `close()` derruba os testes 3 e 4. Testes 3 e 9 foram direto ao vermelho
+de asserção, sem o de compilação.
+
+### Estimativa para `GameControls` e `GameView` (não medida)
+
+- `GameControls` (118): `==`, `||`, `&&` e `Bool` em `keyChanged`,
+  `optionAvailable`, `keyboardReceiver` e nos flags de foco e tecla. São decisões
+  testáveis na JVM se saírem dos lambdas; só estilo e `setDisabled` são tela.
+  Estimativa: cerca de 90% matáveis, com trabalho bem maior que o do guia.
+- `GameView` (75): cerca de 45 são aritmética de coordenadas de `drawImage` (só
+  tela). Testáveis: `numberWidth`/`drawNumber` e escolha de quadro e sprite.
+  Estimativa: entre um terço e metade.
