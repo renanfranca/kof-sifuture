@@ -1,0 +1,13 @@
+package sifuture
+
+class GuideDisclosure {
+    Bool expanded = false
+
+    toggle() {
+        expanded = !expanded
+    }
+
+    close() {
+        expanded = false
+    }
+}

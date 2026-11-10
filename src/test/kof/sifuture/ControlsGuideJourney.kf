@@ -1,0 +1,96 @@
+package sifuture
+import sifuture.ControlsGuide
+import sifuture.GuideDisclosure
+
+test "new guide details start closed" {
+    var details = GuideDisclosure()
+
+    assert(!details.expanded)
+}
+
+test "guide details toggle opens and the next toggle closes" {
+    var details = GuideDisclosure()
+
+    details.toggle()
+    var openedFirst = details.expanded
+    details.toggle()
+
+    assert(openedFirst)
+    assert(!details.expanded)
+}
+
+test "closing open guide details closes them" {
+    var details = GuideDisclosure()
+    details.toggle()
+
+    details.close()
+
+    assert(!details.expanded)
+}
+
+test "closed guide details open again on the next toggle" {
+    var details = GuideDisclosure()
+    details.toggle()
+    details.close()
+
+    details.toggle()
+
+    assert(details.expanded)
+}
+
+test "clicking the disclosure of a new guide opens its details" {
+    var guide = ControlsGuide()
+
+    guide.clicked()
+
+    assert(guide.detailsState.expanded)
+}
+
+test "new guide starts with details closed and closing after a toggle closes them again" {
+    var guide = ControlsGuide()
+    var closedAtStart = !guide.detailsState.expanded
+    guide.toggle()
+
+    guide.close()
+
+    assert(closedAtStart)
+    assert(!guide.detailsState.expanded)
+}
+
+test "a click marked for discard keeps details closed and clears the mark" {
+    var guide = ControlsGuide()
+    guide.discardClick = true
+
+    guide.clicked()
+    var closedAfterDiscard = !guide.detailsState.expanded
+    var markCleared = !guide.discardClick
+    guide.clicked()
+
+    assert(closedAfterDiscard)
+    assert(markCleared)
+    assert(guide.detailsState.expanded)
+}
+
+test "pressing the pointer on the disclosure clears the discard mark so the next click opens" {
+    var guide = ControlsGuide()
+    guide.discardClick = true
+
+    guide.pointerDown()
+    var markCleared = !guide.discardClick
+    guide.clicked()
+
+    assert(markCleared)
+    assert(guide.detailsState.expanded)
+}
+
+test "losing focus on the disclosure clears the discard mark so the next click opens" {
+    var guide = ControlsGuide()
+    guide.discardClick = true
+
+    guide.blurred()
+    var markCleared = !guide.discardClick
+    guide.clicked()
+
+    assert(markCleared)
+    assert(guide.detailsState.expanded)
+}

@@ -1679,3 +1679,7 @@ a documentação que cita `kof_project.py test`.
 ## `check`: identidade do relatório do KofMut e descartes no SKIP — 10/11/2026
 
 - [x] No exit 3, o relatório só vale se for desta execução (caminho absoluto, `runId` e `scope`); `discardedCandidates` é obrigatório e o SKIP mostra `, N discarded`; prova real com o KofMut instalado (inclusive um descarte `ARITH001`) e aceite em [`.agent/validation/mutation-report-identity.md`](.agent/validation/mutation-report-identity.md).
+
+## Piloto da UI: lógica do `ControlsGuide` fora da tela — 10/11/2026
+
+- [x] Classe pura `GuideDisclosure` (`expanded`, `toggle()`, `close()`); o `ControlsGuide` delega a ela e ganha `clicked()`, `pointerDown()` e `blurred()`, chamados pelos handlers sem literal booleano. `GameControls.kf` sem diff. KofMut nos dois arquivos: 6 candidatos, 6 mortos, 0 na parte de tela; 172 → 181 casos. Plano em [`.agent/execplans/ui-pilot-controls-guide.md`](.agent/execplans/ui-pilot-controls-guide.md), aceite em [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md) (seção "Piloto da UI").
