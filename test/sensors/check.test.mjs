@@ -10,7 +10,9 @@ const nodeStub = (name) => `import { appendFileSync } from 'node:fs';\nappendFil
 const kofProjectStub = `import os, sys
 step = 'kof_project ' + ' '.join(a for a in sys.argv[1:] if not a.startswith('--kof'))
 open('calls.log', 'a').write(step + '\\n')
-sys.exit(int(os.environ.get('FAIL_' + '_'.join(sys.argv[1:4:2]), '0')))
+fixture = sys.argv[sys.argv.index('--fixture') + 1] if '--fixture' in sys.argv else None
+key = 'FAIL_fixture_' + os.path.basename(fixture)[:-3] if fixture else 'FAIL_' + '_'.join(sys.argv[1:4:2])
+sys.exit(int(os.environ.get(key, '0')))
 `;
 
 const kofTestsStub = `import { appendFileSync } from 'node:fs';
@@ -63,6 +65,55 @@ test('check runs the cheap and expensive steps in order and skips mutation when 
     'docs',
   ]);
   assert.match(report.out, /\n {2}mutation +SKIP \(no production Kof file changed against main\)\n/);
+  assert.match(report.out, /\nCHECK: PASS\n$/);
+});
+
+function withFixtures(root, ...names) {
+  names.forEach((name) => writeInto(root, `tests/${name}`, 'main() {\n}\n'));
+  git(root, 'add', '-A');
+  git(root, 'commit', '-q', '-m', 'fixtures');
+  return root;
+}
+
+test('check type-checks every browser fixture in name order after types:js and before the python tests', () => {
+  const root = withFixtures(aCheckedProject(), 'b.kf', 'a.kf');
+
+  const report = runSensorWith(process.env, 'check.mjs', root);
+
+  assert.equal(report.code, 0, report.out + report.err);
+  assert.deepEqual(calls(root).slice(1, 6), [
+    'kof_project check --target jvm --json',
+    'kof_project check --target js --json',
+    'kof_project check --target js --json --fixture tests/a.kf',
+    'kof_project check --target js --json --fixture tests/b.kf',
+    'unittest',
+  ]);
+  assert.match(report.out, /\n {2}types:fixtures +PASS\n/);
+  assert.match(report.out, /\nCHECK: PASS\n$/);
+});
+
+test('the first browser fixture that fails type checking stops check and names the fixture', () => {
+  const root = withFixtures(aCheckedProject(), 'a.kf', 'b.kf');
+
+  const report = runSensorWith({ ...process.env, FAIL_fixture_a: '1' }, 'check.mjs', root);
+
+  assert.equal(report.code, 1);
+  assert.equal(calls(root).at(-1), 'kof_project check --target js --json --fixture tests/a.kf');
+  assert.match(report.out, /\n {2}types:fixtures +FAIL \(tests\/a\.kf: exit 1\)\n/);
+  for (const step of ['python tests', 'kof tests:jvm', 'kof tests:js', 'lint:sensor', 'dup:sensor', 'docs:sensor', 'mutation']) {
+    assert.match(report.out, new RegExp(`\\n  ${step} +NOT RUN \\(an earlier step failed\\)\\n`), step);
+  }
+  assert.match(report.out, /\nCHECK: FAIL at types:fixtures\n$/);
+});
+
+test('check without browser fixtures skips the fixture type check and goes on', () => {
+  const root = aCheckedProject();
+
+  const report = runSensorWith(process.env, 'check.mjs', root);
+
+  assert.equal(report.code, 0, report.out + report.err);
+  assert.ok(!calls(root).some((call) => call.includes('--fixture')));
+  assert.match(report.out, /\n {2}types:fixtures +SKIP \(no browser fixture in tests\)\n/);
   assert.match(report.out, /\nCHECK: PASS\n$/);
 });
 

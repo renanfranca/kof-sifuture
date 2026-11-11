@@ -31,9 +31,13 @@ they analyse whole files changed against `main`, new ones included; with none
 they print SKIP. A file that cannot be read or tokenized makes the sensor
 UNAVAILABLE, never PASS. No suppression comments or baselines exist.
 
-`check` runs `secret:sensor`, the JVM and JS type checks, the Python tests, the
-Kof tests on JVM and JS, `lint:sensor`, `dup:sensor`, `docs:sensor` and then
-mutation. Mutation runs KofMut with `kof-mut.json` on the production `.kf` files
+`check` runs `secret:sensor`, the JVM and JS type checks, the JS type check of
+each browser fixture `tests/*.kf` as its own entry (`types:fixtures`), the
+Python tests, the Kof tests on JVM and JS, `lint:sensor`, `dup:sensor`,
+`docs:sensor` and then mutation. The fixture check exists because the other type
+checks use an `import sifuture.*` entry that hides a missing `import`, while the
+browser journeys build from each fixture; it stops at the first failing fixture
+and names it, and prints SKIP when `tests` has no fixture. Mutation runs KofMut with `kof-mut.json` on the production `.kf` files
 changed against `main`; without such a file it prints SKIP and claims nothing.
 KofMut exit 1 (a survivor) or 2 fails the check. On exit 3 the check reads the
 report announced on the `reportPath=` line, which counts only when it is from

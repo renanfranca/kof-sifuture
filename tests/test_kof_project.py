@@ -2,6 +2,7 @@
 
 import contextlib
 import io
+import json
 import os
 import shutil
 import stat
@@ -88,6 +89,32 @@ class KofProjectTest(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertNotEqual(project.build(output, root=self.root), 0)
         self.assertFalse(output.exists())
+
+    def test_fixture_check_reports_import_missing_only_from_the_fixture_entry(self):
+        fixture = Path(self.space.name) / "guide.kf"
+        fixture.write_text("import sifuture.ControlsGuide\nimport kof.ui.*\n\n"
+                           "main() {\n    var guide = ControlsGuide()\n    println(guide.discardClick)\n}\n")
+        guide = self.root / "src/main/kof/sifuture/ControlsGuide.kf"
+        guide.write_text(guide.read_text().replace("import sifuture.GuideDisclosure\n", ""))
+
+        with contextlib.redirect_stdout(io.StringIO()) as fixture_output:
+            fixture_code = project.check(target="js", json_output=True, root=self.root, fixture=fixture)
+        with contextlib.redirect_stdout(io.StringIO()):
+            wildcard_code = project.check(target="js", json_output=True, root=self.root)
+
+        self.assertNotEqual(fixture_code, 0)
+        errors = [item for item in json.loads(fixture_output.getvalue())["diagnostics"] if item["severity"] == "ERROR"]
+        self.assertTrue(any("GuideDisclosure" in item["message"] for item in errors))
+        self.assertEqual(wildcard_code, 0)
+
+    def test_fixture_check_accepts_a_browser_fixture_of_the_complete_game(self):
+        fixture = Path(self.space.name) / "boss.kf"
+        shutil.copyfile(project.ROOT / "tests/boss.kf", fixture)
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = project.check(target="js", json_output=True, root=self.root, fixture=fixture)
+
+        self.assertEqual(code, 0)
 
 
 if __name__ == "__main__":

@@ -158,8 +158,8 @@ def _check_report(output, code):
     return report
 
 
-def check(*, target="jvm", json_output=False, kof=None, root=ROOT):
-    with prepared_sources(root=root) as source:
+def check(*, target="jvm", json_output=False, kof=None, root=ROOT, fixture=None):
+    with prepared_sources(fixture=fixture, root=root) as source:
         try:
             result = subprocess.run([str(kof_executable(kof)), "check", str(source / "Main.kf"),
                                      "--target", target, "--json"], capture_output=True, text=True, check=False)
@@ -214,11 +214,12 @@ def main(argv=None):
         else:
             sub.add_argument("--target", choices=("jvm", "js"), default="jvm")
             sub.add_argument("--json", action="store_true")
+            sub.add_argument("--fixture")
     args = parser.parse_args(argv)
     try:
         if args.command == "build":
             return build(args.output, kof=args.sub_kof or args.kof)
-        return check(target=args.target, json_output=args.json, kof=args.sub_kof or args.kof)
+        return check(target=args.target, json_output=args.json, kof=args.sub_kof or args.kof, fixture=args.fixture)
     except PreparationError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
