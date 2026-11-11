@@ -645,3 +645,186 @@ de asserção, sem o de compilação.
 - `GameView` (75): cerca de 45 são aritmética de coordenadas de `drawImage` (só
   tela). Testáveis: `numberWidth`/`drawNumber` e escolha de quadro e sprite.
   Estimativa: entre um terço e metade.
+
+## R5 e R4, lote 1: arquivos pequenos (11/11)
+
+Branch `refactor/sensor-debt-batch-1`, a partir de `2c2e532`; validado na árvore
+de trabalho, sem commit. Handoff:
+`2026-11-10_sensor-debt-r4-r5-batch-1.md`. Ordem: `BossWeapons`, `Credits`,
+`Meteor`, `SubchiefShot`, `Item`, `BossSpecial`, `BossShot`. Kof 0.7.0.
+
+### Método do RED
+
+Cada teste novo foi escrito com o produto ainda correto, então ele nasce verde. O
+RED foi observado aplicando **um mutante por vez** no arquivo (pela linha e
+coluna do relatório A1), rodando a suíte inteira na JVM e restaurando o arquivo.
+Depois, o KofMut só nos arquivos do lote confirmou cada mutante como morto. Em
+todos os casos abaixo, o RED esperado (o teste nomeado falha por asserção) foi o
+observado, e nenhum outro teste falhou além dos listados.
+
+### Sobreviventes por arquivo
+
+| Arquivo | Antes (A1) | Depois | Equivalentes |
+| --- | --- | --- | --- |
+| `BossWeapons` | 1 | 0 (29/29 mortos) | 0 |
+| `Credits` | 2 | 2 (12/14 mortos) | 2 |
+| `Meteor` | 4 | 2 (39/41 mortos) | 2 |
+| `SubchiefShot` | 11 | 0 (10/10 mortos) | 2 deixaram de existir |
+| `Item` | 12 | 0 (23/23 mortos) | 2 deixaram de existir |
+| `BossSpecial` | 12 | 0 (15/15 mortos) | 0 |
+| `BossShot` | 14 | 1 (17/18 mortos) | 1 |
+| `ShipContact` (novo) | não existia | 0 (11/11 mortos) | 0 |
+| **Total** | **56** | **5** | **5** |
+
+Rodadas do KofMut (`kof-mut run --files` só com os arquivos citados), todas
+`complete`, 0 limitações, 0 timeout:
+
+| Escopo | Candidatos | Mortos | Sobreviventes | Exit | Duração |
+| --- | --- | --- | --- | --- | --- |
+| `BossWeapons` | 29 | 29 | 0 | 0 | 301 s |
+| `Credits` | 14 | 12 | 2 | 1 | 145 s |
+| `Meteor` | 41 | 39 | 2 | 1 | 482 s |
+| `SubchiefShot`, `Item`, `BossSpecial`, `BossShot`, `ShipContact` | 77 | 76 | 1 | 1 | 652 s |
+
+### Testes novos e o mutante que cada um mata
+
+Arquivos novos por assunto, sem aumentar `BossJourney.kf` nem
+`SubchiefJourney.kf`: `EnemyFireJourney.kf` (ciclo de vida dos tiros do chefe e
+do subchefe), `ShipContactJourney.kf` (bordas do contato com a nave) e
+`StageDriftJourney.kf` (meteoros e itens à deriva). `JourneyScenarios.kf` ganhou
+`givenNormalShipAt`, `advanceSpecial` e `advanceShot`, usados por mais de um
+arquivo. Posições "antes" são as do A1.
+
+| Mutante (A1) | Teste que falhou com o mutante |
+| --- | --- |
+| `BossWeapons 7:25` `false → true` | a new boss arsenal at its third level does not open with the special |
+| `Meteor 5:19` `true → false` | a new meteor drifts left at meteor speed; a new meteor turns to its next frame after two steps |
+| `Meteor 13:21` `false → true` | a new meteor turns to its next frame after two steps |
+| `SubchiefShot 6:19` `false → true` | a new subchief shot cannot hit the ship |
+| `SubchiefShot 19:32` `<= → <`, `19:42` `+ → -` | a subchief shot whose top edge is level with the ship bottom hits it |
+| `SubchiefShot 19:63` `\|\| → &&` | os dois testes de borda do subchefe que acertam |
+| `SubchiefShot 20:17` `+ → -`, `20:21` `>= → >`, `20:50` `+ → -` | a subchief shot whose bottom edge reaches the ship top hits it |
+| `SubchiefShot 20:36` `+ → -` | a subchief shot one unit below the ship misses it |
+| `SubchiefShot 26:15` `< → <=` | a subchief shot stays in flight until it passes thirty units beyond the left edge |
+| `Item 13:22` `false → true` | an item at the ship left edge is collected; an item whose top edge is level with the ship bottom is collected |
+| `Item 19:41` `- → +`, `19:63` `- → +` | an item spawned from seed 238 sits on the lowest spawn row |
+| `Item 31:15` `>= → >` | an item at the ship left edge is collected |
+| `Item 32:32` `<= → <` | an item whose top edge is level with the ship bottom is collected |
+| `Item 32:42` `+ → -` | os dois testes de item coletado |
+| `Item 32:27`, `33:32` `&& → \|\|`, `33:37` `+ → -` | an item ten units below the ship is not collected |
+| `Item 46:22` `< → <=` | an item twenty units beyond the left edge keeps drifting |
+| `BossSpecial 7:19` `false → true` | a new boss special fires from below the boss (e mais dois que dependem do especial inativo) |
+| `BossSpecial 24:78` `>= → >` | a charged special at the ship left edge hits it |
+| `BossSpecial 24:93` `<= → <` | a charged special at the ship right edge hits it |
+| `BossSpecial 25:32` `<= → <` | a charged special whose top edge is level with the ship bottom hits it |
+| `BossSpecial 26:17`, `26:52` `+ → -` | os testes do especial com a borda de baixo na nave |
+| `BossSpecial 26:22` `>= → >` | a charged special whose bottom edge reaches the ship top hits it |
+| `BossSpecial 26:42` `<= → <` | a charged special whose bottom edge is level with the ship bottom hits it |
+| `BossSpecial 25:27`, `26:32` `&& → \|\|`, `26:37` `+ → -` | a charged special spanning the ship with both edges outside it misses |
+| `BossSpecial 33:15` `< → <=` | a boss special stays in flight until it passes forty-eight units beyond the left edge |
+| `BossShot 6:19` `false → true` | a new boss shot cannot hit the ship |
+| `BossShot 7:21` `false → true` | a boss shot fired before the boss evolves keeps its first sprite; a boss shot already in flight animates from its first sprite once the boss evolves |
+| `BossShot 15:41` `< → <=` | an evolved boss shot shows its second sprite after three steps |
+| `BossShot 28:77` `<= → <` | a boss shot at the ship right edge hits it |
+| `BossShot 29:32` `<= → <` | a boss shot whose top edge is level with the ship bottom hits it |
+| `BossShot 30:17`, `30:52` `+ → -` | os testes do tiro com a borda de baixo na nave |
+| `BossShot 30:22` `>= → >` | a boss shot whose bottom edge reaches the ship top hits it |
+| `BossShot 30:42` `<= → <` | a boss shot whose bottom edge is level with the ship bottom hits it |
+| `BossShot 30:37` `+ → -` | a boss shot spanning the ship with both edges outside it misses |
+| `BossShot 35:22` `&& → \|\|` | a boss shot already in flight animates from its first sprite once the boss evolves |
+| `BossShot 37:15` `< → <=`, `37:33` `false → true` | a boss shot stays in flight until it passes forty units beyond the left edge |
+
+Os testes de valor inicial (`false`/`true` na declaração) usam um objeto recém
+construído, porque pelo `Game` o `reset()` sobrescreve o valor (como o A4 previa
+para o `Meteor`). O item com semente 238 foi achado por um probe: a semente dá
+`y = 203` (a última linha válida) no original e `y ≥ 204` com os dois mutantes,
+igual na JVM e no JS.
+
+Comportamento documentado, não alterado: o tiro do chefe (25 de altura) e o
+especial (26) **não** acertam a nave quando passam por cima dela com as duas
+bordas para fora (`y` de 96 a 99 com a nave em `y = 100`), porque a regra olha só
+as bordas. Os testes "spanning the ship" fixam isso.
+
+### Mutantes equivalentes (ponto de parada 2)
+
+Nenhum foi suprimido nem pulado; estão no relatório como sobreviventes.
+
+1. **`Credits 16:19`** `x > CREDITS_MARGIN` → `>=`. O corpo é
+   `x = Rules.CREDITS_MARGIN`. Quando `x == CREDITS_MARGIN`, as duas versões
+   deixam `x` igual. Nenhuma entrada distingue.
+2. **`Credits 19:59`** `secondY > -CREDITS_BLOCK_HEIGHT` → `>=`. O `Credits` é
+   criado uma vez no `Game` e nunca reiniciado; depois de `n` passos de rolagem,
+   `firstY = 40 + n` e `secondY = 136 - n`. `firstY < 260` vale até `n < 220`;
+   `secondY > -72` vale até `n < 208`. Os dois só diferem em `n = 208`, quando
+   `firstY = 248 < 260` já mantém a rolagem. Só um estado inalcançável
+   (`firstY ≥ 260` com `secondY = -72`) mataria o mutante.
+3. **`Meteor 85:17`** (`90:17` depois do R4) `y >= shipY` → `>`, e
+4. **`Meteor 86:75`** (`91:75`) `y + METEOR_HEIGHT <= shipY + SHIP_HEIGHT` → `<`.
+   O contato vertical é a união de `y ∈ [shipY, shipY+20]` (borda de cima) com
+   `y ∈ [shipY-18, shipY+2]` (borda de baixo), ou seja `[shipY-18, shipY+20]`.
+   Com `>`, o ponto `y = shipY` sai da primeira parte, mas continua na segunda.
+   Com `<`, o ponto `y = shipY+2` sai da segunda, mas continua na primeira. A
+   união não muda. ❗ A observação do A4 ("o teste de borda os mata") estava
+   errada para estes dois: ela fala da borda em `x`, que já estava morta.
+5. **`BossShot 35:40`** (`34:40` depois) `animationSteps < 5` → `<=`. Só deixa
+   `animationSteps` chegar a 6 em vez de 5, e o único leitor, `spriteFrame()`,
+   devolve 2 para qualquer valor `≥ 5`. Confirmado aplicando o mutante: `0 failed
+   of 212 tests`.
+
+Os equivalentes do mesmo tipo do `Meteor` em `SubchiefShot` (`19:17`, `20:40`) e
+`Item` (`32:17`, `33:42`) **deixaram de existir** no R4: a regra foi para
+`ShipContact.kf`, onde o mesmo mutante muda o resultado do tiro do chefe e do
+especial (altura maior que a da nave) e morre. O `Meteor` ficou fora porque o
+`touchesShip(Int shipX, Int shipY)` dele é API pública usada em 8 asserções do
+`MeteorJourney.kf`; mudar a assinatura seria mudança de contrato.
+
+### R4 (uma refatoração por vez, verde a cada passo, JVM e JS)
+
+| Arquivo | Antes | Refatoração | Depois |
+| --- | --- | --- | --- |
+| `BossWeapons` | 3 achados (`attemptFire`) | `specialDue()`, `fireInterval()`, `fireVolley()` com `fireFreeShot()` e `countTowardSpecial()`, condições originais preservadas | 0 |
+| `Meteor` | 4 achados (`advance`) | `advanceImpact()`, `advanceFrames()`, `turnFrame()` | 0 |
+| `Item` | 1 achado (`advance`) | `advanceEffect()`, `advanceFrames()`, `turnFrame()`, `swingFrame()` | 0 |
+| CPD `BossShot:25` ↔ `SubchiefShot:14` | 1 grupo | `ShipContact.kf`: `edgeTouchesShip(x, y, height, ship)` e `edgeWithinShipHeight`, usados por `BossShot`, `SubchiefShot`, `BossSpecial` e `Item` | `SENSOR dup: PASS (0 findings)` |
+
+Primeira versão com `shipX, shipY` deu `too-many-parameters` (5); virou `Ship
+ship` (Preserve Whole Object). Desvio encontrado: sem `import
+sifuture.game.ShipContact`, o `check` pelo `Main.kf` passa, mas a suíte pela
+entrada única falha com `SEM015 Undefined function: 'edgeTouchesShip'` (mesmo
+tipo do `testRows`). Corrigido com o import explícito nos quatro arquivos.
+
+### Contagem de casos (A2)
+
+| Kof | JVM | JS |
+| --- | --- | --- |
+| 0.7.0 | 181 → 212 | 181 → 212 |
+| 0.6.4 | 181 → 212 | 181 → 212 |
+
+### Fechamento do lote
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm run lint:sensor` em cada arquivo do lote e no `ShipContact.kf` | `PASS (0 findings)` |
+| `npm run check` | todos os passos PASS até `dup:sensor` (`7 files expected, 7 tokenized`) e `docs:sensor`; **`mutation` FAIL**: 147 candidatos, 144 mortos, 3 sobreviventes (`Meteor` 2, `BossShot` 1), os equivalentes acima; 1278 s |
+| `npm run check:task` | o mesmo FAIL em `mutation`; as jornadas ficaram `NOT RUN`; 1197 s |
+| sete jornadas rodadas à parte (`.agent/tmp/debt-tools/journeys.sh`) | 7/7 exit 0; 186 PNG |
+| pixels decodificados contra o R0 (`debt-tools/pixels.py`) | `common=186 only_a=0 only_b=0 pixel_diff=0` |
+| `git diff --check` | exit 0 |
+
+O `check` reprova enquanto existir um equivalente na produção alterada, porque
+não há supressão. Isso vale para os 3 de agora e vai valer no R7: precisa de
+decisão do usuário (ponto de parada 2).
+
+### Tempo
+
+De 10:32 a 12:11 (1h39), com uma interrupção curta. Divisão aproximada: R5 e R4
+dos sete arquivos, cerca de 37 min; KofMut por arquivo, 26 min (301 + 145 + 482 +
+652 s); fechamento (`check`, `check:task`, jornadas duas vezes), cerca de 50 min.
+
+Estimativa para `Ship` ao `SpecialBeam` (A1: 743 candidatos e **234**
+sobreviventes; o handoff diz 232, mas a soma da própria lista dá 234): o lote 1
+teve 214 candidatos e 56 sobreviventes no A1. A mutação escala com os
+candidatos (cerca de 3,5 vezes, perto de 1h30 só de KofMut por arquivo); o trabalho de
+testes escala com os sobreviventes (cerca de 4,2 vezes, perto de 2h30); `Game`,
+`Weapons` e `SpecialBeam` têm refatorações maiores. Total esperado: 5 a 7 horas
+em dois ou três lotes, mais o fechamento de cada um.

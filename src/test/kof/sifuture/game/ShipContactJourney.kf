@@ -1,0 +1,194 @@
+package sifuture.game
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.Item
+import sifuture.game.JourneyScenarios
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.State
+import sifuture.game.SubchiefShot
+
+test "a subchief shot whose top edge is level with the ship bottom hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var shot = givenSubchiefShotAt(110, 120)
+
+    var hit = shot.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a subchief shot whose bottom edge reaches the ship top hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var shot = givenSubchiefShotAt(110, 96)
+
+    var hit = shot.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a subchief shot one unit below the ship misses it" {
+    var ship = givenNormalShipAt(100, 100)
+    var shot = givenSubchiefShotAt(110, 121)
+
+    var hit = shot.touchesShip(ship)
+
+    assert(!hit)
+}
+
+test "an item at the ship left edge is collected" {
+    var ship = givenNormalShipAt(100, 100)
+    var item = givenItemAt(100, 110)
+
+    var collected = item.collect(ship)
+
+    assert(collected)
+}
+
+test "an item whose top edge is level with the ship bottom is collected" {
+    var ship = givenNormalShipAt(100, 100)
+    var item = givenItemAt(110, 120)
+
+    var collected = item.collect(ship)
+
+    assert(collected)
+}
+
+test "an item ten units below the ship is not collected" {
+    var ship = givenNormalShipAt(100, 100)
+    var item = givenItemAt(110, 130)
+
+    var collected = item.collect(ship)
+
+    assert(!collected)
+}
+
+test "a charged special at the ship left edge hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var special = givenChargedSpecialAt(100, 110)
+
+    var hit = special.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a charged special at the ship right edge hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var special = givenChargedSpecialAt(150, 110)
+
+    var hit = special.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a charged special whose top edge is level with the ship bottom hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var special = givenChargedSpecialAt(110, 120)
+
+    var hit = special.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a charged special whose bottom edge reaches the ship top hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var special = givenChargedSpecialAt(110, 74)
+
+    var hit = special.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a charged special whose bottom edge is level with the ship bottom hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var special = givenChargedSpecialAt(110, 94)
+
+    var hit = special.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a charged special spanning the ship with both edges outside it misses" {
+    var ship = givenNormalShipAt(100, 100)
+    var special = givenChargedSpecialAt(110, 97)
+
+    var hit = special.touchesShip(ship)
+
+    assert(!hit)
+}
+
+test "a boss shot at the ship right edge hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var shot = givenBossShotAt(150, 110)
+
+    var hit = shot.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a boss shot whose top edge is level with the ship bottom hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var shot = givenBossShotAt(110, 120)
+
+    var hit = shot.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a boss shot whose bottom edge reaches the ship top hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var shot = givenBossShotAt(110, 75)
+
+    var hit = shot.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a boss shot whose bottom edge is level with the ship bottom hits it" {
+    var ship = givenNormalShipAt(100, 100)
+    var shot = givenBossShotAt(110, 95)
+
+    var hit = shot.touchesShip(ship)
+
+    assert(hit)
+}
+
+test "a boss shot spanning the ship with both edges outside it misses" {
+    var ship = givenNormalShipAt(100, 100)
+    var shot = givenBossShotAt(110, 97)
+
+    var hit = shot.touchesShip(ship)
+
+    assert(!hit)
+}
+
+SubchiefShot givenSubchiefShotAt(Int x, Int y) {
+    var shot = SubchiefShot()
+    shot.fire(0, 0)
+    shot.x = x
+    shot.y = y
+    return shot
+}
+
+Item givenItemAt(Int x, Int y) {
+    var item = Item(ItemKind.Life)
+    item.x = x
+    item.y = y
+    return item
+}
+
+BossSpecial givenChargedSpecialAt(Int x, Int y) {
+    var special = BossSpecial()
+    special.fire(0, 0)
+    advanceSpecial(special, 18)
+    special.x = x
+    special.y = y
+    return special
+}
+
+BossShot givenBossShotAt(Int x, Int y) {
+    var shot = BossShot()
+    shot.fire(0, 0)
+    shot.x = x
+    shot.y = y
+    return shot
+}

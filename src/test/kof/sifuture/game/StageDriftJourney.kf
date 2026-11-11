@@ -1,0 +1,43 @@
+package sifuture.game
+import sifuture.game.Item
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.State
+
+test "a new meteor drifts left at meteor speed" {
+    var meteor = Meteor()
+    meteor.x = 100
+
+    meteor.advance()
+
+    assert(meteor.x == 99)
+}
+
+test "a new meteor turns to its next frame after two steps" {
+    var meteor = Meteor()
+    meteor.x = 100
+
+    meteor.advance()
+    meteor.advance()
+
+    assert(meteor.frame == 1)
+}
+
+test "an item spawned from seed 238 sits on the lowest spawn row" {
+    var item = Item(ItemKind.Evolution)
+    rng.seed(238)
+
+    item.reset()
+
+    assert(item.y == 203)
+}
+
+test "an item twenty units beyond the left edge keeps drifting" {
+    var item = Item(ItemKind.Evolution)
+    item.x = -19
+
+    item.advance()
+
+    assert(item.x == -20)
+}

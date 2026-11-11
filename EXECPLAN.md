@@ -1667,7 +1667,18 @@ a documentação que cita `kof_project.py test`.
   Saiu `complete` com exit 1 (não `incomplete`/3) porque o `kof-mut` instalado já
   traz o PR #3 (suporte a `enum`): 0 limitações. A frente do `enum` está entregue;
   R4 e R5 ainda esperam a decisão sobre a UI.
-- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).
+- [x] R5 e R4, lote 1 (11/11, branch `refactor/sensor-debt-batch-1`, sem commit):
+  `BossWeapons`, `Credits`, `Meteor`, `SubchiefShot`, `Item`, `BossSpecial`,
+  `BossShot`. 56 sobreviventes → 5, todos equivalentes com prova no aceite
+  (`Credits` 2, `Meteor` 2, `BossShot` 1); 31 testes novos em `EnemyFireJourney`,
+  `ShipContactJourney` e `StageDriftJourney`, RED observado com cada mutante
+  aplicado; 181 → 212 casos (JVM e JS, 0.7.0 e 0.6.4). R4: lint 0 nos sete
+  arquivos; CPD `BossShot` ↔ `SubchiefShot` resolvido com `ShipContact.kf`
+  (`edgeTouchesShip`), que também serve `BossSpecial` e `Item` e eliminou 4
+  equivalentes. `check` e `check:task` param em `mutation` só pelos 3
+  equivalentes da produção alterada (ponto de parada 2); jornadas 7/7 com os
+  mesmos pixels do R0. Estimativa do resto no aceite.
+- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes): faltam `Ship` ao `SpecialBeam` e a UI.
 - [ ] R5. Sobreviventes por TDD.
 - [ ] R6. Fixtures `tests/*.kf`.
 - [ ] R7. Fechamento.

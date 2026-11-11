@@ -59,20 +59,25 @@ class Meteor {
                 relocate()
             } else { reset() }
         }
-        if (collided) {
-            collisionSteps = collisionSteps + 1
-            var hitSteps = Rules.METEOR_HIT_STEPS
-            if (motion == MeteorMotion.Vertical) { hitSteps = 3 }
-            if (collisionSteps == hitSteps) { reset() }
-        } else {
-            frameSteps = frameSteps + 1
-            if (frameSteps == Rules.METEOR_FRAME_STEPS) {
-                frameSteps = 0
-                frame = frame + frameDirection
-                if (frame == Rules.METEOR_FRAMES - 1) { frameDirection = -1 }
-                if (frame == 0) { frameDirection = 1 }
-            }
-        }
+        if (collided) { advanceImpact() } else { advanceFrames() }
+    }
+
+    private advanceImpact() {
+        collisionSteps = collisionSteps + 1
+        var hitSteps = if (motion == MeteorMotion.Vertical) 3 else Rules.METEOR_HIT_STEPS
+        if (collisionSteps == hitSteps) { reset() }
+    }
+
+    private advanceFrames() {
+        frameSteps = frameSteps + 1
+        if (frameSteps == Rules.METEOR_FRAME_STEPS) { turnFrame() }
+    }
+
+    private turnFrame() {
+        frameSteps = 0
+        frame = frame + frameDirection
+        if (frame == Rules.METEOR_FRAMES - 1) { frameDirection = -1 }
+        if (frame == 0) { frameDirection = 1 }
     }
 
     impactFrame(): Int {
