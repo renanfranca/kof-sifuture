@@ -163,3 +163,19 @@ Bool noSubchiefShotActive(Game g) {
     for (var shot in g.subchief.shots) { active = active || shot.active }
     return !active
 }
+
+Ship givenNormalShipAt(Int x, Int y) {
+    var ship = Ship()
+    ship.phase = ShipPhase.Normal
+    ship.x = x
+    ship.y = y
+    return ship
+}
+
+advanceSpecial(BossSpecial special, Int steps) {
+    for (var i = 0; i < steps; i++) { special.advance() }
+}
+
+advanceShot(BossShot shot, Int steps) {
+    for (var i = 0; i < steps; i++) { shot.advance() }
+}

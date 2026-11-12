@@ -1667,7 +1667,27 @@ a documentação que cita `kof_project.py test`.
   Saiu `complete` com exit 1 (não `incomplete`/3) porque o `kof-mut` instalado já
   traz o PR #3 (suporte a `enum`): 0 limitações. A frente do `enum` está entregue;
   R4 e R5 ainda esperam a decisão sobre a UI.
-- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).
+- [x] R5 e R4, lote 1 (11/11, branch `refactor/sensor-debt-batch-1`, sem commit):
+  `BossWeapons`, `Credits`, `Meteor`, `SubchiefShot`, `Item`, `BossSpecial`,
+  `BossShot`. 56 sobreviventes → 0; a primeira passada deixou 5 equivalentes
+  (`Credits` 2, `Meteor` 2, `BossShot` 1); 31 testes novos em `EnemyFireJourney`,
+  `ShipContactJourney` e `StageDriftJourney`, RED observado com cada mutante
+  aplicado; 181 → 212 casos (JVM e JS, 0.7.0 e 0.6.4). R4: lint 0 nos sete
+  arquivos; CPD `BossShot` ↔ `SubchiefShot` resolvido com `ShipContact.kf`
+  (`edgeTouchesShip`), que também serve `BossSpecial` e `Item` e eliminou 4
+  equivalentes. Estimativa do resto no aceite.
+- [x] Lote 1, segunda passada (11/11, mesma branch, sem commit): os 5
+  equivalentes deixaram de existir por refatoração, sem supressão e sem teste
+  mudado. `Credits`: saiu a cláusula `|| secondY > -CREDITS_BLOCK_HEIGHT`
+  (`firstY + secondY` vale sempre 176) e o teto virou `math.min` (com local `Int`
+  tipada: `math.min` com `Rules.X` direto dá `SEM025` no 0.7.0 e no 0.6.4).
+  `Meteor`: `touchesShip(Int, Int)` com a mesma assinatura delega ao
+  `ShipContact` (`withinShipWidth`, `edgesWithinShipHeight`, com `Int`;
+  `edgeTouchesShip(..., Ship)` mantido para não passar de 4 parâmetros).
+  `BossShot`: saiu `&& animationSteps < 5`. KofMut nos 4 arquivos: 64/64 mortos.
+  `check` e `check:task` PASS, com `mutation` 141/141; jornadas 7/7 com os mesmos
+  pixels do R0; 212 casos em JVM e JS, no 0.7.0 e no 0.6.4.
+- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes): faltam `Ship` ao `SpecialBeam` e a UI.
 - [ ] R5. Sobreviventes por TDD.
 - [ ] R6. Fixtures `tests/*.kf`.
 - [ ] R7. Fechamento.

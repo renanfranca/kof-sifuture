@@ -1,4 +1,5 @@
 package sifuture.game
+import sifuture.game.ShipContact
 
 class SubchiefShot {
     Int x = 0
@@ -14,10 +15,7 @@ class SubchiefShot {
     }
 
     touchesShip(Ship ship): Bool {
-        return active && ship.phase == ShipPhase.Normal && x >= ship.x &&
-            x <= ship.x + Rules.SHIP_WIDTH &&
-            ((y >= ship.y && y <= ship.y + Rules.SHIP_HEIGHT) ||
-             (y + 4 >= ship.y && y + 4 <= ship.y + Rules.SHIP_HEIGHT))
+        return active && ship.phase == ShipPhase.Normal && edgeTouchesShip(x, y, 4, ship)
     }
 
     advance() {

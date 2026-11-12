@@ -1,4 +1,5 @@
 package sifuture.game
+import sifuture.game.ShipContact
 
 class BossShot {
     Int x = 0
@@ -25,14 +26,12 @@ class BossShot {
     }
 
     touchesShip(Ship ship): Bool {
-        return active && ship.phase == ShipPhase.Normal && x >= ship.x && x <= ship.x + Rules.SHIP_WIDTH &&
-            ((y >= ship.y && y <= ship.y + Rules.SHIP_HEIGHT) ||
-             (y + 25 >= ship.y && y + 25 <= ship.y + Rules.SHIP_HEIGHT))
+        return active && ship.phase == ShipPhase.Normal && edgeTouchesShip(x, y, 25, ship)
     }
 
     advance() {
         if (!active) { return }
-        if (animated && animationSteps < 5) { animationSteps = animationSteps + 1 }
+        if (animated) { animationSteps = animationSteps + 1 }
         x = x - 4
         if (x < -40) { active = false; animationSteps = 0 }
     }

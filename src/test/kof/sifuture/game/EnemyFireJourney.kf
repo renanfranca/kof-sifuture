@@ -1,0 +1,113 @@
+package sifuture.game
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.JourneyScenarios
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.State
+import sifuture.game.SubchiefShot
+
+test "a new boss arsenal at its third level does not open with the special" {
+    var weapons = givenBossArsenalAtLevel(3)
+
+    weapons.attemptFire(120, 100)
+
+    assert(!weapons.special.active)
+}
+
+test "a new subchief shot cannot hit the ship" {
+    var ship = givenNormalShipAt(0, 0)
+
+    var shot = SubchiefShot()
+
+    assert(!shot.touchesShip(ship))
+}
+
+test "a subchief shot stays in flight until it passes thirty units beyond the left edge" {
+    var shot = SubchiefShot()
+    shot.fire(-19, 50)
+
+    shot.advance()
+    var activeAtBound = shot.active
+    shot.advance()
+
+    assert(activeAtBound)
+    assert(!shot.active)
+}
+
+test "a new boss special fires from below the boss" {
+    var special = BossSpecial()
+
+    special.fire(100, 50)
+
+    assert(special.x == 97)
+    assert(special.y == 88)
+}
+
+test "a boss special stays in flight until it passes forty-eight units beyond the left edge" {
+    var special = BossSpecial()
+    special.fire(5, 50)
+
+    advanceSpecial(special, 23)
+    var activeAtBound = special.active
+    special.advance()
+
+    assert(activeAtBound)
+    assert(!special.active)
+}
+
+test "a new boss shot cannot hit the ship" {
+    var ship = givenNormalShipAt(0, 0)
+
+    var shot = BossShot()
+
+    assert(!shot.touchesShip(ship))
+}
+
+test "a boss shot fired before the boss evolves keeps its first sprite" {
+    var shot = BossShot()
+    shot.fire(100, 50)
+
+    advanceShot(shot, 5)
+
+    assert(shot.spriteFrame() == 0)
+}
+
+test "an evolved boss shot shows its second sprite after three steps" {
+    var shot = givenBossArsenalAtLevel(1).shots[0]
+    shot.fire(100, 50)
+
+    advanceShot(shot, 3)
+
+    assert(shot.spriteFrame() == 1)
+}
+
+test "a boss shot already in flight animates from its first sprite once the boss evolves" {
+    var weapons = BossWeapons()
+    var shot = weapons.shots[0]
+    shot.fire(100, 50)
+    advanceShot(shot, 4)
+
+    weapons.evolve()
+
+    assert(shot.spriteFrame() == 0)
+}
+
+test "a boss shot stays in flight until it passes forty units beyond the left edge" {
+    var shot = BossShot()
+    shot.fire(10, 50)
+
+    advanceShot(shot, 10)
+    var activeAtBound = shot.active
+    shot.advance()
+
+    assert(activeAtBound)
+    assert(!shot.active)
+}
+
+givenBossArsenalAtLevel(Int level): BossWeapons {
+    var weapons = BossWeapons()
+    for (var i = 0; i < level; i++) { weapons.evolve() }
+    return weapons
+}

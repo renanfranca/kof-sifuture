@@ -1,4 +1,5 @@
 package sifuture.game
+import sifuture.game.ShipContact
 
 class BossSpecial {
     Int x = 0
@@ -21,9 +22,7 @@ class BossSpecial {
     frame(): Int { return preparationSteps / 3 }
 
     touchesShip(Ship ship): Bool {
-        return active && ship.phase == ShipPhase.Normal && frame() == 6 && x >= ship.x && x <= ship.x + Rules.SHIP_WIDTH &&
-            ((y >= ship.y && y <= ship.y + Rules.SHIP_HEIGHT) ||
-             (y + 26 >= ship.y && y + 26 <= ship.y + Rules.SHIP_HEIGHT))
+        return active && ship.phase == ShipPhase.Normal && frame() == 6 && edgeTouchesShip(x, y, 26, ship)
     }
 
     advance() {
