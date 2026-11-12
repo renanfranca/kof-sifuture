@@ -649,7 +649,7 @@ de asserção, sem o de compilação.
 ## R5 e R4, lote 1: arquivos pequenos (11/11)
 
 Branch `refactor/sensor-debt-batch-1`, a partir de `2c2e532`; validado na árvore
-de trabalho, sem commit. Handoff:
+de trabalho antes do commit e entregue pelo PR #28 (`eb73913`). Handoff:
 `2026-11-10_sensor-debt-r4-r5-batch-1.md`. Ordem: `BossWeapons`, `Credits`,
 `Meteor`, `SubchiefShot`, `Item`, `BossSpecial`, `BossShot`. Kof 0.7.0.
 
@@ -879,3 +879,216 @@ candidatos (cerca de 3,5 vezes, perto de 1h30 só de KofMut por arquivo); o trab
 testes escala com os sobreviventes (cerca de 4,2 vezes, perto de 2h30); `Game`,
 `Weapons` e `SpecialBeam` têm refatorações maiores. Total esperado: 5 a 7 horas
 em dois ou três lotes, mais o fechamento de cada um.
+
+## R5 e R4, lote 2: `Shot`, `Blaster`, `Ship` e `SpecialBeam` (12/11)
+
+Branch `refactor/sensor-debt-batch-2`, a partir de `eb73913`. Plano:
+`.agent/execplans/sensor-debt-batch-2.md`. Kof 0.7.0, com 0.6.4 onde indicado.
+Evidência em `.agent/tmp/debt-batch2/`.
+
+### M0. Linha de base
+
+`kof-mut run --files mut-scope.json` só nos quatro arquivos, das 10:10 às 10:45
+(load 9,3 em 32 núcleos): `complete`, 0 limitações, **244 candidatos, 142 mortos,
+102 sobreviventes**, 0 timeout, exit 1, 2090 s. Os 102 `id`s são os mesmos do A1
+de 09/11: os testes do lote 1 não mataram nenhum deles.
+
+| Arquivo | Candidatos | Sobreviventes no A1 | Sobreviventes no M0 |
+| --- | --- | --- | --- |
+| `Shot` | 48 | 17 | 17 |
+| `Blaster` | 40 | 17 | 17 |
+| `Ship` | 55 | 16 | 16 |
+| `SpecialBeam` | 101 | 52 | 52 |
+
+### Método
+
+O mesmo do lote 1, automatizado: `tools/redcheck.py` copia o projeto, aplica
+**um** sobrevivente do M0 (linha, coluna, original e substituto), roda a suíte
+inteira na JVM, guarda os testes que falharam e descarta a cópia. Os testes foram
+escritos numa cópia do projeto enquanto o M0 rodava e só vieram para o
+repositório depois dele, para não mexer na linha de base. Saídas:
+`red-m1.txt` (`Shot` e `Blaster`), `red-m2.txt` (`Ship`) e `red-m3.txt`
+(`SpecialBeam`).
+
+Resultado: dos 102 sobreviventes, **79** fazem falhar só testes novos, sempre
+por asserção, e nenhum teste antigo falhou. Os outros **23** não fazem nenhum
+teste falhar; são os equivalentes da seção seguinte, todos previstos pela leitura
+do código antes do RED.
+
+### Testes novos e o mutante que cada um mata
+
+55 testes em três arquivos novos por assunto: `PlayerFireJourney.kf` (voo e
+acerto do laser e do blaster), `ShipMotionJourney.kf` (nave parada, fim do
+reinício, direção depois do renascimento) e `SpecialBeamJourney.kf` (ciclo do
+raio especial e alcance contra meteoro, subchefe e chefe). `givenMeteorAt` foi
+para o `JourneyScenarios.kf`, porque dois arquivos o usam. Posições do M0.
+
+| Mutante (M0) | Teste(s) que falharam com o mutante |
+| --- | --- |
+| `Blaster` `9:19` `false → true` | a new blaster fires from the ship position; a blaster hits a meteor level with its rear; a blaster hits a meteor level with its front; a blaster hits a meteor whose top is level with the blaster bottom; a blaster hits a meteor whose bottom touches the blaster top |
+| `Blaster` `27:25` `< → <=` | a blaster shows its second sprite after two steps of flight |
+| `Blaster` `28:25` `> → >=` | a blaster shows its fourth sprite after four steps of flight |
+| `Blaster` `29:28` `- → +` | a blaster shows its second sprite after two steps of flight; a blaster shows its fourth sprite after four steps of flight |
+| `Blaster` `33:43` `>= → >` | a blaster hits a meteor level with its rear |
+| `Blaster` `33:55` `<= → <` | a blaster hits a meteor level with its front |
+| `Blaster` `34:31` `<= → <` | a blaster hits a meteor whose top is level with the blaster bottom |
+| `Blaster` `35:19` `+ → -`, `35:41` `>= → >`, `35:80` `+ → -` | a blaster hits a meteor whose bottom touches the blaster top |
+| `Blaster` `35:53` `+ → -` | a blaster misses a meteor below it |
+| `Blaster` `43:43` `+ → -` | a blaster slows down during its fourth step of flight |
+| `Blaster` `45:39` `+ → -` | a blaster shows its second sprite after two steps of flight; a blaster shows its fourth sprite after four steps of flight; a blaster slows down during its fourth step of flight |
+| `Blaster` `46:19` `> → >=` | a blaster stays in flight when it reaches the right edge of the world |
+| `Shot` `8:19` `false → true`, `21:43` `- → +` | a new laser shot fires from the middle of the ship nose |
+| `Shot` `36:19` `> → >=` | a laser shot stays in flight when it reaches the right edge of the world |
+| `Shot` `47:20` `+ → -`, `47:79` `+ → -`, `48:39` `+ → -` | a laser shot whose front enters the lower half of a meteor hits it; a laser shot whose front touches the meteor left edge low on it hits it; a laser shot whose front touches the meteor right edge low on it hits it; a laser shot whose top edge is level with the meteor bottom hits it |
+| `Shot` `47:40` `>= → >` | a laser shot whose front touches the meteor left edge low on it hits it |
+| `Shot` `47:72` `<= → <` | a laser shot whose front touches the meteor right edge low on it hits it |
+| `Shot` `48:32` `<= → <` | a laser shot whose top edge is level with the meteor bottom hits it |
+| `Shot` `49:40` `>= → >` | a laser shot whose front touches the meteor left edge high on it hits it |
+| `Shot` `49:52` `<= → <` | a laser shot whose tail touches the meteor right edge high on it hits it; a laser shot past the meteor whose bottom edge is level with its middle hits it |
+| `Shot` `50:41` `>= → >` | a laser shot whose bottom edge touches the meteor top hits it |
+| `Shot` `50:74` `<= → <` | a laser shot past the meteor whose bottom edge is level with its middle hits it |
+| `Ship` `10:17` `false → true`, `11:18` `false → true`, `12:15` `false → true`, `13:17` `false → true` | a new ship holds still until a direction is pressed |
+| `Ship` `16:23` `false → true` | a new ship that finishes its restart on the result screen faces forward |
+| `Ship` `58:30` `false → true` | a ship destroyed while facing right respawns facing forward |
+| `Ship` `65:30` `false → true` | a ship finishing its restart while pressing right faces forward on that step |
+| `Ship` `74:24` `&& → \|\|` | a ship finishing its restart while pressing right faces forward on that step; a ship destroyed while facing right respawns facing forward |
+| `Ship` `87:26` `== → !=`, `88:41` `+ → -` | a restarting ship becomes normal on its forty-fifth result step; a ship destroyed while facing right respawns facing forward |
+| `Ship` `89:30` `== → !=` | a restarting ship stays in restart for forty-four result steps |
+| `SpecialBeam` `11:19` `false → true` | a new special beam stays put until it is fired |
+| `SpecialBeam` `41:53` `- → +` | a special beam hit by a meteor flashes for three steps |
+| `SpecialBeam` `42:19` `> → >=` | a special beam stays in flight when it reaches the right edge of the world |
+| `SpecialBeam` `47:32` `> → >=` | a special beam destroyed by meteors no longer hits them |
+| `SpecialBeam` `47:43` `>= → >` | a special beam hits a meteor level with its rear |
+| `SpecialBeam` `47:55` `<= → <` | a special beam hits a meteor level with its front |
+| `SpecialBeam` `48:31` `<= → <` | a special beam hits a meteor whose top is level with the beam bottom |
+| `SpecialBeam` `48:36` `+ → -` | a special beam hits a meteor whose top is level with the beam bottom; a special beam hits a meteor in the lower half of the beam |
+| `SpecialBeam` `48:42` `\|\| → &&` | a special beam hits a meteor whose top is level with the beam bottom; a special beam hits a meteor in the lower half of the beam; a special beam hits a meteor overlapping the beam top; a special beam hits a meteor whose bottom touches the beam top |
+| `SpecialBeam` `49:19` `+ → -`, `49:80` `+ → -` | a special beam hits a meteor overlapping the beam top; a special beam hits a meteor whose bottom touches the beam top |
+| `SpecialBeam` `49:41` `>= → >` | a special beam hits a meteor whose bottom touches the beam top |
+| `SpecialBeam` `49:53` `+ → -` | a special beam misses a meteor below it |
+| `SpecialBeam` `54:21` `>= → >` | a special beam reaches a subchief level with its rear |
+| `SpecialBeam` `54:26` `&& → \|\|`, `54:48` `&& → \|\|`, `60:16` `false → true` | a special beam does not reach a subchief beyond its front; a special beam does not reach a subchief below it |
+| `SpecialBeam` `54:37` `<= → <` | a special beam reaches a subchief level with its front |
+| `SpecialBeam` `55:28` `&& → \|\|`, `56:33` `&& → \|\|`, `56:44` `+ → -` | a special beam does not reach a subchief below it |
+| `SpecialBeam` `55:39` `<= → <` | a special beam reaches a subchief whose top is level with the beam bottom |
+| `SpecialBeam` `55:44` `+ → -` | a special beam reaches a subchief level with its rear; a special beam reaches a subchief level with its front; a special beam reaches a subchief whose top is level with the beam bottom; a special beam reaches a subchief in the lower half of the beam |
+| `SpecialBeam` `55:50` `\|\| → &&` | a special beam reaches a subchief level with its rear; a special beam reaches a subchief level with its front; a special beam reaches a subchief whose top is level with the beam bottom; a special beam reaches a subchief in the lower half of the beam; a special beam reaches a subchief overlapping the beam top; a special beam reaches a subchief whose bottom touches the beam top |
+| `SpecialBeam` `56:23` `+ → -`, `56:54` `+ → -` | a special beam reaches a subchief overlapping the beam top; a special beam reaches a subchief whose bottom touches the beam top |
+| `SpecialBeam` `56:28` `>= → >` | a special beam reaches a subchief whose bottom touches the beam top |
+| `SpecialBeam` `65:20` `>= → >` | a special beam reaches a boss level with its rear |
+| `SpecialBeam` `65:35` `<= → <` | a special beam reaches a boss level with its front |
+| `SpecialBeam` `66:27` `&& → \|\|`, `67:32` `&& → \|\|`, `68:32` `&& → \|\|` | a special beam does not reach a boss below it; a special beam does not reach a boss above it |
+| `SpecialBeam` `66:37` `<= → <` | a special beam reaches a boss whose top is level with the beam bottom |
+| `SpecialBeam` `66:42` `+ → -` | a special beam reaches a boss level with its rear; a special beam reaches a boss level with its front; a special beam reaches a boss whose top is level with the beam bottom; a special beam reaches a boss in the lower half of the beam |
+| `SpecialBeam` `66:48` `\|\| → &&` | a special beam reaches a boss level with its rear; a special beam reaches a boss level with its front; a special beam reaches a boss whose top is level with the beam bottom; a special beam reaches a boss in the lower half of the beam; a special beam reaches a boss whose bottom overlaps the beam; a special beam reaches a boss whose bottom touches the beam top |
+| `SpecialBeam` `67:22` `+ → -`, `67:52` `+ → -` | a special beam reaches a boss whose bottom overlaps the beam; a special beam reaches a boss whose bottom touches the beam top |
+| `SpecialBeam` `67:27` `>= → >` | a special beam reaches a boss whose bottom touches the beam top |
+| `SpecialBeam` `67:42` `+ → -`, `68:42` `+ → -` | a special beam does not reach a boss below it |
+| `SpecialBeam` `83:22` `> → >=` | a fired special beam shows its first frame; a special beam hit by a meteor flashes for three steps |
+
+Testes de valor inicial usam um objeto recém construído, como no lote 1. Os
+`Bool` iniciais do `Ship` (`left`, `right`, `up`, `down`, `rightFrame`) **não**
+eram equivalentes: um `Ship()` novo anda com eles, e o `advanceVisual()` (tela de
+resultado) termina o reinício sem zerar `rightFrame`, então a nave que reinicia
+ali mostra a direção guardada.
+
+### Equivalentes eliminados por refatoração
+
+Os 23 equivalentes tinham uma refatoração que preserva o comportamento e tira o
+operador. Nenhum foi suprimido nem anotado, e nenhum teste mudou de expectativa.
+Cada refatoração entrou sozinha, com a suíte verde na JVM e no JS antes da
+próxima. As regras de acerto reescritas foram comparadas com as originais ponto a
+ponto numa grade de coordenadas (Python, mesma fórmula): 0 diferenças para o
+`Shot`, o `Blaster` e as três chamadas do `SpecialBeam`.
+
+| Equivalente (M0) | Por que era equivalente | Refatoração |
+| --- | --- | --- |
+| `Shot 7:21` `animated = false`, `9:19` `impact = false`, `15:20` `animated = false` no `reset()` | `fire()` sobrescrevia os dois campos, e o `GameView` só os lê com o tiro ativo | `fire()` chama `reset()`; os campos perderam o valor inicial e o construtor chama `reset()`. O `reset()` agora decide o estado do tiro disparado, e os testes de voo matam os seus literais |
+| `Shot 48:20` `y >= m.y` → `>` | na borda `y == m.y` a segunda cláusula (borda de baixo) já acerta com a faixa horizontal mais larga | `hitsMeteor` virou `overlaps(m) && (frontInside \|\| bottomInside)`: os retângulos se cruzam e a frente ou a borda de baixo ainda está dentro do meteoro (mesma região) |
+| `Blaster 34:19` `m.y >= y` → `>` e `35:75` `m.y + METEOR_HEIGHT <= y + 21` → `<` | as duas faixas de borda se juntam num intervalo só, `[y − 18, y + 21]` | `m.y + Rules.METEOR_HEIGHT >= y && m.y <= y + 21` |
+| `Blaster 50:43` `x = x + 4` → `x - 4` | o passo que move 4 é o mesmo que chama `reset()`; o blaster some antes de ser desenhado ou de colidir | linha removida |
+| `Ship 25:22` `rightFrame = false` no `reset()` | o `clearInput()` chamado logo depois faz o mesmo | linha removida |
+| `Ship 77:15`, `78:15`, `79:15`, `80:15` (limites da tela) | na borda, `if (x < 0) { x = 0 }` e `x <= 0` dão o mesmo `x` | `math.clamp(x, 0, rightBound)` e `math.clamp(y, top, bottom)`, com locais `Int` tipadas (o desvio `SEM025` do lote 1) |
+| `SpecialBeam 38:30` `contactSteps > 0` → `>=` e `41:26` `hitSteps > 0` → `>=` | negativo e zero são lidos igual em todo lugar (`> 0`) | `math.max(contactSteps - 1, 0)` e `math.max(hitSteps - 1, 0)` |
+| `SpecialBeam 48:19`, `49:75` (meteoro), `55:23`, `56:49` (subchefe), `66:22`, `67:47`, `68:27`, `68:47` (chefe) | "alguma borda do alvo dentro de `[y, y + 32]`" dá o mesmo que o cruzamento de intervalos, porque as faixas das bordas se encostam (no chefe, a borda do meio fecha o buraco entre o topo e a base) | uma regra só, `reaches(left, top, height)`: `left >= x && left <= x + 319 && top + height >= y && top <= y + 32`; `beginsContact` guarda a regra de contato comum ao subchefe e ao chefe |
+| `SpecialBeam 78:19` `lives <= 0` → `<` no `hit()` | `deathSteps` vale sempre 0 enquanto o raio está vivo | `deathSteps = 0` sem condição |
+
+O `ShipContact.kf` não mudou: a regra dele é de bordas e vale para formas mais
+altas que a nave (o tiro do chefe e o especial do chefe passam por cima sem
+acertar), ao contrário da regra do raio.
+
+Detalhe do `Ship`: no passo de explosão o `advance()` não chama mais o
+`keepInBounds()`. A nave explodindo não se move, e a posição já veio limitada do
+passo anterior ou do renascimento (`x = 5`, `y = 100`). Manter a chamada só
+criaria equivalentes novos.
+
+### R4 (lint)
+
+| Arquivo | Antes | Refatoração | Depois |
+| --- | --- | --- | --- |
+| `Blaster` | `too-many-statements` em `advance` | `advanceFlight()` e `advanceImpact()` | 0 |
+| `Ship` | 4 achados em `advance` | `advanceExplosion()`, `loseLife()`, `advanceRestart()`, `steer()`, `keepInBounds()` e `movingLeft/Right/Up/Down()`; `movingRight()` serve ao movimento e à direção do sprite | 0 |
+| `SpecialBeam` | `high-complexity` em `beginsBossContact` | `reaches()` e `beginsContact()` | 0 |
+| `Shot` | 0 | `overlaps()` | 0 |
+
+`SpecialBeamJourney.kf` deu `looping-test` na primeira versão (um `for` no corpo
+do teste); o laço foi para `hitBeam(beam, times)`.
+
+### Sobreviventes por arquivo
+
+| Arquivo | M0 | Depois | Mortos por teste novo | Equivalentes eliminados |
+| --- | --- | --- | --- | --- |
+| `Shot` | 17 (48 candidatos) | 0 (38/38) | 13 | 4 |
+| `Blaster` | 17 (40) | 0 (32/32) | 14 | 3 |
+| `Ship` | 16 (55) | 0 (46/46) | 11 | 5 |
+| `SpecialBeam` | 52 (101) | 0 (48/48) | 41 | 11 |
+| **Total** | **102 (244)** | **0 (164/164)** | **79** | **23** |
+
+Os `id`s do KofMut são `arquivo:offset:substituto`, e as refatorações mudam os
+offsets: comparando M0 e A1 pelo `id` exato, 207 saíram, 127 são novos e 37
+ficaram iguais.
+
+### Critérios de aceite
+
+| # | Comando | Observado | Evidência |
+| --- | --- | --- | --- |
+| A1 | `kof-mut run --files mut-scope.json --report-dir .agent/tmp/debt-batch2/a1` | `complete`, 0 limitações, 164 candidatos, 164 mortos, 0 sobreviventes, 0 timeout, exit 0, 1091 s (10:53 a 11:12, load 22 no início por causa das jornadas) | `a1-report.json`, `a1.log` |
+| A2 | `tools/redcheck.py` com cada sobrevivente do M0 | 79 mutantes, cada um derrubando só testes novos, sempre por asserção | `red-m1.txt`, `red-m2.txt`, `red-m3.txt`; tabela acima |
+| A3 | leitura do código, RED e KofMut final | 23 equivalentes, todos eliminados por refatoração; nenhum anotado | seção de equivalentes |
+| A4 | `npm run lint:sensor --` nos quatro arquivos, nos três testes novos e no `JourneyScenarios.kf` | `PASS (0 findings)`; `dup:sensor` `PASS (0 findings)`, `4 files expected, 4 tokenized` | rodado no repositório |
+| A5 | `git diff --name-only main -- src/main` | só `Blaster.kf`, `Ship.kf`, `Shot.kf` e `SpecialBeam.kf` | rodado no repositório |
+| A6 | `node scripts/kof-tests.mjs --target jvm` e `--target js`, com 0.7.0 e com `KOF=…/kof-0.6.4…/bin/kof` | `0 failed of 267 tests` nos quatro (eram 212); check de tipos JVM e JS no 0.6.4 OK | rodado no repositório |
+| A7 | `debt-tools/journeys.sh` e `debt-tools/pixels.py` contra `debt-r0/journeys-1/png` | 7/7 exit 0, 186 PNG; `common=186 only_a=0 only_b=0 pixel_diff=0` | `journeys/summary.txt`, `pixels.out` |
+| A8 | validação final do plano | ver "Fechamento do lote" | `final/` |
+
+### Fechamento do lote
+
+Validação final do plano, nesta ordem, de 11:13 a 11:52 (evidência em
+`.agent/tmp/debt-batch2/final/`):
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | exit 0, 15 testes OK |
+| `npm run test:sensors` | exit 0, 39 pass, 0 fail |
+| `npm run check` | `CHECK: PASS`, 11 passos PASS; `mutation` PASS (não SKIP): 164 candidatos, 164 mortos, 0 sobreviventes nos quatro arquivos; 1022 s |
+| `npm run check:task` | `CHECK:TASK: PASS`, `mutation` (164/164) e as sete jornadas PASS; 1279 s |
+| `git diff --check` | exit 0 |
+
+Esta seção entrou depois da validação (só texto); `npm run docs:sensor` e
+`git diff --check` rodaram de novo sobre ela.
+
+### Tempo
+
+M0 de 10:10 a 10:45 (35 min). Análise dos sobreviventes, testes, RED automatizado
+e R4 numa cópia do projeto, de 10:10 a 10:50, em paralelo ao M0. Pré-checagem do
+KofMut na cópia (164/164, 24 min) junto com as jornadas (cerca de 5 min); A1 no
+repositório de 10:53 a 11:12.
+
+Estimativa para o lote 3 (`Subchief` 18, `Boss` 30 e `Weapons` 42 sobreviventes
+no A1) e o lote 4 (`Game`, 42): este lote pagou 102 sobreviventes em cerca de
+1h05 até o A1, porque a maior parte dos equivalentes vinha de uma regra
+geométrica repetida. O `Weapons` tem a mesma regra de bordas para laser e blaster
+contra subchefe e chefe (`hitSubchiefLaser`, `hitBossLaser`, `hitSubchiefBlaster`,
+`hitBossBlaster`), então a refatoração tende a seguir o `reaches()` daqui. Lote 3:
+cerca de 1h30 mais o fechamento (cerca de 45 min). Lote 4 (`Game`, com
+`step()` grande): 2h a 3h, porque o R4 domina.

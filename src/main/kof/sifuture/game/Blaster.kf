@@ -31,25 +31,28 @@ class Blaster {
 
     hitsMeteor(Meteor m): Bool {
         return active && lives > 0 && m.x >= x && m.x <= x + 68 &&
-            ((m.y >= y && m.y <= y + 21) ||
-             (m.y + Rules.METEOR_HEIGHT >= y && m.y + Rules.METEOR_HEIGHT <= y + 21))
+            m.y + Rules.METEOR_HEIGHT >= y && m.y <= y + 21
     }
 
     hit() { lives = lives - 1 }
 
     advance() {
         if (!active) { return }
-        if (lives > 0) {
-            if (flightSteps == 3) { x = x + 3 }
-            else { x = x + 5 }
-            flightSteps = flightSteps + 1
-            if (x > Rules.WORLD_WIDTH) { reset() }
-        } else {
-            if (impactSteps < 2) { x = x + 2 }
-            if (impactSteps == 2) { x = x + 3 }
-            if (impactSteps == 3) { x = x + 4 }
-            impactSteps = impactSteps + 1
-            if (impactSteps == 4) { reset() }
-        }
+        if (lives > 0) { advanceFlight() }
+        else { advanceImpact() }
+    }
+
+    advanceFlight() {
+        if (flightSteps == 3) { x = x + 3 }
+        else { x = x + 5 }
+        flightSteps = flightSteps + 1
+        if (x > Rules.WORLD_WIDTH) { reset() }
+    }
+
+    advanceImpact() {
+        if (impactSteps < 2) { x = x + 2 }
+        if (impactSteps == 2) { x = x + 3 }
+        impactSteps = impactSteps + 1
+        if (impactSteps == 4) { reset() }
     }
 }

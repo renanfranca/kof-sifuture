@@ -3,10 +3,12 @@ package sifuture.game
 class Shot {
     Int x = 0
     Int y = 0
-    Int flightSteps = 0
-    Bool animated = false
-    Bool active = false
-    Bool impact = false
+    Int flightSteps
+    Bool animated
+    Bool active
+    Bool impact
+
+    public constructor() { reset() }
 
     reset() {
         active = false
@@ -17,12 +19,10 @@ class Shot {
 
     fire(Int shipX, Int shipY) {
         if (active) { return }
+        reset()
         x = shipX + Rules.LASER_WIDTH / 2
         y = shipY + Rules.SHIP_HEIGHT / 2 - 2
         active = true
-        impact = false
-        animated = false
-        flightSteps = 0
     }
 
     advance() {
@@ -44,10 +44,14 @@ class Shot {
     }
 
     hitsMeteor(Meteor m): Bool {
-        return ((x + Rules.LASER_WIDTH >= m.x && x + Rules.LASER_WIDTH <= m.x + Rules.METEOR_WIDTH) &&
-                (y >= m.y && y <= m.y + Rules.METEOR_HEIGHT)) ||
-               ((x + Rules.LASER_WIDTH >= m.x && x <= m.x + Rules.METEOR_WIDTH) &&
-                (y + Rules.LASER_HEIGHT >= m.y && y + Rules.LASER_HEIGHT <= m.y + Rules.METEOR_HEIGHT))
+        Bool frontInside = x + Rules.LASER_WIDTH <= m.x + Rules.METEOR_WIDTH
+        Bool bottomInside = y + Rules.LASER_HEIGHT <= m.y + Rules.METEOR_HEIGHT
+        return overlaps(m) && (frontInside || bottomInside)
+    }
+
+    overlaps(Meteor m): Bool {
+        return x + Rules.LASER_WIDTH >= m.x && x <= m.x + Rules.METEOR_WIDTH &&
+               y + Rules.LASER_HEIGHT >= m.y && y <= m.y + Rules.METEOR_HEIGHT
     }
 
     impactAt(Meteor m) {
