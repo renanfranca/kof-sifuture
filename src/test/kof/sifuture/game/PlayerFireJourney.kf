@@ -1,0 +1,203 @@
+package sifuture.game
+import sifuture.game.Blaster
+import sifuture.game.JourneyScenarios
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.State
+
+test "a new laser shot fires from the middle of the ship nose" {
+    var shot = Shot()
+
+    shot.fire(40, 100)
+
+    assert(shot.x == 55)
+    assert(shot.y == 108)
+}
+
+test "a laser shot stays in flight when it reaches the right edge of the world" {
+    var shot = givenLaserShotAt(171, 100)
+
+    shot.advance()
+
+    assert(shot.active)
+}
+
+test "a laser shot whose front enters the lower half of a meteor hits it" {
+    var meteor = givenMeteorAt(100, 100)
+    var shot = givenLaserShotAt(80, 110)
+
+    var hit = shot.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a laser shot whose front touches the meteor left edge low on it hits it" {
+    var meteor = givenMeteorAt(100, 100)
+    var shot = givenLaserShotAt(70, 110)
+
+    var hit = shot.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a laser shot whose front touches the meteor right edge low on it hits it" {
+    var meteor = givenMeteorAt(100, 100)
+    var shot = givenLaserShotAt(90, 110)
+
+    var hit = shot.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a laser shot whose top edge is level with the meteor bottom hits it" {
+    var meteor = givenMeteorAt(100, 100)
+    var shot = givenLaserShotAt(80, 118)
+
+    var hit = shot.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a laser shot whose front touches the meteor left edge high on it hits it" {
+    var meteor = givenMeteorAt(100, 100)
+    var shot = givenLaserShotAt(70, 90)
+
+    var hit = shot.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a laser shot whose tail touches the meteor right edge high on it hits it" {
+    var meteor = givenMeteorAt(100, 100)
+    var shot = givenLaserShotAt(120, 90)
+
+    var hit = shot.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a laser shot whose bottom edge touches the meteor top hits it" {
+    var meteor = givenMeteorAt(100, 100)
+    var shot = givenLaserShotAt(80, 88)
+
+    var hit = shot.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a laser shot past the meteor whose bottom edge is level with its middle hits it" {
+    var meteor = givenMeteorAt(100, 100)
+    var shot = givenLaserShotAt(120, 106)
+
+    var hit = shot.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a new blaster fires from the ship position" {
+    var ship = givenNormalShipAt(40, 100)
+    var blaster = Blaster()
+
+    blaster.fire(ship)
+
+    assert(blaster.x == 40)
+}
+
+test "a blaster shows its second sprite after two steps of flight" {
+    var blaster = givenBlasterFiredFrom(0, 100)
+
+    advanceBlaster(blaster, 2)
+
+    assert(blaster.spriteFrame() == 1)
+}
+
+test "a blaster shows its fourth sprite after four steps of flight" {
+    var blaster = givenBlasterFiredFrom(0, 100)
+
+    advanceBlaster(blaster, 4)
+
+    assert(blaster.spriteFrame() == 3)
+}
+
+test "a blaster slows down during its fourth step of flight" {
+    var blaster = givenBlasterFiredFrom(0, 100)
+
+    advanceBlaster(blaster, 4)
+
+    assert(blaster.x == 18)
+}
+
+test "a blaster stays in flight when it reaches the right edge of the world" {
+    var blaster = givenBlasterFiredFrom(0, 100)
+    advanceBlaster(blaster, 4)
+    blaster.x = 171
+
+    blaster.advance()
+
+    assert(blaster.active)
+}
+
+test "a blaster hits a meteor level with its rear" {
+    var blaster = givenBlasterFiredFrom(100, 100)
+    var meteor = givenMeteorAt(100, 110)
+
+    var hit = blaster.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a blaster hits a meteor level with its front" {
+    var blaster = givenBlasterFiredFrom(100, 100)
+    var meteor = givenMeteorAt(168, 110)
+
+    var hit = blaster.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a blaster hits a meteor whose top is level with the blaster bottom" {
+    var blaster = givenBlasterFiredFrom(100, 100)
+    var meteor = givenMeteorAt(130, 121)
+
+    var hit = blaster.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a blaster hits a meteor whose bottom touches the blaster top" {
+    var blaster = givenBlasterFiredFrom(100, 100)
+    var meteor = givenMeteorAt(130, 82)
+
+    var hit = blaster.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a blaster misses a meteor below it" {
+    var blaster = givenBlasterFiredFrom(100, 100)
+    var meteor = givenMeteorAt(130, 130)
+
+    var hit = blaster.hitsMeteor(meteor)
+
+    assert(!hit)
+}
+
+Shot givenLaserShotAt(Int x, Int y) {
+    var shot = Shot()
+    shot.fire(0, 0)
+    shot.x = x
+    shot.y = y
+    return shot
+}
+
+Blaster givenBlasterFiredFrom(Int x, Int y) {
+    var blaster = Blaster()
+    blaster.fire(givenNormalShipAt(x, y))
+    return blaster
+}
+
+advanceBlaster(Blaster blaster, Int steps) {
+    for (var i = 0; i < steps; i++) { blaster.advance() }
+}

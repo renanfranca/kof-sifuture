@@ -22,7 +22,6 @@ class Ship {
         phase = ShipPhase.Restart
         restartFrame = 0
         explosionSteps = 0
-        rightFrame = false
         clearInput()
     }
 
@@ -44,40 +43,66 @@ class Ship {
     }
 
     advance() {
-        var exploding = phase == ShipPhase.Explosion
+        if (phase == ShipPhase.Explosion) { advanceExplosion(); return }
         var restarting = phase == ShipPhase.Restart
-        if (exploding) {
-            explosionSteps = explosionSteps + 1
-            if (explosionSteps == Rules.SHIP_EXPLOSION_STEPS) {
-                lives = lives - 1
-                if (lives == 0) { phase = ShipPhase.Hidden; return }
-                phase = ShipPhase.Restart
-                restartFrame = 0
-                x = Rules.SHIP_RESPAWN_X
-                y = Rules.SHIP_START_Y
-                rightFrame = false
-            }
+        if (restarting) { advanceRestart() }
+        steer()
+        if (!restarting) { rightFrame = movingRight() }
+    }
+
+    advanceExplosion() {
+        explosionSteps = explosionSteps + 1
+        if (explosionSteps == Rules.SHIP_EXPLOSION_STEPS) { loseLife() }
+    }
+
+    loseLife() {
+        lives = lives - 1
+        if (lives == 0) { phase = ShipPhase.Hidden; return }
+        phase = ShipPhase.Restart
+        restartFrame = 0
+        x = Rules.SHIP_RESPAWN_X
+        y = Rules.SHIP_START_Y
+        rightFrame = false
+    }
+
+    advanceRestart() {
+        restartFrame = restartFrame + 1
+        if (restartFrame == Rules.SHIP_RESTART_STEPS) {
+            phase = ShipPhase.Normal
+            rightFrame = false
         }
-        if (restarting) {
-            restartFrame = restartFrame + 1
-            if (restartFrame == Rules.SHIP_RESTART_STEPS) {
-                phase = ShipPhase.Normal
-                rightFrame = false
-            }
-        }
-        if (!exploding) {
-            if (left && (!right || lastX == Direction.Left)) { x = x - Rules.SHIP_SPEED }
-            if (right && (!left || lastX == Direction.Right)) { x = x + Rules.SHIP_SPEED }
-            if (up && (!down || lastY == Direction.Up)) { y = y - Rules.SHIP_SPEED }
-            if (down && (!up || lastY == Direction.Down)) { y = y + Rules.SHIP_SPEED }
-        }
-        if (!exploding && !restarting) {
-            rightFrame = right && (!left || lastX == Direction.Right)
-        }
-        if (x < 0) { x = 0 }
-        if (x > Rules.SHIP_RIGHT_BOUND) { x = Rules.SHIP_RIGHT_BOUND }
-        if (y < Rules.HEADER_HEIGHT) { y = Rules.HEADER_HEIGHT }
-        if (y > Rules.SHIP_BOTTOM_BOUND) { y = Rules.SHIP_BOTTOM_BOUND }
+    }
+
+    steer() {
+        if (movingLeft()) { x = x - Rules.SHIP_SPEED }
+        if (movingRight()) { x = x + Rules.SHIP_SPEED }
+        if (movingUp()) { y = y - Rules.SHIP_SPEED }
+        if (movingDown()) { y = y + Rules.SHIP_SPEED }
+        keepInBounds()
+    }
+
+    movingLeft(): Bool {
+        return left && (!right || lastX == Direction.Left)
+    }
+
+    movingRight(): Bool {
+        return right && (!left || lastX == Direction.Right)
+    }
+
+    movingUp(): Bool {
+        return up && (!down || lastY == Direction.Up)
+    }
+
+    movingDown(): Bool {
+        return down && (!up || lastY == Direction.Down)
+    }
+
+    keepInBounds() {
+        Int rightBound = Rules.SHIP_RIGHT_BOUND
+        Int top = Rules.HEADER_HEIGHT
+        Int bottom = Rules.SHIP_BOTTOM_BOUND
+        x = math.clamp(x, 0, rightBound)
+        y = math.clamp(y, top, bottom)
     }
 
     advanceVisual() {

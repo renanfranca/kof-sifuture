@@ -1,0 +1,300 @@
+package sifuture.game
+import sifuture.game.Boss
+import sifuture.game.JourneyScenarios
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+
+test "a new special beam stays put until it is fired" {
+    var beam = SpecialBeam(0)
+
+    beam.advance()
+
+    assert(beam.x == 0)
+}
+
+test "a fired special beam shows its first frame" {
+    var beam = givenSpecialBeamAt(100, 100)
+
+    var frame = beam.spriteFrame()
+
+    assert(frame == 0)
+}
+
+test "a special beam hit by a meteor flashes for three steps" {
+    var beam = givenSpecialBeamAt(0, 100)
+    beam.hit()
+
+    advanceBeam(beam, 3)
+
+    assert(beam.spriteFrame() == 0)
+}
+
+test "a special beam stays in flight when it reaches the right edge of the world" {
+    var beam = givenSpecialBeamAt(171, 100)
+
+    beam.advance()
+
+    assert(beam.active)
+}
+
+test "a special beam destroyed by meteors no longer hits them" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var meteor = givenMeteorAt(200, 110)
+    hitBeam(beam, 10)
+
+    var hit = beam.hitsMeteor(meteor)
+
+    assert(!hit)
+}
+
+test "a special beam hits a meteor level with its rear" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var meteor = givenMeteorAt(100, 110)
+
+    var hit = beam.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a special beam hits a meteor level with its front" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var meteor = givenMeteorAt(419, 110)
+
+    var hit = beam.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a special beam hits a meteor whose top is level with the beam bottom" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var meteor = givenMeteorAt(200, 132)
+
+    var hit = beam.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a special beam hits a meteor in the lower half of the beam" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var meteor = givenMeteorAt(200, 120)
+
+    var hit = beam.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a special beam hits a meteor overlapping the beam top" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var meteor = givenMeteorAt(200, 85)
+
+    var hit = beam.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a special beam hits a meteor whose bottom touches the beam top" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var meteor = givenMeteorAt(200, 82)
+
+    var hit = beam.hitsMeteor(meteor)
+
+    assert(hit)
+}
+
+test "a special beam misses a meteor below it" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var meteor = givenMeteorAt(200, 140)
+
+    var hit = beam.hitsMeteor(meteor)
+
+    assert(!hit)
+}
+
+test "a special beam reaches a subchief level with its rear" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var chief = givenNormalSubchiefAt(100, 110)
+
+    var contact = beam.beginsSubchiefContact(chief)
+
+    assert(contact)
+}
+
+test "a special beam reaches a subchief level with its front" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var chief = givenNormalSubchiefAt(419, 110)
+
+    var contact = beam.beginsSubchiefContact(chief)
+
+    assert(contact)
+}
+
+test "a special beam reaches a subchief whose top is level with the beam bottom" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var chief = givenNormalSubchiefAt(200, 132)
+
+    var contact = beam.beginsSubchiefContact(chief)
+
+    assert(contact)
+}
+
+test "a special beam reaches a subchief in the lower half of the beam" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var chief = givenNormalSubchiefAt(200, 120)
+
+    var contact = beam.beginsSubchiefContact(chief)
+
+    assert(contact)
+}
+
+test "a special beam reaches a subchief overlapping the beam top" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var chief = givenNormalSubchiefAt(200, 80)
+
+    var contact = beam.beginsSubchiefContact(chief)
+
+    assert(contact)
+}
+
+test "a special beam reaches a subchief whose bottom touches the beam top" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var chief = givenNormalSubchiefAt(200, 74)
+
+    var contact = beam.beginsSubchiefContact(chief)
+
+    assert(contact)
+}
+
+test "a special beam does not reach a subchief beyond its front" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var chief = givenNormalSubchiefAt(500, 110)
+
+    var contact = beam.beginsSubchiefContact(chief)
+
+    assert(!contact)
+}
+
+test "a special beam does not reach a subchief below it" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var chief = givenNormalSubchiefAt(200, 150)
+
+    var contact = beam.beginsSubchiefContact(chief)
+
+    assert(!contact)
+}
+
+test "a special beam reaches a boss level with its rear" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(100, 110)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(contact)
+}
+
+test "a special beam reaches a boss level with its front" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(419, 110)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(contact)
+}
+
+test "a special beam reaches a boss whose top is level with the beam bottom" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(200, 132)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(contact)
+}
+
+test "a special beam reaches a boss in the lower half of the beam" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(200, 120)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(contact)
+}
+
+test "a special beam reaches a boss whose bottom overlaps the beam" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(200, 60)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(contact)
+}
+
+test "a special beam reaches a boss whose bottom touches the beam top" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(200, 49)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(contact)
+}
+
+test "a special beam reaches a boss spanning the whole beam" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(200, 85)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(contact)
+}
+
+test "a special beam does not reach a boss below it" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(200, 140)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(!contact)
+}
+
+test "a special beam does not reach a boss above it" {
+    var beam = givenSpecialBeamAt(100, 100)
+    var boss = givenNormalBossAt(200, 40)
+
+    var contact = beam.beginsBossContact(boss)
+
+    assert(!contact)
+}
+
+SpecialBeam givenSpecialBeamAt(Int x, Int y) {
+    var beam = SpecialBeam(0)
+    beam.fire(givenNormalShipAt(0, 100))
+    beam.x = x
+    beam.y = y
+    return beam
+}
+
+Subchief givenNormalSubchiefAt(Int x, Int y) {
+    var chief = Subchief()
+    chief.phase = SubchiefPhase.Normal
+    chief.x = x
+    chief.y = y
+    return chief
+}
+
+Boss givenNormalBossAt(Int x, Int y) {
+    var boss = Boss()
+    boss.phase = BossPhase.Normal
+    boss.x = x
+    boss.y = y
+    return boss
+}
+
+advanceBeam(SpecialBeam beam, Int steps) {
+    for (var i = 0; i < steps; i++) { beam.advance() }
+}
+
+hitBeam(SpecialBeam beam, Int times) {
+    for (var i = 0; i < times; i++) { beam.hit() }
+}

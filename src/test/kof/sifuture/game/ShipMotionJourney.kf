@@ -1,0 +1,70 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.State
+
+test "a new ship holds still until a direction is pressed" {
+    var ship = Ship()
+    ship.x = 50
+
+    ship.advance()
+
+    assert(ship.x == 50)
+    assert(ship.y == 100)
+}
+
+test "a restarting ship stays in restart for forty-four result steps" {
+    var ship = Ship()
+
+    advanceShipVisual(ship, 44)
+
+    assert(ship.phase == ShipPhase.Restart)
+}
+
+test "a restarting ship becomes normal on its forty-fifth result step" {
+    var ship = Ship()
+
+    advanceShipVisual(ship, 45)
+
+    assert(ship.phase == ShipPhase.Normal)
+}
+
+test "a new ship that finishes its restart on the result screen faces forward" {
+    var ship = Ship()
+
+    advanceShipVisual(ship, 45)
+
+    assert(!ship.rightFrame)
+}
+
+test "a ship finishing its restart while pressing right faces forward on that step" {
+    var ship = Ship()
+    ship.direction(Direction.Right, true)
+
+    advanceShip(ship, 45)
+
+    assert(ship.phase == ShipPhase.Normal)
+    assert(!ship.rightFrame)
+}
+
+test "a ship destroyed while facing right respawns facing forward" {
+    var ship = givenNormalShipAt(50, 100)
+    ship.direction(Direction.Right, true)
+    ship.advance()
+    ship.explode()
+    advanceShip(ship, Rules.SHIP_EXPLOSION_STEPS)
+
+    advanceShipVisual(ship, Rules.SHIP_RESTART_STEPS)
+
+    assert(ship.phase == ShipPhase.Normal)
+    assert(!ship.rightFrame)
+}
+
+advanceShip(Ship ship, Int steps) {
+    for (var i = 0; i < steps; i++) { ship.advance() }
+}
+
+advanceShipVisual(Ship ship, Int steps) {
+    for (var i = 0; i < steps; i++) { ship.advanceVisual() }
+}

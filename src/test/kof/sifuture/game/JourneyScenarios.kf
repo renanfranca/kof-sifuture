@@ -179,3 +179,10 @@ advanceSpecial(BossSpecial special, Int steps) {
 advanceShot(BossShot shot, Int steps) {
     for (var i = 0; i < steps; i++) { shot.advance() }
 }
+
+Meteor givenMeteorAt(Int x, Int y) {
+    var meteor = Meteor()
+    meteor.x = x
+    meteor.y = y
+    return meteor
+}

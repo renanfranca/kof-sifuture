@@ -35,47 +35,40 @@ class SpecialBeam {
             deathSteps = deathSteps + 1
             if (deathSteps == 6) { reset() }
         } else {
-            if (contactSteps > 0) { contactSteps = contactSteps - 1 }
+            contactSteps = math.max(contactSteps - 1, 0)
             if (color == 1) { x = x + 6 }
             else { x = x + 5 }
-            if (hitSteps > 0) { hitSteps = hitSteps - 1 }
+            hitSteps = math.max(hitSteps - 1, 0)
             if (x > Rules.WORLD_WIDTH) { reset() }
         }
     }
 
     hitsMeteor(Meteor m): Bool {
-        return active && lives > 0 && m.x >= x && m.x <= x + 319 &&
-            ((m.y >= y && m.y <= y + 32) ||
-             (m.y + Rules.METEOR_HEIGHT >= y && m.y + Rules.METEOR_HEIGHT <= y + 32))
+        return active && lives > 0 && reaches(m.x, m.y, Rules.METEOR_HEIGHT)
     }
 
     beginsSubchiefContact(Subchief chief): Bool {
-        if (!active || contactSteps > 0 || chief.phase != SubchiefPhase.Normal) { return false }
-        if (chief.x >= x && chief.x <= x + 319 &&
-            ((chief.y >= y && chief.y <= y + 32) ||
-             (chief.y + 26 >= y && chief.y + 26 <= y + 32))) {
-            contactSteps = 6
-            return true
-        }
-        return false
+        return chief.phase == SubchiefPhase.Normal && beginsContact(chief.x, chief.y, 26)
     }
 
     beginsBossContact(Boss boss): Bool {
-        if (!active || contactSteps > 0 || !boss.vulnerable()) { return false }
-        if (boss.x >= x && boss.x <= x + 319 &&
-            ((boss.y >= y && boss.y <= y + 32) ||
-             (boss.y + 51 >= y && boss.y + 51 <= y + 32) ||
-             (boss.y + 25 >= y && boss.y + 25 <= y + 32))) {
-            contactSteps = 6
-            return true
-        }
-        return false
+        return boss.vulnerable() && beginsContact(boss.x, boss.y, 51)
+    }
+
+    beginsContact(Int left, Int top, Int height): Bool {
+        if (!active || contactSteps > 0 || !reaches(left, top, height)) { return false }
+        contactSteps = 6
+        return true
+    }
+
+    reaches(Int left, Int top, Int height): Bool {
+        return left >= x && left <= x + 319 && top + height >= y && top <= y + 32
     }
 
     hit() {
         lives = lives - 1
         hitSteps = 3
-        if (lives <= 0) { deathSteps = 0 }
+        deathSteps = 0
     }
 
     spriteFrame(): Int {
