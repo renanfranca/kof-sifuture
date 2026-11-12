@@ -667,14 +667,17 @@ observado, e nenhum outro teste falhou além dos listados.
 | Arquivo | Antes (A1) | Depois | Equivalentes |
 | --- | --- | --- | --- |
 | `BossWeapons` | 1 | 0 (29/29 mortos) | 0 |
-| `Credits` | 2 | 2 (12/14 mortos) | 2 |
-| `Meteor` | 4 | 2 (39/41 mortos) | 2 |
+| `Credits` | 2 | 0 (11/11 mortos) | 2 eliminados por refatoração |
+| `Meteor` | 4 | 0 (26/26 mortos) | 2 eliminados por refatoração |
 | `SubchiefShot` | 11 | 0 (10/10 mortos) | 2 deixaram de existir |
 | `Item` | 12 | 0 (23/23 mortos) | 2 deixaram de existir |
 | `BossSpecial` | 12 | 0 (15/15 mortos) | 0 |
-| `BossShot` | 14 | 1 (17/18 mortos) | 1 |
+| `BossShot` | 14 | 0 (16/16 mortos) | 1 eliminado por refatoração |
 | `ShipContact` (novo) | não existia | 0 (11/11 mortos) | 0 |
-| **Total** | **56** | **5** | **5** |
+| **Total** | **56** | **0** | **0** (5 eliminados) |
+
+Coluna "Depois" já com a segunda passada (seção "Equivalentes eliminados por
+refatoração"); a primeira passada parou em 5 sobreviventes.
 
 Rodadas do KofMut (`kof-mut run --files` só com os arquivos citados), todas
 `complete`, 0 limitações, 0 timeout:
@@ -745,38 +748,74 @@ especial (26) **não** acertam a nave quando passam por cima dela com as duas
 bordas para fora (`y` de 96 a 99 com a nave em `y = 100`), porque a regra olha só
 as bordas. Os testes "spanning the ship" fixam isso.
 
-### Mutantes equivalentes (ponto de parada 2)
+### Equivalentes eliminados por refatoração (11/11, segunda passada)
 
-Nenhum foi suprimido nem pulado; estão no relatório como sobreviventes.
+A primeira passada deixou 5 sobreviventes equivalentes. Regra nova do handoff
+`2026-11-11_sensor-debt-batch-1-equivalents.md`: um equivalente aponta operador
+redundante; antes de anotá-lo, procurar uma refatoração que preserve o
+comportamento e tire o operador. As quatro existiram. Nenhum mutante foi
+suprimido nem pulado, e nenhum teste mudou de expectativa: cada mutante
+**deixou de existir** porque o código que o gerava saiu. Skill `refactor-design`,
+um item por vez, com check de tipos e testes JVM e JS (212/212) verdes antes e
+depois de cada um.
 
-1. **`Credits 16:19`** `x > CREDITS_MARGIN` → `>=`. O corpo é
-   `x = Rules.CREDITS_MARGIN`. Quando `x == CREDITS_MARGIN`, as duas versões
-   deixam `x` igual. Nenhuma entrada distingue.
-2. **`Credits 19:59`** `secondY > -CREDITS_BLOCK_HEIGHT` → `>=`. O `Credits` é
-   criado uma vez no `Game` e nunca reiniciado; depois de `n` passos de rolagem,
-   `firstY = 40 + n` e `secondY = 136 - n`. `firstY < 260` vale até `n < 220`;
-   `secondY > -72` vale até `n < 208`. Os dois só diferem em `n = 208`, quando
-   `firstY = 248 < 260` já mantém a rolagem. Só um estado inalcançável
-   (`firstY ≥ 260` com `secondY = -72`) mataria o mutante.
-3. **`Meteor 85:17`** (`90:17` depois do R4) `y >= shipY` → `>`, e
-4. **`Meteor 86:75`** (`91:75`) `y + METEOR_HEIGHT <= shipY + SHIP_HEIGHT` → `<`.
-   O contato vertical é a união de `y ∈ [shipY, shipY+20]` (borda de cima) com
-   `y ∈ [shipY-18, shipY+2]` (borda de baixo), ou seja `[shipY-18, shipY+20]`.
-   Com `>`, o ponto `y = shipY` sai da primeira parte, mas continua na segunda.
-   Com `<`, o ponto `y = shipY+2` sai da segunda, mas continua na primeira. A
-   união não muda. ❗ A observação do A4 ("o teste de borda os mata") estava
-   errada para estes dois: ela fala da borda em `x`, que já estava morta.
-5. **`BossShot 35:40`** (`34:40` depois) `animationSteps < 5` → `<=`. Só deixa
-   `animationSteps` chegar a 6 em vez de 5, e o único leitor, `spriteFrame()`,
-   devolve 2 para qualquer valor `≥ 5`. Confirmado aplicando o mutante: `0 failed
-   of 212 tests`.
+| Equivalente (posição da primeira passada) | Por que era equivalente | Refatoração que o eliminou |
+| --- | --- | --- |
+| `Credits 19:59` `secondY > -CREDITS_BLOCK_HEIGHT` → `>=` | `firstY + secondY` vale sempre 176 (os dois só mudam juntos, +1 e −1, e nada mais os escreve), então `secondY > -72` equivale a `firstY < 248`, já contido em `firstY < 260` | cláusula `\|\| secondY > -Rules.CREDITS_BLOCK_HEIGHT` removida; `secondY` continua sendo atualizado porque o `GameView` e o `MenuJourney` o leem |
+| `Credits 16:19` `x > CREDITS_MARGIN` → `>=` | com `x == CREDITS_MARGIN`, as duas versões deixam `x` igual | `if (x > MARGIN) { x = MARGIN }` depois de `x = x + 5` virou `x = math.min(x + 5, margin)` |
+| `Meteor 90:17` `y >= shipY` → `>` e `Meteor 91:75` `y + METEOR_HEIGHT <= shipY + SHIP_HEIGHT` → `<` | a união das duas faixas de borda (`[shipY−18, shipY+20]`) não muda com altura 18 | `touchesShip(Int shipX, Int shipY)` mantém a assinatura e delega ao `ShipContact` (`withinShipWidth` e `edgesWithinShipHeight`), a mesma fórmula; as comparações ficam onde os testes do tiro do chefe e do especial (alturas 25 e 26) as matam |
+| `BossShot 34:40` `animationSteps < 5` → `<=` | o único leitor, `spriteFrame()`, devolve 2 para qualquer valor `>= 5` | `&& animationSteps < 5` removido; o contador continua limitado porque o tiro anda 4 por passo, se desativa ao passar de `x < -40` e aí zera o contador, e `fire()` também zera; `BossJourney.kf:1021` (contador 0 depois da limpeza) segue verde |
 
-Os equivalentes do mesmo tipo do `Meteor` em `SubchiefShot` (`19:17`, `20:40`) e
-`Item` (`32:17`, `33:42`) **deixaram de existir** no R4: a regra foi para
-`ShipContact.kf`, onde o mesmo mutante muda o resultado do tiro do chefe e do
-especial (altura maior que a da nave) e morre. O `Meteor` ficou fora porque o
-`touchesShip(Int shipX, Int shipY)` dele é API pública usada em 8 asserções do
-`MeteorJourney.kf`; mudar a assinatura seria mudança de contrato.
+**Desvios do handoff, com motivo:**
+
+1. **`math.min` com local tipada.** `math.min(x + 5, Rules.CREDITS_MARGIN)` não
+   compila: `SEM025 Cannot resolve method 'min' on namespace 'math'`, no 0.7.0 e no
+   0.6.4. Probe mínimo fora de pasta com ponto: o typer só resolve `math.min`
+   quando o argumento lido de um `static final` passa por uma local com tipo
+   explícito (`Int m = Rules.MARGIN` compila; `Rules.MARGIN` direto ou `var m =
+   Rules.MARGIN` dão `SEM025`). Contorno igual ao que o `Meteor.relocate()` já usa
+   para `rng.int`: `Int margin = Rules.CREDITS_MARGIN`. Lacuna do Kof, candidata a
+   issue.
+2. **`ShipContact` com `Int` sem passar de 4 parâmetros.** O handoff pedia
+   `ShipContact` recebendo `shipX` e `shipY` no lugar de `Ship`, o que dá
+   `edgeTouchesShip(x, y, height, shipX, shipY)`, com 5 parâmetros, e
+   `too-many-parameters` (limite 4, `SENSORS.md:59`; o mesmo achado da primeira
+   passada). O limite não pode mudar. Saída: as comparações foram para
+   `withinShipWidth(Int x, Int shipX)` e `edgesWithinShipHeight(Int y, Int height,
+   Int shipY)` (com `edgeWithinShipHeight(Int edgeY, Int shipY)`); o
+   `edgeTouchesShip(x, y, height, Ship ship)` continua com a mesma assinatura e só
+   compõe as duas, então `BossShot`, `BossSpecial`, `SubchiefShot` e `Item` não
+   mudaram. O `Meteor` compõe as mesmas duas com `Rules.METEOR_HEIGHT`.
+
+**KofMut nos quatro arquivos alterados** (`kof-mut run --files <scope.json>` com
+`BossShot`, `Credits`, `Meteor` e `ShipContact`; load 8,4 em 32 núcleos):
+`complete`, 0 limitações, **64 candidatos, 64 mortos, 0 sobreviventes**, 0 timeout,
+exit 0, 627 s. Por arquivo: `BossShot` 16/16, `Credits` 11/11, `Meteor` 26/26,
+`ShipContact` 11/11. Antes, os mesmos arquivos tinham 84 candidatos e 5
+sobreviventes.
+
+Mutantes que deixaram de existir, casados pelo texto da linha, coluna e
+substituto (os `id`s são `arquivo:offset:substituto`, e o `import` novo do
+`Meteor` desloca todos os offsets dele, então só o `id` exato superestima a
+troca: 69 removidos e 49 novos):
+
+- os 5 equivalentes acima (`Credits:341:>=`, `Credits:547:>=`, `Meteor:2575:>`,
+  `Meteor:2696:<`, `BossShot:781:<=`);
+- mortos que saíram com o código: `BossShot:763:||` e `:820:-` (a linha
+  `animationSteps` antiga), `Credits:319:-`, `:513:<=` e `:536:&&`, os 17 do
+  `touchesShip` antigo do `Meteor` (`2514` a `2705`) e os 11 do `ShipContact`
+  antigo (`96` a `324`).
+
+Mutantes novos, todos mortos: `BossShot:798:-`, `Credits:374:-`, `Credits:506:<=`,
+`Meteor:2571:||` e, no `ShipContact`, `121:||`, `222:>`, `231:||`, `236:<`,
+`245:-`, `368:&&`, `394:-`, `481:>`, `490:||`, `499:<`, `508:-`. Comparação
+feita com os relatórios de `.agent/tmp/debt-batch1/mut-{Credits,Meteor,rest}` e
+`.agent/tmp/debt-batch1-equivalents/reports`.
+
+O `Meteor` e o `Credits` antes deixavam 2 equivalentes cada porque a regra estava
+escrita com uma condição que nunca decidia nada; o `ShipContact` mata o mesmo
+operador porque é usado por formas mais altas que a nave. Isso confirma a regra
+nova: neste lote, todo equivalente tinha uma refatoração que o eliminava.
 
 ### R4 (uma refatoração por vez, verde a cada passo, JVM e JS)
 
@@ -811,9 +850,21 @@ tipo do `testRows`). Corrigido com o import explícito nos quatro arquivos.
 | pixels decodificados contra o R0 (`debt-tools/pixels.py`) | `common=186 only_a=0 only_b=0 pixel_diff=0` |
 | `git diff --check` | exit 0 |
 
-O `check` reprova enquanto existir um equivalente na produção alterada, porque
-não há supressão. Isso vale para os 3 de agora e vai valer no R7: precisa de
-decisão do usuário (ponto de parada 2).
+A primeira passada parou aqui: o `check` reprovava pelos 3 equivalentes da
+produção alterada. Fechamento depois da segunda passada (Kof 0.7.0 salvo onde
+indicado; evidência em `.agent/tmp/debt-batch1-equivalents/`):
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm run lint:sensor` em `Credits`, `Meteor`, `BossShot` e `ShipContact` | `PASS (0 findings)` |
+| `npm run dup:sensor` | `PASS (0 findings)`, `8 files expected, 8 tokenized` |
+| `npm run check` | `CHECK: PASS`, 11 passos PASS; `mutation` PASS (não SKIP): 141 candidatos, 141 mortos, 0 sobreviventes nos 8 arquivos alterados da branch; 1037 s |
+| `npm run check:task` | `CHECK:TASK: PASS`, 18 passos PASS, incluindo `mutation` (141/141) e as sete jornadas; 1071 s |
+| sete jornadas rodadas à parte (`debt-tools/journeys.sh`) | 7/7 exit 0; 186 PNG |
+| pixels decodificados contra o R0 (`debt-r0/journeys-1/png`) | `common=186 only_a=0 only_b=0 pixel_diff=0` |
+| casos, 0.7.0 | 212 em JVM e 212 em JS, 0 falhas |
+| casos, 0.6.4 | 212 em JVM e 212 em JS, 0 falhas; check de tipos JVM e JS OK |
+| `git diff --check` | exit 0 |
 
 ### Tempo
 

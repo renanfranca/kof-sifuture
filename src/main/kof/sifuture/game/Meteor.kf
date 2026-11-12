@@ -1,4 +1,5 @@
 package sifuture.game
+import sifuture.game.ShipContact
 
 class Meteor {
     MeteorMotion motion = MeteorMotion.Horizontal
@@ -86,9 +87,7 @@ class Meteor {
     }
 
     touchesShip(Int shipX, Int shipY): Bool {
-        return x >= shipX && x <= shipX + Rules.SHIP_WIDTH &&
-            ((y >= shipY && y <= shipY + Rules.SHIP_HEIGHT) ||
-             (y + Rules.METEOR_HEIGHT >= shipY && y + Rules.METEOR_HEIGHT <= shipY + Rules.SHIP_HEIGHT))
+        return withinShipWidth(x, shipX) && edgesWithinShipHeight(y, Rules.METEOR_HEIGHT, shipY)
     }
 
     collide() {

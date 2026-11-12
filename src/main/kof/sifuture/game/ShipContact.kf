@@ -1,10 +1,17 @@
 package sifuture.game
 
 Bool edgeTouchesShip(Int x, Int y, Int height, Ship ship) {
-    return x >= ship.x && x <= ship.x + Rules.SHIP_WIDTH &&
-        (edgeWithinShipHeight(y, ship) || edgeWithinShipHeight(y + height, ship))
+    return withinShipWidth(x, ship.x) && edgesWithinShipHeight(y, height, ship.y)
 }
 
-Bool edgeWithinShipHeight(Int edgeY, Ship ship) {
-    return edgeY >= ship.y && edgeY <= ship.y + Rules.SHIP_HEIGHT
+Bool withinShipWidth(Int x, Int shipX) {
+    return x >= shipX && x <= shipX + Rules.SHIP_WIDTH
+}
+
+Bool edgesWithinShipHeight(Int y, Int height, Int shipY) {
+    return edgeWithinShipHeight(y, shipY) || edgeWithinShipHeight(y + height, shipY)
+}
+
+Bool edgeWithinShipHeight(Int edgeY, Int shipY) {
+    return edgeY >= shipY && edgeY <= shipY + Rules.SHIP_HEIGHT
 }

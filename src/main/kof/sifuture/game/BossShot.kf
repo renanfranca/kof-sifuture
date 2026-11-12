@@ -31,7 +31,7 @@ class BossShot {
 
     advance() {
         if (!active) { return }
-        if (animated && animationSteps < 5) { animationSteps = animationSteps + 1 }
+        if (animated) { animationSteps = animationSteps + 1 }
         x = x - 4
         if (x < -40) { active = false; animationSteps = 0 }
     }
