@@ -1,0 +1,30 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Ship
+import sifuture.game.Weapons
+
+test "second level weapons hold the blaster until the first laser attempt" {
+    var weapons = Weapons()
+    weapons.evolve()
+    weapons.evolve()
+    var ship = givenNormalShipAt(50, 100)
+
+    attemptFireTimes(weapons, ship, 12)
+
+    assert(!weapons.blaster.active)
+}
+
+test "weapons without charges fire no special and keep zero charges" {
+    var weapons = Weapons()
+    var ship = givenNormalShipAt(50, 100)
+
+    var fired = weapons.fireSpecial(ship)
+
+    assert(!fired)
+    assert(weapons.charges == 0)
+    assert(!weapons.beams[0].active)
+}
+
+attemptFireTimes(Weapons weapons, Ship ship, Int times) {
+    for (var i = 0; i < times; i++) { weapons.attemptFire(ship) }
+}

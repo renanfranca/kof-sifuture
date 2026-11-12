@@ -1,0 +1,5 @@
+package sifuture.game
+
+Int stepToward(Int position, Int destination) {
+    return math.clamp(destination, position - 1, position + 1)
+}

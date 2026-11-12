@@ -275,22 +275,6 @@ SpecialBeam givenSpecialBeamAt(Int x, Int y) {
     return beam
 }
 
-Subchief givenNormalSubchiefAt(Int x, Int y) {
-    var chief = Subchief()
-    chief.phase = SubchiefPhase.Normal
-    chief.x = x
-    chief.y = y
-    return chief
-}
-
-Boss givenNormalBossAt(Int x, Int y) {
-    var boss = Boss()
-    boss.phase = BossPhase.Normal
-    boss.x = x
-    boss.y = y
-    return boss
-}
-
 advanceBeam(SpecialBeam beam, Int steps) {
     for (var i = 0; i < steps; i++) { beam.advance() }
 }

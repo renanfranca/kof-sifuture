@@ -1,0 +1,167 @@
+package sifuture.game
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.JourneyScenarios
+import sifuture.game.Subchief
+import sifuture.game.Weapons
+
+test "a laser whose top is level with the subchief bottom hits it" {
+    var weapons = givenLaserAt(100, 126)
+    var chief = givenNormalSubchiefAt(120, 100)
+
+    weapons.hitSubchiefLaser(chief)
+
+    assert(chief.lives == 29)
+}
+
+test "a laser whose bottom touches the subchief top hits it" {
+    var weapons = givenLaserAt(100, 88)
+    var chief = givenNormalSubchiefAt(120, 100)
+
+    weapons.hitSubchiefLaser(chief)
+
+    assert(chief.lives == 29)
+}
+
+test "a laser far above the subchief misses it" {
+    var weapons = givenLaserAt(100, 0)
+    var chief = givenNormalSubchiefAt(120, 100)
+
+    weapons.hitSubchiefLaser(chief)
+
+    assert(chief.lives == 30)
+}
+
+test "a laser one unit below the subchief misses it" {
+    var weapons = givenLaserAt(100, 127)
+    var chief = givenNormalSubchiefAt(120, 100)
+
+    weapons.hitSubchiefLaser(chief)
+
+    assert(chief.lives == 30)
+}
+
+test "a blaster hits a subchief level with its rear" {
+    var weapons = givenBlasterAt(100, 100)
+    var chief = givenNormalSubchiefAt(100, 100)
+
+    weapons.hitSubchiefBlaster(chief)
+
+    assert(chief.lives == 28)
+}
+
+test "a blaster hits a subchief level with its front" {
+    var weapons = givenBlasterAt(100, 100)
+    var chief = givenNormalSubchiefAt(168, 100)
+
+    weapons.hitSubchiefBlaster(chief)
+
+    assert(chief.lives == 28)
+}
+
+test "a blaster hits a subchief whose top is level with the blaster bottom" {
+    var weapons = givenBlasterAt(100, 100)
+    var chief = givenNormalSubchiefAt(120, 121)
+
+    weapons.hitSubchiefBlaster(chief)
+
+    assert(chief.lives == 28)
+}
+
+test "a blaster hits a subchief whose bottom touches the blaster top" {
+    var weapons = givenBlasterAt(100, 100)
+    var chief = givenNormalSubchiefAt(120, 74)
+
+    weapons.hitSubchiefBlaster(chief)
+
+    assert(chief.lives == 28)
+}
+
+test "a blaster hits a subchief whose bottom is level with the blaster bottom" {
+    var weapons = givenBlasterAt(100, 100)
+    var chief = givenNormalSubchiefAt(120, 95)
+
+    weapons.hitSubchiefBlaster(chief)
+
+    assert(chief.lives == 28)
+}
+
+test "a blaster misses a subchief whose top is four units above the blaster top" {
+    var weapons = givenBlasterAt(100, 100)
+    var chief = givenNormalSubchiefAt(120, 96)
+
+    weapons.hitSubchiefBlaster(chief)
+
+    assert(chief.lives == 30)
+}
+
+test "a blaster misses a subchief whose top is one unit above the blaster top" {
+    var weapons = givenBlasterAt(100, 100)
+    var chief = givenNormalSubchiefAt(120, 99)
+
+    weapons.hitSubchiefBlaster(chief)
+
+    assert(chief.lives == 30)
+}
+
+test "a blaster whose top is level with the boss bottom hits it" {
+    var weapons = givenBlasterAt(60, 151)
+    var boss = givenNormalBossAt(120, 100)
+
+    weapons.hitBossBlaster(boss)
+
+    assert(boss.lives == 98)
+}
+
+test "a blaster whose bottom touches the boss top hits it" {
+    var weapons = givenBlasterAt(60, 79)
+    var boss = givenNormalBossAt(120, 100)
+
+    weapons.hitBossBlaster(boss)
+
+    assert(boss.lives == 98)
+}
+
+test "a blaster far above the boss misses it" {
+    var weapons = givenBlasterAt(60, 0)
+    var boss = givenNormalBossAt(120, 100)
+
+    weapons.hitBossBlaster(boss)
+
+    assert(boss.lives == 100)
+}
+
+test "a blaster one unit below the boss misses it" {
+    var weapons = givenBlasterAt(60, 152)
+    var boss = givenNormalBossAt(120, 100)
+
+    weapons.hitBossBlaster(boss)
+
+    assert(boss.lives == 100)
+}
+
+test "an idle blaster resting on the boss does not hurt it" {
+    var weapons = Weapons()
+    weapons.blaster.x = 60
+    weapons.blaster.y = 100
+    var boss = givenNormalBossAt(120, 100)
+
+    weapons.hitBossBlaster(boss)
+
+    assert(boss.lives == 100)
+}
+
+Weapons givenLaserAt(Int x, Int y) {
+    var weapons = Weapons()
+    var shot = weapons.lasers.shots[0]
+    shot.fire(0, 0)
+    shot.x = x
+    shot.y = y
+    return weapons
+}
+
+Weapons givenBlasterAt(Int x, Int y) {
+    var weapons = Weapons()
+    weapons.blaster.fire(givenNormalShipAt(x, y))
+    return weapons
+}
