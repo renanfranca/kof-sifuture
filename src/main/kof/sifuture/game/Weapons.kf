@@ -30,34 +30,36 @@ class Weapons {
     }
 
     attemptFire(Ship ship) {
-        if (level == 2 && fireSteps > 10 && laserAttempts > 0 && laserAttempts % 6 == 0) { blaster.fire(ship) }
-        if (level == 3 && fireSteps > 4) { blaster.fire(ship) }
+        if (blasterDue()) { blaster.fire(ship) }
         fireSteps = fireSteps + 1
-        if (fireSteps == Rules.LASER_INTERVAL) {
-            fireSteps = 0
-            if (level == 0) { lasers.shots[0].fire(ship.x, ship.y) }
-            else {
-                laserAttempts = laserAttempts + 1
-                for (var shot in lasers.shots) {
-                    if (!shot.active) {
-                        shot.fire(ship.x, ship.y)
-                        shot.animated = true
-                        break
-                    }
-                }
-            }
+        if (fireSteps != Rules.LASER_INTERVAL) { return }
+        fireSteps = 0
+        fireLaser(ship)
+    }
+
+    private blasterDue(): Bool {
+        Bool laserCycleDone = laserAttempts > 0 && laserAttempts % 6 == 0
+        return (level == 2 && fireSteps > 10 && laserCycleDone) || (level == 3 && fireSteps > 4)
+    }
+
+    private fireLaser(Ship ship) {
+        if (level == 0) { lasers.shots[0].fire(ship.x, ship.y); return }
+        laserAttempts = laserAttempts + 1
+        for (var shot in lasers.shots) {
+            if (!shot.active) { shot.fire(ship.x, ship.y); shot.animated = true; return }
         }
     }
 
     hitLaser(List<Meteor> meteors): Bool {
         for (var shot in lasers.shots) {
-            for (var meteor in meteors) {
-                if (!meteor.collided && shot.active && !shot.impact && shot.hitsMeteor(meteor)) {
-                    shot.impactAt(meteor)
-                    meteor.collide()
-                    return true
-                }
-            }
+            if (shot.active && !shot.impact && laserHitsMeteor(shot, meteors)) { return true }
+        }
+        return false
+    }
+
+    private laserHitsMeteor(Shot shot, List<Meteor> meteors): Bool {
+        for (var meteor in meteors) {
+            if (!meteor.collided && shot.hitsMeteor(meteor)) { shot.impactAt(meteor); meteor.collide(); return true }
         }
         return false
     }
@@ -75,86 +77,55 @@ class Weapons {
 
     hitSpecial(List<Meteor> meteors): Bool {
         for (var beam in beams) {
-            for (var meteor in meteors) {
-                if (!meteor.collided && beam.hitsMeteor(meteor)) {
-                    beam.hit()
-                    meteor.collide()
-                    return true
-                }
-            }
+            if (beamHitsMeteor(beam, meteors)) { return true }
         }
         return false
     }
 
-    hitSubchiefLaser(Subchief chief): Bool {
-        if (chief.phase != SubchiefPhase.Normal) { return false }
-        for (var shot in lasers.shots) {
-            if (shot.active && !shot.impact && shot.x + Rules.LASER_WIDTH >= chief.x &&
-                shot.x + Rules.LASER_WIDTH <= chief.x + 28 &&
-                ((shot.y >= chief.y && shot.y <= chief.y + 26) ||
-                 (shot.y + Rules.LASER_HEIGHT >= chief.y && shot.y + Rules.LASER_HEIGHT <= chief.y + 26))) {
-                shot.x = chief.x
-                shot.y = chief.y
-                shot.impact = true
-                return chief.damage(1)
-            }
+    private beamHitsMeteor(SpecialBeam beam, List<Meteor> meteors): Bool {
+        for (var meteor in meteors) {
+            if (!meteor.collided && beam.hitsMeteor(meteor)) { beam.hit(); meteor.collide(); return true }
         }
         return false
     }
 
-    hitSubchiefBlaster(Subchief chief): Bool {
-        if (chief.phase != SubchiefPhase.Normal || !blaster.active || blaster.lives <= 0) { return false }
-        if (chief.x >= blaster.x && chief.x <= blaster.x + 68 &&
-            ((chief.y >= blaster.y && chief.y <= blaster.y + 21) ||
-             (chief.y + 26 >= blaster.y && chief.y + 26 <= blaster.y + 21))) {
-            var damage = blaster.lives
-            blaster.lives = 0
-            return chief.damage(damage)
-        }
-        return false
+    hitSubchiefLaser(Subchief chief) {
+        if (chief.phase == SubchiefPhase.Normal && laserStrikes(chief.x, chief.y, 28, 26)) { chief.damage(1) }
     }
 
-    hitSubchiefSpecial(Subchief chief): Bool {
+    hitSubchiefBlaster(Subchief chief) {
+        if (chief.phase == SubchiefPhase.Normal && blaster.hitsSubchief(chief)) { chief.damage(blaster.spend()) }
+    }
+
+    hitSubchiefSpecial(Subchief chief) {
         var contact = false
         for (var beam in beams) {
             if (beam.beginsSubchiefContact(chief)) { contact = true; break }
         }
-        if (!contact) { return false }
-        var fatal = false
+        if (!contact) { return }
         for (var beam in beams) {
-            if (beam.contactSteps > 0 && !fatal) { fatal = chief.damage(1) }
+            if (beam.contactSteps > 0) { chief.damage(1) }
         }
         for (var beam in beams) { if (beam.contactSteps > 0) { beam.hit() } }
-        return fatal
     }
 
     hitBossLaser(Boss boss) {
-        if (!boss.vulnerable()) { return }
+        if (!boss.vulnerable() || !laserStrikes(boss.x, boss.y, 40, 51)) { return }
+        boss.damage(1)
+        boss.evolveWeapons()
+    }
+
+    private laserStrikes(Int left, Int top, Int width, Int height): Bool {
         for (var shot in lasers.shots) {
-            if (shot.active && !shot.impact && shot.x + Rules.LASER_WIDTH >= boss.x &&
-                shot.x + Rules.LASER_WIDTH <= boss.x + 40 &&
-                ((shot.y >= boss.y && shot.y <= boss.y + 51) ||
-                 (shot.y + Rules.LASER_HEIGHT >= boss.y && shot.y + Rules.LASER_HEIGHT <= boss.y + 51))) {
-                shot.x = boss.x
-                shot.y = boss.y
-                shot.impact = true
-                boss.damage(1)
-                boss.evolveWeapons()
-                return
-            }
+            if (shot.strikes(left, top, width, height)) { shot.impactAt(left, top); return true }
         }
+        return false
     }
 
     hitBossBlaster(Boss boss) {
-        if (!boss.vulnerable() || !blaster.active || blaster.lives <= 0) { return }
-        if (blaster.x + 68 >= boss.x && blaster.x + 68 <= boss.x + 40 &&
-            ((blaster.y >= boss.y && blaster.y <= boss.y + 51) ||
-             (blaster.y + 21 >= boss.y && blaster.y + 21 <= boss.y + 51))) {
-            var damage = blaster.lives
-            blaster.lives = 0
-            boss.damage(damage)
-            boss.evolveWeapons()
-        }
+        if (!boss.vulnerable() || !blaster.hitsBoss(boss)) { return }
+        boss.damage(blaster.spend())
+        boss.evolveWeapons()
     }
 
     hitBossSpecial(Boss boss) {

@@ -1,4 +1,5 @@
 package sifuture.game
+import sifuture.game.Overlap
 
 class Blaster {
     Int x = 0
@@ -29,9 +30,28 @@ class Blaster {
         return flightSteps - 1
     }
 
+    armed(): Bool { return active && lives > 0 }
+
     hitsMeteor(Meteor m): Bool {
-        return active && lives > 0 && m.x >= x && m.x <= x + 68 &&
+        return armed() && m.x >= x && m.x <= x + 68 &&
             m.y + Rules.METEOR_HEIGHT >= y && m.y <= y + 21
+    }
+
+    hitsSubchief(Subchief chief): Bool {
+        return armed() && chief.x >= x && chief.x <= x + 68 && (spans(chief.y) || spans(chief.y + 26))
+    }
+
+    private spans(Int edgeY): Bool { return edgeY >= y && edgeY <= y + 21 }
+
+    hitsBoss(Boss boss): Bool {
+        Int front = x + 68
+        return armed() && front >= boss.x && front <= boss.x + 40 && bandsOverlap(y, 21, boss.y, 51)
+    }
+
+    spend(): Int {
+        var damage = lives
+        lives = 0
+        return damage
     }
 
     hit() { lives = lives - 1 }

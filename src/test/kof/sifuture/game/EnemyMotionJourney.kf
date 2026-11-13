@@ -1,0 +1,44 @@
+package sifuture.game
+import sifuture.game.Boss
+import sifuture.game.JourneyScenarios
+import sifuture.game.Subchief
+
+test "a subchief level with its destination height keeps that height while moving sideways" {
+    var chief = givenNormalSubchiefAt(120, 100)
+    chief.endX = 147
+    chief.endY = 100
+
+    chief.advanceNormal()
+
+    assert(chief.y == 100)
+}
+
+test "a subchief that reaches its destination column keeps heading to the same destination" {
+    var chief = givenNormalSubchiefAt(200, 100)
+    chief.endX = 200
+    chief.endY = 150
+
+    chief.advanceNormal()
+
+    assert(chief.endX == 200)
+}
+
+test "a boss level with its destination height keeps that height while moving sideways" {
+    var boss = givenNormalBossAt(120, 100)
+    boss.endX = 135
+    boss.endY = 100
+
+    boss.advance(false)
+
+    assert(boss.y == 100)
+}
+
+test "a frenzy boss still shows its first frame on its third frenzy step" {
+    var boss = givenNormalBossAt(120, 100)
+    boss.phase = BossPhase.Frenzy
+    boss.frenzySteps = 3
+
+    var frame = boss.spriteFrame()
+
+    assert(frame == 0)
+}

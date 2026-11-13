@@ -1697,7 +1697,19 @@ a documentação que cita `kof_project.py test`.
   lint 0; 212 → 267 casos (JVM e JS, 0.7.0 e 0.6.4); jornadas 7/7 com os
   mesmos pixels do R0. Plano em [`.agent/execplans/sensor-debt-batch-2.md`](.agent/execplans/sensor-debt-batch-2.md);
   aceite na seção "R5 e R4, lote 2" de [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md).
-- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes): faltam `Subchief`, `Boss`, `Weapons` (lote 3), `Game` (lote 4) e a UI.
+- [x] R5 e R4, lote 3 (12/11, branch `refactor/sensor-debt-batch-3`): `Subchief`,
+  `Boss`, `Weapons`. M0 com os mesmos 90 sobreviventes do A1; 68 mortos por 43
+  testes novos (`EnemyBodyContactJourney`, `EnemyMotionJourney`,
+  `PlayerHitsEnemyJourney`, `WeaponReadinessJourney`), RED com cada mutante
+  aplicado; os 22 restantes deixaram de existir por refatoração (retornos que
+  ninguém lia, `bandsOverlap()` em `Overlap.kf`, `stepToward()` em `Course.kf`
+  no lugar do CPD `Boss` ↔ `Subchief`, regras de alvo em `Shot` e `Blaster`,
+  guarda do frenesi). Dois buracos de colisão preservados e fixados por teste.
+  KofMut nos 7 arquivos: 265/265 mortos; lint 0; CPD 0; 267 → 310 casos (JVM e
+  JS, 0.7.0 e 0.6.4); jornadas 7/7 com os mesmos pixels do R0. Plano em
+  [`.agent/execplans/sensor-debt-batch-3.md`](.agent/execplans/sensor-debt-batch-3.md);
+  aceite na seção "R5 e R4, lote 3" de [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md).
+- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes): faltam `Game` (lote 4) e a UI.
 - [ ] R5. Sobreviventes por TDD.
 - [ ] R6. Fixtures `tests/*.kf`.
 - [ ] R7. Fechamento.

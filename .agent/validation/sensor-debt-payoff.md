@@ -1092,3 +1092,221 @@ contra subchefe e chefe (`hitSubchiefLaser`, `hitBossLaser`, `hitSubchiefBlaster
 `hitBossBlaster`), então a refatoração tende a seguir o `reaches()` daqui. Lote 3:
 cerca de 1h30 mais o fechamento (cerca de 45 min). Lote 4 (`Game`, com
 `step()` grande): 2h a 3h, porque o R4 domina.
+
+## R5 e R4, lote 3: `Subchief`, `Boss` e `Weapons` (12/11)
+
+Branch `refactor/sensor-debt-batch-3`, a partir de `2f22f11`. Plano:
+`.agent/execplans/sensor-debt-batch-3.md`. Kof 0.7.0, com 0.6.4 onde indicado.
+Evidência em `.agent/tmp/debt-batch3/`.
+
+### M0. Linha de base
+
+`kof-mut run --files mut-scope.json` só nos três arquivos, das 12:23 às 12:59
+(load 4,6 em 32 núcleos): `complete`, 0 limitações, **311 candidatos, 221
+mortos, 90 sobreviventes**, 0 timeout, exit 1, 2158 s. Os 90 `id`s são os mesmos
+do A1 de 09/11: os lotes 1 e 2 não mataram nenhum deles.
+
+| Arquivo | Candidatos | Sobreviventes no A1 | Sobreviventes no M0 |
+| --- | --- | --- | --- |
+| `Subchief` | 71 | 18 | 18 |
+| `Boss` | 101 | 30 | 30 |
+| `Weapons` | 139 | 42 | 42 |
+
+### Método
+
+O mesmo do lote 2. Os testes e as refatorações foram escritos numa cópia do
+projeto enquanto o M0 rodava, e só vieram para o repositório depois dele.
+`.agent/tmp/debt-batch2/tools/redcheck.py` aplicou **um** sobrevivente por vez
+na cópia (com os testes novos e a produção ainda original), rodou a suíte inteira
+na JVM e guardou os testes que falharam. Saída: `red.txt`; lista aplicada:
+`specs-m0.json`.
+
+Resultado: dos 90 sobreviventes, **68** fazem falhar só testes novos, sempre por
+asserção, e nenhum teste antigo falhou. Os outros **22** não fazem nenhum teste
+falhar; são os da seção "Equivalentes eliminados por refatoração", todos
+previstos pela leitura do código antes do RED.
+
+Conferências do planejamento:
+- achado 1: a tabela de uniões contínuas está certa. As cinco regras marcadas
+  "sim" viraram sobreposição de faixas com 0 diferenças na grade (abaixo); as duas
+  marcadas "não" ficaram como estavam e ganharam testes que fixam o buraco;
+- achado 2: `grep` em `src` e `tests` no começo do R4 confirmou que o `Game`
+  (`Game.kf:258-262`) e o `SubchiefJourney.kf:426` só chamam
+  `Subchief.damage` e `Weapons.hitSubchief*` como instrução, sem ler o retorno;
+- achado 3: `((0 - 1) / 4) % 3` dá 0 em JVM e JS, no 0.7.0 e no 0.6.4 (probe
+  `kof test` fora de diretório com ponto, por causa do KofLang/Kof4j#999). A
+  divisão inteira trunca para zero, como diz
+  `docs/language-reference/expressions.md`, então a guarda `frenzySteps > 0` era
+  redundante e saiu;
+- achado 4: o passo até o destino virou `stepToward()` em `Course.kf`;
+- achado 5: o `long-file` caiu quando as regras de alvo foram para o projétil
+  que as aplica (`Shot` e `Blaster`), sem dividir o `Weapons` no meio.
+- Achado novo: o `Game.trySpecial()` só chama `weapons.fireSpecial()` depois de
+  `canSpecial()`, então a guarda de `fireSpecial` não se alcança pelo jogo. Ela
+  continua, porque protege a API do `Weapons`, e o teste no nível do `Weapons`
+  mata o `false → true` dela.
+
+### Testes novos e o mutante que cada um mata
+
+43 testes em quatro arquivos novos por assunto: `EnemyBodyContactJourney.kf`
+(corpo do subchefe e do chefe contra a nave, chefe absorvendo meteoro),
+`EnemyMotionJourney.kf` (passo até o destino, quadro do chefe em frenesi),
+`PlayerHitsEnemyJourney.kf` (laser e blaster contra subchefe e chefe) e
+`WeaponReadinessJourney.kf` (primeiro blaster no nível dois, especial sem carga).
+`givenNormalSubchiefAt` e `givenNormalBossAt` saíram do `SpecialBeamJourney.kf`
+para o `JourneyScenarios.kf`, porque três arquivos os usam. Posições do M0.
+
+| Mutante (M0) | Teste(s) que falharam com o mutante |
+| --- | --- |
+| `Boss` `49:34` `&& → \|\|`, `49:51` `&& → \|\|`, `49:73` `&& → \|\|` | a boss does not absorb a meteor one unit left of it; a boss does not absorb a meteor far above it; a boss does not absorb a meteor one unit below it |
+| `Boss` `50:33` `&& → \|\|`, `51:55` `&& → \|\|` | a boss does not absorb a meteor far above it; a boss does not absorb a meteor one unit below it |
+| `Boss` `50:45` `<= → <` | a boss absorbs a meteor whose top is level with the boss bottom |
+| `Boss` `51:28` `+ → -`, `51:50` `>= → >`, `51:94` `+ → -` | a boss absorbs a meteor whose bottom touches the boss top |
+| `Boss` `51:67` `+ → -` | a boss does not absorb a meteor one unit below it |
+| `Boss` `57:54` `<= → <` | a ship at the boss right edge touches it |
+| `Boss` `57:59` `+ → -` | a ship at the boss right edge touches it; a ship whose top is level with the boss bottom touches it; a ship whose bottom touches the boss top touches it |
+| `Boss` `58:27` `&& → \|\|`, `59:47` `&& → \|\|` | a ship far above the boss does not touch it; a ship one unit below the boss does not touch it |
+| `Boss` `58:37` `<= → <`, `58:42` `+ → -` | a ship whose top is level with the boss bottom touches it |
+| `Boss` `58:48` `\|\| → &&` | a ship whose top is level with the boss bottom touches it; a ship whose bottom touches the boss top touches it |
+| `Boss` `59:22` `+ → -`, `59:42` `>= → >`, `59:82` `+ → -` | a ship whose bottom touches the boss top touches it |
+| `Boss` `59:57` `+ → -` | a ship one unit below the boss does not touch it |
+| `Boss` `89:87` `/ → *` | a frenzy boss still shows its first frame on its third frenzy step |
+| `Boss` `116:15` `< → <=`, `117:20` `> → >=` | a boss level with its destination height keeps that height while moving sideways |
+| `Subchief` `43:17` `>= → >`, `45:24` `>= → >` | a subchief at the ship left edge whose bottom touches the ship top hits it |
+| `Subchief` `43:32` `<= → <` | a subchief at the ship right edge hits it |
+| `Subchief` `44:19` `>= → >` | a subchief at the ship right edge hits it; a subchief near the ship right edge whose top is level with the ship top hits it |
+| `Subchief` `44:29` `&& → \|\|`, `45:34` `&& → \|\|` | a subchief far below the ship misses it; a subchief whose top is five units above the ship top misses it; a subchief whose top is one unit above the ship top misses it |
+| `Subchief` `44:34` `<= → <` | a subchief near the ship right edge whose top is level with the ship bottom hits it |
+| `Subchief` `44:44` `+ → -` | a subchief at the ship right edge hits it; a subchief near the ship right edge whose top is level with the ship top hits it; a subchief near the ship right edge whose top crosses the ship middle hits it; a subchief near the ship right edge whose top is level with the ship bottom hits it |
+| `Subchief` `45:39` `+ → -` | a subchief whose top is five units above the ship top misses it; a subchief whose top is one unit above the ship top misses it |
+| `Subchief` `45:44` `<= → <` | a subchief whose bottom is level with the ship bottom hits it |
+| `Subchief` `46:22` `>= → >` | a subchief whose right side touches the ship left edge hits it |
+| `Subchief` `47:32` `<= → <` | a subchief left of the ship whose top is level with the ship bottom hits it |
+| `Subchief` `93:19` `< → <=`, `94:24` `> → >=` | a subchief level with its destination height keeps that height while moving sideways |
+| `Subchief` `95:27` `&& → \|\|` | a subchief that reaches its destination column keeps heading to the same destination |
+| `Weapons` `33:59` `> → >=` | second level weapons hold the blaster until the first laser attempt |
+| `Weapons` `94:37` `&& → \|\|`, `95:58` `&& → \|\|` | a laser far above the subchief misses it; a laser one unit below the subchief misses it |
+| `Weapons` `94:47` `<= → <`, `94:58` `+ → -` | a laser whose top is level with the subchief bottom hits it |
+| `Weapons` `94:64` `\|\| → &&` | a laser whose top is level with the subchief bottom hits it; a laser whose bottom touches the subchief top hits it |
+| `Weapons` `95:26` `+ → -`, `95:47` `>= → >`, `95:100` `+ → -` | a laser whose bottom touches the subchief top hits it |
+| `Weapons` `95:68` `+ → -` | a laser one unit below the subchief misses it |
+| `Weapons` `107:21` `>= → >` | a blaster hits a subchief level with its rear |
+| `Weapons` `107:45` `<= → <` | a blaster hits a subchief level with its front |
+| `Weapons` `108:47` `<= → <` | a blaster hits a subchief whose top is level with the blaster bottom |
+| `Weapons` `109:23` `+ → -`, `109:70` `+ → -` | a blaster hits a subchief whose bottom touches the blaster top; a blaster hits a subchief whose bottom is level with the blaster bottom |
+| `Weapons` `109:28` `>= → >` | a blaster hits a subchief whose bottom touches the blaster top |
+| `Weapons` `109:57` `<= → <` | a blaster hits a subchief whose bottom is level with the blaster bottom |
+| `Weapons` `149:51` `\|\| → &&` | an idle blaster resting on the boss does not hurt it |
+| `Weapons` `151:35` `&& → \|\|`, `152:40` `&& → \|\|` | a blaster far above the boss misses it; a blaster one unit below the boss misses it |
+| `Weapons` `151:48` `<= → <`, `151:58` `+ → -` | a blaster whose top is level with the boss bottom hits it |
+| `Weapons` `151:64` `\|\| → &&` | a blaster whose top is level with the boss bottom hits it; a blaster whose bottom touches the boss top hits it |
+| `Weapons` `152:25` `+ → -`, `152:30` `>= → >`, `152:68` `+ → -` | a blaster whose bottom touches the boss top hits it |
+| `Weapons` `152:53` `+ → -` | a blaster one unit below the boss misses it |
+| `Weapons` `174:36` `false → true`, `180:37` `false → true` | weapons without charges fire no special and keep zero charges |
+
+Dois testes não matam nenhum sobrevivente do M0: "a blaster misses a subchief
+whose top is four units above the blaster top" e "... one unit above ...". Eles
+existem pelo critério A7: fixam o buraco preservado do blaster (abaixo).
+
+### Buracos preservados
+
+| Regra | Buraco | Testes que o fixam |
+| --- | --- | --- |
+| `Subchief.touchesShip` (corpo do subchefe, 26 de altura, contra a nave, 20) | com `ship.y - 5 <= y <= ship.y - 1` e o subchefe na largura da nave, nenhuma borda dele cai na altura da nave e não há contato | a subchief whose top is five units above the ship top misses it; a subchief whose top is one unit above the ship top misses it |
+| `Weapons.hitSubchiefBlaster`, agora `Blaster.hitsSubchief` (subchefe 26 na faixa do blaster, 21) | com `blaster.y - 4 <= chief.y <= blaster.y - 1`, nenhuma borda do subchefe cai na faixa e não há acerto | a blaster misses a subchief whose top is four units above the blaster top; a blaster misses a subchief whose top is one unit above the blaster top |
+
+Corrigi-los muda o jogo e é decisão do usuário, fora deste lote.
+
+### Equivalentes eliminados por refatoração
+
+Os 22 sem falha tinham uma refatoração que preserva o comportamento e tira o
+operador. Nenhum foi suprimido nem anotado, e nenhum teste mudou de expectativa.
+Cada refatoração entrou sozinha, com a suíte verde na JVM e no JS antes da
+próxima. As regras reescritas foram comparadas com as originais ponto a ponto numa
+grade de coordenadas (Python, mesma fórmula): 0 diferenças em
+`Subchief.touchesShip`, `Boss.absorbMeteors`, `Boss.touchesShip`, laser contra
+subchefe e chefe, e blaster contra subchefe e chefe.
+
+| Sobrevivente (M0) | Por que não falhava | Refatoração |
+| --- | --- | --- |
+| `Subchief 51:53`, `57:20`; `Weapons 90:59`, `102:16`, `106:100`, `114:16`, `122:32` | o `Bool` de `Subchief.damage` e de `Weapons.hitSubchief*` ninguém lia (achado 2); o `fatal` de `hitSubchiefSpecial` também era redundante, porque depois do dano fatal o subchefe está em `Explosion` e `damage` retorna antes de mexer em nada | os quatro passam a não devolver valor, como `Boss.damage` e `Weapons.hitBoss*`; cada raio em contato chama `chief.damage(1)` |
+| `Subchief 46:42` `x + 28 <= ship.x + 50` → `<` | com o topo na altura da nave e `x` até `ship.x + 22`, o primeiro ramo já dá contato | `bodyTouches()`: topo na altura da nave com as larguras sobrepostas (`bandsOverlap(x, 28, ship.x, 50)`), ou base na altura da nave com `x` na largura dela (o buraco continua) |
+| `Boss 50:28`, `51:89` (meteoro); `58:22`, `59:77` (nave); `Weapons 94:26`, `95:89` (laser no subchefe), `136:26`, `137:88` (laser no chefe), `151:25`, `152:58` (blaster no chefe) | "alguma borda dentro da faixa" dá o mesmo que a sobreposição das faixas quando a união das bordas é contínua (achado 1) | uma regra só, `bandsOverlap(start, length, otherStart, otherLength)` em `Overlap.kf`, usada pelo `Boss`, por `Shot.strikes()`, `Blaster.hitsBoss()` e `Subchief.bodyTouches()` |
+| `Boss 89:39` `&& → \|\|`, `89:54` `> → >=` | com `frenzySteps == 0` a conta dá 0 (achado 3), e o `GameView` só desenha o quadro com o chefe vulnerável | a guarda `&& frenzySteps > 0` saiu |
+| `Weapons 106:85` `blaster.lives <= 0` → `<` | um blaster ativo com 0 vidas daria dano 0, sem efeito no subchefe | `Blaster.armed()` (`active && lives > 0`), a mesma regra do `hitsMeteor`, cujos testes a matam |
+| `Weapons 149:68` `blaster.lives <= 0` → `<` (chefe) | um blaster ativo com 0 vidas daria dano 0; só apareceria pelo `evolveWeapons()` depois de um dano do corpo da nave, que não evolui as armas. Não é equivalente estrito, mas é a mesma regra repetida | também `Blaster.armed()` |
+
+Outras mudanças do R4 que mexem em regra: `Shot.impactAt(left, top)` ao lado de
+`impactAt(Meteor)` (chamada com `this.`, porque a sobrecarga sem `this.` deu
+`SEM015`); `Blaster.spend()` devolve as vidas e zera; `stepToward(position,
+destination)` é `math.clamp(destination, position - 1, position + 1)` (probe em
+JVM e JS).
+
+### R4 (lint)
+
+| Arquivo | Antes | Refatoração | Depois |
+| --- | --- | --- | --- |
+| `Subchief` | 5 achados | `bodyTouches()`; guardas `return` em `advanceExplosion` e `advanceNormal`; `fireShot()`; `stepToward()` | 0 |
+| `Boss` | 2 em `advance` | `moveTowardDestination()` e `advanceAttack()`; `bandsOverlap()` | 0 |
+| `Weapons` | 7, com `long-file` (174 de 150) | regras de alvo em `Shot.strikes()`, `Blaster.hitsSubchief()`, `Blaster.hitsBoss()`; `laserStrikes()`, `blasterDue()`, `fireLaser()`, `laserHitsMeteor()`, `beamHitsMeteor()` | 0, 140 linhas não vazias |
+| `Shot`, `Blaster`, `Course`, `Overlap` | 0 | regras recebidas do `Weapons`, arquivos novos | 0 |
+
+A ordem de prioridade dos acertos não mudou: o laço de fora continua sendo o dos
+projéteis, e o de dentro o dos meteoros.
+
+### Sobreviventes por arquivo
+
+| Arquivo | M0 | Depois | Mortos por teste novo | Eliminados por refatoração |
+| --- | --- | --- | --- | --- |
+| `Subchief` | 18 (71 candidatos) | 0 (36/36) | 15 | 3 |
+| `Boss` | 30 (101) | 0 (64/64) | 24 | 6 |
+| `Weapons` | 42 (139) | 0 (61/61) | 29 | 13 |
+| `Shot` (recebeu regra) | 0 no lote 2 | 0 (46/46) | | |
+| `Blaster` (recebeu regra) | 0 no lote 2 | 0 (51/51) | | |
+| `Course` (novo) | | 0 (2/2) | | |
+| `Overlap` (novo) | | 0 (5/5) | | |
+| **Total** | **90 (311)** | **0 (265/265)** | **68** | **22** |
+
+### Critérios de aceite
+
+| # | Comando | Observado | Evidência |
+| --- | --- | --- | --- |
+| A1 | `kof-mut run --files a1-scope.json --report-dir .agent/tmp/debt-batch3/a1`, com os 5 arquivos de `git diff --name-only main -- src/main` e os 2 novos | `complete`, 0 limitações, 265 candidatos, 265 mortos, 0 sobreviventes, 0 timeout, exit 0, 1502 s (13:10 a 13:35) | `a1-report.json`, `a1.log` |
+| A2 | `tools/redcheck.py` com cada sobrevivente do M0 | 68 mutantes, cada um derrubando só testes novos, sempre por asserção; nenhum teste antigo falhou | `red.txt`; tabela acima |
+| A3 | leitura do código, RED e KofMut final | 22 sem falha, todos eliminados por refatoração; nenhum anotado | seção de equivalentes |
+| A4 | `npm run lint:sensor --` nos 7 arquivos de produção, nos 4 testes novos, no `JourneyScenarios.kf` e no `SpecialBeamJourney.kf` | `PASS (0 findings)` | rodado no repositório |
+| A5 | `npm run dup:sensor` (diff contra a `main`) | `PASS (0 findings)`, `7 files expected, 7 tokenized`; o grupo `Boss.kf` ↔ `Subchief.kf` do R0 sumiu | rodado no repositório |
+| A6 | `git diff --name-only main -- src/main` | só `Blaster.kf`, `Boss.kf`, `Shot.kf`, `Subchief.kf` e `Weapons.kf`, mais os novos `Course.kf` e `Overlap.kf`; `Game.kf`, `BossWeapons.kf` e a UI não aparecem | rodado no repositório |
+| A7 | testes nomeados na seção "Buracos preservados" | os quatro passam; os buracos continuam | suíte |
+| A8 | `node scripts/kof-tests.mjs --target jvm` e `--target js`, com 0.7.0 e com `KOF=…/kof-0.6.4…/bin/kof` | `0 failed of 310 tests` nos quatro (eram 267) | rodado no repositório |
+| A9 | `debt-tools/journeys.sh` e `debt-tools/pixels.py` contra `debt-r0/journeys-1/png` | 7/7 exit 0, 186 PNG; `common=186 only_a=0 only_b=0 pixel_diff=0` | `journeys/summary.txt`, `pixels.out` |
+| A10 | validação final do plano | ver "Fechamento do lote" | `final/` |
+
+### Fechamento do lote
+
+Validação final do plano, nesta ordem, de 13:35 a 14:31 (evidência em
+`.agent/tmp/debt-batch3/final/`):
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | exit 0, 15 testes OK |
+| `npm run test:sensors` | exit 0, 39 pass, 0 fail |
+| `npm run check` | `CHECK: PASS`, 11 passos PASS; `mutation` PASS (não SKIP): 265 candidatos, 265 mortos, 0 sobreviventes nos 7 arquivos; cerca de 24 min |
+| `npm run check:task` | `CHECK:TASK: PASS`, `mutation` (265/265) e as sete jornadas PASS; cerca de 31 min |
+| `git diff --check` | exit 0 |
+
+Esta seção entrou depois da validação (só texto); `npm run docs:sensor` e
+`git diff --check` rodaram de novo sobre ela.
+
+### Tempo
+
+M0 de 12:23 a 12:59 (36 min). Análise dos sobreviventes, probe da divisão, testes,
+RED automatizado e R4 numa cópia do projeto, em paralelo ao M0. Pré-checagem do
+KofMut na cópia (265/265, cerca de 24 min) junto com as jornadas; A1 no
+repositório de 13:10 a 13:35; validação final de 13:35 a 14:31. Do começo ao A1,
+cerca de 1h15, contra a estimativa de 1h30.
+
+Estimativa para o lote 4 (`Game`, 42 sobreviventes no A1): o R4 domina, porque o
+`step()` é grande e o `Game` não pode mudar de API para o `GameView` e o
+`GameControls`. Cerca de 2h a 3h mais o fechamento (cerca de 1h, com `check` e
+`check:task` no fim).

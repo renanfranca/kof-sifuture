@@ -1,4 +1,5 @@
 package sifuture.game
+import sifuture.game.Overlap
 
 class Shot {
     Int x = 0
@@ -54,9 +55,17 @@ class Shot {
                y + Rules.LASER_HEIGHT >= m.y && y <= m.y + Rules.METEOR_HEIGHT
     }
 
-    impactAt(Meteor m) {
-        x = m.x
-        y = m.y
+    strikes(Int left, Int top, Int width, Int height): Bool {
+        Int front = x + Rules.LASER_WIDTH
+        return active && !impact && front >= left && front <= left + width &&
+            bandsOverlap(y, Rules.LASER_HEIGHT, top, height)
+    }
+
+    impactAt(Meteor m) { this.impactAt(m.x, m.y) }
+
+    impactAt(Int left, Int top) {
+        x = left
+        y = top
         impact = true
     }
 }

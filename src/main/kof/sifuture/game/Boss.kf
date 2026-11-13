@@ -1,4 +1,6 @@
 package sifuture.game
+import sifuture.game.Course
+import sifuture.game.Overlap
 
 enum BossPhase { Inactive, Normal, Fury, Frenzy, Explosion }
 
@@ -47,16 +49,13 @@ class Boss {
         if (phase == BossPhase.Inactive) { return }
         for (var meteor in meteors) {
             if (!meteor.collided && meteor.x >= x && meteor.x <= x + 40 &&
-                ((meteor.y >= y && meteor.y <= y + 51) ||
-                 (meteor.y + Rules.METEOR_HEIGHT >= y && meteor.y + Rules.METEOR_HEIGHT <= y + 51))) { meteor.collide() }
+                bandsOverlap(meteor.y, Rules.METEOR_HEIGHT, y, 51)) { meteor.collide() }
         }
     }
 
     touchesShip(Ship ship): Bool {
         return phase == BossPhase.Normal && ship.phase == ShipPhase.Normal &&
-            ship.x + Rules.SHIP_WIDTH >= x && ship.x <= x + 40 &&
-            ((ship.y >= y && ship.y <= y + 51) ||
-             (ship.y + Rules.SHIP_HEIGHT >= y && ship.y + Rules.SHIP_HEIGHT <= y + 51))
+            bandsOverlap(ship.x, Rules.SHIP_WIDTH, x, 40) && bandsOverlap(ship.y, Rules.SHIP_HEIGHT, y, 51)
     }
 
     vulnerable(): Bool {
@@ -86,7 +85,7 @@ class Boss {
 
     spriteFrame(): Int {
         if (phase == BossPhase.Fury) { return 1 }
-        if (phase == BossPhase.Frenzy && frenzySteps > 0) { return ((frenzySteps - 1) / 4) % 3 }
+        if (phase == BossPhase.Frenzy) { return ((frenzySteps - 1) / 4) % 3 }
         return 0
     }
 
@@ -111,19 +110,23 @@ class Boss {
     advance(Bool existingExplosion) {
         if (phase == BossPhase.Inactive) { return }
         var existingSpecial = weapons.special.active
-        if (x < endX) { x = x + 1 }
-        else if (x > endX) { x = x - 1 }
-        if (y < endY) { y = y + 1 }
-        else if (y > endY) { y = y - 1 }
-        if (x == endX && y == endY) { newDestination() }
+        moveTowardDestination()
         if (existingExplosion) { advanceExplosion() }
-        if (vulnerable()) {
-            if (phase == BossPhase.Frenzy) { frenzySteps = frenzySteps + 1 }
-            weapons.attemptFire(x, y)
-            normalSteps = normalSteps + 1
-            if (normalSteps == 36) { lifeTime = lifeTime + 1; normalSteps = 0 }
-        }
+        if (vulnerable()) { advanceAttack() }
         if (phase == BossPhase.Explosion && !existingExplosion) { explosionX = x; explosionY = y }
         weapons.advance(existingSpecial)
+    }
+
+    private moveTowardDestination() {
+        x = stepToward(x, endX)
+        y = stepToward(y, endY)
+        if (x == endX && y == endY) { newDestination() }
+    }
+
+    private advanceAttack() {
+        if (phase == BossPhase.Frenzy) { frenzySteps = frenzySteps + 1 }
+        weapons.attemptFire(x, y)
+        normalSteps = normalSteps + 1
+        if (normalSteps == 36) { lifeTime = lifeTime + 1; normalSteps = 0 }
     }
 }

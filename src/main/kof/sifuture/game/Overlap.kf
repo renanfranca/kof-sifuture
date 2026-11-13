@@ -1,0 +1,5 @@
+package sifuture.game
+
+Bool bandsOverlap(Int start, Int length, Int otherStart, Int otherLength) {
+    return start + length >= otherStart && start <= otherStart + otherLength
+}

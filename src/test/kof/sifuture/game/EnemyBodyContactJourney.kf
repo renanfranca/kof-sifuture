@@ -1,0 +1,195 @@
+package sifuture.game
+import sifuture.game.Boss
+import sifuture.game.JourneyScenarios
+import sifuture.game.Meteor
+import sifuture.game.Ship
+import sifuture.game.Subchief
+
+test "a subchief at the ship left edge whose bottom touches the ship top hits it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(50, 74)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a subchief at the ship right edge hits it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(100, 100)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a subchief near the ship right edge whose top is level with the ship top hits it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(90, 100)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a subchief near the ship right edge whose top crosses the ship middle hits it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(90, 110)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a subchief near the ship right edge whose top is level with the ship bottom hits it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(90, 120)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a subchief whose bottom is level with the ship bottom hits it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(60, 94)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a subchief whose right side touches the ship left edge hits it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(22, 100)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a subchief left of the ship whose top is level with the ship bottom hits it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(40, 120)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a subchief far below the ship misses it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(60, 200)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(!contact)
+}
+
+test "a subchief whose top is five units above the ship top misses it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(60, 95)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(!contact)
+}
+
+test "a subchief whose top is one unit above the ship top misses it" {
+    var ship = givenNormalShipAt(50, 100)
+    var chief = givenNormalSubchiefAt(60, 99)
+
+    var contact = chief.touchesShip(ship)
+
+    assert(!contact)
+}
+
+test "a ship at the boss right edge touches it" {
+    var boss = givenNormalBossAt(120, 100)
+    var ship = givenNormalShipAt(160, 100)
+
+    var contact = boss.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a ship whose top is level with the boss bottom touches it" {
+    var boss = givenNormalBossAt(120, 100)
+    var ship = givenNormalShipAt(130, 151)
+
+    var contact = boss.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a ship whose bottom touches the boss top touches it" {
+    var boss = givenNormalBossAt(120, 100)
+    var ship = givenNormalShipAt(130, 80)
+
+    var contact = boss.touchesShip(ship)
+
+    assert(contact)
+}
+
+test "a ship far above the boss does not touch it" {
+    var boss = givenNormalBossAt(120, 100)
+    var ship = givenNormalShipAt(130, 0)
+
+    var contact = boss.touchesShip(ship)
+
+    assert(!contact)
+}
+
+test "a ship one unit below the boss does not touch it" {
+    var boss = givenNormalBossAt(120, 100)
+    var ship = givenNormalShipAt(130, 152)
+
+    var contact = boss.touchesShip(ship)
+
+    assert(!contact)
+}
+
+test "a boss does not absorb a meteor one unit left of it" {
+    var boss = givenNormalBossAt(120, 100)
+    var meteor = givenMeteorAt(119, 120)
+
+    boss.absorbMeteors(listOf(meteor))
+
+    assert(!meteor.collided)
+}
+
+test "a boss absorbs a meteor whose top is level with the boss bottom" {
+    var boss = givenNormalBossAt(120, 100)
+    var meteor = givenMeteorAt(130, 151)
+
+    boss.absorbMeteors(listOf(meteor))
+
+    assert(meteor.collided)
+}
+
+test "a boss absorbs a meteor whose bottom touches the boss top" {
+    var boss = givenNormalBossAt(120, 100)
+    var meteor = givenMeteorAt(130, 82)
+
+    boss.absorbMeteors(listOf(meteor))
+
+    assert(meteor.collided)
+}
+
+test "a boss does not absorb a meteor far above it" {
+    var boss = givenNormalBossAt(120, 100)
+    var meteor = givenMeteorAt(130, 0)
+
+    boss.absorbMeteors(listOf(meteor))
+
+    assert(!meteor.collided)
+}
+
+test "a boss does not absorb a meteor one unit below it" {
+    var boss = givenNormalBossAt(120, 100)
+    var meteor = givenMeteorAt(130, 152)
+
+    boss.absorbMeteors(listOf(meteor))
+
+    assert(!meteor.collided)
+}
