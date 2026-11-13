@@ -1,0 +1,37 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "a dormant vertical meteor over the ship does not hit it" {
+    var g = givenNormalShip(341)
+    givenMeteorsAway(g)
+    givenItemsAway(g)
+    g.ship.x = 60
+    g.ship.y = 100
+    g.meteors[6].x = 70
+    g.meteors[6].y = 100
+
+    g.step()
+
+    assert(!g.meteors[6].active)
+    assert(g.ship.phase == ShipPhase.Normal && g.score == 0)
+}

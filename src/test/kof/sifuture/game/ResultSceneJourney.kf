@@ -1,0 +1,54 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "a normal ship with lives keeps firing lasers on the result screen" {
+    var g = givenNormalShipOnResult(331)
+
+    advanceSteps(g, 15)
+
+    assert(g.screen == Screen.Result)
+    assert(!noProjectileActive(g))
+}
+
+test "the result screen releases a dormant vertical meteor pair" {
+    var g = givenNormalShipOnResult(332)
+    g.meteors[6].active = false
+    g.meteors[7].active = false
+
+    g.step()
+
+    assert(g.screen == Screen.Result)
+    assert(g.meteors[6].active && g.meteors[7].active)
+}
+
+Game givenNormalShipOnResult(Int seed) {
+    var g = givenNormalShip(seed)
+    g.ship.x = 40
+    g.ship.y = 150
+    givenMeteorsAway(g)
+    givenItemsAway(g)
+    g.stageSteps = 1709
+    g.step()
+    for (var shot in g.weapons.lasers.shots) { shot.active = false }
+    return g
+}

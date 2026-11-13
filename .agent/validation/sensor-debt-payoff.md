@@ -1310,3 +1310,166 @@ Estimativa para o lote 4 (`Game`, 42 sobreviventes no A1): o R4 domina, porque o
 `step()` é grande e o `Game` não pode mudar de API para o `GameView` e o
 `GameControls`. Cerca de 2h a 3h mais o fechamento (cerca de 1h, com `check` e
 `check:task` no fim).
+
+## R5 e R4, lote 4: `Game` (13/11)
+
+Branch `refactor/sensor-debt-batch-4`, a partir de `a6ee1fb` (merge do PR #30, lote
+3). Plano: `.agent/execplans/sensor-debt-batch-4.md`. Kof 0.7.0, com 0.6.4 onde
+indicado. Evidência em `.agent/tmp/debt-batch4/`.
+
+### M0. Linha de base
+
+`kof-mut run --files mut-scope.json` só no `Game.kf`, das 09:02 às 09:31 (load
+5,9 em 32 núcleos): **188 candidatos, 146 mortos, 41 sobreviventes e 1 timeout**,
+`incomplete`, exit 3, 1776 s. O timeout é `82:22` `&& → ||`, sobrevivente no A1:
+levou 37,9 s contra o limite de 30 s enquanto o RED rodava em paralelo. É carga,
+não comportamento; no RED ele derruba um teste novo por asserção. Os 42 `id`s
+(41 + o timeout) são os mesmos do A1 de 09/11: os lotes 1 a 3 não mataram nenhum.
+
+### Método
+
+O mesmo dos lotes 2 e 3. Testes e refatorações numa cópia do projeto enquanto o
+M0 rodava; `.agent/tmp/debt-batch4/tools/redcheck.py` (cópia do lote 2) aplicou
+**um** sobrevivente por vez na cópia, com os testes novos e a produção ainda
+original, e rodou a suíte inteira na JVM. Saídas: `red-a1.txt` e `red-pair.txt`;
+listas: `specs-a1.json` (igual à do M0 mais o timeout) e `specs-pair.json`.
+
+Resultado: **24** dos 42 fazem falhar só testes novos, sempre por asserção, e
+nenhum teste antigo falhou. Os outros **18** não fazem nenhum teste falhar; são
+os da seção "Equivalentes eliminados por refatoração", todos previstos antes do
+RED.
+
+Conferências do planejamento:
+- achado 1: a divisão proposta foi seguida (detalhe em "Divisão de
+  responsabilidades");
+- achado 2: as duas cópias da liberação dos meteoros 6 e 7 eram iguais; a da
+  tela de resultado não tinha teste nenhum, por isso ganhou um antes da extração
+  (mata 4 dos 9 sobreviventes dela);
+- achado 3: `start()` chama `Meteor.reset()`, cujo `clearAnimation()` faz
+  `active = motion == MeteorMotion.Horizontal`, e o `GameView.render` retorna em
+  `Credits`, `Menu` e `Controls` antes de desenhar meteoros; o `active = false`
+  do construtor era redundante. Os `Bool` de `pad*` e `held*` **não** eram:
+  `padPressed()` num `Game()` novo e a primeira seta esquerda os leem, e testes
+  os matam. Os dois `var held = false` eram equivalentes: um dos quatro `if`
+  sempre sobrescreve o valor;
+- achado 4: `random` não é semeado nem usado em outro lugar de `src`
+  (`grep random\.`), e `confirm(Int)` só usa a semente em `start(seed)` e
+  `restart(seed)`; sortear sempre não muda nada visível;
+- achado 5: `math.min` com `Int width = Rules.WORLD_WIDTH` e
+  `Int increment = Rules.COLLISION_SCORE` locais, como no `Credits`.
+
+### Testes novos e o mutante que cada um mata
+
+13 testes em quatro arquivos novos por assunto: `PauseNavigationJourney.kf`
+(seleção da pausa por teclado e direcional), `KeyboardRearmJourney.kf` (setas de
+um jogo novo e rearme pelo clique no canvas), `ResultSceneJourney.kf` (a tela de
+resultado continua disparando e liberando o par vertical) e
+`DormantMeteorJourney.kf` (meteoro vertical ainda inativo). Posições do M0.
+
+| Mutante (M0) | Teste(s) que falharam com o mutante |
+| --- | --- |
+| `22:20`, `23:21`, `24:18`, `25:20` `false → true` (`pad*`) | a new game reports no pad arrow pressed |
+| `26:21` `false → true` (`heldLeft`) | a first left arrow press moves the ship left; a canvas click rearms the left arrow after a lost release |
+| `51:20`, `53:18`, `54:20` `false → true` (`rearmKeyboard`) | a canvas click rearms the left / up / down arrow after a lost release (um cada) |
+| `71:23` `== → !=` | a repeated keyboard up press in pause moves the selection once |
+| `73:21` `&& → \|\|` | an arrow pressed outside the game in pause leaves the selection |
+| `82:22` `&& → \|\|`, `82:35` `== → !=`, `82:73` `false → true`, `86:36` `true → false` | a held pad up arrow in pause moves the selection once until released |
+| `85:43` `&& → \|\|`, `85:54` `&& → \|\|` | a pad down press in pause moves the selection one entry; a held pad up arrow in pause moves the selection once until released |
+| `129:100` `- → +` | a keyboard up press in pause moves the selection up one entry; a repeated keyboard up press in pause moves the selection once; a held pad up arrow in pause moves the selection once until released |
+| `207:47` `== → !=` | a normal ship with lives keeps firing lasers on the result screen |
+| `209:32` `== → !=`, `209:72` `== → !=`, `210:37`, `211:37` `true → false` | the result screen releases a dormant vertical meteor pair |
+| `278:26` `&& → \|\|`, `278:42` `&& → \|\|` | a dormant vertical meteor over the ship does not hit it |
+
+### Equivalentes eliminados por refatoração
+
+Nenhum foi suprimido nem anotado, e nenhum teste mudou de expectativa. Cada
+refatoração entrou sozinha, com a suíte verde na JVM e no JS antes da próxima.
+
+| Sobrevivente (M0) | Por que não falhava | Refatoração |
+| --- | --- | --- |
+| `33:29`, `35:29` `meteors[6/7].active = false` | `start()` já desliga o par (achado 3) e nada o lê antes | linhas removidas |
+| `63:20`, `95:20` `var held = false` | um dos quatro `if` sempre sobrescreve o valor | `DirectionFlags.held(direction)` devolve o campo direto |
+| `143:21`, `143:36`, `143:53`, `143:59`, `143:70`, `143:86`, `143:104` | a semente sorteada é invisível fora de `start` e `restart` (achado 4) | `confirm()` sorteia sempre e passa para `confirm(Int)` |
+| `209:58`, `209:94`, `209:113`, `209:118`, `209:140` | cópia da regra da tela de jogo (CPD) | `releaseVerticalPair(Game)` em `Match.kf`, chamada pelas duas telas; os testes do estágio matam cada operador |
+| `215:32` `> → >=` | na igualdade o resultado é o mesmo | `math.min(displayedScore + increment, score)` |
+| `327:22` `> → >=` | idem | `math.min(5 + stageSteps / 10, width)` |
+
+Outras mudanças do R4 que mexem em regra, cada uma conferida no diff:
+- `navigate` virou `math.clamp(selection + offset, 0, 2)` (pausa) e `(0, 1)`
+  (menu). Igual ao original para toda seleção alcançável: o `GameControls` só
+  grava índices de botão existentes;
+- no choque nave e meteoro, o `ship.explode()` passou para depois do laço em
+  `crashShip`; o laço só lê `ship.x` e `ship.y`, e a fase é lida antes, como no
+  `shipCanCollide` original;
+- a trava de navegação do direcional agora guarda as quatro direções; `Left` e
+  `Right` só chegam ao `navigate`, que não faz nada com elas;
+- `Game.finish()` deixou de ser `private`, porque o `Match.kf` o chama. É um
+  membro a mais; nenhum membro existente mudou.
+
+### Divisão de responsabilidades
+
+| Para onde | O quê |
+| --- | --- |
+| `DirectionFlags.kf` (novo) | as quatro direções de um conjunto de setas (`held`, `hold`, `any`, `clear`); substitui `held*`, `pad*` e `navigation*Held` |
+| `DirectionInput.kf` (novo) | teclado, direcional e trava de navegação, cada um uma `DirectionFlags`; recebe a `Ship` por parâmetro |
+| `Match.kf` (novo) | o passo da partida e da tela de resultado como funções de topo que recebem o `Game`: `resetMatch`, `advancePlay`, `advanceResult`, `advanceStage`, `advanceScenery`, `endWithDefeat`, `resolveContacts`, `enemiesInactive`, `releaseVerticalPair` |
+| `Encounters.kf` (novo) | regras de contato que recebem as entidades e devolvem pontos: `collectItems`, `meetSubchief`, `advanceMeteors`, `meetBoss`, `meetMeteors`, `crashShip` |
+| `Game.kf` | estado, telas e menus (`navigate`, `confirm` por tela, `pause`, `resume`, `restart`, `abandon`, `finish`), despacho do `step()` e toda a API usada pela UI, pelo `Main` e pelos testes |
+
+O `Game` tem 150 linhas não vazias, exatamente o limite. Qualquer linha nova nele
+volta a acusar `long-file`: o próximo candidato a sair é o `resultIndex()`.
+
+### Sobreviventes por arquivo
+
+| Arquivo | M0 | Depois | Mortos por teste novo | Eliminados por refatoração |
+| --- | --- | --- | --- | --- |
+| `Game` | 41 + 1 timeout (188 candidatos) | 0 (44/44) | 24 | 18 |
+| `Match` (novo) | | 0 (29/29) | | |
+| `Encounters` (novo) | | 0 (22/22) | | |
+| `DirectionFlags` (novo) | | 0 (14/14) | | |
+| `DirectionInput` (novo) | | 0 (10/10) | | |
+| **Total** | **42 (188)** | **0 (119/119)** | **24** | **18** |
+
+### Critérios de aceite
+
+| # | Comando | Observado | Evidência |
+| --- | --- | --- | --- |
+| A1 | `kof-mut run --files a1-scope.json --report-dir .agent/tmp/debt-batch4/a1`, com `Game.kf` e os 4 novos | `complete`, 0 limitações, 119 candidatos, 119 mortos, 0 sobreviventes, 0 timeout, exit 0, 892 s (09:37 a 09:52) | `a1-report.json`, `a1.log` |
+| A2 | `tools/redcheck.py` com cada sobrevivente do M0 | 24 mutantes, cada um derrubando só testes novos, sempre por asserção; nenhum teste antigo falhou | `red-a1.txt`, `red-pair.txt`; tabela acima |
+| A3 | leitura do código, RED e KofMut final | 18 sem falha, todos eliminados por refatoração; nenhum anotado | seção de equivalentes |
+| A4 | `npm run lint:sensor --` nos 5 arquivos de produção e nos 4 testes novos | `PASS (0 findings)`; `Game.kf` com 150 linhas não vazias | rodado no repositório |
+| A5 | `npm run dup:sensor` (diff contra a `main`) | `PASS (0 findings)`, `5 files expected, 5 tokenized`; o grupo `Game.kf:208` ↔ `:269` sumiu | rodado no repositório |
+| A6 | `git diff --name-only main -- src/main` e arquivos novos | só `Game.kf`, mais os novos `DirectionFlags.kf`, `DirectionInput.kf`, `Encounters.kf` e `Match.kf`; nenhum outro arquivo existente, nem a UI, nem o `Main.kf` | rodado no repositório |
+| A7 | `git status src/test` e `npm run check` (`types`) | `src/test` só com os 4 arquivos novos; nenhum teste existente mudou; `types` PASS | rodado no repositório; `final/` |
+| A8 | `node scripts/kof-tests.mjs --target jvm` e `--target js`, com 0.7.0 e com `KOF=…/kof-0.6.4…/bin/kof` | `0 failed of 323 tests` nos quatro (eram 310) | rodado no repositório |
+| A9 | `debt-tools/journeys.sh` e `debt-tools/pixels.py` contra `debt-r0/journeys-1/png` | 7/7 exit 0, 186 PNG; `common=186 only_a=0 only_b=0 pixel_diff=0` | `journeys/summary.txt`, `pixels.out` |
+| A10 | validação final do plano | ver "Fechamento do lote" | `final/` |
+
+### Fechamento do lote
+
+Validação final do plano, nesta ordem, de 09:59 a 10:34 (evidência em
+`.agent/tmp/debt-batch4/final/`):
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | exit 0, 15 testes OK |
+| `npm run test:sensors` | exit 0 |
+| `npm run check` | `CHECK: PASS`, 11 passos PASS; `mutation` PASS (não SKIP): 119 candidatos, 119 mortos, 0 sobreviventes nos 5 arquivos; cerca de 15 min |
+| `npm run check:task` | `CHECK:TASK: PASS`, `mutation` (119/119) e as sete jornadas PASS; cerca de 20 min |
+| `git diff --check` | exit 0; os 8 arquivos novos, fora do alcance dele, conferidos à parte sem espaço no fim de linha |
+
+Esta seção entrou depois da validação (só texto); `npm run docs:sensor` e
+`git diff --check` rodaram de novo sobre ela.
+
+### Tempo
+
+Espera do CI e merge do PR #30 (lote 3) de 09:00 a 09:06. M0 de 09:02 a 09:31.
+Análise dos sobreviventes, testes, RED automatizado e R4 numa cópia do projeto,
+em paralelo ao M0; pré-checagem do KofMut na cópia (119/119, cerca de 18 min).
+A1 no repositório de 09:37 a 09:52, jornadas até 09:58, validação final de
+09:59 a 10:34. Do começo ao A1, cerca de 1h, contra a estimativa de 2h a 3h.
+
+Estimativa para a UI (`GameControls` e `GameView`): os dois são casca de
+`kof.ui`, com menos candidatos que o `Game`, mas o RED depende das jornadas de
+navegador e de estado Kof comum (o piloto do `ControlsGuide` mostrou que o texto
+de botão lê vazio na JVM). Cerca de 2h por arquivo mais o fechamento (cerca de 1h).

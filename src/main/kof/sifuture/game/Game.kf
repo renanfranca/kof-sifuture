@@ -1,4 +1,6 @@
 package sifuture.game
+import sifuture.game.DirectionInput
+import sifuture.game.Match
 
 class Game {
     Screen screen = Screen.Credits
@@ -17,42 +19,23 @@ class Game {
     Boss boss = Boss()
     List<Meteor> meteors = listOf(Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor(), Meteor())
     Weapons weapons = Weapons()
-    Bool navigationUpHeld = false
-    Bool navigationDownHeld = false
-    Bool padLeft = false
-    Bool padRight = false
-    Bool padUp = false
-    Bool padDown = false
-    Bool heldLeft = false
-    Bool heldRight = false
-    Bool heldUp = false
-    Bool heldDown = false
+    DirectionInput input = DirectionInput()
 
     public constructor() {
         meteors[6].motion = MeteorMotion.Vertical
-        meteors[6].active = false
         meteors[7].motion = MeteorMotion.Vertical
-        meteors[7].active = false
     }
 
     clearMovement() {
-        padLeft = false
-        padRight = false
-        padUp = false
-        padDown = false
-        ship.clearInput()
+        input.clearPad(ship)
     }
 
     clearKeyboard() {
-        if (!padPressed()) { ship.clearInput() }
+        input.releaseKeyboard(ship)
     }
 
     rearmKeyboard() {
-        heldLeft = false
-        heldRight = false
-        heldUp = false
-        heldDown = false
-        if (!padPressed()) { ship.clearInput() }
+        input.rearmKeyboard(ship)
     }
 
     keyboard(Direction direction, Bool pressed) {
@@ -60,50 +43,23 @@ class Game {
     }
 
     keyboard(Direction direction, Bool pressed, Bool movementAllowed) {
-        var held = false
-        if (direction == Direction.Left) { held = heldLeft }
-        if (direction == Direction.Right) { held = heldRight }
-        if (direction == Direction.Up) { held = heldUp }
-        if (direction == Direction.Down) { held = heldDown }
-        if (held == pressed) { return }
-        if (direction == Direction.Left) { heldLeft = pressed }
-        if (direction == Direction.Right) { heldRight = pressed }
-        if (direction == Direction.Up) { heldUp = pressed }
-        if (direction == Direction.Down) { heldDown = pressed }
-        if (pressed && movementAllowed) { navigate(direction) }
-        if (screen == Screen.Play && !padPressed() && movementAllowed) { ship.direction(direction, pressed) }
+        if (!input.keyChanged(direction, pressed) || !movementAllowed) { return }
+        if (pressed) { navigate(direction) }
+        if (screen == Screen.Play) { input.steerByKeyboard(ship, direction, pressed) }
     }
 
     padPressed(): Bool {
-        return padLeft || padRight || padUp || padDown
+        return input.pad.any()
     }
 
     movement(Direction direction, Bool pressed) {
-        if (!pressed && direction == Direction.Up) { navigationUpHeld = false }
-        if (!pressed && direction == Direction.Down) { navigationDownHeld = false }
+        if (!pressed) { input.releaseMenuArrow(direction) }
         if (screen == Screen.Menu || screen == Screen.Pause) {
-            if (direction == Direction.Up && pressed && !navigationUpHeld) {
-                navigationUpHeld = true
-                navigate(direction)
-            }
-            if (direction == Direction.Down && pressed && !navigationDownHeld) {
-                navigationDownHeld = true
-                navigate(direction)
-            }
+            if (input.menuArrowPressed(direction, pressed)) { navigate(direction) }
             return
         }
-        var held = false
-        if (direction == Direction.Left) { held = padLeft }
-        if (direction == Direction.Right) { held = padRight }
-        if (direction == Direction.Up) { held = padUp }
-        if (direction == Direction.Down) { held = padDown }
-        if (held == pressed || (pressed && screen != Screen.Play)) { return }
-        if (pressed && !padPressed()) { ship.clearInput() }
-        if (direction == Direction.Left) { padLeft = pressed }
-        if (direction == Direction.Right) { padRight = pressed }
-        if (direction == Direction.Up) { padUp = pressed }
-        if (direction == Direction.Down) { padDown = pressed }
-        ship.direction(direction, pressed)
+        if (pressed && screen != Screen.Play) { return }
+        input.steerByPad(ship, direction, pressed)
     }
 
     start(Int seed) {
@@ -111,28 +67,15 @@ class Game {
         clearMovement()
         rng.seed(seed)
         screen = Screen.Play
-        ship.reset()
-        score = 0
-        displayedScore = 0
-        steps = 0
-        stageSteps = 0
-        background.reset()
-        weapons.reset()
-        for (var m in meteors) { m.reset() }
-        for (var item in items) { item.reset() }
-        subchief.reset()
-        boss.reset()
+        resetMatch(this)
     }
 
     navigate(Direction direction) {
-        if (screen == Screen.Pause) {
-            if (direction == Direction.Up && pauseSelection > 0) { pauseSelection = pauseSelection - 1 }
-            if (direction == Direction.Down && pauseSelection < 2) { pauseSelection = pauseSelection + 1 }
-            return
-        }
-        if (screen != Screen.Menu) { return }
-        if (direction == Direction.Up && menuSelection > 0) { menuSelection = menuSelection - 1 }
-        if (direction == Direction.Down && menuSelection < 1) { menuSelection = menuSelection + 1 }
+        var offset = 0
+        if (direction == Direction.Up) { offset = -1 }
+        if (direction == Direction.Down) { offset = 1 }
+        if (screen == Screen.Pause) { pauseSelection = math.clamp(pauseSelection + offset, 0, 2) }
+        if (screen == Screen.Menu) { menuSelection = math.clamp(menuSelection + offset, 0, 1) }
     }
 
     openControls() {
@@ -140,30 +83,33 @@ class Game {
     }
 
     confirm() {
-        if ((screen == Screen.Menu && menuSelection == 0) || (screen == Screen.Pause && pauseSelection == 1)) {
-            Int seedBound = Rules.RANDOM_SEED_BOUND
-            this.confirm(random.int(seedBound))
-        }
-        else { this.confirm(0) }
+        Int seedBound = Rules.RANDOM_SEED_BOUND
+        this.confirm(random.int(seedBound))
     }
 
     confirm(Int seed) {
         if (screen == Screen.Credits) { enterMenu(0) }
-        else if (screen == Screen.Menu) {
-            if (menuSelection == 0) { start(seed) }
-            else { openControls() }
-        }
+        else if (screen == Screen.Menu) { confirmMenu(seed) }
         else if (screen == Screen.Controls) { enterMenu(menuSelection) }
         else if (screen == Screen.Play) { pause() }
-        else if (screen == Screen.Pause) {
-            if (pauseSelection == 0) { resume() }
-            else if (pauseSelection == 1) { restart(seed) }
-            else { abandon() }
-        }
-        else if (screen == Screen.Result) {
-            if (!countComplete()) { displayedScore = score }
-            else { enterMenu(0) }
-        }
+        else if (screen == Screen.Pause) { confirmPause(seed) }
+        else if (screen == Screen.Result) { confirmResult() }
+    }
+
+    private confirmMenu(Int seed) {
+        if (menuSelection == 0) { start(seed) }
+        else { openControls() }
+    }
+
+    private confirmPause(Int seed) {
+        if (pauseSelection == 0) { resume() }
+        else if (pauseSelection == 1) { restart(seed) }
+        else { abandon() }
+    }
+
+    private confirmResult() {
+        if (!countComplete()) { displayedScore = score }
+        else { enterMenu(0) }
     }
 
     private enterMenu(Int selection) {
@@ -193,116 +139,14 @@ class Game {
     }
 
     step() {
-        if (screen == Screen.Menu) { menuEntrance.advance(); return }
-        if (screen == Screen.Credits) {
-            if (credits.advance()) { enterMenu(0) }
-            return
-        }
-        if (screen == Screen.Result) {
-            subchief.advance()
-            boss.advance()
-            background.advance()
-            for (var item in items) { item.advance() }
-            ship.advanceVisual()
-            if (ship.lives > 0 && (ship.phase == ShipPhase.Normal || ship.phase == ShipPhase.Hidden)) { weapons.attemptFire(ship) }
-            weapons.advance()
-            if (subchief.phase == SubchiefPhase.Inactive && boss.phase == BossPhase.Inactive && stagePosition() > 30 && !meteors[6].active && !meteors[7].active) {
-                meteors[6].active = true
-                meteors[7].active = true
-            }
-            for (var m in meteors) { m.advance() }
-            displayedScore = displayedScore + Rules.COLLISION_SCORE
-            if (displayedScore > score) { displayedScore = score }
-            return
-        }
-        if (screen != Screen.Play) { return }
-        steps = steps + 1
-        if (subchief.phase == SubchiefPhase.Inactive && boss.phase == BossPhase.Inactive) {
-            stageSteps = stageSteps + 1
-            if (stagePosition() == 88) {
-                subchief.phase = SubchiefPhase.Normal
-                stageSteps = stageSteps + 10
-            }
-            if (stagePosition() == 146) {
-                boss.phase = BossPhase.Normal
-                stageSteps = stageSteps + 10
-            }
-        }
-        background.advance()
-        for (var item in items) { item.advance() }
-        var normalBefore = ship.phase == ShipPhase.Normal
-        var livesBefore = ship.lives
-        ship.advance()
-        if (ship.lives < livesBefore) { weapons.loseOnDeath() }
-        if (ship.lives == 0) {
-            subchief.advance()
-            boss.advance()
-            finish()
-            return
-        }
+        if (screen == Screen.Menu) { menuEntrance.advance() }
+        else if (screen == Screen.Credits) { advanceCredits() }
+        else if (screen == Screen.Result) { advanceResult(this) }
+        else if (screen == Screen.Play) { advancePlay(this) }
+    }
 
-        if (normalBefore) { weapons.attemptFire(ship) }
-        weapons.advance()
-
-        for (var item in items) {
-            if (item.collect(ship)) {
-                score = score + 10
-                if (item.kind == ItemKind.Life) { ship.lives = ship.lives + 1 }
-                else { weapons.evolve() }
-            }
-        }
-
-        var chiefPhaseBeforeContacts = subchief.phase
-        if (subchief.touchesShip(ship)) {
-            ship.explode()
-            subchief.damage(1)
-        }
-        weapons.hitSubchiefLaser(subchief)
-        weapons.hitSubchiefBlaster(subchief)
-        weapons.hitSubchiefSpecial(subchief)
-        if (chiefPhaseBeforeContacts == SubchiefPhase.Normal && subchief.phase == SubchiefPhase.Explosion) { score = score + subchief.reward() }
-        for (var shot in subchief.shots) {
-            if (shot.touchesShip(ship)) { ship.explode(); shot.active = false; break }
-        }
-        if (chiefPhaseBeforeContacts == SubchiefPhase.Explosion) { subchief.advanceExplosion() }
-        subchief.advanceNormal()
-        subchief.advanceShots()
-        if (subchief.phase == SubchiefPhase.Inactive && boss.phase == BossPhase.Inactive && stagePosition() > 30 && !meteors[6].active && !meteors[7].active) {
-            meteors[6].active = true
-            meteors[7].active = true
-        }
-        var targets = listOf<Meteor>()
-        for (var m in meteors) {
-            var wasCollided = m.collided
-            m.advance()
-            if (m.active && !wasCollided && !m.collided) { targets.add(m) }
-        }
-        var bossPhaseBeforeContacts = boss.phase
-        if (boss.touchesShip(ship)) { ship.explode(); boss.damage(1) }
-        weapons.hitBossLaser(boss)
-        weapons.hitBossBlaster(boss)
-        weapons.hitBossSpecial(boss)
-        if (bossPhaseBeforeContacts != BossPhase.Explosion && boss.phase == BossPhase.Explosion) { score = score + boss.reward() }
-        boss.absorbMeteors(targets)
-        boss.weapons.hitShip(ship)
-        boss.advance(bossPhaseBeforeContacts == BossPhase.Explosion)
-
-        var shipCanCollide = ship.phase == ShipPhase.Normal
-        var shipCollision = false
-        for (var m in targets) {
-            if (!m.collided && shipCanCollide && m.touchesShip(ship.x, ship.y)) {
-                if (!shipCollision) {
-                    score = score + Rules.COLLISION_SCORE
-                    ship.explode()
-                    shipCollision = true
-                }
-                m.collide()
-            }
-        }
-        if (weapons.hitLaser(targets)) { score = score + Rules.COLLISION_SCORE }
-        if (weapons.hitBlaster(targets)) { score = score + Rules.COLLISION_SCORE }
-        if (weapons.hitSpecial(targets)) { score = score + Rules.COLLISION_SCORE }
-        if (stagePosition() == Rules.WORLD_WIDTH) { finish() }
+    private advanceCredits() {
+        if (credits.advance()) { enterMenu(0) }
     }
 
     canSpecial(): Bool {
@@ -314,7 +158,7 @@ class Game {
         return weapons.fireSpecial(ship)
     }
 
-    private finish() {
+    finish() {
         screen = Screen.Result
         displayedScore = 0
         clearMovement()
@@ -323,9 +167,8 @@ class Game {
     countComplete(): Bool { return displayedScore == score }
 
     stagePosition(): Int {
-        var position = 5 + stageSteps / 10
-        if (position > Rules.WORLD_WIDTH) { return Rules.WORLD_WIDTH }
-        return position
+        Int width = Rules.WORLD_WIDTH
+        return math.min(5 + stageSteps / 10, width)
     }
 
     resultIndex(): Int {

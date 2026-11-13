@@ -1,0 +1,35 @@
+package sifuture.game
+
+class DirectionFlags {
+    Bool left
+    Bool right
+    Bool up
+    Bool down
+
+    public constructor() { clear() }
+
+    clear() {
+        left = false
+        right = false
+        up = false
+        down = false
+    }
+
+    held(Direction direction): Bool {
+        if (direction == Direction.Left) { return left }
+        if (direction == Direction.Right) { return right }
+        if (direction == Direction.Up) { return up }
+        return down
+    }
+
+    hold(Direction direction, Bool pressed) {
+        if (direction == Direction.Left) { left = pressed }
+        if (direction == Direction.Right) { right = pressed }
+        if (direction == Direction.Up) { up = pressed }
+        if (direction == Direction.Down) { down = pressed }
+    }
+
+    any(): Bool {
+        return left || right || up || down
+    }
+}

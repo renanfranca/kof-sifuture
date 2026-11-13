@@ -1,0 +1,91 @@
+package sifuture.game
+import sifuture.game.Encounters
+
+resetMatch(Game g) {
+    g.ship.reset()
+    g.score = 0
+    g.displayedScore = 0
+    g.steps = 0
+    g.stageSteps = 0
+    g.background.reset()
+    g.weapons.reset()
+    for (var m in g.meteors) { m.reset() }
+    for (var item in g.items) { item.reset() }
+    g.subchief.reset()
+    g.boss.reset()
+}
+
+advanceResult(Game g) {
+    g.subchief.advance()
+    g.boss.advance()
+    advanceScenery(g)
+    g.ship.advanceVisual()
+    if (g.ship.lives > 0 && (g.ship.phase == ShipPhase.Normal || g.ship.phase == ShipPhase.Hidden)) { g.weapons.attemptFire(g.ship) }
+    g.weapons.advance()
+    releaseVerticalPair(g)
+    for (var m in g.meteors) { m.advance() }
+    Int increment = Rules.COLLISION_SCORE
+    g.displayedScore = math.min(g.displayedScore + increment, g.score)
+}
+
+advancePlay(Game g) {
+    g.steps = g.steps + 1
+    advanceStage(g)
+    advanceScenery(g)
+    var normalBefore = g.ship.phase == ShipPhase.Normal
+    var livesBefore = g.ship.lives
+    g.ship.advance()
+    if (g.ship.lives < livesBefore) { g.weapons.loseOnDeath() }
+    if (g.ship.lives == 0) {
+        endWithDefeat(g)
+        return
+    }
+    if (normalBefore) { g.weapons.attemptFire(g.ship) }
+    g.weapons.advance()
+    resolveContacts(g)
+    if (g.stagePosition() == Rules.WORLD_WIDTH) { g.finish() }
+}
+
+advanceStage(Game g) {
+    if (!enemiesInactive(g)) { return }
+    g.stageSteps = g.stageSteps + 1
+    if (g.stagePosition() == 88) {
+        g.subchief.phase = SubchiefPhase.Normal
+        g.stageSteps = g.stageSteps + 10
+    }
+    if (g.stagePosition() == 146) {
+        g.boss.phase = BossPhase.Normal
+        g.stageSteps = g.stageSteps + 10
+    }
+}
+
+advanceScenery(Game g) {
+    g.background.advance()
+    for (var item in g.items) { item.advance() }
+}
+
+endWithDefeat(Game g) {
+    g.subchief.advance()
+    g.boss.advance()
+    g.finish()
+}
+
+resolveContacts(Game g) {
+    g.score = g.score + collectItems(g.items, g.ship, g.weapons)
+    g.score = g.score + meetSubchief(g.subchief, g.ship, g.weapons)
+    releaseVerticalPair(g)
+    var targets = advanceMeteors(g.meteors)
+    g.score = g.score + meetBoss(g.boss, g.ship, g.weapons, targets)
+    g.score = g.score + meetMeteors(targets, g.ship, g.weapons)
+}
+
+Bool enemiesInactive(Game g) {
+    return g.subchief.phase == SubchiefPhase.Inactive && g.boss.phase == BossPhase.Inactive
+}
+
+releaseVerticalPair(Game g) {
+    if (enemiesInactive(g) && g.stagePosition() > 30 && !g.meteors[6].active && !g.meteors[7].active) {
+        g.meteors[6].active = true
+        g.meteors[7].active = true
+    }
+}

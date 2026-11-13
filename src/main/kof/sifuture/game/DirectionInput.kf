@@ -1,0 +1,49 @@
+package sifuture.game
+import sifuture.game.DirectionFlags
+
+class DirectionInput {
+    DirectionFlags keys = DirectionFlags()
+    DirectionFlags pad = DirectionFlags()
+    DirectionFlags menuArrows = DirectionFlags()
+
+    clearPad(Ship ship) {
+        pad.clear()
+        ship.clearInput()
+    }
+
+    releaseKeyboard(Ship ship) {
+        if (!pad.any()) { ship.clearInput() }
+    }
+
+    rearmKeyboard(Ship ship) {
+        keys.clear()
+        releaseKeyboard(ship)
+    }
+
+    keyChanged(Direction direction, Bool pressed): Bool {
+        if (keys.held(direction) == pressed) { return false }
+        keys.hold(direction, pressed)
+        return true
+    }
+
+    steerByKeyboard(Ship ship, Direction direction, Bool pressed) {
+        if (!pad.any()) { ship.direction(direction, pressed) }
+    }
+
+    menuArrowPressed(Direction direction, Bool pressed): Bool {
+        if (!pressed || menuArrows.held(direction)) { return false }
+        menuArrows.hold(direction, true)
+        return true
+    }
+
+    releaseMenuArrow(Direction direction) {
+        menuArrows.hold(direction, false)
+    }
+
+    steerByPad(Ship ship, Direction direction, Bool pressed) {
+        if (pad.held(direction) == pressed) { return }
+        if (pressed && !pad.any()) { ship.clearInput() }
+        pad.hold(direction, pressed)
+        ship.direction(direction, pressed)
+    }
+}

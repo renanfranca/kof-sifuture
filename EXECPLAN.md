@@ -1709,7 +1709,20 @@ a documentação que cita `kof_project.py test`.
   JS, 0.7.0 e 0.6.4); jornadas 7/7 com os mesmos pixels do R0. Plano em
   [`.agent/execplans/sensor-debt-batch-3.md`](.agent/execplans/sensor-debt-batch-3.md);
   aceite na seção "R5 e R4, lote 3" de [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md).
-- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes): faltam `Game` (lote 4) e a UI.
+- [x] R5 e R4, lote 4 (13/11, branch `refactor/sensor-debt-batch-4`): `Game`.
+  M0 com os mesmos 42 sobreviventes do A1 (um deles como timeout por carga); 24
+  mortos por 13 testes novos (`PauseNavigationJourney`, `KeyboardRearmJourney`,
+  `ResultSceneJourney`, `DormantMeteorJourney`), RED com cada mutante aplicado;
+  os 18 restantes deixaram de existir por refatoração (liberação do par vertical
+  numa função só no lugar do CPD, `math.min`, semente sorteada sempre, valores
+  iniciais redundantes). O `Game` passou de 307 para 150 linhas não vazias, com
+  a entrada em `DirectionFlags` e `DirectionInput`, o passo em `Match.kf` e os
+  contatos em `Encounters.kf`, sem mudar a API. KofMut nos 5 arquivos: 119/119
+  mortos; lint 0; CPD 0; 310 → 323 casos (JVM e JS, 0.7.0 e 0.6.4); jornadas
+  7/7 com os mesmos pixels do R0. Plano em
+  [`.agent/execplans/sensor-debt-batch-4.md`](.agent/execplans/sensor-debt-batch-4.md);
+  aceite na seção "R5 e R4, lote 4" de [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md).
+- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes): falta a UI (`GameControls`, `GameView`).
 - [ ] R5. Sobreviventes por TDD.
 - [ ] R6. Fixtures `tests/*.kf`.
 - [ ] R7. Fechamento.
