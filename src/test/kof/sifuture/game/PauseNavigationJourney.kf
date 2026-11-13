@@ -1,0 +1,76 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "a keyboard up press in pause moves the selection up one entry" {
+    var g = givenPausedAt(311, 2)
+
+    g.keyboard(Direction.Up, true)
+
+    assert(g.pauseSelection == 1)
+}
+
+test "a repeated keyboard up press in pause moves the selection once" {
+    var g = givenPausedAt(312, 2)
+
+    g.keyboard(Direction.Up, true)
+    g.keyboard(Direction.Up, true)
+
+    assert(g.pauseSelection == 1)
+}
+
+test "an arrow pressed outside the game in pause leaves the selection" {
+    var g = givenPausedAt(313, 0)
+
+    g.keyboard(Direction.Down, true, false)
+
+    assert(g.pauseSelection == 0)
+}
+
+test "a pad down press in pause moves the selection one entry" {
+    var g = givenPausedAt(314, 0)
+
+    g.movement(Direction.Down, true)
+
+    assert(g.pauseSelection == 1)
+}
+
+test "a held pad up arrow in pause moves the selection once until released" {
+    var g = givenPausedAt(315, 2)
+
+    g.movement(Direction.Up, true)
+    g.movement(Direction.Up, true)
+    var heldSelection = g.pauseSelection
+    g.movement(Direction.Up, false)
+    g.movement(Direction.Up, true)
+
+    assert(heldSelection == 1)
+    assert(g.pauseSelection == 0)
+}
+
+Game givenPausedAt(Int seed, Int selection) {
+    var g = Game()
+    g.start(seed)
+    g.pause()
+    g.pauseSelection = selection
+    return g
+}

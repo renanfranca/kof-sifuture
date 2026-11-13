@@ -1,0 +1,78 @@
+package sifuture.game
+import sifuture.game.JourneyScenarios
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "a new game reports no pad arrow pressed" {
+    var g = Game()
+
+    var pressed = g.padPressed()
+
+    assert(!pressed)
+}
+
+test "a first left arrow press moves the ship left" {
+    var g = givenShipAt(321, 60, 100)
+
+    g.keyboard(Direction.Left, true)
+    g.step()
+
+    assert(g.ship.x == 55 && g.ship.y == 100)
+}
+
+test "a canvas click rearms the left arrow after a lost release" {
+    var g = givenShipAt(322, 60, 100)
+    g.keyboard(Direction.Left, true)
+    g.step()
+    g.clearKeyboard()
+
+    g.rearmKeyboard()
+    g.keyboard(Direction.Left, true)
+    g.step()
+
+    assert(g.ship.x == 50)
+}
+
+test "a canvas click rearms the up arrow after a lost release" {
+    var g = givenShipAt(323, 60, 100)
+    g.keyboard(Direction.Up, true)
+    g.step()
+    g.clearKeyboard()
+
+    g.rearmKeyboard()
+    g.keyboard(Direction.Up, true)
+    g.step()
+
+    assert(g.ship.y == 90)
+}
+
+test "a canvas click rearms the down arrow after a lost release" {
+    var g = givenShipAt(324, 60, 100)
+    g.keyboard(Direction.Down, true)
+    g.step()
+    g.clearKeyboard()
+
+    g.rearmKeyboard()
+    g.keyboard(Direction.Down, true)
+    g.step()
+
+    assert(g.ship.y == 110)
+}

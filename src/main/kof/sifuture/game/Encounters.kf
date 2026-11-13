@@ -1,0 +1,91 @@
+package sifuture.game
+
+Int collectItems(List<Item> items, Ship ship, Weapons weapons) {
+    var points = 0
+    for (var item in items) {
+        if (item.collect(ship)) {
+            points = points + 10
+            applyItem(item, ship, weapons)
+        }
+    }
+    return points
+}
+
+applyItem(Item item, Ship ship, Weapons weapons) {
+    if (item.kind == ItemKind.Life) { ship.lives = ship.lives + 1 }
+    else { weapons.evolve() }
+}
+
+Int meetSubchief(Subchief chief, Ship ship, Weapons weapons) {
+    var phaseBefore = chief.phase
+    if (chief.touchesShip(ship)) {
+        ship.explode()
+        chief.damage(1)
+    }
+    weapons.hitSubchiefLaser(chief)
+    weapons.hitSubchiefBlaster(chief)
+    weapons.hitSubchiefSpecial(chief)
+    var points = if (phaseBefore == SubchiefPhase.Normal && chief.phase == SubchiefPhase.Explosion) chief.reward() else 0
+    hitShipWithFirstShot(chief, ship)
+    if (phaseBefore == SubchiefPhase.Explosion) { chief.advanceExplosion() }
+    chief.advanceNormal()
+    chief.advanceShots()
+    return points
+}
+
+hitShipWithFirstShot(Subchief chief, Ship ship) {
+    for (var shot in chief.shots) {
+        if (shot.touchesShip(ship)) {
+            ship.explode()
+            shot.active = false
+            return
+        }
+    }
+}
+
+List<Meteor> advanceMeteors(List<Meteor> meteors) {
+    var targets = listOf<Meteor>()
+    for (var m in meteors) {
+        var wasCollided = m.collided
+        m.advance()
+        if (m.active && !wasCollided && !m.collided) { targets.add(m) }
+    }
+    return targets
+}
+
+Int meetBoss(Boss boss, Ship ship, Weapons weapons, List<Meteor> targets) {
+    var phaseBefore = boss.phase
+    if (boss.touchesShip(ship)) {
+        ship.explode()
+        boss.damage(1)
+    }
+    weapons.hitBossLaser(boss)
+    weapons.hitBossBlaster(boss)
+    weapons.hitBossSpecial(boss)
+    var points = if (phaseBefore != BossPhase.Explosion && boss.phase == BossPhase.Explosion) boss.reward() else 0
+    boss.absorbMeteors(targets)
+    boss.weapons.hitShip(ship)
+    boss.advance(phaseBefore == BossPhase.Explosion)
+    return points
+}
+
+Int meetMeteors(List<Meteor> targets, Ship ship, Weapons weapons) {
+    var points = if (crashShip(targets, ship)) Rules.COLLISION_SCORE else 0
+    if (weapons.hitLaser(targets)) { points = points + Rules.COLLISION_SCORE }
+    if (weapons.hitBlaster(targets)) { points = points + Rules.COLLISION_SCORE }
+    if (weapons.hitSpecial(targets)) { points = points + Rules.COLLISION_SCORE }
+    return points
+}
+
+Bool crashShip(List<Meteor> targets, Ship ship) {
+    if (ship.phase != ShipPhase.Normal) { return false }
+    var crashed = false
+    for (var m in targets) {
+        if (!m.collided && m.touchesShip(ship.x, ship.y)) {
+            crashed = true
+            m.collide()
+        }
+    }
+    if (crashed) { ship.explode() }
+    return crashed
+}
