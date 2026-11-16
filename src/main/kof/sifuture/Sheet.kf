@@ -1,0 +1,56 @@
+package sifuture
+
+class Art {
+    static final Int TITLE = 0
+    static final Int SHIP = 1
+    static final Int SHIP_RIGHT = 2
+    static final Int SUBCHIEF = 3
+    static final Int SUBCHIEF_SHOT = 4
+    static final Int BOSS = 5
+    static final Int BOSS_SHOT = 6
+    static final Int BOSS_SPECIAL = 7
+    static final Int METEOR = 8
+    static final Int METEOR_HIT = 9
+    static final Int EXPLOSION = 10
+    static final Int BACKGROUND = 11
+    static final Int SPECIAL_ICON = 12
+    static final Int EVOLUTION_ITEM = 13
+    static final Int LIFE_ITEM = 14
+    static final Int ITEM_EFFECT = 15
+    static final Int LASER = 16
+    static final Int BLASTER = 17
+    static final Int SPECIAL_BEAM = 18
+    static final Int LASER_IMPACT = 19
+    static final Int STAGE_START = 20
+    static final Int STAGE_TRACK = 21
+    static final Int LIFE_SHIP = 22
+    static final Int DIGIT = 23
+    static final Int SCORE_LABEL = 24
+    static final Int FINAL_SCORE_LABEL = 25
+    static final Int TIMES = 26
+    static final Int RESULT = 27
+}
+
+List<List<String>> sheetPaths() {
+    return listOf(
+        listOf("assets/sifuture.png"), listOf("assets/Middle.png"), listOf("assets/Middle2.png"),
+        listOf("assets/subchief.png"), listOf("assets/laser0.png"),
+        listOf("assets/bos.png", "assets/bos1.png", "assets/bos2.png"),
+        listOf("assets/shoot0.png", "assets/shoot1.png", "assets/shoot2.png", "assets/shoot3.png"),
+        listOf("assets/esp0.png", "assets/esp1.png", "assets/esp2.png", "assets/esp3.png", "assets/esp4.png", "assets/esp5.png", "assets/esp6.png"),
+        listOf("assets/meteor000.png", "assets/meteor001.png", "assets/meteor002.png", "assets/meteor003.png", "assets/meteor004.png", "assets/meteor005.png"),
+        listOf("assets/meteor0C0.png", "assets/meteor0C1.png", "assets/meteor0C2.png"),
+        listOf("assets/explosion0.png", "assets/explosion1.png", "assets/explosion2.png", "assets/explosion3.png", "assets/explosion4.png", "assets/explosion5.png", "assets/explosion6.png", "assets/explosion7.png", "assets/explosion8.png", "assets/explosion9.png"),
+        listOf("assets/background.png"), listOf("assets/especialActivated1.png"),
+        listOf("assets/iten0.png", "assets/iten1.png", "assets/iten2.png", "assets/iten3.png", "assets/iten4.png"),
+        listOf("assets/life0.png", "assets/life1.png", "assets/life2.png", "assets/life3.png", "assets/life4.png", "assets/life5.png", "assets/life6.png", "assets/life7.png", "assets/life8.png", "assets/life9.png", "assets/life10.png"),
+        listOf("assets/effect0.png", "assets/effect1.png", "assets/effect2.png"),
+        listOf("assets/laser00.png", "assets/laser01.png", "assets/laser02.png"),
+        listOf("assets/ylwBlaster00.png", "assets/ylwBlaster01.png", "assets/ylwBlaster02.png", "assets/ylwBlaster03.png", "assets/ylwBlaster04.png", "assets/ylwBlaster05.png", "assets/ylwBlaster06.png", "assets/ylwBlaster07.png", "assets/ylwBlaster08.png"),
+        listOf("assets/e0.png", "assets/e1.png", "assets/e2.png", "assets/e3.png", "assets/e4.png", "assets/e5.png", "assets/e6.png", "assets/e7.png", "assets/e8.png"),
+        listOf("assets/laser03.png"), listOf("assets/StageBeginer.png"), listOf("assets/StageMiddle.png"),
+        listOf("assets/1lives.png", "assets/2lives.png", "assets/3lives.png"),
+        listOf("assets/0.png", "assets/1.png", "assets/2.png", "assets/3.png", "assets/4.png", "assets/5.png", "assets/6.png", "assets/7.png", "assets/8.png", "assets/9.png"),
+        listOf("assets/score.png"), listOf("assets/score1.png"), listOf("assets/x.png"),
+        listOf("assets/result0.png", "assets/result1.png", "assets/result2.png", "assets/result3.png"))
+}

@@ -1,0 +1,52 @@
+package sifuture
+
+import sifuture.Scene
+import sifuture.Sheet
+import sifuture.game.*
+
+hudScene(List<Sprite> hud, Game game) {
+    for (var i = 0; i < 10; i++) { hud.add(Sprite(Art.STAGE_TRACK, 0, 8 + i * 18, 0)) }
+    hud.add(Sprite(Art.LIFE_SHIP, stageMarkerFrame(game.ship.lives), game.stagePosition(), 9))
+    hud.add(Sprite(Art.STAGE_START, 0, 0, 0))
+    var scoreX = Rules.WORLD_WIDTH - numberWidth(game.score)
+    numberSprites(hud, game.score, scoreX, 0)
+    hud.add(Sprite(Art.SCORE_LABEL, 0, scoreX - 24, 7))
+    hud.add(Sprite(Art.LIFE_SHIP, 1, 146, 21))
+    hud.add(Sprite(Art.TIMES, 0, 140, 21))
+    numberSprites(hud, game.ship.lives, 142 - numberWidth(game.ship.lives), 21)
+    if (game.weapons.charges > 0) { hud.add(Sprite(Art.SPECIAL_ICON, 0, 50, 21)) }
+}
+
+Int stageMarkerFrame(Int lives) {
+    if (lives == 1) { return 0 }
+    if (lives == 2) { return 1 }
+    return 2
+}
+
+resultScene(List<Sprite> hud, Game game) {
+    var scoreX = (Rules.WORLD_WIDTH - 53 - numberWidth(game.displayedScore)) / 2
+    hud.add(Sprite(Art.FINAL_SCORE_LABEL, 0, scoreX, 86))
+    numberSprites(hud, game.displayedScore, scoreX + 53, 86)
+    if (!game.countComplete()) { return }
+    var verdict = game.resultIndex()
+    hud.add(Sprite(Art.RESULT, verdict, listOf(31, 22, 54, 26)[verdict], 113))
+}
+
+pauseScene(Scene scene, Game game) {
+    scene.label("Continuar", 80)
+    scene.label("Reiniciar", 99)
+    scene.label("Menu principal", 118)
+    scene.top.add(Sprite(Art.LIFE_SHIP, 1, 18, 80 + game.pauseSelection * 19))
+}
+
+Int numberWidth(Int value) {
+    return value.toString().length * 16
+}
+
+numberSprites(List<Sprite> sprites, Int value, Int x, Int y) {
+    var digitX = x
+    for (var digit in value.toString().split("")) {
+        sprites.add(Sprite(Art.DIGIT, digit.toInt(), digitX, y))
+        digitX = digitX + 16
+    }
+}

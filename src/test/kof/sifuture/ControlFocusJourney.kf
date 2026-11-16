@@ -1,0 +1,248 @@
+package sifuture
+import sifuture.ControlKeys
+import sifuture.ControlsGuide
+import sifuture.GuideDisclosure
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+ControlKeys keysWithGame() {
+    return ControlKeys(Game(), ControlsGuide())
+}
+
+ControlKeys keysInMatchWithCharge() {
+    var keys = keysWithGame()
+    keys.game.screen = Screen.Play
+    keys.game.ship.phase = ShipPhase.Normal
+    keys.game.weapons.charges = 2
+    return keys
+}
+
+test "clicking the main action confirms the screen" {
+    var keys = keysWithGame()
+
+    var acted = keys.actionClicked()
+
+    assert(acted)
+    assert(keys.game.screen == Screen.Menu)
+}
+
+test "a main action click marked for discard is swallowed once and the next click confirms" {
+    var keys = keysWithGame()
+    keys.discardEnterClick = true
+
+    var swallowed = !keys.actionClicked()
+    var stayed = keys.game.screen == Screen.Credits
+    var cleared = !keys.discardEnterClick
+    keys.actionClicked()
+
+    assert(swallowed && stayed && cleared)
+    assert(keys.game.screen == Screen.Menu)
+}
+
+test "pressing the pointer on the main action clears its discard mark" {
+    var keys = keysWithGame()
+    keys.discardEnterClick = true
+
+    keys.actionPointerDown()
+
+    assert(!keys.discardEnterClick)
+}
+
+test "the main action tracks its focus and losing it clears the discard mark and the arrows" {
+    var keys = keysInMatchWithCharge()
+    keys.focusAction()
+    var focused = keys.actionFocused
+    keys.discardEnterClick = true
+    keys.game.ship.left = true
+
+    keys.blurAction()
+
+    assert(focused)
+    assert(!keys.actionFocused && !keys.discardEnterClick && !keys.game.ship.left)
+}
+
+test "clicking the game area skips the credits but does nothing on the menu" {
+    var keys = keysWithGame()
+
+    var skipped = keys.overlayClicked()
+    var onMenu = keys.game.screen == Screen.Menu
+    var ignored = !keys.overlayClicked()
+
+    assert(skipped && onMenu)
+    assert(ignored && keys.game.screen == Screen.Menu)
+}
+
+test "the keyboard area tracks its focus and losing it stops the arrows" {
+    var keys = keysInMatchWithCharge()
+    keys.focusKeyboard()
+    var focused = keys.keyboardFocused
+    keys.game.ship.up = true
+
+    keys.blurKeyboard()
+
+    assert(focused)
+    assert(!keys.keyboardFocused && !keys.game.ship.up)
+}
+
+test "the special button tracks its focus" {
+    var keys = keysWithGame()
+
+    keys.focusSpecial()
+    var focused = keys.specialFocused
+    keys.blurSpecial()
+
+    assert(focused && !keys.specialFocused)
+}
+
+test "one pointer press on the special fires it once until the pointer is released" {
+    var keys = keysInMatchWithCharge()
+
+    var first = keys.specialPointerDown()
+    var chargesAfterFirst = keys.game.weapons.charges
+    var repeat = keys.specialPointerDown()
+    keys.specialPointerUp()
+    givenBeamsSpent(keys.game)
+    var again = keys.specialPointerDown()
+
+    assert(first && chargesAfterFirst == 1)
+    assert(!repeat)
+    assert(again && keys.game.weapons.charges == 0)
+}
+
+test "pressing and releasing a pad arrow steers the ship in a match" {
+    var keys = keysInMatchWithCharge()
+
+    keys.padPressed(Direction.Right)
+    var steering = keys.game.ship.right
+    keys.padReleased(Direction.Right)
+
+    assert(steering)
+    assert(!keys.game.ship.right)
+}
+
+test "focusing an option on its own screen selects it and asks for a redraw" {
+    var keys = keysWithGame()
+    keys.game.confirm()
+
+    var redraw = keys.optionFocused(keys.choices[1])
+
+    assert(redraw)
+    assert(keys.focusedOption == "game-controls")
+    assert(keys.game.menuSelection == 1)
+}
+
+test "focusing a pause option selects it in the pause list" {
+    var keys = keysWithGame()
+    keys.game.screen = Screen.Pause
+
+    keys.optionFocused(keys.choices[4])
+
+    assert(keys.game.pauseSelection == 2 && keys.game.menuSelection == 0)
+}
+
+test "focusing an option outside its screen only records the focus" {
+    var keys = keysWithGame()
+    keys.game.screen = Screen.Play
+
+    var redraw = keys.optionFocused(keys.choices[3])
+
+    assert(!redraw)
+    assert(keys.focusedOption == "game-restart")
+    assert(keys.game.pauseSelection == 0)
+}
+
+test "losing focus on an option forgets it, clears its discard mark and stops the arrows" {
+    var keys = keysInMatchWithCharge()
+    keys.optionFocused(keys.choices[2])
+    keys.discardOptionClick = "game-continue"
+    keys.game.ship.down = true
+
+    keys.optionBlurred()
+
+    assert(keys.focusedOption == "" && keys.discardOptionClick == "")
+    assert(!keys.game.ship.down)
+}
+
+test "pressing the pointer on an option clears its discard mark" {
+    var keys = keysWithGame()
+    keys.discardOptionClick = "game-new"
+
+    keys.optionPointerDown()
+
+    assert(keys.discardOptionClick == "")
+}
+
+test "clicking an option on its screen selects and confirms it" {
+    var keys = keysWithGame()
+    keys.game.confirm()
+
+    var acted = keys.optionClicked(keys.choices[1])
+
+    assert(acted)
+    assert(keys.game.screen == Screen.Controls)
+}
+
+test "clicking an option outside its screen does nothing" {
+    var keys = keysWithGame()
+    keys.game.confirm()
+
+    var acted = keys.optionClicked(keys.choices[4])
+
+    assert(!acted)
+    assert(keys.game.screen == Screen.Menu && keys.game.pauseSelection == 0)
+}
+
+test "an option click marked for discard is swallowed once" {
+    var keys = keysWithGame()
+    keys.game.confirm()
+    keys.discardOptionClick = "game-controls"
+
+    var swallowed = !keys.optionClicked(keys.choices[1])
+    var stayed = keys.game.screen == Screen.Menu
+    var cleared = keys.discardOptionClick == ""
+    keys.optionClicked(keys.choices[1])
+
+    assert(swallowed && stayed && cleared)
+    assert(keys.game.screen == Screen.Controls)
+}
+
+test "a discard mark for another option does not swallow this click" {
+    var keys = keysWithGame()
+    keys.game.confirm()
+    keys.discardOptionClick = "game-new"
+
+    keys.optionClicked(keys.choices[1])
+
+    assert(keys.game.screen == Screen.Controls)
+    assert(keys.discardOptionClick == "game-new")
+}
+
+givenBeamsSpent(Game game) {
+    for (var beam in game.weapons.beams) { beam.active = false }
+}
+
+test "new controls start with nothing focused, held or marked for discard" {
+    var keys = keysWithGame()
+
+    assert(!keys.keyboardFocused && !keys.actionFocused && !keys.specialFocused)
+    assert(!keys.oneHeld && !keys.enterHeld && !keys.spaceHeld && !keys.specialPointerHeld)
+    assert(!keys.discardEnterClick && keys.discardOptionClick == "" && keys.focusedOption == "")
+}

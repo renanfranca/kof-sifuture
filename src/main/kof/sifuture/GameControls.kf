@@ -1,412 +1,157 @@
 package sifuture
 
+import sifuture.ControlKeys
+import sifuture.ControlStyles
 import sifuture.ControlsGuide
+import sifuture.DirectionPad
+import sifuture.MenuChoice
+import sifuture.MenuOption
+import sifuture.SpecialButton
 import sifuture.game.*
 import kof.ui.*
 
 class GameControls {
     Game game
     GameView drawing
+    ControlKeys keys
+    ControlStyles styles = ControlStyles()
+    ControlsGuide guide = ControlsGuide()
+    List<MenuOption> options = listOf<MenuOption>()
     Button overlay
     Button action
-    Button newGame
-    Button controlsOption
-    Button continueOption
-    Button restartOption
-    Button mainMenu
-    ControlsGuide guide
+    SpecialButton special
+    DirectionPad pad
+    View surface
     View bitmap
     View creditsBitmap
-    Row movementControls
     Label controlsHeading
-    Column pad
-    Column specialColumn
     Column gameColumn
-    View surface
-    Bool keyboardFocused = false
-    Bool actionFocused = false
-    String focusedOption = ""
-    String discardOptionClick = ""
-    Button special
-    Button north
-    Button west
-    Button east
-    Button south
+    Row movementControls
     Column root
-    Bool enterHeld = false
-    Bool oneHeld = false
-    Bool spaceHeld = false
-    Bool specialPointerHeld = false
-    Bool discardEnterClick = false
-    private Bool specialFocused = false
-    private Style creditsSurfaceStyle
-    private Style focusedCreditsSurfaceStyle
-    private Style creditsCanvasStyle
-    private Style creditsKeyboardStyle
-    private Style creditsColumnStyle
-    private Style movementStyle
-    private Style creditsMovementStyle
-    private Style rootStyle
-    private Style creditsRootStyle
-    private Style hiddenStyle
-    private Style optionStyle
-    private Style retainedOptionStyle
-    private Style actionStyle
-    private Style surfaceStyle
-    private Style focusedSurfaceStyle
-    private Style focusedActionStyle
-    private Style specialAvailableFocusedStyle
-    private Style specialUnavailableFocusedStyle
-    private Style padStyle
-    private Style specialColumnStyle
-    private Style gameColumnStyle
-    private Style guideColumnStyle
-    private Style guideSurfaceStyle
-    private Style focusedGuideSurfaceStyle
-    private Style canvasStyle
-    private Style headingStyle
-    private Style keyboardStyle
-    private Style guideKeyboardStyle
-    private Style specialAvailableStyle
-    private Style specialUnavailableStyle
 
     public constructor(Game game, GameView drawing, Canvas canvas) {
         this.game = game
         this.drawing = drawing
-        hiddenStyle = Style("display: none")
-        optionStyle = Style("display: block; width: 128; height: 19; padding: 0; pointer-events: auto; border: 0; background: transparent; color: transparent; opacity: 0; outline: none")
-        actionStyle = Style("display: block; outline: none")
-        focusedActionStyle = Style("display: block; outline: 1px solid gray")
-        surfaceStyle = Style("position: relative; width: 176; height: 220; padding: 0; align-self: center; outline: none")
-        focusedSurfaceStyle = Style("position: relative; width: 176; height: 220; padding: 0; align-self: center; outline: 1px solid gray")
-        retainedOptionStyle = Style("position: absolute; left: -10000; top: 0; width: 1; height: 1; padding: 0; pointer-events: none; opacity: 0")
-        guide = ControlsGuide()
-        guideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: none")
-        focusedGuideSurfaceStyle = Style("position: relative; width: 248; height: 44; padding: 0; align-self: center; outline: 1px solid gray")
-        keyboardStyle = overlayStyle()
-        guideKeyboardStyle = Style("position: absolute; top: 0; left: 0; width: 248; height: 44; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
-        canvasStyle = Style("display: block; width: 176; height: 220; padding: 0")
-        headingStyle = Style("display: block; height: 44; font-family: sans-serif; font-size: 16; line-height: 44px; font-weight: bold; text-align: center; color: #eeeeee; background: #121212")
-        creditsSurfaceStyle = Style("position: relative; width: 262; height: 260; padding: 0; align-self: center; outline: none; background: #121212")
-        focusedCreditsSurfaceStyle = Style("position: relative; width: 262; height: 260; padding: 0; align-self: center; outline: 1px solid gray; background: #121212")
-        creditsCanvasStyle = Style("display: block; width: 262; height: 260; padding: 0")
-        creditsKeyboardStyle = Style("position: absolute; top: 0; left: 0; width: 262; height: 260; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
-        creditsColumnStyle = Style("width: 262; align-items: center; padding: 0")
-        movementStyle = Style("width: 248; flex-wrap: nowrap; align-self: center; align-items: flex-start; gap: 16; padding: 0")
-        creditsMovementStyle = Style("width: 262; flex-wrap: nowrap; align-self: center; align-items: flex-start; gap: 0; padding: 0")
-        rootStyle = Style("width: 248; max-width: 248; align-self: center; padding: 0")
-        creditsRootStyle = Style("width: 262; max-width: 262; align-self: center; padding: 0")
+        keys = ControlKeys(game, guide)
         keyboardSurface(canvas)
-
-        north = directionButton(Direction.Up, "↑")
-        west = directionButton(Direction.Left, "←")
-        east = directionButton(Direction.Right, "→")
-        south = directionButton(Direction.Down, "↓")
-        var empty = View(Style("width: 56; height: 56; padding: 0"))
-        var top = Row(listOf(north))
-        var middle = Row(listOf(west, empty, east))
-        var bottom = Row(listOf(south))
-        var rowStyle = Style("gap: 0; padding: 0")
-        top.setStyle(rowStyle)
-        middle.setStyle(rowStyle)
-        bottom.setStyle(rowStyle)
-        pad = Column(listOf(top, middle, bottom))
-        padStyle = Style("display: flex; align-items: center; gap: 0; padding: 0")
-        pad.setStyle(padStyle)
-        special = Button("Especial", () -> {})
-        special.setId("game-special")
-        specialAvailableStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 1; outline: none")
-        specialAvailableFocusedStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 1; outline: 1px solid gray")
-        specialUnavailableFocusedStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 0.5; outline: 1px solid gray")
-        specialUnavailableStyle = Style("width: 56; height: 220; writing-mode: vertical-rl; padding: 0; touch-action: none; user-select: none; opacity: 0.5; outline: none")
-        special.on("focus", (e: Event) -> { this.specialFocused = true; this.updateSpecial() })
-        special.on("blur", (e: Event) -> {
-            this.specialFocused = false
-            this.updateSpecial()
-        })
-        special.on("pointerdown", (e: Event) -> {
-            if (!this.specialPointerHeld) {
-                this.specialPointerHeld = true
-                this.activateSpecial()
-            }
-        })
-        special.on("pointerup", (e: Event) -> { this.specialPointerHeld = false })
-        special.on("pointercancel", (e: Event) -> { this.specialPointerHeld = false })
-        special.on("pointerleave", (e: Event) -> { this.specialPointerHeld = false })
-        gameColumn = Column(listOf(surface, pad))
-        gameColumnStyle = Style("width: 176; align-items: center; padding: 0")
-        guideColumnStyle = Style("width: 248; align-items: center; padding: 0")
-        gameColumn.setStyle(gameColumnStyle)
-        specialColumn = Column(listOf(special))
-        specialColumnStyle = Style("display: flex; width: 56; height: 220; justify-content: center; padding: 0")
-        specialColumn.setStyle(specialColumnStyle)
-        movementControls = Row(listOf(gameColumn, specialColumn))
-        movementControls.setStyle(movementStyle)
-        action = Button("Novo Jogo", () -> { this.activateAction() })
-        action.setId("game-action")
-        action.on("pointerdown", (e: Event) -> { this.discardEnterClick = false })
-        action.on("focus", (e: Event) -> { this.actionFocused = true; action.setStyle(focusedActionStyle) })
-        action.on("blur", (e: Event) -> { game.clearKeyboard(); this.actionFocused = false; this.discardEnterClick = false; action.setStyle(actionStyle) })
+        pad = DirectionPad(this)
+        special = SpecialButton(this)
+        gameColumn = Column(listOf(surface, pad.column))
+        gameColumn.setStyle(styles.gameColumn)
+        movementControls = Row(listOf(gameColumn, special.column))
+        movementControls.setStyle(styles.movement)
+        actionButton()
         root = Column(listOf(movementControls, guide.root, action))
-        root.setStyle(rootStyle)
-        root.on("keydown", (e: Event) -> { this.keyChanged(e.key(), e.target(), true) })
-        root.on("keyup", (e: Event) -> { this.keyChanged(e.key(), e.target(), false) })
+        root.setStyle(styles.root)
+        root.on("keydown", (e: Event) -> { this.applyKey(this.keys.keyDown(e.key(), e.target())) })
+        root.on("keyup", (e: Event) -> { this.applyKey(this.keys.keyUp(e.key(), e.target())) })
         update()
     }
 
-    View keyboardSurface(Canvas canvas) {
-        overlay = Button("", () -> {
-            if (game.screen == Screen.Credits) { this.activateAction() }
-        })
-        configureOverlay()
-        surface = View(surfaceStyle)
-        bitmap = View(canvasStyle)
+    private keyboardSurface(Canvas canvas) {
+        overlayButton()
+        surface = View(styles.surface)
+        bitmap = View(styles.canvas)
         bitmap.bind(canvas)
         surface.bind(bitmap)
-        creditsBitmap = View(creditsCanvasStyle)
+        creditsBitmap = View(styles.creditsCanvas)
         creditsBitmap.bind(drawing.creditsCanvas)
         surface.bind(creditsBitmap)
         controlsHeading = Label("Controles")
         controlsHeading.setId("controls-heading")
-        controlsHeading.setStyle(hiddenStyle)
+        controlsHeading.setStyle(styles.hidden)
         surface.bind(controlsHeading)
         surface.bind(overlay)
-        newGame = menuOption(surface, Screen.Menu, 0, "game-new", "Novo Jogo", Style("position: absolute; left: 48; top: 120; width: 128; height: 19; padding: 0; pointer-events: none"))
-        controlsOption = menuOption(surface, Screen.Menu, 1, "game-controls", "Controles", Style("position: absolute; left: 48; top: 139; width: 128; height: 19; padding: 0; pointer-events: none"))
-        continueOption = menuOption(surface, Screen.Pause, 0, "game-continue", "Continuar", Style("position: absolute; left: 48; top: 80; width: 128; height: 19; padding: 0; pointer-events: none"))
-        restartOption = menuOption(surface, Screen.Pause, 1, "game-restart", "Reiniciar", Style("position: absolute; left: 48; top: 99; width: 128; height: 19; padding: 0; pointer-events: none"))
-        mainMenu = menuOption(surface, Screen.Pause, 2, "game-menu", "Menu principal", Style("position: absolute; left: 48; top: 118; width: 128; height: 19; padding: 0; pointer-events: none"))
-        return surface
+        menuOptions()
     }
 
-    configureOverlay() {
+    private menuOptions() {
+        var choices = keys.choices
+        options.add(MenuOption(this, choices[0], Style("position: absolute; left: 48; top: 120; width: 128; height: 19; padding: 0; pointer-events: none")))
+        options.add(MenuOption(this, choices[1], Style("position: absolute; left: 48; top: 139; width: 128; height: 19; padding: 0; pointer-events: none")))
+        options.add(MenuOption(this, choices[2], Style("position: absolute; left: 48; top: 80; width: 128; height: 19; padding: 0; pointer-events: none")))
+        options.add(MenuOption(this, choices[3], Style("position: absolute; left: 48; top: 99; width: 128; height: 19; padding: 0; pointer-events: none")))
+        options.add(MenuOption(this, choices[4], Style("position: absolute; left: 48; top: 118; width: 128; height: 19; padding: 0; pointer-events: none")))
+    }
+
+    private overlayButton() {
+        overlay = Button("", () -> { if (this.keys.overlayClicked()) { this.refresh() } })
         overlay.setId("game-keyboard")
-        overlay.setStyle(keyboardStyle)
-        overlay.on("pointerdown", (e: Event) -> { game.rearmKeyboard() })
-        overlay.on("focus", (e: Event) -> { this.keyboardFocused = true; this.updateSurfaceFocus() })
-        overlay.on("blur", (e: Event) -> {
-            game.clearKeyboard()
-            this.keyboardFocused = false
-            this.updateSurfaceFocus()
-        })
+        overlay.setStyle(styles.keyboard)
+        overlay.on("pointerdown", (e: Event) -> { this.game.rearmKeyboard() })
+        overlay.on("focus", (e: Event) -> { this.keys.focusKeyboard(); this.updateSurfaceFocus() })
+        overlay.on("blur", (e: Event) -> { this.keys.blurKeyboard(); this.updateSurfaceFocus() })
     }
 
-    Style overlayStyle() {
-        return Style("position: absolute; top: 0; left: 0; width: 176; height: 220; padding: 0; border: 0; background: transparent; color: transparent; cursor: default; outline: none")
+    private actionButton() {
+        action = Button("Novo Jogo", () -> { if (this.keys.actionClicked()) { this.refresh() } })
+        action.setId("game-action")
+        action.on("pointerdown", (e: Event) -> { this.keys.actionPointerDown() })
+        action.on("focus", (e: Event) -> { this.keys.focusAction(); this.action.setStyle(this.styles.focusedAction) })
+        action.on("blur", (e: Event) -> { this.keys.blurAction(); this.action.setStyle(this.styles.action) })
     }
 
-    private updateSurfaceFocus() {
-        var focused = keyboardFocused || optionTarget(focusedOption)
-        if (game.screen == Screen.Controls) {
-            if (focused) { surface.setStyle(focusedGuideSurfaceStyle) }
-            else { surface.setStyle(guideSurfaceStyle) }
-        }
-        else if (game.screen == Screen.Credits) {
-            if (focused) { surface.setStyle(focusedCreditsSurfaceStyle) }
-            else { surface.setStyle(creditsSurfaceStyle) }
-        }
-        else if (focused) { surface.setStyle(focusedSurfaceStyle) }
-        else { surface.setStyle(surfaceStyle) }
+    private applyKey(KeyOutcome outcome) {
+        if (outcome.render) { drawing.render(game) }
+        if (outcome.update) { update() }
+        if (outcome.updateSpecial) { special.show() }
     }
 
-    Button directionButton(Direction direction, String name) {
-        var button = Button(name, () -> {})
-        var idle = Style("width: 56; height: 56; padding: 0; touch-action: none; user-select: none; outline: none")
-        var focused = Style("width: 56; height: 56; padding: 0; touch-action: none; user-select: none; outline: 1px solid gray")
-        button.setStyle(idle)
-        button.on("focus", (e: Event) -> { button.setStyle(focused) })
-        button.on("blur", (e: Event) -> { button.setStyle(idle) })
-        button.on("pointerdown", (e: Event) -> { this.directionChanged(direction, true) })
-        button.on("pointerup", (e: Event) -> { this.directionChanged(direction, false) })
-        button.on("pointercancel", (e: Event) -> { this.directionChanged(direction, false) })
-        button.on("pointerleave", (e: Event) -> { this.directionChanged(direction, false) })
-        return button
-    }
-
-    private directionChanged(Direction direction, Bool pressed) {
-        game.movement(direction, pressed)
+    refresh() {
         drawing.render(game)
         update()
-    }
-
-    Button menuOption(View surface, Screen screen, Int option, String id, String name, Style bounds) {
-        var button = Button(name, () -> { this.activateOption(screen, option, id) })
-        button.setId(id)
-        var slot = View(bounds)
-        button.on("pointerdown", (e: Event) -> { this.discardOptionClick = "" })
-        button.on("focus", (e: Event) -> {
-            this.focusedOption = id
-            if (game.screen == screen) {
-                if (screen == Screen.Menu) { game.menuSelection = option }
-                else { game.pauseSelection = option }
-                drawing.render(game)
-            }
-            this.update()
-        })
-        button.on("blur", (e: Event) -> {
-            game.clearKeyboard()
-            this.focusedOption = ""
-            this.discardOptionClick = ""
-            this.update()
-        })
-        slot.bind(button)
-        surface.bind(slot)
-        return button
-    }
-
-    activateOption(Screen screen, Int option, String id) {
-        if (discardOptionClick == id) { discardOptionClick = ""; return }
-        if (game.screen != screen) { return }
-        if (screen == Screen.Menu) { game.menuSelection = option }
-        else { game.pauseSelection = option }
-        game.confirm()
-        drawing.render(game)
-        update()
-    }
-
-    optionAvailable(String id): Bool {
-        if (game.screen == Screen.Menu) { return id == "game-new" || id == "game-controls" }
-        if (game.screen == Screen.Pause) { return id == "game-continue" || id == "game-restart" || id == "game-menu" }
-        return false
-    }
-
-    keyboardReceiver(String id): Bool {
-        return id == "game-keyboard" || id == "game-action" || optionAvailable(id) || (optionTarget(id) && focusedOption == id)
-    }
-
-    optionTarget(String id): Bool {
-        return id == "game-new" || id == "game-controls" || id == "game-continue" || id == "game-restart" || id == "game-menu"
-    }
-
-    activateAction() {
-        if (discardEnterClick) {
-            discardEnterClick = false
-            return
-        }
-        game.confirm()
-        drawing.render(game)
-        update()
-    }
-
-    activateSpecial() {
-        game.trySpecial()
-        drawing.render(game)
-        update()
-    }
-
-    keyChanged(String key, String target, Bool pressed) {
-        if (key == "1") {
-            var freshPress = pressed && !oneHeld
-            oneHeld = pressed
-            if (freshPress && (keyboardReceiver(target) || target == "game-special")) { activateSpecial() }
-            if (!pressed) { updateSpecial() }
-            return
-        }
-        if (key == " " || key == "Enter") {
-            var held = enterHeld
-            if (key == " ") { held = spaceHeld; spaceHeld = pressed }
-            else { enterHeld = pressed }
-            var freshPress = pressed && !held
-            if (target == "game-action" && (pressed || key == " ")) { discardEnterClick = true }
-            if (target == "game-details" && (pressed || key == " ")) { guide.discardClick = true }
-            if (pressed && optionTarget(target)) { discardOptionClick = target }
-            if (freshPress) {
-                if (target == "game-details" && game.screen == Screen.Controls) { guide.toggle() }
-                else if (target == "game-special") { activateSpecial() }
-                else if (target == "game-action" || (key == "Enter" && keyboardReceiver(target)) || optionAvailable(target)) {
-                    game.confirm()
-                    drawing.render(game)
-                    update()
-                }
-            }
-            if (!pressed) {
-                if (key == "Enter") { discardEnterClick = false; discardOptionClick = ""; guide.discardClick = false }
-                update()
-            }
-            return
-        }
-        var movementAllowed = keyboardReceiver(target)
-        if (key == "ArrowLeft") { game.keyboard(Direction.Left, pressed, movementAllowed) }
-        if (key == "ArrowRight") { game.keyboard(Direction.Right, pressed, movementAllowed) }
-        if (key == "ArrowUp") { game.keyboard(Direction.Up, pressed, movementAllowed) }
-        if (key == "ArrowDown") { game.keyboard(Direction.Down, pressed, movementAllowed) }
-        drawing.render(game)
-        update()
-    }
-
-    private updateSpecial() {
-        var available = game.canSpecial()
-        var preserveFocus = specialFocused && (oneHeld || enterHeld || spaceHeld)
-        if (available && specialFocused) { special.setStyle(specialAvailableFocusedStyle) }
-        else if (available) { special.setStyle(specialAvailableStyle) }
-        else if (specialFocused) { special.setStyle(specialUnavailableFocusedStyle) }
-        else { special.setStyle(specialUnavailableStyle) }
-        special.setDisabled(!available && !preserveFocus)
-    }
-
-    setOptionStyle(Button button, String id, String name, Bool visible) {
-        if (!visible) {
-            if (focusedOption == id) { button.text = "Teclado do jogo"; button.setStyle(retainedOptionStyle) }
-            else { button.setStyle(hiddenStyle) }
-        }
-        else { button.text = name; button.setStyle(optionStyle) }
     }
 
     update() {
-        var playing = game.screen == Screen.Play
-        updateSpecial()
-        var menu = game.screen == Screen.Menu
-        var pause = game.screen == Screen.Pause
-        var navigating = menu || pause
-        north.setDisabled(!playing && !navigating)
-        west.setDisabled(!playing)
-        east.setDisabled(!playing)
-        south.setDisabled(!playing && !navigating)
-        setOptionStyle(newGame, "game-new", "Novo Jogo", menu)
-        setOptionStyle(controlsOption, "game-controls", "Controles", menu)
-        setOptionStyle(continueOption, "game-continue", "Continuar", pause)
-        setOptionStyle(restartOption, "game-restart", "Reiniciar", pause)
-        setOptionStyle(mainMenu, "game-menu", "Menu principal", pause)
-        if (actionFocused) { action.setStyle(focusedActionStyle) }
-        else { action.setStyle(actionStyle) }
+        special.show()
+        pad.lock(keys)
+        for (var option in options) { option.show(keys, styles) }
+        action.setStyle(if (keys.actionFocused) styles.focusedAction else styles.action)
         updateSurfaceFocus()
-        var credits = game.screen == Screen.Credits
-        creditsBitmap.setStyle(if (credits) creditsCanvasStyle else hiddenStyle)
-        movementControls.setStyle(if (credits) creditsMovementStyle else movementStyle)
-        root.setStyle(if (credits) creditsRootStyle else rootStyle)
-        if (credits) { action.text = "Pular créditos" }
-        if (navigating) { action.text = "Confirmar (Enter)" }
-        if (game.screen == Screen.Controls) {
-            action.text = "Voltar"
-            guide.show()
-            bitmap.setStyle(hiddenStyle)
-            controlsHeading.setStyle(headingStyle)
-            overlay.setStyle(guideKeyboardStyle)
-            pad.setStyle(hiddenStyle)
-            gameColumn.setStyle(guideColumnStyle)
-            if (specialFocused && (oneHeld || enterHeld || spaceHeld)) { specialColumn.setStyle(retainedOptionStyle) }
-            else { specialColumn.setStyle(hiddenStyle) }
-        } else if (credits) {
-            guide.close()
-            bitmap.setStyle(hiddenStyle)
-            controlsHeading.setStyle(hiddenStyle)
-            overlay.setStyle(creditsKeyboardStyle)
-            pad.setStyle(hiddenStyle)
-            gameColumn.setStyle(creditsColumnStyle)
-            specialColumn.setStyle(hiddenStyle)
-        } else {
-            guide.close()
-            bitmap.setStyle(canvasStyle)
-            controlsHeading.setStyle(hiddenStyle)
-            overlay.setStyle(keyboardStyle)
-            pad.setStyle(padStyle)
-            gameColumn.setStyle(gameColumnStyle)
-            specialColumn.setStyle(specialColumnStyle)
-        }
-        if (playing) { action.text = "Pausar" }
-        if (game.screen == Screen.Result) {
-            if (game.countComplete()) { action.text = "Voltar ao menu" }
-            else { action.text = "Concluir contagem" }
-        }
+        var credits = keys.creditsLayout()
+        creditsBitmap.setStyle(if (credits) styles.creditsCanvas else styles.hidden)
+        movementControls.setStyle(if (credits) styles.creditsMovement else styles.movement)
+        root.setStyle(if (credits) styles.creditsRoot else styles.root)
+        action.text = keys.actionLabel()
+        if (keys.guideLayout()) { showGuideLayout() }
+        else if (credits) { showCreditsLayout() }
+        else { showGameLayout() }
+    }
+
+    private updateSurfaceFocus() {
+        var focused = keys.surfaceFocused()
+        if (keys.guideLayout()) { surface.setStyle(if (focused) styles.focusedGuideSurface else styles.guideSurface) }
+        else if (keys.creditsLayout()) { surface.setStyle(if (focused) styles.focusedCreditsSurface else styles.creditsSurface) }
+        else { surface.setStyle(if (focused) styles.focusedSurface else styles.surface) }
+    }
+
+    private showGuideLayout() {
+        guide.show()
+        showSurfaceParts(styles.hidden, styles.heading, styles.guideKeyboard)
+        pad.column.setStyle(styles.hidden)
+        gameColumn.setStyle(styles.guideColumn)
+        special.column.setStyle(if (keys.specialRetained()) styles.retainedOption else styles.hidden)
+    }
+
+    private showCreditsLayout() {
+        guide.close()
+        showSurfaceParts(styles.hidden, styles.hidden, styles.creditsKeyboard)
+        pad.column.setStyle(styles.hidden)
+        gameColumn.setStyle(styles.creditsColumn)
+        special.column.setStyle(styles.hidden)
+    }
+
+    private showGameLayout() {
+        guide.close()
+        showSurfaceParts(styles.canvas, styles.hidden, styles.keyboard)
+        pad.column.setStyle(styles.pad)
+        gameColumn.setStyle(styles.gameColumn)
+        special.column.setStyle(styles.specialColumn)
+    }
+
+    private showSurfaceParts(Style canvas, Style heading, Style keyboard) {
+        bitmap.setStyle(canvas)
+        controlsHeading.setStyle(heading)
+        overlay.setStyle(keyboard)
     }
 }

@@ -1473,3 +1473,167 @@ Estimativa para a UI (`GameControls` e `GameView`): os dois são casca de
 `kof.ui`, com menos candidatos que o `Game`, mas o RED depende das jornadas de
 navegador e de estado Kof comum (o piloto do `ControlsGuide` mostrou que o texto
 de botão lê vazio na JVM). Cerca de 2h por arquivo mais o fechamento (cerca de 1h).
+
+## R5 e R4, lote da UI: `GameControls` e `GameView` (16/11)
+
+Branch `refactor/sensor-debt-ui`, a partir de `30b47b2` (merge do PR #31, lote 4).
+Plano: `.agent/execplans/sensor-debt-ui.md`. Kof 0.7.0, com 0.6.4 onde indicado.
+Evidência em `.agent/tmp/debt-ui/`.
+
+### Ambiente
+
+O `~/.local/bin/kof` apontava para o 0.7.3 desde 14/11. Com ele, o KofMut 0.1.0
+para na preparação (exit 2):
+
+```
+kof-mut: Kof 0.7.3; preparation contracts failed: ... compatibility killed verification failed
+Limitation: java.lang.RuntimeException: JSN006: json.decode expected an array but the payload is a number
+```
+
+A suíte do projeto passa no 0.7.3 (`0 failed of 409 tests` em JVM e JS): o
+problema é do KofMut. Até as 10:34, os comandos rodaram com o 0.7.0 na frente
+do `PATH`; depois disso, o usuário voltou o link para o 0.7.0, e a validação
+final rodou com o `PATH` normal.
+
+### M0. Linha de base
+
+`kof-mut run` nos dois arquivos, das 09:44 às 10:23: **193 candidatos, 0
+mortos, 193 sobreviventes** (118 em `GameControls`, 75 em `GameView`),
+`complete`, exit 1. Os 193 são os mesmos do A1 de 09/11 (arquivo, linha,
+coluna e substituto). Operadores: 72 de igualdade, 42 lógicos, 37 aritméticos,
+32 booleanos e 10 de fronteira. Casos de partida: 323 em JVM e JS, no 0.7.0 e
+no 0.6.4. Jornadas: 7/7, 186 PNG, `pixel_diff=0` contra o R0.
+
+### Método
+
+A regra do lote: a casca só fala com o `kof.ui` e não tem operador que o KofMut
+mute (`==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `+`, `-`, `*`, `/`, `true`,
+`false`). Ela escolhe entre estilos e caminhos por um `Bool` já decidido em Kof
+puro; `if (flag)` sem operador não gera candidato. Cada decisão foi para uma
+classe pura, por TDD: os testes nasceram antes da classe (RED de compilação,
+`PKG006`), e os da cena da partida e do HUD falharam por asserção enquanto a cena
+só cobria créditos e menu (14 e 9 testes). Os valores esperados vêm do código da
+`main` lido à mão, por exemplo `numberWidth(1050)` = 64 e o placar final de 120
+em x = (176 − 53 − 48) / 2 = 37.
+
+RED por mutante: `tools/redcheck.py` (o mesmo dos lotes 2 a 4) aplicou cada um
+dos 166 candidatos das classes novas, um por vez, numa cópia com a suíte inteira
+na JVM. **Os 166 derrubam pelo menos um teste novo, sempre por asserção, e
+nenhum teste antigo falha** (`red.txt`). O helper de teste `assetOf` devolve `"?"`
+para quadro fora da folha, para que um quadro errado falhe por asserção e não por
+índice inválido.
+
+Um KofMut prévio (M2, numa cópia, antes dos últimos testes) deixou 4 vivos. Todos
+viraram teste novo, sem refatoração:
+- `ControlKeys` `== → !=` em `key == "ArrowLeft"` e `"ArrowRight"`: "an up arrow
+  from the game area steers only up";
+- `actionFocused = false → true`: "new controls start with nothing focused, held
+  or marked for discard";
+- `KeyOutcome.updateSpecial = false → true`: asserção `!press.updateSpecial` em
+  "enter on the main action confirms once per press…".
+
+### Para onde foi cada decisão (sobreviventes do M0)
+
+| Origem no M0 | Sobreviventes | Para onde | Testes que matam os mutantes correspondentes |
+| --- | --- | --- | --- |
+| `GameView.render` | 43 | `Scenes.sceneOf` (tela), `WorldScene` (fundo, itens, inimigos, meteoros, armas, nave) | `PlaySceneJourney` (16), `CreditsMenuSceneJourney` (5) |
+| `drawHud`, `numberWidth`, `drawNumber` | 19 | `HudScene.hudScene`, `numberWidth`, `numberSprites` | `HudSceneJourney`: hud de um jogo novo, marcador de vidas, placar de 4 dígitos, vidas com 2 dígitos, ícone do especial |
+| `drawResult` | 8 | `HudScene.resultScene` (x do veredito por lista) | `HudSceneJourney`: contagem em andamento e vereditos |
+| `drawMenuLabel`, `drawCredits`, `drawCreditBlock`, `drawText` | 5 | `Scene.label`, `Scenes.creditBlock`; o `x * 1.0` virou `toDouble()` na casca | `CreditsMenuSceneJourney`, pausa em `HudSceneJourney` |
+| `keyChanged` | 37 | `ControlKeys.keyDown`/`keyUp` e `KeyRouting` (`routeOne`, `routeConfirming`, `markDiscards`, `confirmFresh`, `releaseConfirm`) | `KeyRoutingJourney` (25) |
+| `optionAvailable`, `keyboardReceiver`, `optionTarget` | 27 | `ControlKeys`, sobre a lista `menuChoices()` em vez da cadeia de `\|\|` | `KeyRoutingJourney` (setas e Enter em opção retida, mostrada ou não focada) |
+| campos `Bool`/`String` e handlers de foco, ponteiro e clique | 33 | `ControlKeys` (`focus*`, `blur*`, `actionClicked`, `overlayClicked`, `specialPointerDown`, `padPressed`, `option*`) | `ControlFocusJourney` (19) |
+| `update`, `updateSpecial`, `setOptionStyle`, `updateSurfaceFocus` | 21 | `ControlKeys` (`actionLabel`, `*PadLocked`, `optionShown`, `optionRetained`, `surfaceFocused`, `guideLayout`, `creditsLayout`, `special*`) | `ControlsLayoutJourney` (12) |
+| **Total** | **193** | | |
+
+### Equivalentes eliminados por refatoração
+
+Nenhum foi anotado nem suprimido. Três construções do código original virariam
+equivalentes ou mutantes de laço infinito na parte pura e foram trocadas antes
+do KofMut, com a mesma saída:
+
+| Original | Problema | Agora |
+| --- | --- | --- |
+| `for (y = 30; y < 220; y = y + 60)` e `for (x = -offset; x < 176; x = x + 60)` | `<` nunca chega à igualdade (o deslocamento é múltiplo de 5), então `<=` seria equivalente; `+ → -` faria um laço infinito | grade fixa de 4×4 com `row++`/`column++` (o KofMut não muta `++`). Com deslocamento 0, o quarto ladrilho fica em x = 180, fora da tela de 176 px |
+| `for (x = 8; x < 176; x = x + 18)` na trilha do HUD | idem (8 + 18k nunca é 176) | `for (i = 0; i < 10; i++)`, x = 8 + i × 18: os mesmos 10 trechos |
+| `while` de `numberWidth` e `drawNumber` | `> → >=` e `/ → *` fariam um laço infinito (timeout, não morte) | `value.toString().length * 16` e `value.toString().split("")` |
+| quatro `if (resultIndex() == k)` | quatro `==` só para escolher o x | `listOf(31, 22, 54, 26)[verdict]` |
+| `blaster.y - 14` / `- 15` com `if` encadeado | | `blasterImpactLift`, com `> 1` antes de `== 1`, para manter a fronteira matável |
+
+### Casca e classes puras
+
+| Arquivo | Papel | Candidatos no A1 |
+| --- | --- | --- |
+| `GameView` | casca: carrega as imagens de `sheetPaths()` e desenha a cena na ordem mundo → limpa o cabeçalho → HUD → textos → seletor | 0 |
+| `GameControls` | casca: monta o DOM e os handlers, aplica estilo, texto e `setDisabled` pelo que `ControlKeys` decide | 0 |
+| `ControlStyles`, `DirectionPad`, `SpecialButton`, `MenuOption` | casca: estilos literais (`SEM077` exige literal), direcional, botão Especial, opções do menu | 0 |
+| `Sheet` | dados: índice de cada arte e caminho de cada quadro | 0 |
+| `Scene` | `Sprite`, `Caption` e `Scene` (classes; `record` é limitação no KofMut) | 2 |
+| `Scenes`, `WorldScene`, `HudScene` | a cena de cada tela, dado um `Game` | 61 |
+| `ControlKeys`, `KeyRouting`, `MenuChoice` | foco, teclas presas, descarte de cliques, roteamento de teclas e arranjo de cada tela | 103 |
+
+`ControlKeys` recebe o `ControlsGuide` para marcar e limpar o descarte do clique e
+alternar os detalhes, como o `GameControls` fazia; o guia já roda na JVM nos
+testes do piloto. O contrato público ficou igual: `GameView(Canvas)`,
+`creditsCanvas`, `render(Game)`, `GameControls(Game, GameView, Canvas)`, `root`
+e `update()`.
+
+Itens da cena por quadro: uma sonda descartável jogou 4000 quadros (menu,
+partida e resultado) e mediu no máximo 50 itens, com média de 48.
+
+### Sobreviventes por arquivo
+
+| Arquivo | M0 | Depois (A1) |
+| --- | --- | --- |
+| `GameControls` | 118 (118 candidatos) | 0 candidatos |
+| `GameView` | 75 (75 candidatos) | 0 candidatos |
+| `ControlKeys` | | 0 (74/74) |
+| `KeyRouting` | | 0 (24/24) |
+| `MenuChoice` | | 0 (5/5) |
+| `WorldScene` | | 0 (33/33) |
+| `HudScene` | | 0 (17/17) |
+| `Scenes` | | 0 (11/11) |
+| `Scene` | | 0 (2/2) |
+| `Sheet`, `ControlStyles`, `DirectionPad`, `SpecialButton`, `MenuOption` | | 0 candidatos |
+| **Total** | **193 (193)** | **0 (166/166)** |
+
+### Critérios de aceite
+
+| # | Comando | Observado | Evidência |
+| --- | --- | --- | --- |
+| A1 | `kof-mut run --files a1-scope.json --report-dir .agent/tmp/debt-ui/a1` com os 14 arquivos de `git diff --name-only main -- src/main` e os novos | `complete`, 0 limitações, 166 candidatos, 166 mortos, 0 sobreviventes, 0 timeout, exit 0, das 10:25 às 10:52 | `a1.log`, `a1/…/report.json` |
+| A2 | `tools/redcheck.py work red-specs.json` | 166 mutantes, cada um derrubando só testes novos, por asserção. **Desvio:** 2 dos 86 testes novos não matam mutante nenhum ("losing focus on an option forgets it…" e "pressing the pointer on an option clears its discard mark"): eles cobrem `discardOptionClick = ""`, e o KofMut não muta strings. Ficaram porque protegem um comportamento real | `red.txt` |
+| A3 | leitura do código, RED e KofMut final | nenhum equivalente anotado; as construções equivalentes foram trocadas antes (seção acima) | seção de equivalentes |
+| A4 | `npm run lint:sensor --` nos 14 arquivos de produção e nos 7 de teste novos | `PASS (0 findings)`; `GameControls` com 142 linhas não vazias, `GameView` com 49 | rodado no repositório |
+| A5 | `npm run dup:sensor` | `PASS (0 findings)`, `14 files expected, 14 tokenized` | rodado no repositório |
+| A6 | `git diff --name-only main` e arquivos novos | só `GameControls.kf`, `GameView.kf`, 12 arquivos novos de produção e 7 de teste; nada em `Main.kf`, `game/`, `tests/*.kf` nem `tests/browser.py` | rodado no repositório |
+| A7 | `kof_project.py check --fixture` em cada `tests/*.kf`, JVM e JS, e build JS de três fixtures e do app | todos `success: true`, builds exit 0; `types` e `types:fixtures` na validação final | `check-*.json`, `fx-*`, `app-build` |
+| A8 | `node scripts/kof-tests.mjs --target jvm` e `--target js`, com o 0.7.0 e com `KOF=…/kof-0.6.4…/bin/kof` | `0 failed of 409 tests` nos quatro (eram 323) | rodado no repositório |
+| A9 | `debt-tools/journeys.sh` e `debt-tools/pixels.py` contra `debt-r0/journeys-1/png` | fim do M1 (árvore só com o M1, `m1-only`): 7/7, `common=186 only_a=0 only_b=0 pixel_diff=0`; fim do M2: o mesmo | `m1-journeys/`, `m1-pixels.out`, `m2-journeys/`, `m2-pixels.out` |
+| A10 | validação final do plano | ver "Fechamento do lote" | `final/` |
+
+### Fechamento do lote
+
+Validação final do plano, nesta ordem, de 10:53 às 11:48, com `kof` 0.7.0 no
+`PATH` normal (evidência em `.agent/tmp/debt-ui/final/`):
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | exit 0, 15 testes OK |
+| `npm run test:sensors` | exit 0 |
+| `npm run check` | `CHECK: PASS`, 8 passos PASS (com `types:fixtures`); `mutation` PASS (não SKIP): 166 candidatos, 166 mortos, 0 sobreviventes nos 14 arquivos; das 10:54 às 11:17 |
+| `npm run check:task` | `CHECK:TASK: PASS`: `kof tests` JVM e JS com `0 failed of 409 tests`, `mutation` 166/166 e as sete jornadas PASS; das 11:17 às 11:48 |
+| `git diff --check` | exit 0 |
+
+Esta seção entrou depois da validação (só texto); `npm run docs:sensor` e
+`git diff --check` rodaram de novo sobre ela.
+
+### Tempo
+
+Começo às 09:43. M0 de 09:44 a 10:23 (incluindo a falha do KofMut com o 0.7.3,
+resolvida em poucos minutos), com jornadas de referência em paralelo. Cena,
+controles e testes numa cópia do projeto enquanto o M0 rodava; KofMut prévio do
+M1 e do M2 em cópias. Jornadas do M1 isolado e do M1 com o M2, RED automatizado
+dos 166 mutantes, A1 de 10:25 às 10:52 e validação final de 10:53 às 11:48. Do
+começo à validação final, cerca de 2h05, contra a estimativa de 2h por arquivo
+mais 1h de fechamento.
