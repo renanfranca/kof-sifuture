@@ -5,78 +5,102 @@ import kof.ui.*
 
 main() {
     var game = Game()
-    game.start(301)
-    game.ship.x = 40
-    game.ship.phase = ShipPhase.Normal
-    for (var meteor in game.meteors) { meteor.x = 1000; meteor.y = 30 }
-    game.items[0].x = 100
-    game.items[0].y = 50
-    game.items[1].x = 130
-    game.items[1].y = 150
+    prepareOpening(game)
     var canvas = Canvas(Rules.WORLD_WIDTH, Rules.WORLD_HEIGHT)
     var drawing = GameView(canvas)
     var controls = GameControls(game, drawing, canvas)
     var status = Label("")
     status.setId("test-status")
-    var evolution = Button("Collect evolution", () -> {
-        game.items[0].collected = false
-        game.items[0].x = game.ship.x + 10
-        game.items[0].y = game.ship.y - 16
-        game.step()
-        drawing.render(game)
-        controls.update()
-    })
-    var life = Button("Collect life", () -> {
-        game.items[1].collected = false
-        game.items[1].x = game.ship.x + 10
-        game.items[1].y = game.ship.y - 16
-        game.step()
-        drawing.render(game)
-        controls.update()
-    })
-    var repaint = Button("Repaint", () -> { drawing.render(game) })
-    var normal = Button("Make normal", () -> { game.ship.phase = ShipPhase.Normal; controls.update() })
-    var restarting = Button("Make restarting", () -> { game.ship.phase = ShipPhase.Restart; game.ship.restartFrame = 0; controls.update() })
-    var moveShipUp = Button("Move ship up", () -> { game.ship.y = 45; drawing.render(game) })
-    var moveShip = Button("Move ship down", () -> { game.ship.y = 200; drawing.render(game) })
-    var blasterScene = Button("Blaster scene", () -> {
-        game.weapons.blaster.fire(game.ship)
-        game.ship.y = 200
-        drawing.render(game)
-    })
-    var blasterHit = Button("Blaster impact", () -> {
-        game.meteors[0].collided = false
-        game.meteors[0].x = game.weapons.blaster.x + 11
-        game.meteors[0].y = game.weapons.blaster.y
-        game.step()
-        drawing.render(game)
-    })
-    var specialHit = Button("Special impact", () -> { impactBeam(game, drawing, 1) })
-    var orangeHit = Button("Orange impact", () -> { impactBeam(game, drawing, 0) })
-    var darkHit = Button("Dark impact", () -> { impactBeam(game, drawing, 2) })
-    var hitShip = Button("Hit ship", () -> {
-        game.ship.phase = ShipPhase.Normal
-        for (var meteor in game.meteors) { meteor.x = 1000; meteor.y = 30 }
-        game.meteors[0].collided = false
-        game.meteors[0].x = game.ship.x + 11
-        game.meteors[0].y = game.ship.y
-        game.step()
-        for (var i = 0; i < 30; i++) { game.step() }
-        drawing.render(game)
-        controls.update()
-    })
-    var centerShip = Button("Center ship", () -> { game.ship.x = 60; game.ship.y = 100; drawing.render(game) })
     var window = Window("SiFuture armamento")
     window.size(296, 700)
-    window.bind(Column(listOf(controls.root, status, evolution, life, repaint, normal, restarting, moveShipUp, moveShip, blasterScene, blasterHit, specialHit, orangeHit, darkHit, hitShip, centerShip)))
+    window.bind(Column(widgets(game, drawing, controls, status)))
     window.show()
     drawing.render(game)
-    time.interval(Rules.STEP_MS, () -> {
-        game.step()
-        drawing.render(game)
-        controls.update()
-        status.text = "lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":x:" + game.ship.x + ":y:" + game.ship.y + ":steps:" + game.steps
-    })
+    time.interval(Rules.STEP_MS, () -> { advance(game, drawing, controls, status) })
+}
+
+prepareOpening(Game game) {
+    game.start(301)
+    game.ship.x = 40
+    game.ship.phase = ShipPhase.Normal
+    hideMeteors(game)
+    game.items[0].x = 100
+    game.items[0].y = 50
+    game.items[1].x = 130
+    game.items[1].y = 150
+}
+
+hideMeteors(Game game) {
+    for (var meteor in game.meteors) { meteor.x = 1000; meteor.y = 30 }
+}
+
+widgets(Game game, GameView drawing, GameControls controls, Label status): List<Component> {
+    var items = listOf<Component>(controls.root, status)
+    for (var button in shipButtons(game, drawing, controls)) { items.add(button) }
+    for (var button in weaponButtons(game, drawing, controls)) { items.add(button) }
+    return items
+}
+
+shipButtons(Game game, GameView drawing, GameControls controls): List<Button> {
+    return listOf(
+        Button("Collect evolution", () -> { collectItem(game, 0); drawing.render(game); controls.update() }),
+        Button("Collect life", () -> { collectItem(game, 1); drawing.render(game); controls.update() }),
+        Button("Repaint", () -> { drawing.render(game) }),
+        Button("Make normal", () -> { game.ship.phase = ShipPhase.Normal; controls.update() }),
+        Button("Make restarting", () -> { game.ship.phase = ShipPhase.Restart; game.ship.restartFrame = 0; controls.update() }),
+        Button("Move ship up", () -> { game.ship.y = 45; drawing.render(game) }),
+        Button("Move ship down", () -> { game.ship.y = 200; drawing.render(game) }))
+}
+
+weaponButtons(Game game, GameView drawing, GameControls controls): List<Button> {
+    return listOf(
+        Button("Blaster scene", () -> { showBlaster(game); drawing.render(game) }),
+        Button("Blaster impact", () -> { impactBlaster(game); drawing.render(game) }),
+        Button("Special impact", () -> { impactBeam(game, drawing, 1) }),
+        Button("Orange impact", () -> { impactBeam(game, drawing, 0) }),
+        Button("Dark impact", () -> { impactBeam(game, drawing, 2) }),
+        Button("Hit ship", () -> { hitShip(game); drawing.render(game); controls.update() }),
+        Button("Center ship", () -> { game.ship.x = 60; game.ship.y = 100; drawing.render(game) }))
+}
+
+collectItem(Game game, Int index) {
+    game.items[index].collected = false
+    game.items[index].x = game.ship.x + 10
+    game.items[index].y = game.ship.y - 16
+    game.step()
+}
+
+showBlaster(Game game) {
+    game.weapons.blaster.fire(game.ship)
+    game.ship.y = 200
+}
+
+impactBlaster(Game game) {
+    game.meteors[0].collided = false
+    game.meteors[0].x = game.weapons.blaster.x + 11
+    game.meteors[0].y = game.weapons.blaster.y
+    game.step()
+}
+
+hitShip(Game game) {
+    game.ship.phase = ShipPhase.Normal
+    hideMeteors(game)
+    game.meteors[0].collided = false
+    game.meteors[0].x = game.ship.x + 11
+    game.meteors[0].y = game.ship.y
+    game.step()
+    for (var i = 0; i < 30; i++) { game.step() }
+}
+
+advance(Game game, GameView drawing, GameControls controls, Label status) {
+    game.step()
+    drawing.render(game)
+    controls.update()
+    status.text = statusText(game)
+}
+
+statusText(Game game): String {
+    return "lives:" + game.ship.lives + ":level:" + game.weapons.level + ":charges:" + game.weapons.charges + ":x:" + game.ship.x + ":y:" + game.ship.y + ":steps:" + game.steps
 }
 
 impactBeam(Game game, GameView drawing, Int color) {

@@ -2,7 +2,7 @@
 
 **Transição revisada em 2026-10-25:** documentação e registros consultados no KofMut revisão `a40b20ac37afac302efc2a0dae7702e44720e166`. A entrega atual inclui CLI por fonte e instalação local, aprovação de compatibilidade por conteúdo e comportamento, avaliação preparada em uma JVM de trabalho e documentação EN/PT com guia operacional para LLMs. M4, M5, M6/M6R/M6O e M7/M7R estão concluídos nos respectivos registros; a atribuição forense M6L conserva questões parciais. Esta revisão documental não executa novamente essas provas. A integração dos sensores permanece futura em `/home/renanfranca/projects/kof-sifuture`; **M1 é o primeiro marco pendente** e M1–M5 e S1–S3 dos sensores não estão executados.
 
-Os contratos atuais são a [referência de CLI](/home/renanfranca/projects/kof-mut/docs/cli.pt_BR.md), a [referência JSON v1](/home/renanfranca/projects/kof-mut/docs/report-format.pt_BR.md) e o [guia operacional para LLMs](/home/renanfranca/projects/kof-mut/docs/llm-guide.pt_BR.md). O [EXECPLAN](/home/renanfranca/projects/kof-mut/EXECPLAN.md) e o [índice interno](/home/renanfranca/projects/kof-mut/.agent/README.md) registram decisões, evidências e limitações históricas; não substituem os contratos públicos atuais. A revisão acima é a fonte consultada nesta transição, não prova de adoção ou execução dos sensores no SiFuture.
+Os contratos atuais são a [referência de CLI](/home/renanfranca/projects/kof-mut/docs/cli.pt_BR.md), a [referência JSON v1](/home/renanfranca/projects/kof-mut/docs/report-format.pt_BR.md) e o [guia operacional para LLMs](/home/renanfranca/projects/kof-mut/docs/llm-guide.pt_BR.md). O [EXECPLAN](https://github.com/renanfranca/kof-mut/blob/67645951a4dbe91246fba400e30a83d97d9ce7ae/EXECPLAN.md) e o [índice interno](/home/renanfranca/projects/kof-mut/.agent/README.md) registram decisões, evidências e limitações históricas; não substituem os contratos públicos atuais. A revisão acima é a fonte consultada nesta transição, não prova de adoção ou execução dos sensores no SiFuture.
 
 **Evidência histórica M3F, 2026-10-22:** KofMut baseado em `3b1e0be6a69a30765dc6dcef7cef34e890131bb7`, identificado pelo [manifesto M3F](/home/renanfranca/projects/kof-mut/.agent/validation/kofmut-m3f.sha256). Check principal e cópia limpa sem Python passaram em 21 contratos/44 testes/15 grupos. Uma rodada conjunta Background.kf + Meteor.kf, SiFuture `82111142c85f98b970ccd65fbf044e492d017729`, commandTimeoutMs=10000/budgetMs=0/maxParallelMutants=4, sem encerramento externo aos 90 s, concluiu em 96.456 s: complete/1, 42 candidatos, 29 Killed, 13 Survived e nenhuma pendência, timeout, erro, descarte ou limitação. Baseline de 114 casos e preservação do original comprovadas. Execução completa aceita, qualidade reprovada pelos sobreviventes. Ver [relatório M3P, seção M3F](/home/renanfranca/projects/kof-mut/.agent/validation/kofmut-m3p.md). S1–S3 e instalação dos sensores continuam futuros; a meta histórica de 90 s está adiada e não atingida. Naquela rodada, nenhuma otimização adicional foi iniciada.
 
@@ -30,7 +30,7 @@ O Termux dá acesso ao Linux atual; não há requisito de executar dentro do And
 /home/renanfranca/projects/kof-mut/EXECPLAN.md
 ```
 
-[Abrir o plano vigente](/home/renanfranca/projects/kof-mut/EXECPLAN.md). O [planejamento inicial](2026-10-15_FEATURE_kofmut-exec-plan.md) é histórico; a continuidade segue o EXECPLAN local vigente.
+[Abrir o plano vigente](https://github.com/renanfranca/kof-mut/blob/67645951a4dbe91246fba400e30a83d97d9ce7ae/EXECPLAN.md). O [planejamento inicial](2026-10-15_FEATURE_kofmut-exec-plan.md) é histórico; a continuidade segue o EXECPLAN local vigente.
 
 **Plano 2 — Sensores do SiFuture**
 
@@ -55,7 +55,7 @@ O Termux dá acesso ao Linux atual; não há requisito de executar dentro do And
 
 As mutações são alterações em cópias dos arquivos `.kf`. O mutador executa os testes que o projeto configura. Não há exigência de repetir cada mutação em JVM, JS e WASI. A execução do próprio KofMut na JVM é uma decisão independente desse comando de testes.
 
-O piloto Luna high/xhigh já terminou. Não reexecutá-lo, não criar as tarefas antigas nem interpretar instruções históricas como ordem atual. A fonte está em [contexto do piloto](/home/renanfranca/projects/tmp/katacombs-pilot-results/katacombs-piloto-luna-contexto-completo.md).
+O piloto Luna high/xhigh já terminou. Não reexecutá-lo, não criar as tarefas antigas nem interpretar instruções históricas como ordem atual. A fonte está em contexto do piloto (`/home/renanfranca/projects/tmp/katacombs-pilot-results/katacombs-piloto-luna-contexto-completo.md`, não preservado).
 
 ## Pedidos curtos para o CLI
 

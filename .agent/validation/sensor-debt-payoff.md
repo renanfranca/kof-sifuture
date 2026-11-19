@@ -1637,3 +1637,138 @@ M1 e do M2 em cópias. Jornadas do M1 isolado e do M1 com o M2, RED automatizado
 dos 166 mutantes, A1 de 10:25 às 10:52 e validação final de 10:53 às 11:48. Do
 começo à validação final, cerca de 2h05, contra a estimativa de 2h por arquivo
 mais 1h de fechamento.
+
+## R6, fixtures (19/11)
+
+Plano em [`.agent/execplans/sensor-debt-fixtures.md`](../execplans/sensor-debt-fixtures.md).
+Branch `refactor/sensor-debt-fixtures` a partir da `main` `91d8e49`. Evidência
+bruta em `.agent/tmp/debt-fixtures/` (fora do Git por `.git/info/exclude`).
+
+### Ambiente
+
+`kof` 0.7.0 no `PATH`. Chrome 158.0.8127.36 e Playwright 1.65.2 foram instalados
+pelo usuário no começo da execução: a máquina não tinha nenhum dos dois. O
+`browser_boss.py:220` compara os sprites do chefe com
+`/home/renanfranca/projects/sifuture/res`; o diretório não existia e foi clonado
+de `renanfranca/sifuture` no SHA já registrado acima (`50fc40d`), com os 14
+sprites idênticos aos de `assets/`.
+
+### Achados antes e depois
+
+| Arquivo | Antes (`main` `91d8e49`) | Depois |
+| --- | --- | --- |
+| `tests/boss.kf` | `refresh`: complexidade 17, 38 statements; `main`: 143 linhas, 32 statements | 0 |
+| `tests/meteor-motion.kf` | `main`: 29 linhas | 0 |
+| `tests/stage.kf` | `main`: 158 linhas, 42 statements; lambda de "Defeat effects": 18 statements | 0 |
+| `tests/subchief.kf` | `prepareBoundary`: 19 statements; `main`: 147 linhas, 39 statements; `refresh`: 25 statements | 0 |
+| `tests/weapons.kf` | `main`: 75 linhas, 36 statements | 0 |
+| total (`sensors:debt`) | `SENSOR lint: FAIL (14 findings)`, dup `PASS (0 findings)`, 82 arquivos | `SENSOR lint: PASS (0 findings)`, dup `PASS (0 findings)`, 82 arquivos |
+
+### Divididos (de → para)
+
+Padrão comum às cinco: o `main` só cria jogo, tela, rótulo, janela e relógio;
+`widgets(...)` devolve `List<Component>` com `controls.root`, o rótulo e os
+botões, numa lista plana (aninhar `Column` mudaria o layout, que tem gap fixo
+de 8px); cada botão é uma lambda de uma linha que chama um `prepare…` e o
+`refresh`.
+
+- `weapons.kf`: estado inicial → `prepareOpening`; botões → `shipButtons` e
+  `weaponButtons`; "Collect evolution"/"Collect life" → `collectItem(game, i)`;
+  "Blaster scene" → `showBlaster`; "Blaster impact" → `impactBlaster`; "Hit
+  ship" → `hitShip`; meteoros fora da tela → `hideMeteors`; relógio →
+  `advance`, com o texto de `#test-status` em `statusText`. `impactBeam` igual.
+- `meteor-motion.kf`: texto do rótulo → `motionText(meteor)`; desenho do
+  impacto → `drawImpact(canvas, impacts, meteor)`.
+- `stage.kf`: estado inicial → `prepareOpening`; botões → `finishButtons` e
+  `resultButtons`; `prepareRightFinish`, `prepareFinish`, `explodeLastLife`
+  ("Defeat"), `prepareDefeatFlight`, `prepareVerticalImpact`,
+  `prepareFullJourney`; "Defeat effects" → `prepareDefeatEffects`, que chama
+  `prepareDefeat`, `impactLaserOnMeteor`, `spendBlaster`, `spendBeam` e um
+  passo, na ordem original; "Zero result" e os seis "Result N" →
+  `prepareResult(game, score)`. `refresh`, `prepareDefeat`, `bossActive` e
+  `subchiefActive` iguais.
+- `subchief.kf`: avanço inicial → `prepareApproach`; `prepareBoundary(game,
+  lifetime, weapon)` → parte comum `prepareBoundary(game, lifetime)` e um
+  `prepareBoundaryBody|Laser|Blaster|Special(game, lifetime)` por arma;
+  botões → `encounterButtons`, `boundaryButtons`, `shotButtons`; um `prepare…`
+  por cenário (`prepareShots`, `prepareSpecial`, `prepareFatalLaser`,
+  `prepareBodyContact`, `prepareInvulnerableContact`, `prepareDefeatEncounter`,
+  `prepareCompleteJourney`, `prepareNewShotBoundary`,
+  `prepareExistingShotBoundary`, `prepareReusedShotSlot`,
+  `prepareExhaustedSpecial`, `stopSpecialContacts`); `refresh` → `statusText`,
+  com sinalizadores por `flag(Bool)` e a contagem por `activeShots`. Onde um
+  cenário repetia outro por inteiro e depois acrescentava atribuições, ele
+  chama o outro ("Invulnerable contact" chama `prepareBodyContact`; "Reuse shot
+  slot" chama `prepareNewShotBoundary`), com a mesma sequência de efeitos.
+- `boss.kf`: estado inicial → `prepareApproach`; botões → `phaseButtons`,
+  `contactButtons`, `shotButtons`; um `prepare…` por cenário (`prepareFury`,
+  `prepareFrenzy`, `prepareShots`, `prepareBossSpecial`, `prepareFatalLaser`,
+  `prepareBodyContact`, `prepareInvulnerableContact`, `preparePlayerSpecial`,
+  `prepareDefeat`, `prepareCompleteJourney`, `prepareNewShot`,
+  `prepareMovingShot`, `prepareReusedShot`, `prepareSpecialBoundary`,
+  `prepareAbsorbedMeteors`); `refresh` → `statusText`, com a fase em
+  `phaseCode`, contagens em `activeBossShots` e `activePlayerShots` e
+  sinalizadores por `flag`. `prepareBoss` e `prepareLaser` iguais.
+
+### Pixels: B0 não determinística
+
+A B0 rodou duas vezes na `main` intacta: 7/7 exit 0 e 186 PNGs nas duas, mas 19
+capturas diferem entre si (`b0-determinism.out`, lista em `b0-unstable.txt`).
+Duas rodadas extras do `browser_weapons.py` com o `weapons.kf` da `main`
+(`m1old-a`, `m1old-b`) mostraram outras oscilando. Todas são `page.screenshot`
+de página inteira com o relógio congelado; ampliada, a diferença é antialiasing
+nas setas e nos cantos arredondados do `GameControls`, que não muda neste lote.
+No lote da UI (16/11) as 186 eram estáveis, então a causa provável é o Chrome
+158 recém-instalado. Decisão registrada no plano: prova estrita nas capturas
+estáveis e lacuna declarada nas instáveis.
+
+Cada captura foi classificada pela origem: fixture (`served_build(fixture=…)`)
+ou aplicação (`served_build()` sem fixture: `application-*`, `app-*` e todo
+`credits-text-browser/*`, porque no `browser.py` as capturas da fixture
+`weapons.kf` só são comparadas em memória). Árvore final contra `b0-1`
+(`final-classified.out`):
+
+| Origem | Estáveis iguais | Estáveis diferentes | Instáveis excluídas |
+| --- | --- | --- | --- |
+| fixture | 114 | 0 | 4 |
+| aplicação | 48 | 5 | 15 |
+
+As 5 diferenças da aplicação (`credits-terminal-1200`, `menu-1200-d1`,
+`menu-320-d1`, `pause-320-d1`, `stage-browser/app-1200`) são de páginas que este
+lote não compila; as versões só do canvas (`menu-canvas-*`, `pause-canvas-*`)
+bateram.
+
+### Critérios de aceite
+
+| # | Comando | Observado | Evidência |
+| --- | --- | --- | --- |
+| A1 | `bash -lic 'npm run sensors:debt'`, saída lida | `SENSOR lint: PASS (0 findings)`, `SENSOR dup: PASS (0 findings)`, `82 Kof files`, igual a `git ls-files '*.kf' \| wc -l` (82) | `final-debt.txt` |
+| A2 | `npm run lint:sensor --` em cada fixture, por milestone; `git diff main -- scripts/` | `PASS (0 findings)` em M1, M2 a M4 e no total; diff de `scripts/` vazio | saída por milestone |
+| A3 | `journeys.sh` na árvore final e `pixels.py` contra `b0-1` | **parcial**: 114/114 capturas estáveis de fixture idênticas; 4 de fixture sem prova de pixels por instabilidade da própria `main` (`keyboard-game-action-1200`, `keyboard-game-continue-1200`, `layout-1200`, `layout-320`); não atendido como escrito (`pixel_diff=0` em tudo) | `final-journeys/`, `pixels.out`, `final-classified.out` |
+| A4 | `npm run check:task` | `CHECK:TASK: PASS`, as sete `browser:*` PASS | `final3/check-task.log` |
+| A5 | `grep -o` por categoria na `main` e na branch, `diff` | vazio: 73 botões na mesma ordem, chaves dos rótulos na mesma ordem; `Window`, `window.size`, `setId`, `Label` inicial, `time.interval` e sementes de `start` iguais | `contract-main.txt`, `contract-branch.txt`, `contract.diff` |
+| A6 | `git diff --name-only main`, `git status --porcelain --untracked-files=all` | os cinco `tests/*.kf`, este registro, o `EXECPLAN.md` e o plano; **desvio aprovado pelo usuário**: cinco cópias de `.agent/sensor-plans/` e o `README.md` da pasta, só nos alvos de 11 links quebrados (ver o plano, Decisions); nada de `.agent/tmp/` | rodado no repositório |
+| A7 | `npm run check` | `CHECK: PASS`; `types:fixtures`, `lint:sensor` e `docs:sensor` PASS; `mutation` SKIP (nenhum arquivo de produção mudou) | `final3/check.log` |
+
+### Fechamento do R6
+
+A primeira validação final (11:16) parou em `secret:sensor` (`SENSOR gitleaks:
+UNAVAILABLE`). O usuário pediu a instalação do Gitleaks 8.30.1
+(`~/.local/bin/gitleaks`, checksum da release conferido) e, com o `check`
+parando depois em `docs:sensor` (11 `broken-link` em `.agent/sensor-plans/`),
+escolheu corrigir os links neste branch. Duas rodadas seguintes foram cortadas
+por congelamentos da máquina, sem rastro no journal (sem OOM nem erro de
+kernel), e os logs delas se perderam. A rodada válida rodou um passo por vez,
+com `sync` entre eles (evidência em `.agent/tmp/debt-fixtures/final3/`):
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | exit 0, 15 testes OK |
+| `bash -lic 'npm run test:sensors'` | exit 0, 39 pass, 0 fail (fora do shell de login cai por `mvn`) |
+| `bash -lic 'npm run sensors:debt'` | `SENSOR lint: PASS (0 findings)`, `SENSOR dup: PASS (0 findings)`, 82 arquivos |
+| `bash -lic 'npm run check'` | `CHECK: PASS`, de 19:20:39 a 19:21:06; `kof tests` JVM e JS com `0 failed of 409 tests`; `mutation` SKIP |
+| `bash -lic 'npm run check:task'` | `CHECK:TASK: PASS`, de 19:21:12 a 19:25:06, com as sete jornadas PASS |
+| `git diff --check` | exit 0 |
+
+Esta seção entrou depois da validação (só texto); `npm run docs:sensor` e
+`git diff --check` rodaram de novo sobre ela.

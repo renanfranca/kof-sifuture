@@ -13,7 +13,7 @@
 
 ## Context
 
-O PR #24 fez o `check` ler o relatório do KofMut no exit 3: `no_mutants` sem limitação vira SKIP ([`scripts/mutation-step.mjs`](scripts/mutation-step.mjs), registro [`.agent/validation/mutation-no-mutants-skip.md`](.agent/validation/mutation-no-mutants-skip.md)). Na revisão ficaram dois pontos, decididos pelo usuário em 10/11/2026:
+O PR #24 fez o `check` ler o relatório do KofMut no exit 3: `no_mutants` sem limitação vira SKIP ([`scripts/mutation-step.mjs`](../../scripts/mutation-step.mjs), registro [`.agent/validation/mutation-no-mutants-skip.md`](../validation/mutation-no-mutants-skip.md)). Na revisão ficaram dois pontos, decididos pelo usuário em 10/11/2026:
 
 1. **Conferir a identidade do relatório (decisão: fazer).** O procedimento do consumidor em `kof-mut/docs/report-format.md:20-30` exige:
    > JSON-decode the remainder as a string; require an absolute path.
@@ -46,7 +46,7 @@ Isto é o **planejado**, e não o observado.
 
 **Ponto de observação:** o mesmo do PR #24, a linha `  mutation  <ESTADO> (<detalhe>)` do sumário, a linha `CHECK: …` e o exit code de `check.mjs`.
 
-**Testes:** no padrão de [`test/sensors/check.test.mjs`](test/sensors/check.test.mjs). O `kof-mut` falso (`withReportingKofMut`) precisa passar a montar o relatório com o `--run-id` e o escopo do `--files` que **recebeu**, para que os testes não dependam de um valor copiado da lógica de produção. Os testes também precisam poder sobrescrever:
+**Testes:** no padrão de [`test/sensors/check.test.mjs`](../../test/sensors/check.test.mjs). O `kof-mut` falso (`withReportingKofMut`) precisa passar a montar o relatório com o `--run-id` e o escopo do `--files` que **recebeu**, para que os testes não dependam de um valor copiado da lógica de produção. Os testes também precisam poder sobrescrever:
 - `runId`;
 - `scope`;
 - `discardedCandidates`;
