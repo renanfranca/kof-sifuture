@@ -1,0 +1,171 @@
+package sifuture
+
+import sifuture.ControlsGuide
+import sifuture.MenuChoice
+import sifuture.KeyRouting
+import sifuture.game.*
+
+class ControlKeys {
+    Game game
+    ControlsGuide guide
+    List<MenuChoice> choices = menuChoices()
+    Bool keyboardFocused = false
+    Bool actionFocused = false
+    Bool specialFocused = false
+    String focusedOption = ""
+    String discardOptionClick = ""
+    Bool discardEnterClick = false
+    Bool oneHeld = false
+    Bool enterHeld = false
+    Bool spaceHeld = false
+    Bool specialPointerHeld = false
+
+    public constructor(Game game, ControlsGuide guide) {
+        this.game = game
+        this.guide = guide
+    }
+
+    keyDown(String key, String target): KeyOutcome { return this.key(key, target, true) }
+
+    keyUp(String key, String target): KeyOutcome { return this.key(key, target, false) }
+
+    private key(String key, String target, Bool pressed): KeyOutcome {
+        if (key == "1") { return routeOne(this, target, pressed) }
+        if (key == " ") { return routeConfirming(this, true, target, pressed) }
+        if (key == "Enter") { return routeConfirming(this, false, target, pressed) }
+        var allowed = keyboardReceiver(target)
+        if (key == "ArrowLeft") { game.keyboard(Direction.Left, pressed, allowed) }
+        if (key == "ArrowRight") { game.keyboard(Direction.Right, pressed, allowed) }
+        if (key == "ArrowUp") { game.keyboard(Direction.Up, pressed, allowed) }
+        if (key == "ArrowDown") { game.keyboard(Direction.Down, pressed, allowed) }
+        return KeyOutcome().refresh()
+    }
+
+    optionTarget(String id): Bool {
+        for (var choice in choices) {
+            if (choice.id == id) { return true }
+        }
+        return false
+    }
+
+    optionAvailable(String id): Bool {
+        for (var choice in choices) {
+            if (choice.id == id && optionShown(choice)) { return true }
+        }
+        return false
+    }
+
+    keyboardReceiver(String id): Bool {
+        return id == "game-keyboard" || id == "game-action" || optionAvailable(id) || (optionTarget(id) && focusedOption == id)
+    }
+
+    focusKeyboard() { keyboardFocused = true }
+
+    blurKeyboard() {
+        game.clearKeyboard()
+        keyboardFocused = false
+    }
+
+    focusAction() { actionFocused = true }
+
+    blurAction() {
+        game.clearKeyboard()
+        actionFocused = false
+        discardEnterClick = false
+    }
+
+    actionPointerDown() { discardEnterClick = false }
+
+    actionClicked(): Bool {
+        if (discardEnterClick) {
+            discardEnterClick = false
+            return false
+        }
+        game.confirm()
+        return true
+    }
+
+    overlayClicked(): Bool {
+        if (game.screen != Screen.Credits) { return false }
+        return actionClicked()
+    }
+
+    focusSpecial() { specialFocused = true }
+
+    blurSpecial() { specialFocused = false }
+
+    specialPointerDown(): Bool {
+        if (specialPointerHeld) { return false }
+        specialPointerHeld = true
+        game.trySpecial()
+        return true
+    }
+
+    specialPointerUp() { specialPointerHeld = false }
+
+    padPressed(Direction direction) { game.movement(direction, true) }
+
+    padReleased(Direction direction) { game.movement(direction, false) }
+
+    optionFocused(MenuChoice choice): Bool {
+        focusedOption = choice.id
+        if (!optionShown(choice)) { return false }
+        select(choice)
+        return true
+    }
+
+    optionBlurred() {
+        game.clearKeyboard()
+        focusedOption = ""
+        discardOptionClick = ""
+    }
+
+    optionPointerDown() { discardOptionClick = "" }
+
+    optionClicked(MenuChoice choice): Bool {
+        if (discardOptionClick == choice.id) {
+            discardOptionClick = ""
+            return false
+        }
+        if (!optionShown(choice)) { return false }
+        select(choice)
+        game.confirm()
+        return true
+    }
+
+    private select(MenuChoice choice) {
+        if (choice.screen == Screen.Menu) { game.menuSelection = choice.index }
+        else { game.pauseSelection = choice.index }
+    }
+
+    optionShown(MenuChoice choice): Bool { return choice.screen == game.screen }
+
+    optionRetained(MenuChoice choice): Bool { return !optionShown(choice) && focusedOption == choice.id }
+
+    surfaceFocused(): Bool { return keyboardFocused || optionTarget(focusedOption) }
+
+    guideLayout(): Bool { return game.screen == Screen.Controls }
+
+    creditsLayout(): Bool { return game.screen == Screen.Credits }
+
+    verticalPadLocked(): Bool { return horizontalPadLocked() && !navigating() }
+
+    horizontalPadLocked(): Bool { return game.screen != Screen.Play }
+
+    private navigating(): Bool { return game.screen == Screen.Menu || game.screen == Screen.Pause }
+
+    specialAvailable(): Bool { return game.canSpecial() }
+
+    specialRetained(): Bool { return specialFocused && (oneHeld || enterHeld || spaceHeld) }
+
+    specialDisabled(): Bool { return !specialAvailable() && !specialRetained() }
+
+    actionLabel(): String {
+        if (creditsLayout()) { return "Pular créditos" }
+        if (navigating()) { return "Confirmar (Enter)" }
+        if (guideLayout()) { return "Voltar" }
+        if (!horizontalPadLocked()) { return "Pausar" }
+        if (game.countComplete()) { return "Voltar ao menu" }
+        return "Concluir contagem"
+    }
+}

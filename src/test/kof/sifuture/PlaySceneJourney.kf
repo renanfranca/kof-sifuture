@@ -1,0 +1,328 @@
+package sifuture
+import sifuture.Scene
+import sifuture.Scenes
+import sifuture.Sheet
+import sifuture.SceneLookup
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+Game givenPlayScene() {
+    var g = Game()
+    g.screen = Screen.Play
+    return g
+}
+
+test "the play background is a four by four tile grid shifted left by the scroll offset" {
+    var g = givenPlayScene()
+    g.background.offset = 15
+
+    var tiles = spritesOf(sceneOf(g).world, "assets/background.png")
+
+    assert(assetsOf(tiles) == "assets/background.png@-15,30 assets/background.png@45,30 assets/background.png@105,30 assets/background.png@165,30 assets/background.png@-15,90 assets/background.png@45,90 assets/background.png@105,90 assets/background.png@165,90 assets/background.png@-15,150 assets/background.png@45,150 assets/background.png@105,150 assets/background.png@165,150 assets/background.png@-15,210 assets/background.png@45,210 assets/background.png@105,210 assets/background.png@165,210 ")
+}
+
+test "items show their animation frame and a collected item shows its pickup effect" {
+    var g = givenItemsInFlight()
+
+    var flying = sceneOf(g).world
+    g.items[1].collected = true
+    g.items[1].effectSteps = 5
+    var collected = sceneOf(g).world
+
+    assert(assetsOf(spritesOf(flying, "assets/iten3.png")) == "assets/iten3.png@20,40 ")
+    assert(assetsOf(spritesOf(flying, "assets/life7.png")) == "assets/life7.png@60,70 ")
+    assert(assetsOf(spritesOf(collected, "assets/effect2.png")) == "assets/effect2.png@60,70 ")
+    assert(spritesOf(collected, "assets/life7.png").size == 0)
+}
+
+test "only active subchief and boss shots are drawn, each boss shot with its spin frame" {
+    var g = givenEnemyShotsInFlight()
+
+    var world = sceneOf(g).world
+
+    assert(assetsOf(spritesOf(world, "assets/laser0.png")) == "assets/laser0.png@90,100 ")
+    assert(assetsOf(spritesOf(world, "assets/shoot1.png")) == "assets/shoot1.png@110,120 ")
+    assert(spritesOf(world, "assets/shoot0.png").size == 0)
+}
+
+test "an active boss special shows its charge frame at its position" {
+    var g = givenPlayScene()
+    var special = g.boss.weapons.special
+    special.x = 30
+    special.y = 50
+    special.preparationSteps = 13
+
+    var idle = sceneOf(g).world
+    special.active = true
+    var charging = sceneOf(g).world
+
+    assert(spritesOf(idle, "assets/esp4.png").size == 0)
+    assert(assetsOf(spritesOf(charging, "assets/esp4.png")) == "assets/esp4.png@30,50 ")
+}
+
+test "a furious boss shows its furious body and an exploding boss shows only its explosion frame" {
+    var g = givenPlayScene()
+    g.boss.x = 120
+    g.boss.y = 60
+    g.boss.phase = BossPhase.Fury
+
+    var furious = sceneOf(g).world
+    givenBossExplosion(g.boss)
+    var exploding = sceneOf(g).world
+
+    assert(assetsOf(spritesOf(furious, "assets/bos1.png")) == "assets/bos1.png@120,60 ")
+    assert(spritesOf(furious, "assets/explosion0.png").size == 0)
+    assert(assetsOf(spritesOf(exploding, "assets/explosion3.png")) == "assets/explosion3.png@100,65 ")
+    assert(spritesOf(exploding, "assets/bos1.png").size == 0)
+}
+
+test "an inactive boss is not drawn" {
+    var g = givenPlayScene()
+
+    var world = sceneOf(g).world
+
+    assert(spritesOf(world, "assets/bos.png").size == 0)
+    assert(spritesOf(world, "assets/explosion0.png").size == 0)
+}
+
+test "a normal subchief shows its body and an exploding one shows its explosion at the explosion column" {
+    var g = givenPlayScene()
+    g.subchief.x = 130
+    g.subchief.y = 80
+    g.subchief.phase = SubchiefPhase.Normal
+
+    var normal = sceneOf(g).world
+    givenSubchiefExplosion(g.subchief)
+    var exploding = sceneOf(g).world
+
+    assert(assetsOf(spritesOf(normal, "assets/subchief.png")) == "assets/subchief.png@130,80 ")
+    assert(spritesOf(normal, "assets/explosion0.png").size == 0)
+    assert(assetsOf(spritesOf(exploding, "assets/explosion2.png")) == "assets/explosion2.png@110,80 ")
+    assert(spritesOf(exploding, "assets/subchief.png").size == 0)
+}
+
+test "active meteors show their rotation frame and a collided one shows its impact frame" {
+    var g = givenMeteorsInFlight()
+
+    var world = sceneOf(g).world
+
+    assert(assetsOf(spritesOf(world, "assets/meteor004.png")) == "assets/meteor004.png@70,90 ")
+    assert(spritesOf(world, "assets/meteor002.png").size == 0)
+    assert(assetsOf(spritesOf(world, "assets/meteor0C2.png")) == "assets/meteor0C2.png@50,60 ")
+}
+
+test "a flying laser shows its frame and a laser impact is drawn five pixels ahead of the shot" {
+    var g = givenLasersInFlight()
+
+    var world = sceneOf(g).world
+
+    assert(assetsOf(spritesOf(world, "assets/laser01.png")) == "assets/laser01.png@40,60 ")
+    assert(assetsOf(spritesOf(world, "assets/laser03.png")) == "assets/laser03.png@85,66 ")
+}
+
+test "a flying blaster shows its flight frame and its fourth frame uses the last sheet image" {
+    var g = givenPlayScene()
+    var blaster = givenBlasterAt(g, 3)
+
+    var idle = sceneOf(g).world
+    blaster.active = true
+    var early = sceneOf(g).world
+    blaster.flightSteps = 6
+    var late = sceneOf(g).world
+
+    assert(spritesOf(idle, "assets/ylwBlaster02.png").size == 0)
+    assert(assetsOf(spritesOf(early, "assets/ylwBlaster02.png")) == "assets/ylwBlaster02.png@30,100 ")
+    assert(assetsOf(spritesOf(late, "assets/ylwBlaster08.png")) == "assets/ylwBlaster08.png@30,100 ")
+    assert(spritesOf(late, "assets/ylwBlaster04.png").size == 0)
+}
+
+test "a spent blaster shows its impact frames rising fourteen then fifteen pixels" {
+    var g = givenPlayScene()
+    givenBlasterAt(g, 0).active = true
+
+    var first = spentBlasterWorld(g, 0)
+    var second = spentBlasterWorld(g, 1)
+    var third = spentBlasterWorld(g, 2)
+
+    assert(assetsOf(spritesOf(first, "assets/ylwBlaster04.png")) == "assets/ylwBlaster04.png@30,100 ")
+    assert(assetsOf(spritesOf(second, "assets/ylwBlaster05.png")) == "assets/ylwBlaster05.png@30,86 ")
+    assert(assetsOf(spritesOf(third, "assets/ylwBlaster06.png")) == "assets/ylwBlaster06.png@30,85 ")
+}
+
+test "an active special beam uses its color row of the sheet" {
+    var g = givenPlayScene()
+    var beam = g.weapons.beams[1]
+    beam.x = 20
+    beam.y = 70
+    beam.hitSteps = 2
+
+    var idle = sceneOf(g).world
+    beam.active = true
+    var firing = sceneOf(g).world
+
+    assert(spritesOf(idle, "assets/e4.png").size == 0)
+    assert(assetsOf(spritesOf(firing, "assets/e4.png")) == "assets/e4.png@20,70 ")
+}
+
+test "a normal ship shows its banking frame only while moving right" {
+    var g = givenPlayScene()
+    g.ship.phase = ShipPhase.Normal
+    g.ship.x = 40
+    g.ship.y = 110
+
+    var level = sceneOf(g).world
+    g.ship.rightFrame = true
+    var banking = sceneOf(g).world
+
+    assert(assetsOf(spritesOf(level, "assets/Middle.png")) == "assets/Middle.png@40,110 ")
+    assert(spritesOf(level, "assets/Middle2.png").size == 0)
+    assert(spritesOf(level, "assets/explosion0.png").size == 0)
+    assert(assetsOf(spritesOf(banking, "assets/Middle2.png")) == "assets/Middle2.png@40,110 ")
+    assert(spritesOf(banking, "assets/Middle.png").size == 0)
+}
+
+test "an exploding ship shows its explosion frame until the explosion ends and never its body" {
+    var g = givenPlayScene()
+    g.ship.phase = ShipPhase.Explosion
+    g.ship.x = 40
+    g.ship.y = 110
+    g.ship.explosionSteps = 7
+
+    var exploding = sceneOf(g).world
+    g.ship.explosionSteps = 30
+    var ended = sceneOf(g).world
+
+    assert(assetsOf(spritesOf(exploding, "assets/explosion2.png")) == "assets/explosion2.png@40,110 ")
+    assert(spritesOf(exploding, "assets/Middle.png").size == 0)
+    assert(assetAt(ended, 40, 110) == "")
+}
+
+test "a restarting ship blinks every three frames and never shows its banking frame" {
+    var g = givenPlayScene()
+    g.ship.phase = ShipPhase.Restart
+    g.ship.rightFrame = true
+
+    g.ship.restartFrame = 1
+    var shown = sceneOf(g).world
+    g.ship.restartFrame = 4
+    var hidden = sceneOf(g).world
+
+    assert(spritesOf(shown, "assets/Middle.png").size == 1)
+    assert(spritesOf(shown, "assets/Middle2.png").size == 0)
+    assert(spritesOf(hidden, "assets/Middle.png").size == 0)
+}
+
+test "a hidden ship is not drawn" {
+    var g = givenPlayScene()
+    g.ship.phase = ShipPhase.Hidden
+
+    var world = sceneOf(g).world
+
+    assert(spritesOf(world, "assets/Middle.png").size == 0)
+}
+
+Game givenItemsInFlight() {
+    var g = givenPlayScene()
+    g.items[0].x = 20
+    g.items[0].y = 40
+    g.items[0].frame = 3
+    g.items[1].x = 60
+    g.items[1].y = 70
+    g.items[1].frame = 7
+    return g
+}
+
+Game givenEnemyShotsInFlight() {
+    var g = givenPlayScene()
+    g.subchief.shots[1].active = true
+    g.subchief.shots[1].x = 90
+    g.subchief.shots[1].y = 100
+    var shot = g.boss.weapons.shots[0]
+    shot.active = true
+    shot.animated = true
+    shot.animationSteps = 4
+    shot.x = 110
+    shot.y = 120
+    return g
+}
+
+givenBossExplosion(Boss boss) {
+    boss.phase = BossPhase.Explosion
+    boss.explosionSteps = 7
+    boss.explosionX = 100
+    boss.explosionY = 65
+}
+
+givenSubchiefExplosion(Subchief chief) {
+    chief.phase = SubchiefPhase.Explosion
+    chief.explosionSteps = 7
+    chief.explosionX = 110
+}
+
+Game givenMeteorsInFlight() {
+    var g = givenPlayScene()
+    for (var m in g.meteors) { m.active = false }
+    givenMeteor(g.meteors[0], 70, 90)
+    g.meteors[0].active = true
+    g.meteors[0].frame = 4
+    givenMeteor(g.meteors[1], 10, 20)
+    g.meteors[1].frame = 2
+    givenMeteor(g.meteors[2], 50, 60)
+    g.meteors[2].active = true
+    g.meteors[2].collided = true
+    g.meteors[2].collisionSteps = 4
+    return g
+}
+
+givenMeteor(Meteor m, Int x, Int y) {
+    m.x = x
+    m.y = y
+}
+
+Game givenLasersInFlight() {
+    var g = givenPlayScene()
+    var shots = g.weapons.lasers.shots
+    shots[0].active = true
+    shots[0].animated = true
+    shots[0].flightSteps = 3
+    shots[0].x = 40
+    shots[0].y = 60
+    shots[1].active = true
+    shots[1].impact = true
+    shots[1].x = 80
+    shots[1].y = 66
+    shots[2].impact = true
+    return g
+}
+
+Blaster givenBlasterAt(Game g, Int flightSteps) {
+    var blaster = g.weapons.blaster
+    blaster.x = 30
+    blaster.y = 100
+    blaster.flightSteps = flightSteps
+    return blaster
+}
+
+List<Sprite> spentBlasterWorld(Game g, Int impactSteps) {
+    g.weapons.blaster.lives = 0
+    g.weapons.blaster.impactSteps = impactSteps
+    return sceneOf(g).world
+}

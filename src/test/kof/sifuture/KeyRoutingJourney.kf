@@ -1,0 +1,300 @@
+package sifuture
+import sifuture.ControlKeys
+import sifuture.ControlsGuide
+import sifuture.GuideDisclosure
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+ControlKeys keysInMatch() {
+    var keys = ControlKeys(Game(), ControlsGuide())
+    keys.game.screen = Screen.Play
+    keys.game.ship.phase = ShipPhase.Normal
+    keys.game.weapons.charges = 2
+    return keys
+}
+
+ControlKeys keysOnMenu() {
+    var keys = ControlKeys(Game(), ControlsGuide())
+    keys.game.confirm()
+    return keys
+}
+
+ControlKeys keysOnControls() {
+    var keys = keysOnMenu()
+    keys.game.openControls()
+    return keys
+}
+
+test "pressing 1 on the game area fires the special once and asks for a full refresh" {
+    var keys = keysInMatch()
+
+    var press = keys.keyDown("1", "game-keyboard")
+    var charges = keys.game.weapons.charges
+    var repeat = keys.keyDown("1", "game-keyboard")
+
+    assert(charges == 1 && press.render && press.update && !press.updateSpecial)
+    assert(!repeat.render && !repeat.update && keys.game.weapons.charges == 1)
+}
+
+test "releasing 1 only refreshes the special button" {
+    var keys = keysInMatch()
+    keys.keyDown("1", "game-keyboard")
+
+    var release = keys.keyUp("1", "game-keyboard")
+
+    assert(release.updateSpecial && !release.render && !release.update)
+    assert(!keys.oneHeld)
+}
+
+test "pressing 1 on the special button fires the special" {
+    var keys = keysInMatch()
+
+    keys.keyDown("1", "game-special")
+
+    assert(keys.game.weapons.charges == 1)
+}
+
+test "pressing 1 on a control outside the game does not fire the special" {
+    var keys = keysInMatch()
+
+    var press = keys.keyDown("1", "game-details")
+
+    assert(keys.game.weapons.charges == 2)
+    assert(keys.oneHeld && !press.render && !press.updateSpecial)
+}
+
+test "enter on the main action confirms once per press and marks the coming click for discard" {
+    var keys = keysWithMenuOnPlayChoice()
+
+    var press = keys.keyDown("Enter", "game-action")
+    var screen = keys.game.screen
+    var repeat = keys.keyDown("Enter", "game-action")
+
+    assert(screen == Screen.Play && press.render && press.update && !press.updateSpecial)
+    assert(keys.game.screen == Screen.Play && !repeat.render && !repeat.update)
+    assert(keys.discardEnterClick && keys.enterHeld)
+}
+
+ControlKeys keysWithMenuOnPlayChoice() {
+    var keys = keysOnMenu()
+    keys.game.menuSelection = 0
+    return keys
+}
+
+test "releasing enter clears every click discard and refreshes the controls without redrawing" {
+    var keys = keysOnMenu()
+    keys.keyDown("Enter", "game-action")
+    keys.discardOptionClick = "game-new"
+    keys.guide.discardClick = true
+
+    var release = keys.keyUp("Enter", "game-action")
+
+    assert(!keys.discardEnterClick && keys.discardOptionClick == "" && !keys.guide.discardClick)
+    assert(release.update && !release.render && !keys.enterHeld)
+}
+
+test "space on the main action confirms and its release keeps the click discarded" {
+    var keys = keysOnMenu()
+
+    keys.keyDown(" ", "game-action")
+    var screen = keys.game.screen
+    var release = keys.keyUp(" ", "game-action")
+
+    assert(screen == Screen.Play)
+    assert(keys.discardEnterClick && !keys.spaceHeld && release.update)
+}
+
+test "a held enter does not block a fresh space" {
+    var keys = keysOnMenu()
+    keys.keyDown("Enter", "game-keyboard")
+    keys.game.pause()
+
+    keys.keyDown(" ", "game-action")
+
+    assert(keys.game.screen == Screen.Play)
+    assert(keys.enterHeld && keys.spaceHeld)
+}
+
+test "enter on the game area confirms but space there does not" {
+    var keys = keysOnMenu()
+
+    keys.keyDown(" ", "game-keyboard")
+    var afterSpace = keys.game.screen
+    keys.keyDown("Enter", "game-keyboard")
+
+    assert(afterSpace == Screen.Menu)
+    assert(keys.game.screen == Screen.Play)
+}
+
+test "enter on an unrelated control neither confirms nor marks discards" {
+    var keys = keysOnMenu()
+
+    var press = keys.keyDown("Enter", "game-help")
+
+    assert(keys.game.screen == Screen.Menu && !press.render)
+    assert(!keys.discardEnterClick && keys.discardOptionClick == "" && !keys.guide.discardClick)
+}
+
+test "space on a shown option confirms it and marks that option click for discard" {
+    var keys = keysOnMenu()
+    keys.game.menuSelection = 1
+
+    keys.keyDown(" ", "game-controls")
+
+    assert(keys.game.screen == Screen.Controls)
+    assert(keys.discardOptionClick == "game-controls")
+}
+
+test "space on a retained option does not confirm while enter does" {
+    var keys = keysInMatch()
+    keys.game.pause()
+    keys.game.resume()
+    keys.optionFocused(keys.choices[0])
+
+    keys.keyDown(" ", "game-new")
+    var afterSpace = keys.game.screen
+    keys.keyDown("Enter", "game-new")
+
+    assert(afterSpace == Screen.Play)
+    assert(keys.game.screen == Screen.Pause)
+}
+
+test "enter on an option that is neither shown nor focused does nothing" {
+    var keys = keysInMatch()
+
+    keys.keyDown("Enter", "game-new")
+
+    assert(keys.game.screen == Screen.Play)
+    assert(keys.discardOptionClick == "game-new")
+}
+
+test "enter on the details button in the controls screen toggles the guide and marks its click" {
+    var keys = keysOnControls()
+
+    var press = keys.keyDown("Enter", "game-details")
+
+    assert(keys.guide.detailsState.expanded && keys.guide.discardClick)
+    assert(keys.game.screen == Screen.Controls && !press.render && !press.update)
+}
+
+test "space released on the details button keeps its click discarded" {
+    var keys = keysOnControls()
+    keys.keyDown(" ", "game-details")
+    keys.guide.discardClick = false
+
+    keys.keyUp(" ", "game-details")
+
+    assert(keys.guide.discardClick)
+    assert(keys.guide.detailsState.expanded)
+}
+
+test "enter on the details button outside the controls screen does not toggle the guide" {
+    var keys = keysOnMenu()
+
+    keys.keyDown("Enter", "game-details")
+
+    assert(!keys.guide.detailsState.expanded)
+    assert(keys.game.screen == Screen.Menu)
+}
+
+test "enter on the special button tries the special instead of confirming" {
+    var keys = keysInMatch()
+
+    var press = keys.keyDown("Enter", "game-special")
+
+    assert(keys.game.weapons.charges == 1 && press.render && press.update)
+    assert(keys.game.screen == Screen.Play)
+}
+
+test "arrows from the game area steer the ship in every direction" {
+    var keys = keysInMatch()
+
+    var left = keys.keyDown("ArrowLeft", "game-keyboard")
+    keys.keyDown("ArrowUp", "game-keyboard")
+    var steering = keys.game.ship.left && keys.game.ship.up
+    keys.keyUp("ArrowLeft", "game-keyboard")
+    keys.keyUp("ArrowUp", "game-keyboard")
+    keys.keyDown("ArrowRight", "game-action")
+    keys.keyDown("ArrowDown", "game-action")
+
+    assert(steering && left.render && left.update)
+    assert(keys.game.ship.right && keys.game.ship.down && !keys.game.ship.left)
+}
+
+test "arrows from a control outside the game do not steer the ship" {
+    var keys = keysInMatch()
+
+    keys.keyDown("ArrowLeft", "game-details")
+
+    assert(!keys.game.ship.left)
+}
+
+test "arrows from a focused retained option still steer the ship" {
+    var keys = keysInMatch()
+    keys.optionFocused(keys.choices[2])
+
+    keys.keyDown("ArrowDown", "game-continue")
+
+    assert(keys.game.ship.down)
+}
+
+test "arrows from an option that is not focused do not steer the ship" {
+    var keys = keysInMatch()
+    keys.focusedOption = "game-menu"
+
+    keys.keyDown("ArrowDown", "game-continue")
+
+    assert(!keys.game.ship.down)
+}
+
+test "arrows from a shown option move the menu selection" {
+    var keys = keysOnMenu()
+
+    keys.keyDown("ArrowDown", "game-new")
+
+    assert(keys.game.menuSelection == 1)
+}
+
+test "releasing space over an option does not mark its click for discard" {
+    var keys = keysOnMenu()
+
+    keys.keyUp(" ", "game-new")
+
+    assert(keys.discardOptionClick == "")
+}
+
+test "enter on the main action in the controls screen goes back to the menu without toggling the guide" {
+    var keys = keysOnControls()
+
+    keys.keyDown("Enter", "game-action")
+
+    assert(keys.game.screen == Screen.Menu)
+    assert(!keys.guide.detailsState.expanded)
+}
+
+test "an up arrow from the game area steers only up" {
+    var keys = keysInMatch()
+
+    keys.keyDown("ArrowUp", "game-keyboard")
+
+    assert(keys.game.ship.up)
+    assert(!keys.game.ship.left && !keys.game.ship.right && !keys.game.ship.down)
+}

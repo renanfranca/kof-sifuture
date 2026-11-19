@@ -1,0 +1,174 @@
+package sifuture
+import sifuture.ControlKeys
+import sifuture.ControlsGuide
+import sifuture.GuideDisclosure
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+ControlKeys keysOn(Screen screen) {
+    var g = Game()
+    g.screen = screen
+    return ControlKeys(g, ControlsGuide())
+}
+
+String shownChoices(ControlKeys keys) {
+    var ids = ""
+    for (var choice in keys.choices) {
+        if (keys.optionShown(choice)) { ids = ids + choice.id + " " }
+    }
+    return ids
+}
+
+String retainedChoices(ControlKeys keys) {
+    var ids = ""
+    for (var choice in keys.choices) {
+        if (keys.optionRetained(choice)) { ids = ids + choice.id + " " }
+    }
+    return ids
+}
+
+test "the credits screen offers skipping the credits on a credits layout with the pad locked" {
+    var keys = keysOn(Screen.Credits)
+
+    assert(keys.actionLabel() == "Pular créditos")
+    assert(keys.creditsLayout() && !keys.guideLayout())
+    assert(keys.verticalPadLocked() && keys.horizontalPadLocked())
+    assert(shownChoices(keys) == "")
+}
+
+test "the menu confirms with enter, shows its two options and unlocks only the vertical arrows" {
+    var keys = keysOn(Screen.Menu)
+
+    assert(keys.actionLabel() == "Confirmar (Enter)")
+    assert(!keys.creditsLayout() && !keys.guideLayout())
+    assert(!keys.verticalPadLocked() && keys.horizontalPadLocked())
+    assert(shownChoices(keys) == "game-new game-controls ")
+}
+
+test "the pause confirms with enter, shows its three options and unlocks only the vertical arrows" {
+    var keys = keysOn(Screen.Pause)
+
+    assert(keys.actionLabel() == "Confirmar (Enter)")
+    assert(!keys.verticalPadLocked() && keys.horizontalPadLocked())
+    assert(shownChoices(keys) == "game-continue game-restart game-menu ")
+}
+
+test "a match offers pausing with every arrow unlocked and no option shown" {
+    var keys = keysOn(Screen.Play)
+
+    assert(keys.actionLabel() == "Pausar")
+    assert(!keys.verticalPadLocked() && !keys.horizontalPadLocked())
+    assert(shownChoices(keys) == "")
+}
+
+test "the controls screen goes back on the guide layout with the pad locked" {
+    var keys = keysOn(Screen.Controls)
+
+    assert(keys.actionLabel() == "Voltar")
+    assert(keys.guideLayout() && !keys.creditsLayout())
+    assert(keys.verticalPadLocked() && keys.horizontalPadLocked())
+}
+
+test "the result screen finishes the count first and then goes back to the menu" {
+    var keys = keysOn(Screen.Result)
+    keys.game.score = 300
+
+    var counting = keys.actionLabel()
+    keys.game.displayedScore = 300
+    var counted = keys.actionLabel()
+
+    assert(counting == "Concluir contagem")
+    assert(counted == "Voltar ao menu")
+    assert(keys.verticalPadLocked() && keys.horizontalPadLocked())
+}
+
+test "a focused option outside its screen is retained while the others are not" {
+    var keys = keysOn(Screen.Play)
+    keys.focusedOption = "game-restart"
+
+    var retained = retainedChoices(keys)
+
+    assert(retained == "game-restart ")
+}
+
+test "a focused option on its own screen is shown and not retained" {
+    var keys = keysOn(Screen.Pause)
+    keys.focusedOption = "game-restart"
+
+    var restart = keys.choices[3]
+
+    assert(restart.id == "game-restart")
+    assert(keys.optionShown(restart) && !keys.optionRetained(restart))
+}
+
+test "the game surface looks focused with the keyboard area or a menu option focused" {
+    var keys = keysOn(Screen.Menu)
+
+    var idle = keys.surfaceFocused()
+    keys.focusedOption = "game-action"
+    var onAction = keys.surfaceFocused()
+    keys.focusedOption = "game-menu"
+    var onOption = keys.surfaceFocused()
+    keys.focusedOption = ""
+    keys.focusKeyboard()
+
+    assert(!idle && !onAction && onOption)
+    assert(keys.surfaceFocused())
+}
+
+test "the special is enabled only when a normal ship in a match has a charge" {
+    var keys = keysOn(Screen.Play)
+    keys.game.ship.phase = ShipPhase.Normal
+
+    var empty = keys.specialAvailable()
+    var lockedEmpty = keys.specialDisabled()
+    keys.game.weapons.charges = 1
+
+    assert(!empty && lockedEmpty)
+    assert(keys.specialAvailable() && !keys.specialDisabled())
+}
+
+test "an unavailable special stays enabled while focused with a confirming key held" {
+    var keys = keysOn(Screen.Play)
+    keys.focusSpecial()
+
+    var focusedOnly = keys.specialDisabled()
+    var withEnter = disabledWhileHolding(keys, true, false)
+    var withSpace = disabledWhileHolding(keys, false, true)
+    keys.spaceHeld = false
+    keys.oneHeld = true
+
+    assert(focusedOnly && !withEnter && !withSpace)
+    assert(!keys.specialDisabled() && keys.specialRetained())
+}
+
+test "a held key without focus on the special neither retains nor enables it" {
+    var keys = keysOn(Screen.Play)
+    keys.oneHeld = true
+
+    assert(!keys.specialRetained() && keys.specialDisabled())
+}
+
+Bool disabledWhileHolding(ControlKeys keys, Bool enter, Bool space) {
+    keys.enterHeld = enter
+    keys.spaceHeld = space
+    return keys.specialDisabled()
+}

@@ -1,0 +1,36 @@
+package sifuture
+import sifuture.Scene
+import sifuture.Sheet
+
+String assetOf(Sprite sprite) {
+    var frames = sheetPaths()[sprite.art]
+    if (sprite.frame < 0 || sprite.frame >= frames.size) { return "?" }
+    return frames[sprite.frame]
+}
+
+List<Sprite> spritesOf(List<Sprite> sprites, String asset) {
+    var found = listOf<Sprite>()
+    for (var sprite in sprites) {
+        if (assetOf(sprite) == asset) { found.add(sprite) }
+    }
+    return found
+}
+
+String assetsOf(List<Sprite> sprites) {
+    var names = ""
+    for (var sprite in sprites) { names = names + assetOf(sprite) + "@" + sprite.x + "," + sprite.y + " " }
+    return names
+}
+
+String captionsOf(Scene scene) {
+    var lines = ""
+    for (var caption in scene.captions) { lines = lines + caption.text + "@" + caption.x + "," + caption.baseline + " " }
+    return lines
+}
+
+String assetAt(List<Sprite> sprites, Int x, Int y) {
+    for (var sprite in sprites) {
+        if (sprite.x == x && sprite.y == y) { return assetOf(sprite) }
+    }
+    return ""
+}

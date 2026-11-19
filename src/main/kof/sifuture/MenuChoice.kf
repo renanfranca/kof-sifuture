@@ -1,0 +1,40 @@
+package sifuture
+
+import sifuture.game.*
+
+class MenuChoice {
+    Screen screen
+    Int index
+    String id
+    String name
+
+    public constructor(Screen screen, Int index, String id, String name) {
+        this.screen = screen
+        this.index = index
+        this.id = id
+        this.name = name
+    }
+}
+
+class KeyOutcome {
+    Bool render = false
+    Bool update = false
+    Bool updateSpecial = false
+
+    public constructor() { }
+
+    refresh(): KeyOutcome {
+        render = true
+        update = true
+        return this
+    }
+}
+
+List<MenuChoice> menuChoices() {
+    return listOf(
+        MenuChoice(Screen.Menu, 0, "game-new", "Novo Jogo"),
+        MenuChoice(Screen.Menu, 1, "game-controls", "Controles"),
+        MenuChoice(Screen.Pause, 0, "game-continue", "Continuar"),
+        MenuChoice(Screen.Pause, 1, "game-restart", "Reiniciar"),
+        MenuChoice(Screen.Pause, 2, "game-menu", "Menu principal"))
+}

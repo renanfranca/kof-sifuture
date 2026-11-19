@@ -1,0 +1,53 @@
+package sifuture
+
+import sifuture.ControlKeys
+import sifuture.ControlStyles
+import sifuture.GameControls
+import sifuture.game.*
+import kof.ui.*
+
+class DirectionPad {
+    Button north
+    Button west
+    Button east
+    Button south
+    Column column
+
+    public constructor(GameControls controls) {
+        north = padArrow(controls, Direction.Up, "↑")
+        west = padArrow(controls, Direction.Left, "←")
+        east = padArrow(controls, Direction.Right, "→")
+        south = padArrow(controls, Direction.Down, "↓")
+        var styles = controls.styles
+        var top = Row(listOf(north))
+        var middle = Row(listOf(west, View(styles.padGap), east))
+        var bottom = Row(listOf(south))
+        top.setStyle(styles.padRow)
+        middle.setStyle(styles.padRow)
+        bottom.setStyle(styles.padRow)
+        column = Column(listOf(top, middle, bottom))
+        column.setStyle(styles.pad)
+    }
+
+    lock(ControlKeys keys) {
+        north.setDisabled(keys.verticalPadLocked())
+        west.setDisabled(keys.horizontalPadLocked())
+        east.setDisabled(keys.horizontalPadLocked())
+        south.setDisabled(keys.verticalPadLocked())
+    }
+}
+
+Button padArrow(GameControls controls, Direction direction, String name) {
+    var button = Button(name, () -> {})
+    var idle = controls.styles.arrow
+    var focused = controls.styles.focusedArrow
+    var keys = controls.keys
+    button.setStyle(idle)
+    button.on("focus", (e: Event) -> { button.setStyle(focused) })
+    button.on("blur", (e: Event) -> { button.setStyle(idle) })
+    button.on("pointerdown", (e: Event) -> { keys.padPressed(direction); controls.refresh() })
+    button.on("pointerup", (e: Event) -> { keys.padReleased(direction); controls.refresh() })
+    button.on("pointercancel", (e: Event) -> { keys.padReleased(direction); controls.refresh() })
+    button.on("pointerleave", (e: Event) -> { keys.padReleased(direction); controls.refresh() })
+    return button
+}

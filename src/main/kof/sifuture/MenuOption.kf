@@ -1,0 +1,34 @@
+package sifuture
+
+import sifuture.ControlKeys
+import sifuture.ControlStyles
+import sifuture.GameControls
+import sifuture.MenuChoice
+import kof.ui.*
+
+class MenuOption {
+    MenuChoice choice
+    Button button
+
+    public constructor(GameControls controls, MenuChoice choice, Style bounds) {
+        this.choice = choice
+        var keys = controls.keys
+        button = Button(choice.name, () -> { if (keys.optionClicked(choice)) { controls.refresh() } })
+        button.setId(choice.id)
+        var slot = View(bounds)
+        button.on("pointerdown", (e: Event) -> { keys.optionPointerDown() })
+        button.on("focus", (e: Event) -> {
+            if (keys.optionFocused(choice)) { controls.drawing.render(controls.game) }
+            controls.update()
+        })
+        button.on("blur", (e: Event) -> { keys.optionBlurred(); controls.update() })
+        slot.bind(button)
+        controls.surface.bind(slot)
+    }
+
+    show(ControlKeys keys, ControlStyles styles) {
+        if (keys.optionShown(choice)) { button.text = choice.name; button.setStyle(styles.option) }
+        else if (keys.optionRetained(choice)) { button.text = "Teclado do jogo"; button.setStyle(styles.retainedOption) }
+        else { button.setStyle(styles.hidden) }
+    }
+}

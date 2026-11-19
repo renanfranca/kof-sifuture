@@ -1,0 +1,146 @@
+package sifuture
+import sifuture.Scene
+import sifuture.Scenes
+import sifuture.Sheet
+import sifuture.SceneLookup
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+Game givenScreen(Screen screen) {
+    var g = Game()
+    g.screen = screen
+    return g
+}
+
+test "a new match hud shows the stage track, stage marker, zero score, three lives and no special" {
+    var g = givenScreen(Screen.Play)
+
+    var scene = sceneOf(g)
+
+    assert(assetsOf(scene.hud) == "assets/StageMiddle.png@8,0 assets/StageMiddle.png@26,0 assets/StageMiddle.png@44,0 assets/StageMiddle.png@62,0 assets/StageMiddle.png@80,0 assets/StageMiddle.png@98,0 assets/StageMiddle.png@116,0 assets/StageMiddle.png@134,0 assets/StageMiddle.png@152,0 assets/StageMiddle.png@170,0 assets/3lives.png@5,9 assets/StageBeginer.png@0,0 assets/0.png@160,0 assets/score.png@136,7 assets/2lives.png@146,21 assets/x.png@140,21 assets/3.png@126,21 ")
+    assert(scene.captions.size == 0 && scene.top.size == 0)
+}
+
+test "the stage marker ship shrinks with the lives left" {
+    var g = givenScreen(Screen.Play)
+
+    g.ship.lives = 2
+    var two = assetAt(sceneOf(g).hud, 5, 9)
+    g.ship.lives = 1
+    var one = assetAt(sceneOf(g).hud, 5, 9)
+    g.ship.lives = 0
+    var none = assetAt(sceneOf(g).hud, 5, 9)
+
+    assert(two == "assets/2lives.png")
+    assert(one == "assets/1lives.png")
+    assert(none == "assets/3lives.png")
+}
+
+test "the stage marker advances along the track with the stage" {
+    var g = givenScreen(Screen.Play)
+    g.stageSteps = 100
+
+    var hud = sceneOf(g).hud
+
+    assert(assetAt(hud, 15, 9) == "assets/3lives.png")
+}
+
+test "a four digit score is right aligned with its label just before it" {
+    var g = givenScreen(Screen.Play)
+    g.score = 1050
+
+    var hud = sceneOf(g).hud
+
+    assert(assetsOf(spritesOf(hud, "assets/1.png")) == "assets/1.png@112,0 ")
+    assert(assetAt(hud, 128, 0) == "assets/0.png")
+    assert(assetAt(hud, 144, 0) == "assets/5.png")
+    assert(assetAt(hud, 160, 0) == "assets/0.png")
+    assert(assetAt(hud, 88, 7) == "assets/score.png")
+}
+
+test "a two digit lives count ends just left of the times sign" {
+    var g = givenScreen(Screen.Play)
+    g.ship.lives = 12
+
+    var hud = sceneOf(g).hud
+
+    assert(assetAt(hud, 110, 21) == "assets/1.png")
+    assert(assetAt(hud, 126, 21) == "assets/2.png")
+}
+
+test "a charged special shows its icon in the hud" {
+    var g = givenScreen(Screen.Play)
+    g.weapons.charges = 1
+
+    var hud = sceneOf(g).hud
+
+    assert(assetAt(hud, 50, 21) == "assets/especialActivated1.png")
+}
+
+test "a running result count centers the final score without a verdict yet" {
+    var g = givenScreen(Screen.Result)
+    g.score = 500
+    g.displayedScore = 120
+
+    var scene = sceneOf(g)
+
+    assert(scene.world.size > 0)
+    assert(assetAt(scene.hud, 37, 86) == "assets/score1.png")
+    assert(assetAt(scene.hud, 90, 86) == "assets/1.png")
+    assert(assetAt(scene.hud, 106, 86) == "assets/2.png")
+    assert(assetAt(scene.hud, 122, 86) == "assets/0.png")
+    assert(spritesOf(scene.hud, "assets/result0.png").size == 0)
+    assert(scene.captions.size == 0 && scene.top.size == 0)
+}
+
+test "a finished result count shows the verdict image for the score band at its own column" {
+    var g = givenScreen(Screen.Result)
+
+    var good = countedResultHud(g, 1600)
+    var low = countedResultHud(g, 0)
+    var great = countedResultHud(g, 2500)
+    var best = countedResultHud(g, 4000)
+
+    assert(assetAt(good, 29, 86) == "assets/score1.png")
+    assert(assetAt(good, 22, 113) == "assets/result1.png")
+    assert(assetAt(low, 31, 113) == "assets/result0.png")
+    assert(assetAt(great, 54, 113) == "assets/result2.png")
+    assert(assetAt(best, 26, 113) == "assets/result3.png")
+}
+
+test "the pause scene keeps the match and lists its options with the selector ship" {
+    var g = givenScreen(Screen.Pause)
+    g.pauseSelection = 2
+
+    var scene = sceneOf(g)
+
+    assert(scene.world.size > 0)
+    assert(assetAt(scene.hud, 160, 0) == "assets/0.png")
+    assert(spritesOf(scene.hud, "assets/score1.png").size == 0)
+    assert(captionsOf(scene) == "Continuar@48,94 Reiniciar@48,113 Menu principal@48,132 ")
+    assert(assetsOf(scene.top) == "assets/2lives.png@18,118 ")
+}
+
+List<Sprite> countedResultHud(Game g, Int score) {
+    g.score = score
+    g.displayedScore = score
+    return sceneOf(g).hud
+}

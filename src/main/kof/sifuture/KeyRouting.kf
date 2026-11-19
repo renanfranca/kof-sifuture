@@ -1,0 +1,57 @@
+package sifuture
+
+import sifuture.ControlKeys
+import sifuture.MenuChoice
+import sifuture.game.*
+
+KeyOutcome routeOne(ControlKeys keys, String target, Bool pressed) {
+    var outcome = KeyOutcome()
+    var fresh = pressed && !keys.oneHeld
+    keys.oneHeld = pressed
+    if (fresh && (keys.keyboardReceiver(target) || target == "game-special")) {
+        keys.game.trySpecial()
+        outcome.refresh()
+    }
+    outcome.updateSpecial = !pressed
+    return outcome
+}
+
+KeyOutcome routeConfirming(ControlKeys keys, Bool space, String target, Bool pressed) {
+    var fresh = pressed && !confirmHeld(keys, space)
+    if (space) { keys.spaceHeld = pressed } else { keys.enterHeld = pressed }
+    markDiscards(keys, pressed || space, target)
+    if (pressed && keys.optionTarget(target)) { keys.discardOptionClick = target }
+    var outcome = KeyOutcome()
+    if (fresh) { confirmFresh(keys, space, target, outcome) }
+    if (!pressed) { releaseConfirm(keys, space, outcome) }
+    return outcome
+}
+
+markDiscards(ControlKeys keys, Bool marks, String target) {
+    if (target == "game-action" && marks) { keys.discardEnterClick = true }
+    if (target == "game-details" && marks) { keys.guide.discardClick = true }
+}
+
+Bool confirmHeld(ControlKeys keys, Bool space) {
+    if (space) { return keys.spaceHeld }
+    return keys.enterHeld
+}
+
+confirmFresh(ControlKeys keys, Bool space, String target, KeyOutcome outcome) {
+    var game = keys.game
+    if (target == "game-details" && game.screen == Screen.Controls) { keys.guide.toggle(); return }
+    if (target == "game-special") { game.trySpecial(); outcome.refresh(); return }
+    if (target == "game-action" || (!space && keys.keyboardReceiver(target)) || keys.optionAvailable(target)) {
+        game.confirm()
+        outcome.refresh()
+    }
+}
+
+releaseConfirm(ControlKeys keys, Bool space, KeyOutcome outcome) {
+    if (!space) {
+        keys.discardEnterClick = false
+        keys.discardOptionClick = ""
+        keys.guide.discardClick = false
+    }
+    outcome.update = true
+}

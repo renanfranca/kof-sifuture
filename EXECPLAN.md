@@ -1722,8 +1722,20 @@ a documentação que cita `kof_project.py test`.
   7/7 com os mesmos pixels do R0. Plano em
   [`.agent/execplans/sensor-debt-batch-4.md`](.agent/execplans/sensor-debt-batch-4.md);
   aceite na seção "R5 e R4, lote 4" de [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md).
-- [ ] R4. Produção, um arquivo por vez (R5 de cada arquivo antes): falta a UI (`GameControls`, `GameView`).
-- [ ] R5. Sobreviventes por TDD.
+- [x] R5 e R4, lote da UI (16/11, branch `refactor/sensor-debt-ui`): `GameControls`
+  e `GameView` viraram casca (*Humble Object*). A cena de cada tela saiu para
+  `Scenes`, `WorldScene` e `HudScene` (com `Scene` e `Sheet`); foco, teclas
+  presas, descarte de cliques, roteamento de teclas e arranjo de cada tela
+  saíram para `ControlKeys`, `KeyRouting` e `MenuChoice`; estilos, direcional,
+  Especial e opções do menu ficaram em cascas próprias. M0 com os mesmos 193
+  sobreviventes do A1; 86 testes novos em 6 arquivos por assunto; RED com cada
+  um dos 166 mutantes novos aplicado. KofMut nos 14 arquivos: 166/166 mortos, 0
+  candidatos nas cascas; lint 0; CPD 0; 323 → 409 casos (JVM e JS, 0.7.0 e
+  0.6.4); jornadas 7/7 com os mesmos pixels do R0, no fim do M1 e do M2. Plano em
+  [`.agent/execplans/sensor-debt-ui.md`](.agent/execplans/sensor-debt-ui.md);
+  aceite na seção "R5 e R4, lote da UI" de [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md).
+- [x] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).
+- [x] R5. Sobreviventes por TDD.
 - [ ] R6. Fixtures `tests/*.kf`.
 - [ ] R7. Fechamento.
 

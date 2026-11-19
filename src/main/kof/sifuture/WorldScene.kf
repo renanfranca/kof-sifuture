@@ -1,0 +1,104 @@
+package sifuture
+
+import sifuture.Scene
+import sifuture.Sheet
+import sifuture.game.*
+
+worldScene(List<Sprite> world, Game game) {
+    backgroundTiles(world, game.background.offset)
+    itemSprites(world, game.items)
+    for (var shot in game.subchief.shots) {
+        if (shot.active) { world.add(Sprite(Art.SUBCHIEF_SHOT, 0, shot.x, shot.y)) }
+    }
+    bossSprites(world, game.boss)
+    subchiefSprites(world, game.subchief)
+    meteorSprites(world, game.meteors)
+    weaponSprites(world, game.weapons)
+    shipSprites(world, game.ship)
+}
+
+backgroundTiles(List<Sprite> world, Int offset) {
+    for (var row = 0; row < 4; row++) {
+        for (var column = 0; column < 4; column++) {
+            world.add(Sprite(Art.BACKGROUND, 0, column * 60 - offset, Rules.HEADER_HEIGHT + row * 60))
+        }
+    }
+}
+
+itemSprites(List<Sprite> world, List<Item> items) {
+    for (var item in items) {
+        if (item.collected) { world.add(Sprite(Art.ITEM_EFFECT, item.effectSteps / 2, item.x, item.y)) }
+        else if (item.kind == ItemKind.Evolution) { world.add(Sprite(Art.EVOLUTION_ITEM, item.frame, item.x, item.y)) }
+        else { world.add(Sprite(Art.LIFE_ITEM, item.frame, item.x, item.y)) }
+    }
+}
+
+bossSprites(List<Sprite> world, Boss boss) {
+    for (var shot in boss.weapons.shots) {
+        if (shot.active) { world.add(Sprite(Art.BOSS_SHOT, shot.spriteFrame(), shot.x, shot.y)) }
+    }
+    var special = boss.weapons.special
+    if (special.active) { world.add(Sprite(Art.BOSS_SPECIAL, special.frame(), special.x, special.y)) }
+    if (boss.vulnerable()) { world.add(Sprite(Art.BOSS, boss.spriteFrame(), boss.x, boss.y)) }
+    if (boss.phase == BossPhase.Explosion) { world.add(Sprite(Art.EXPLOSION, boss.explosionFrame(), boss.explosionX, boss.explosionY)) }
+}
+
+subchiefSprites(List<Sprite> world, Subchief chief) {
+    if (chief.phase == SubchiefPhase.Normal) { world.add(Sprite(Art.SUBCHIEF, 0, chief.x, chief.y)) }
+    if (chief.phase == SubchiefPhase.Explosion) { world.add(Sprite(Art.EXPLOSION, chief.explosionSteps / 3, chief.explosionX, chief.y)) }
+}
+
+meteorSprites(List<Sprite> world, List<Meteor> meteors) {
+    for (var m in meteors) {
+        if (m.active) { world.add(meteorSprite(m)) }
+    }
+}
+
+Sprite meteorSprite(Meteor m) {
+    if (m.collided) { return Sprite(Art.METEOR_HIT, m.impactFrame(), m.x, m.y) }
+    return Sprite(Art.METEOR, m.frame, m.x, m.y)
+}
+
+weaponSprites(List<Sprite> world, Weapons weapons) {
+    for (var shot in weapons.lasers.shots) {
+        if (shot.active) { world.add(laserSprite(shot)) }
+    }
+    var blaster = weapons.blaster
+    if (blaster.active) { world.add(blasterSprite(blaster)) }
+    for (var beam in weapons.beams) {
+        if (beam.active) { world.add(Sprite(Art.SPECIAL_BEAM, beam.color * 3 + beam.spriteFrame(), beam.x, beam.y)) }
+    }
+}
+
+Sprite laserSprite(Shot shot) {
+    if (shot.impact) { return Sprite(Art.LASER_IMPACT, 0, shot.x + 5, shot.y) }
+    return Sprite(Art.LASER, shot.spriteFrame(), shot.x, shot.y)
+}
+
+Sprite blasterSprite(Blaster blaster) {
+    if (blaster.lives > 0) { return Sprite(Art.BLASTER, blasterFlightFrame(blaster.spriteFrame()), blaster.x, blaster.y) }
+    return Sprite(Art.BLASTER, 4 + blaster.impactSteps, blaster.x, blaster.y - blasterImpactLift(blaster.impactSteps))
+}
+
+Int blasterFlightFrame(Int frame) {
+    if (frame == 4) { return 8 }
+    return frame
+}
+
+Int blasterImpactLift(Int impactSteps) {
+    if (impactSteps > 1) { return 15 }
+    if (impactSteps == 1) { return 14 }
+    return 0
+}
+
+shipSprites(List<Sprite> world, Ship ship) {
+    if (ship.phase == ShipPhase.Explosion && ship.explosionSteps < Rules.SHIP_EXPLOSION_STEPS) {
+        world.add(Sprite(Art.EXPLOSION, ship.explosionSteps / Rules.SHIP_EXPLOSION_FRAME_STEPS, ship.x, ship.y))
+    }
+    if (ship.phase == ShipPhase.Normal && ship.rightFrame) { world.add(Sprite(Art.SHIP_RIGHT, 0, ship.x, ship.y)) }
+    else if (shipVisible(ship)) { world.add(Sprite(Art.SHIP, 0, ship.x, ship.y)) }
+}
+
+Bool shipVisible(Ship ship) {
+    return ship.phase == ShipPhase.Normal || (ship.phase == ShipPhase.Restart && (ship.restartFrame / Rules.SHIP_RESTART_BLINK_STEPS) % 2 == 0)
+}

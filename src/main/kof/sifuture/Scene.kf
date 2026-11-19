@@ -1,0 +1,41 @@
+package sifuture
+
+class Sprite {
+    Int art
+    Int frame
+    Int x
+    Int y
+
+    public constructor(Int art, Int frame, Int x, Int y) {
+        this.art = art
+        this.frame = frame
+        this.x = x
+        this.y = y
+    }
+}
+
+class Caption {
+    String text
+    Int x
+    Int baseline
+
+    public constructor(String text, Int x, Int baseline) {
+        this.text = text
+        this.x = x
+        this.baseline = baseline
+    }
+}
+
+class Scene {
+    Bool credits = false
+    List<Sprite> world = listOf<Sprite>()
+    List<Sprite> hud = listOf<Sprite>()
+    List<Caption> captions = listOf<Caption>()
+    List<Sprite> top = listOf<Sprite>()
+
+    public constructor() { }
+
+    label(String text, Int y) {
+        captions.add(Caption(text, 48, y + 14))
+    }
+}

@@ -1,0 +1,84 @@
+package sifuture
+import sifuture.Scene
+import sifuture.Scenes
+import sifuture.Sheet
+import sifuture.SceneLookup
+import sifuture.game.Background
+import sifuture.game.Blaster
+import sifuture.game.Boss
+import sifuture.game.BossShot
+import sifuture.game.BossSpecial
+import sifuture.game.BossWeapons
+import sifuture.game.Credits
+import sifuture.game.Game
+import sifuture.game.Item
+import sifuture.game.Lasers
+import sifuture.game.MenuEntrance
+import sifuture.game.Meteor
+import sifuture.game.Rules
+import sifuture.game.Ship
+import sifuture.game.Shot
+import sifuture.game.SpecialBeam
+import sifuture.game.State
+import sifuture.game.Subchief
+import sifuture.game.SubchiefShot
+import sifuture.game.Weapons
+
+test "the credits scene writes both blocks line by line on the credits canvas" {
+    var g = Game()
+    g.credits.x = 7
+    g.credits.firstY = 40
+    g.credits.secondY = 136
+
+    var scene = sceneOf(g)
+
+    assert(scene.credits)
+    assert(captionsOf(scene) == "Copyright (c) 2006-2007@7,56 Renan Meneses@7,80 de Andrade Franca@7,104 contact:@7,152 renan.andradefranca@gmail.com@7,176 Inc. All rights reserved.@7,200 ")
+    assert(scene.world.size == 0 && scene.hud.size == 0 && scene.top.size == 0)
+}
+
+test "the credits scene is empty once the credits have left" {
+    var g = Game()
+    g.credits.exitComplete = true
+
+    var scene = sceneOf(g)
+
+    assert(scene.credits)
+    assert(scene.captions.size == 0)
+}
+
+test "the menu scene shows the title, both options and the entering selector ship" {
+    var g = Game()
+    g.confirm()
+    g.menuEntrance.x = 33
+
+    var scene = sceneOf(g)
+
+    assert(!scene.credits)
+    assert(scene.world.size == 0)
+    assert(assetsOf(scene.hud) == "assets/sifuture.png@11,30 ")
+    assert(captionsOf(scene) == "Novo Jogo@48,134 Controles@48,153 ")
+    assert(assetsOf(scene.top) == "assets/3lives.png@33,120 ")
+}
+
+test "the ready menu selector is the smaller ship beside the selected option" {
+    var g = Game()
+    g.confirm()
+    g.menuEntrance.finish()
+    g.menuSelection = 1
+
+    var scene = sceneOf(g)
+
+    assert(assetsOf(scene.top) == "assets/2lives.png@18,139 ")
+}
+
+test "the controls screen draws nothing on the game canvas" {
+    var g = Game()
+    g.confirm()
+    g.openControls()
+
+    var scene = sceneOf(g)
+
+    assert(!scene.credits)
+    assert(scene.world.size == 0 && scene.hud.size == 0 && scene.captions.size == 0 && scene.top.size == 0)
+}
