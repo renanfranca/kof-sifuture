@@ -5,6 +5,13 @@ A origem era `~/.agents/skills/_temporary/codex-skills-ai-context/`, que não é
 Os arquivos foram copiados sem alteração em 2026-11-16, por isso os links internos ainda
 apontam para os caminhos absolutos da máquina original.
 
+Em 2026-11-19, no R6 da dívida dos sensores, só os links quebrados mudaram, para o
+`docs:sensor` passar: o `EXECPLAN.md` do KofMut, removido em `23c8964`, aponta para a
+versão arquivada no GitHub (`6764595`); o registro do piloto Katacombs, que não existe
+mais, virou texto com o caminho original; e os links relativos ao repositório
+(`scripts/`, `test/`, `.agent/validation/`) ganharam o prefixo relativo a esta pasta.
+Os caminhos absolutos que ainda existem nesta máquina ficaram como estavam.
+
 ## Por onde começar
 
 1. `2026-10-15_kofmut-sensors-start.md`: guia de entrada do KofMut e dos sensores.

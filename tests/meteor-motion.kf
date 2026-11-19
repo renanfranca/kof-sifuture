@@ -12,22 +12,24 @@ main() {
     var canvas = Canvas(176, 220)
     var impacts = listOf(Image("assets/meteor0C0.png"), Image("assets/meteor0C1.png"), Image("assets/meteor0C2.png"))
     var label = Label("impact:100:0")
-    var next = Button("Next step", () -> {
-        game.step()
-        if (meteor.collided) {
-            label.text = "impact:" + meteor.x + ":" + meteor.collisionSteps
-        } else {
-            label.text = "respawn:" + meteor.x
-        }
-    })
+    var next = Button("Next step", () -> { game.step(); label.text = motionText(meteor) })
     var window = Window("Meteor motion check")
     window.size(210, 340)
     window.bind(Column(listOf(canvas, next, label)))
     window.show()
-    time.interval(30, () -> {
-        canvas.clearRect(0, 0, 176, 220)
-        if (meteor.collided) {
-            canvas.drawImage(impacts[meteor.impactFrame()], meteor.x, meteor.y)
-        }
-    })
+    time.interval(30, () -> { drawImpact(canvas, impacts, meteor) })
+}
+
+motionText(Meteor meteor): String {
+    if (meteor.collided) {
+        return "impact:" + meteor.x + ":" + meteor.collisionSteps
+    }
+    return "respawn:" + meteor.x
+}
+
+drawImpact(Canvas canvas, List<Image> impacts, Meteor meteor) {
+    canvas.clearRect(0, 0, 176, 220)
+    if (meteor.collided) {
+        canvas.drawImage(impacts[meteor.impactFrame()], meteor.x, meteor.y)
+    }
 }

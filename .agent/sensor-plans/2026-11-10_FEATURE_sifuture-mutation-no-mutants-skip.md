@@ -13,7 +13,7 @@
 
 ## Context
 
-O passo de mutação do `npm run check` decide só pelo exit code ([`scripts/mutation-step.mjs:7-12`](scripts/mutation-step.mjs)):
+O passo de mutação do `npm run check` decide só pelo exit code ([`scripts/mutation-step.mjs:7-12`](../../scripts/mutation-step.mjs)):
 
 ```js
 3: { state: 'FAIL', detail: 'KofMut exit 3: incomplete, no_scope or no_mutants; quality not approved' },

@@ -1736,7 +1736,13 @@ a documentação que cita `kof_project.py test`.
   aceite na seção "R5 e R4, lote da UI" de [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md).
 - [x] R4. Produção, um arquivo por vez (R5 de cada arquivo antes).
 - [x] R5. Sobreviventes por TDD.
-- [ ] R6. Fixtures `tests/*.kf`.
+- [x] R6. Fixtures `tests/*.kf` (19/11, branch `refactor/sensor-debt-fixtures`):
+  as cinco fixtures divididas por intenção (`prepare…` e botões em funções de
+  montagem); `sensors:debt` com lint 14 → 0 e dup 0; contrato das jornadas
+  igual; pixels de fixture 114/114 iguais, com 4 capturas instáveis na própria
+  `main` declaradas como lacuna. Plano em
+  [`.agent/execplans/sensor-debt-fixtures.md`](.agent/execplans/sensor-debt-fixtures.md),
+  aceite em [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md) (seção "R6, fixtures").
 - [ ] R7. Fechamento.
 
 ## `check`: `no_mutants` do KofMut vira SKIP — 10/11/2026
