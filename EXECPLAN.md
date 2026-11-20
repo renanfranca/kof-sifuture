@@ -1757,6 +1757,10 @@ Plano mestre concluído em 19/11/2026: do R0 (415 achados de lint, 23 grupos CPD
 CLI). Pendência conhecida: capturas de página inteira não determinísticas no
 Chrome 158 (issue #35).
 
+Na mesma branch, a pedido do usuário: `kof-mut.json` passa a usar
+`maxParallelMutants: 4` (o máximo do KofMut), documentado em
+`docs/desenvolvimento.md` e `docs/desenvolvimento.pt_BR.md`.
+
 ## `check`: `no_mutants` do KofMut vira SKIP — 10/11/2026
 
 - [x] No exit 3, o `check` lê o relatório do `reportPath=`: `no_mutants` sem limitação vira SKIP (não aprova), `incomplete`, `no_scope`, relatório contraditório ou ilegível continuam FAIL; prova real com o KofMut instalado e aceite em [`.agent/validation/mutation-no-mutants-skip.md`](.agent/validation/mutation-no-mutants-skip.md).

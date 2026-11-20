@@ -160,7 +160,9 @@ node scripts/kof-tests.mjs --target js
 through the wrapper and the tests through `scripts/kof-tests.mjs`, with the
 `kof` executable resolved from `PATH`. Each complete check or
 test command has a timeout of 30 seconds; `budgetMs: 0` removes only the
-overall evaluation budget. The current explicit scope in
+overall evaluation budget. `maxParallelMutants: 4`, the KofMut maximum,
+evaluates up to four mutants at a time; avoid other heavy work during a run,
+because an overloaded machine can push a command past the timeout. The current explicit scope in
 [`kof-mut-scope.json`](../kof-mut-scope.json) selects the whole `Background.kf` and `Meteor.kf` files. Edit this JSON array to select other
 production `.kf` paths; entries are explicit paths, not globs. KofMut copies
 the configured inputs and evaluates this scope in isolated project copies.

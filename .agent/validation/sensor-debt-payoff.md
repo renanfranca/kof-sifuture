@@ -1907,6 +1907,20 @@ temporária para provar que o build falha.
 | A5 | M2 no 0.6.4 | `0 failed of 409 tests` em JVM e JS, o mesmo N do 0.7.0; `scripts/kof-sensors/test` exit 0 | `m2-jvm.log`, `m2-js.log`, `m2-sensors.log` |
 | A6 | `git diff --name-only main`, `git status --porcelain --untracked-files=all` | só o plano, o `EXECPLAN.md` e este registro; nada de `.agent/tmp/` | rodado no repositório |
 
+### Paralelismo 4 no `kof-mut.json` (pedido depois do R7)
+
+Depois do R7, o usuário pediu, na mesma branch, para o `kof-mut.json` do
+repositório usar `maxParallelMutants: 4`, como a rodada do M1. Mudaram o
+`kof-mut.json` (1 → 4) e o parágrafo da configuração em
+`docs/desenvolvimento.md` e `docs/desenvolvimento.pt_BR.md`. O `check` e o
+`check:task` passam a mutar até quatro candidatos por vez; a CI não roda mutação.
+O manifesto histórico `.agent/validation/kofmut-recovery.sha256` registra o hash
+antigo do arquivo e não foi alterado, porque descreve aquele momento.
+
+| Comando | Resultado |
+| --- | --- |
+| `kof-mut run --project "$PWD" --files "$PWD/kof-mut-scope.json" --config kof-mut.json …` | exit 0, `maxParallelMutants=4`, `candidates=27 killed=27 survived=0 timeout=0`, `discardedCandidates=0` |
+
 ### Dívida inteira, do R0 ao R7
 
 | Medida | R0 (`f4af07a`, 05/11) | R7 (`06eab3d` + registros, 19/11) |

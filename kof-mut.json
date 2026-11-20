@@ -12,5 +12,5 @@
   ],
   "commandTimeoutMs": 30000,
   "budgetMs": 0,
-  "maxParallelMutants": 1
+  "maxParallelMutants": 4
 }

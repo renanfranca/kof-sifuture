@@ -167,6 +167,10 @@ da UI; se for outra, conferir com a do 0.7.0 no M3 e registrar), e o
 - [x] M3. Validação final e registros: `unittest`, `test:sensors`,
   `sensors:debt`, `check`, `check:task` e `git diff --check` com exit 0; seção
   "R7, fechamento" no aceite e R7 marcado no `EXECPLAN.md`.
+- [x] Pedido do usuário depois do R7: `kof-mut.json` com `maxParallelMutants: 4`
+  e o parágrafo da configuração nos dois `docs/desenvolvimento*.md`; isso revoga,
+  só para esses arquivos, o limite de não mudar `kof-mut.json` e `docs/`. Prova
+  real com o próprio `kof-mut.json` no `kof-mut-scope.json`: 27/27 mortos.
 
 ## Validation
 
