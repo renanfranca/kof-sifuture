@@ -66,7 +66,7 @@ The tests execute generated JS inside Kof's embedded engine; they do not automat
 
 ### Existing suite discovery and failure propagation
 
-The project wrapper [discovers suites recursively](/home/renanfranca/projects/kof-sifuture/scripts/kof_project.py:129):
+The project wrapper [discovers suites recursively](../../scripts/kof_project.py:129):
 
 ```python
     else:
@@ -102,7 +102,7 @@ CI MUST verify the downloaded archive against the checksum entry for its exact f
 
 The official distribution MUST supply the compiler, runtimes, launcher, and embedded JVM. The workflow MUST ensure the existing wrapper uses that launcher, through its existing `KOF` environment variable or PATH selection. Cached or transferred distributions MAY be reused only when their identity and verified archive digest match the single selection.
 
-The wrapper's [existing compiler selection](/home/renanfranca/projects/kof-sifuture/scripts/kof_project.py:29) is:
+The wrapper's [existing compiler selection](../../scripts/kof_project.py:29) is:
 
 ```python
 def kof_executable(override=None):
@@ -134,7 +134,7 @@ python3 scripts/kof_project.py build --output DIRECTORY
 
 The complete successful output MUST be packaged: `index.html`, all generated application modules, all emitted Kof runtime files, and all assets. Relative paths MUST remain valid under `/kof-sifuture/`, including nested module imports and sprite URLs. The output directory's contents belong at the Pages artifact root; adding an extra `kof-sifuture` directory would duplicate the repository path. CI MUST NOT replace the existing build with a handwritten JS/CSS application, edit generated modules to change behavior, or upload only HTML and one entry module.
 
-The existing [build checks required artifacts before copying output](/home/renanfranca/projects/kof-sifuture/scripts/kof_project.py:108):
+The existing [build checks required artifacts before copying output](../../scripts/kof_project.py:108):
 
 ```python
             missing = [item for item in ("index.html", "Default.mjs") if not (web / item).is_file()]
@@ -143,7 +143,7 @@ The existing [build checks required artifacts before copying output](/home/renan
             _publish(web, output)
 ```
 
-The [copy operation preserves relative paths](/home/renanfranca/projects/kof-sifuture/scripts/kof_project.py:92):
+The [copy operation preserves relative paths](../../scripts/kof_project.py:92):
 
 ```python
     for path in sorted(source.rglob("*")):
@@ -153,7 +153,7 @@ The [copy operation preserves relative paths](/home/renanfranca/projects/kof-sif
             shutil.copyfile(path, target)
 ```
 
-These checks establish that the existing entry artifacts are present and that generated files are copied without flattening their paths. They do not by themselves prove that every browser request or interaction succeeds. The wrapper also [copies project assets](/home/renanfranca/projects/kof-sifuture/scripts/kof_project.py:112):
+These checks establish that the existing entry artifacts are present and that generated files are copied without flattening their paths. They do not by themselves prove that every browser request or interaction succeeds. The wrapper also [copies project assets](../../scripts/kof_project.py:112):
 
 ```python
             if assets is None:

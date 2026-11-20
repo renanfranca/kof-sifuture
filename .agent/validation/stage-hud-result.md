@@ -1008,7 +1008,7 @@ O [run37559613171](https://github.com/renanfranca/kof-sifuture/actions/runs/3755
 
 **R1 — P2: opção retida para foco executa outra ação fora da sua tela.** O plano exige que toque execute a opção tocada (`EXECPLAN.md:688`). Reprodução pelo navegador real, nas duas larguras: iniciar, pausar, focar Reiniciar, pressionar Enter sem soltar, tocar Reiniciar enquanto Enter continua mantido. O primeiro comando reinicia, mas o botão Reiniciar permanece visível e habilitado durante Play; o toque seguinte pausa a partida.
 
-Trecho fiel de [GameControls.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameControls.kf:161):
+Trecho fiel de [GameControls.kf](../../src/main/kof/sifuture/GameControls.kf:161):
 
 ```kof
     activateOption(Int option, String id) {
@@ -1044,7 +1044,7 @@ No [histórico MenuCanvas.java](https://github.com/renanfranca/sifuture/blob/6f5
                         delay++;
 ```
 
-Em [Credits.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/game/Credits.kf:12), a chegada deixa waitSteps em0 e só o passo seguinte começa a contagem:
+Em [Credits.kf](../../src/main/kof/sifuture/game/Credits.kf:12), a chegada deixa waitSteps em0 e só o passo seguinte começa a contagem:
 
 ```kof
         if (x < Rules.WORLD_WIDTH / 4) { x = x + 5 }
