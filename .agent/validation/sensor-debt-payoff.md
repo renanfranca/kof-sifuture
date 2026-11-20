@@ -1772,3 +1772,158 @@ com `sync` entre eles (evidência em `.agent/tmp/debt-fixtures/final3/`):
 
 Esta seção entrou depois da validação (só texto); `npm run docs:sensor` e
 `git diff --check` rodaram de novo sobre ela.
+
+## R7, fechamento (19/11)
+
+Plano em [`.agent/execplans/sensor-debt-closing.md`](../execplans/sensor-debt-closing.md).
+Branch `docs/sensor-debt-closing` a partir da `main` `06eab3d`. Nenhum código
+de produção, teste ou script mudou; só registros. Evidência bruta em
+`.agent/tmp/debt-closing/` (fora do Git por `.git/info/exclude`).
+
+### Ambiente
+
+| Ferramenta | Versão |
+| --- | --- |
+| Kof do `PATH` | `kof 0.7.0` (`~/.local/share/kof/kof-0.7.0-linux-x86_64`) |
+| Kof mínimo | `kof 0.6.4` em `~/.local/share/kof/kof-0.6.4-linux-x86_64`, instalado neste R7 a partir do asset `kof-0.6.4-linux-x86_64.tar.gz` de `KofLang/Kof4j`; SHA-256 `c1ffdaa9…f136` e 388.067.995 bytes conferidos antes de extrair; `lib/kof.jar` SHA-256 `137a838d38757e31…` |
+| KofMut | `KofMut 0.1.0`, imagem `670059ec9dd5` |
+| Maven e Java | Apache Maven 3.10.1, OpenJDK 25.0.5.1 (SDKMAN, shell de login) |
+| Chrome | Google Chrome 158.0.8127.36 |
+
+### M1. KofMut em toda a produção
+
+Comando: `kof-mut run --project . --files <44 arquivos de src/main/kof> --config
+.agent/tmp/debt-closing/kof-mut-par4.json --report-dir <tmp> --run-id <uuid>`.
+
+**Desvio aprovado pelo usuário:** o plano mandava usar o `kof-mut.json`
+(`maxParallelMutants: 1`, cerca de 20% da CPU, estimativa de 3 h). A primeira
+rodada assim foi interrompida aos 10 min e a rodada válida usou uma cópia
+temporária da config, fora do Git, que só muda `maxParallelMutants` para 4, o
+máximo que o KofMut aceita. O `kof-mut.json` do repositório não mudou. O
+paralelismo muda a ordem de execução, não o resultado por mutante. O load chegou a
+24,5 em 32 núcleos, sem nenhum timeout.
+
+Início 21:16:19, fim 21:58:09 (`durationMs` 2508833), exit **0**, `status:
+complete`, baseline `passed` (`0 failed of 409 executed tests`), `limitations:
+[]`, `discardedCandidates=0`.
+
+`candidates=802 executed=802 killed=802 survived=0 compileError=0 timeout=0
+testError=0 pending=0`. O plano estimava de 900 a 1000 candidatos; os 802 são
+menos porque as refatorações dos lotes eliminaram candidatos equivalentes e
+tiraram a lógica das cascas de UI.
+
+| Arquivo (`src/main/kof/sifuture/`) | Candidatos | Mortos |
+| --- | ---: | ---: |
+| `ControlKeys.kf` | 74 | 74 |
+| `ControlStyles.kf` | 0 | 0 |
+| `ControlsGuide.kf` | 4 | 4 |
+| `DirectionPad.kf` | 0 | 0 |
+| `GameControls.kf` | 0 | 0 |
+| `GameView.kf` | 0 | 0 |
+| `GuideDisclosure.kf` | 2 | 2 |
+| `HudScene.kf` | 17 | 17 |
+| `KeyRouting.kf` | 24 | 24 |
+| `Main.kf` | 0 | 0 |
+| `MenuChoice.kf` | 5 | 5 |
+| `MenuOption.kf` | 0 | 0 |
+| `Scene.kf` | 2 | 2 |
+| `Scenes.kf` | 11 | 11 |
+| `Sheet.kf` | 0 | 0 |
+| `SpecialButton.kf` | 0 | 0 |
+| `WorldScene.kf` | 33 | 33 |
+| `game/Background.kf` | 1 | 1 |
+| `game/Blaster.kf` | 51 | 51 |
+| `game/Boss.kf` | 64 | 64 |
+| `game/BossShot.kf` | 16 | 16 |
+| `game/BossSpecial.kf` | 15 | 15 |
+| `game/BossWeapons.kf` | 29 | 29 |
+| `game/Course.kf` | 2 | 2 |
+| `game/Credits.kf` | 11 | 11 |
+| `game/DirectionFlags.kf` | 14 | 14 |
+| `game/DirectionInput.kf` | 10 | 10 |
+| `game/Encounters.kf` | 22 | 22 |
+| `game/Game.kf` | 44 | 44 |
+| `game/Item.kf` | 23 | 23 |
+| `game/Lasers.kf` | 0 | 0 |
+| `game/Match.kf` | 29 | 29 |
+| `game/MenuEntrance.kf` | 7 | 7 |
+| `game/Meteor.kf` | 26 | 26 |
+| `game/Overlap.kf` | 5 | 5 |
+| `game/Rules.kf` | 3 | 3 |
+| `game/Ship.kf` | 46 | 46 |
+| `game/ShipContact.kf` | 11 | 11 |
+| `game/Shot.kf` | 46 | 46 |
+| `game/SpecialBeam.kf` | 48 | 48 |
+| `game/State.kf` | 0 | 0 |
+| `game/Subchief.kf` | 36 | 36 |
+| `game/SubchiefShot.kf` | 10 | 10 |
+| `game/Weapons.kf` | 61 | 61 |
+
+`GameControls.kf`, `GameView.kf`, `DirectionPad.kf`, `ControlStyles.kf`,
+`SpecialButton.kf`, `Sheet.kf` e `MenuOption.kf` na raiz, mais `Main.kf`,
+`game/Lasers.kf` e `game/State.kf`, ficaram sem candidatos: o KofMut não gerou
+mutante neles. As cascas de `kof.ui` são verificadas pelas jornadas de navegador
+(ver "Casca e classes puras" no lote da UI).
+
+### M2. Kof 0.6.4
+
+Com `K=~/.local/share/kof/kof-0.6.4-linux-x86_64/bin/kof`:
+
+| Comando | Resultado |
+| --- | --- |
+| `KOF=$K node scripts/kof-tests.mjs --target jvm` | exit 0, `0 failed of 409 tests` |
+| `KOF=$K node scripts/kof-tests.mjs --target js` | exit 0, `0 failed of 409 tests` |
+| `bash -lic "KOF=$K scripts/kof-sensors/test"` | exit 0, `Tests run: 42, Failures: 0`, `BUILD SUCCESS`, com `-Dkof.jar` resolvido para o `lib/kof.jar` do 0.6.4 (`scripts/kof-sensors/test:12`) |
+
+O `kof-tests.mjs` chama o executável de `KOF` (`scripts/kof-tests.mjs:35`); os
+logs não imprimem o caminho, então a identidade vem do comando e do código.
+
+### Validação final
+
+Com `kof` 0.7.0 no `PATH`, nesta ordem, um comando por vez (evidência em
+`.agent/tmp/debt-closing/final/`):
+
+| Comando | Resultado |
+| --- | --- |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | exit 0, 15 testes OK |
+| `bash -lic 'npm run test:sensors'` | exit 0, 39 pass, 0 fail |
+| `bash -lic 'npm run sensors:debt'` | `SENSOR lint: PASS (0 findings)`, `SENSOR dup: PASS (0 findings)`, 82 arquivos |
+| `bash -lic 'npm run check'` | `CHECK: PASS`, de 22:00:09 a 22:00:31; `kof tests` JVM e JS PASS; `lint:sensor`, `dup:sensor` e `mutation` SKIP (nada de Kof mudou contra a `main`) |
+| `bash -lic 'npm run check:task'` | `CHECK:TASK: PASS`, de 22:00:45 a 22:04:39; `0 failed of 409 tests` em JVM e JS; as sete jornadas `browser:*` PASS |
+| `git diff --check` | exit 0 |
+
+Os erros `PARSE011`/`PARSE080` de um `Main.kf` no log do `check` são esperados:
+`tests/test_kof_project.py:87` acrescenta `invalid syntax @@@` numa cópia
+temporária para provar que o build falha.
+
+### Critérios de aceite
+
+| # | Comando | Observado | Evidência |
+| --- | --- | --- | --- |
+| A1 | `bash -lic 'npm run sensors:debt'`, saída lida, no M0 e no fim | `SENSOR lint: PASS (0 findings)`, `SENSOR dup: PASS (0 findings)`, `82 Kof files`, igual a `git ls-files '*.kf' \| wc -l` (82) | `m0-debt.txt`, `final/final-debt.txt` |
+| A2 | KofMut do M1 | `complete`, 44 arquivos, `killed == candidates` (802), 0 sobreviventes, 0 timeouts, 0 limitações, 0 descartes; atendido com o desvio de paralelismo acima | `m1.log`, relatório JSON, tabela acima |
+| A3 | `npm run check` | `CHECK: PASS`; `mutation` SKIP, coberto pela A2 | `final/check.log` |
+| A4 | `npm run check:task` | `CHECK:TASK: PASS`, `kof tests` JVM e JS e as sete jornadas PASS | `final/check-task.log` |
+| A5 | M2 no 0.6.4 | `0 failed of 409 tests` em JVM e JS, o mesmo N do 0.7.0; `scripts/kof-sensors/test` exit 0 | `m2-jvm.log`, `m2-js.log`, `m2-sensors.log` |
+| A6 | `git diff --name-only main`, `git status --porcelain --untracked-files=all` | só o plano, o `EXECPLAN.md` e este registro; nada de `.agent/tmp/` | rodado no repositório |
+
+### Dívida inteira, do R0 ao R7
+
+| Medida | R0 (`f4af07a`, 05/11) | R7 (`06eab3d` + registros, 19/11) |
+| --- | --- | --- |
+| Arquivos Kof em `sensors:debt` | 31 | 82 |
+| Achados de lint | 415 | 0 |
+| Grupos CPD | 23 | 0 |
+| Arquivos de produção no KofMut | 20 | 44 |
+| Candidatos de mutação | 1167 | 802 |
+| Sobreviventes | 489 | 0 |
+| Limitações do KofMut (`enum`) | 8 | 0 |
+| Status do KofMut | `incomplete`, exit 3 | `complete`, exit 0 |
+| Casos de teste (JVM e JS) | 114 | 409 |
+
+Pendência conhecida, fora deste escopo: as capturas de página inteira das
+jornadas não são determinísticas no Chrome 158 (issue #35). O `check:task` valida
+por asserções e não é afetado.
+
+Esta seção entrou depois da validação (só texto); `npm run docs:sensor` e
+`git diff --check` rodaram de novo sobre ela.

@@ -1743,7 +1743,19 @@ a documentação que cita `kof_project.py test`.
   `main` declaradas como lacuna. Plano em
   [`.agent/execplans/sensor-debt-fixtures.md`](.agent/execplans/sensor-debt-fixtures.md),
   aceite em [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md) (seção "R6, fixtures").
-- [ ] R7. Fechamento.
+- [x] R7. Fechamento (19/11, branch `docs/sensor-debt-closing`, só registros):
+  `sensors:debt` com lint e dup `PASS (0 findings)` em 82 arquivos; KofMut em
+  toda a produção (44 arquivos, com `maxParallelMutants: 4` numa config
+  temporária, desvio aprovado) `complete`, 802 candidatos, 802 mortos, 0
+  sobreviventes, 0 timeouts, 0 limitações; `check` e `check:task` PASS no 0.7.0;
+  testes JVM e JS (409 casos) e `scripts/kof-sensors/test` PASS no 0.6.4. Plano em
+  [`.agent/execplans/sensor-debt-closing.md`](.agent/execplans/sensor-debt-closing.md);
+  aceite em [`.agent/validation/sensor-debt-payoff.md`](.agent/validation/sensor-debt-payoff.md) (seção "R7, fechamento").
+
+Plano mestre concluído em 19/11/2026: do R0 (415 achados de lint, 23 grupos CPD,
+489 sobreviventes) ao R7 (0, 0 e 0). O próximo marco é o M3 (hooks reais no Codex
+CLI). Pendência conhecida: capturas de página inteira não determinísticas no
+Chrome 158 (issue #35).
 
 ## `check`: `no_mutants` do KofMut vira SKIP — 10/11/2026
 
