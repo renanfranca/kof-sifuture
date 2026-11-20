@@ -184,7 +184,7 @@ PASS Chrome 139.0.7258.154 at 320 and 1200 pixels; repaint does not advance simu
 
 Esses resultados comprovam a base atual. O subchefe ainda não foi implementado.
 
-A entrada histórica avança o marcador uma posição, em [StageCount.java](/home/renanfranca/projects/sifuture/src/StageCount.java:209):
+A entrada histórica avança o marcador uma posição, em [StageCount.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/StageCount.java#L209):
 
 ```java
 if (this.x == SUB_CHIEF_TIME) {
@@ -221,7 +221,7 @@ Decisões confirmadas:
 
    Preservar geometria e ordem das colisões conferidas no original: nave → laser → blaster → especial, antes das colisões dessas armas com meteoros. Laser e contato normal retiram uma unidade; blaster aplica sua resistência restante e a esgota. Reproduzir os marcadores históricos do especial, com intervalo de seis passos e prioridade das cores.
 
-   A recompensa usa o contador histórico de [Subchief.java](/home/renanfranca/projects/sifuture/src/Subchief.java:157):
+   A recompensa usa o contador histórico de [Subchief.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/Subchief.java#L157):
 
    ```java
    if(this.lifeTime <= 30) {
@@ -338,7 +338,7 @@ A prova de planejamento compilou a fixture existente e executou touch simulado n
 - **Gestos:** conservar os eventos atuais de pressão, soltura, cancelamento e saída do mouse. Manter o arrasto ligado ao botão inicial; a captura implícita de touch é descrita pelo [padrão W3C](https://www.w3.org/TR/pointerevents3/#implicit-pointer-capture).
 - **Documentação:** incorporar este ciclo ao `EXECPLAN.md`, preservar suas alterações pendentes e atualizar a especificação e as instruções do jogo para quatro botões com combinações.
 
-Usar os componentes Kof existentes. A orientação de estado derivado, em [duplicate-state.md](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73), é:
+Usar os componentes Kof existentes. A orientação de estado derivado, em [duplicate-state.md](https://github.com/renanfranca/Kof4j/blob/3060038cfd744585309aefa2cc0d5dd994ee3f39/training/anti-patterns/duplicate-state.md#L73), é:
 
 > If a value can be derived from another, derive it (method or function).
 
@@ -409,7 +409,7 @@ A condição permite disparar com a nave oculta. `attemptFire` cria projéteis; 
 - Manter `weapons.advance()` em cada passo do resultado para concluir projéteis e efeitos existentes.
 - Preservar disparos durante a partida, perda de evolução na morte, animação do cenário, tiros do subchefe e contagem do escore.
 - Atualizar README e especificação do port para distinguir derrota de conclusão da fase. Incorporar estes critérios ao plano existente.
-- Manter APIs e tipos atuais. A permissão depende diretamente das vidas, seguindo o [training de estado duplicado](/home/renanfranca/projects/kof/training/anti-patterns/duplicate-state.md:73):
+- Manter APIs e tipos atuais. A permissão depende diretamente das vidas, seguindo o [training de estado duplicado](https://github.com/renanfranca/Kof4j/blob/a047163a182a795bc15925258422104e6dd29000/training/anti-patterns/duplicate-state.md#L73):
 
   > If a value can be derived from another, derive it (method or function).
 
@@ -491,7 +491,7 @@ A entrada histórica usa a largura da miniatura:
 this.BOS_TIME = MAX_RIGHT - this.smallAirship3.getWidth();
 ```
 
-Fonte: [StageCount.java, linha 91](/home/renanfranca/projects/sifuture/src/StageCount.java:91). Com largura lógica 176 e miniatura de 30 pixels, o encontro começa em **146**, avança o marcador para **147** e suspende a trilha.
+Fonte: [StageCount.java, linha 91](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/StageCount.java#L91). Com largura lógica 176 e miniatura de 30 pixels, o encontro começa em **146**, avança o marcador para **147** e suspende a trilha.
 
 A cadência curta do primeiro quadro vem desta atribuição:
 
@@ -499,7 +499,7 @@ A cadência curta do primeiro quadro vem desta atribuição:
 this.timeDraw = (byte)(this.timing - 1);
 ```
 
-Fonte: [BosStage1.java, linha 316](/home/renanfranca/projects/sifuture/src/BosStage1.java:316). O incremento da mesma chamada encerra esse quadro após uma atualização.
+Fonte: [BosStage1.java, linha 316](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/BosStage1.java#L316). O incremento da mesma chamada encerra esse quadro após uma atualização.
 
 O ciclo conserva o mundo 176 × 220, passos de 30 ms, controles atuais e resultado existente. Android, música, menus completos e reformulação de apresentação permanecem pendentes.
 
@@ -511,7 +511,7 @@ O ciclo conserva o mundo 176 × 220, passos de 30 ms, controles atuais e resulta
 
    > “for **mutable state** use explicit fields + `constructor(...)`.”
 
-   Fonte: [idioma de classes](/home/renanfranca/projects/kof/training/idioms/classes.md:35). Isso permite que cada entidade seja responsável pelos seus contadores e transições, seguindo a organização já usada pelo subchefe.
+   Fonte: [idioma de classes](https://github.com/renanfranca/Kof4j/blob/604d8fbeca74cbc307e7e827be10bc7011d1b8fc/training/idioms/classes.md#L35). Isso permite que cada entidade seja responsável pelos seus contadores e transições, seguindo a organização já usada pelo subchefe.
 
    No reset, usar resistência 100, posição inicial x 220–419/y 30–168 e destinos x 88–135/y 30–168; avançar uma unidade por eixo. Ativar uma vez em 146, marcar 147 e congelar a trilha durante combate e explosão. Depois, retomar até 176.
 
@@ -534,7 +534,7 @@ O ciclo conserva o mundo 176 × 220, passos de 30 ms, controles atuais e resulta
    }
    ```
 
-   Fonte: [BosStage1AllShoots.java, linha 218](/home/renanfranca/projects/sifuture/src/BosStage1AllShoots.java:218); `SHOOT1_QUANTITY` vale 2.
+   Fonte: [BosStage1AllShoots.java, linha 218](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/BosStage1AllShoots.java#L218); `SHOOT1_QUANTITY` vale 2.
 
 4. **Integrar desenho, explosão e encerramento.** Copiar sem transformação `bos0` **não existe como nome de asset**: usar os arquivos históricos `bos.png`, `bos1.png`, `bos2.png`, `shoot0`–`shoot3.png` e `esp0`–`esp6.png`. Preservar NOTICE e reutilizar as dez explosões existentes.
 
@@ -662,7 +662,7 @@ O próximo ciclo escolhido entregará **abertura com créditos animados → menu
 
 2. **Integrar telas e controles Kof.** Reutilizar a composição atual, com botões acessíveis para toque direto. Menu: Novo Jogo e Controles. Pausa: Continuar, Reiniciar e Menu principal. Cima/Baixo selecionam sem ultrapassar as extremidades; confirmação executa a seleção. Controles explica teclado, foco, diagonais, opostos, arrasto, soltura e especial, com ação Voltar. Preservar os bloqueios de teclas mantidas e a deduplicação do clique nativo.
 
-3. **Preservar apresentação e responsabilidades.** Copiar `copyright0.png`, `copyright1.png` e os sprites de menu utilizados sem transformação; preservar NOTICE. Animações avançam somente nos passos de 30 ms; desenho apenas consulta estado. O estado mutável dos créditos pertence a uma classe, seguindo o [idioma Kof](/home/renanfranca/projects/kof/training/idioms/classes.md:35):
+3. **Preservar apresentação e responsabilidades.** Copiar `copyright0.png`, `copyright1.png` e os sprites de menu utilizados sem transformação; preservar NOTICE. Animações avançam somente nos passos de 30 ms; desenho apenas consulta estado. O estado mutável dos créditos pertence a uma classe, seguindo o [idioma Kof](https://github.com/renanfranca/Kof4j/blob/7ffd088eed28a0152400b9569fcbddf71ba6a5e1/training/idioms/classes.md#L35):
 
    > for **mutable state** use explicit fields + `constructor(...)`.
 
@@ -683,7 +683,7 @@ As verificações abaixo são **planejadas**, ainda não resultados do novo cicl
 
 | Critério e fonte | Contexto, ação e resultado esperado | Prova prevista |
 |---|---|---|
-| Créditos — [histórico](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:192) | Abertura começa em x=-134; primeiro avanço mostra x=-129. Preservar chegada, 50 quadros de espera e saída vertical histórica. Redesenhar não avança a animação. | JVM/JS nas transições; Chrome com relógio controlado e comparação dos sprites. |
+| Créditos — [histórico](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/MenuCanvas.java#L192) | Abertura começa em x=-134; primeiro avanço mostra x=-129. Preservar chegada, 50 quadros de espera e saída vertical histórica. Redesenhar não avança a animação. | JVM/JS nas transições; Chrome com relógio controlado e comparação dos sprites. |
 | Exibição única — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:148) | Enter focado ou toque pula somente para Menu. Manter Enter pressionado não inicia a partida. Retornos de Controles, pausa e resultado não repetem créditos. | Ampliar `browser.py`, observando também o evento seguinte à transição. |
 | Navegação — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:144) | Seleção inicial Novo Jogo; Baixo seleciona Controles; repetição mantida não navega novamente. Toque executa diretamente a opção tocada. Voltar de Controles conserva essa seleção. | Modelo e Chrome em 320/1200; nomes acessíveis, foco e ausência de Carregar/Opções neste recorte. |
 | Continuar — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:150) | Pausar uma partida com movimento e projéteis ativos congela estado. Continuar conserva a partida; o primeiro passo avança uma vez, sem recuperar movimento mantido. | Reutilizar provas de pausa e acrescentar a navegação pela nova tela. |
@@ -770,7 +770,7 @@ O novo botão Confirmar removerá essas atribuições: focá-lo, tocá-lo ou pre
 
 ## Entrada da nave
 
-O histórico usa o sprite com propulsores e avanço de dez unidades, em [MenuCanvas.java:123](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:123):
+O histórico usa o sprite com propulsores e avanço de dez unidades, em [MenuCanvas.java:123](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/MenuCanvas.java#L123):
 
 ```java
 g.drawImage(this.arrow[1], this.iMenu, Midlet.height/2, 0);
@@ -791,11 +791,11 @@ Depois troca para o sprite normal e recua três unidades. Preservar essas veloci
 - Sair para uma partida ou Controles encerra definitivamente a entrada. Retornos de Controles, abandono e resultado apresentam o seletor pronto, conservando as regras de seleção.
 - A animação não avança os relógios da partida nem reaparece na pausa.
 
-O estado permanece em uma classe, conforme o [idioma Kof](/home/renanfranca/projects/kof/training/idioms/classes.md:36):
+O estado permanece em uma classe, conforme o [idioma Kof](https://github.com/renanfranca/Kof4j/blob/da5afcaa487336dd4ec4042032892bb4e6c18dcb/training/idioms/classes.md#L36):
 
 > for **mutable state** use explicit fields + `constructor(...)`.
 
-Isso mantém a atualização temporal separada do desenho, como explicado em [Learn Kof](/home/renanfranca/projects/kof/learn/07-classes-and-objects.md:65).
+Isso mantém a atualização temporal separada do desenho, como explicado em [Learn Kof](https://github.com/renanfranca/Kof4j/blob/da5afcaa487336dd4ec4042032892bb4e6c18dcb/learn/07-classes-and-objects.md#L65).
 
 ## Créditos e novo contato
 
@@ -814,7 +814,7 @@ Preservar o término histórico escolhido:
 - Acrescentar `exitComplete` em `Credits`: marcado no259; `advance()` retorna true no260. Desenho não altera esses estados.
 - Conservar `copyright0.png`, com autor e anos. Substituir somente a apresentação de `copyright1.png` por três linhas Kof: `contact:`, `renan.andradefranca@gmail.com` e `Inc. All rights reserved.`.
 - O texto acompanha x/y1, usa azul RGB(0,128,255) e ocupa o bloco existente de30 unidades de altura. Desenhar com escala0,75, reduzida apenas se a largura medida ultrapassar130 unidades; baselines locais10/22/34.
-- Usar `save`/`restore` para isolar a transformação e a cor, seguindo o [idioma Canvas](/home/renanfranca/projects/kof/training/idioms/ui.md:266). Isso impede que o ajuste dos créditos afete desenhos posteriores.
+- Usar `save`/`restore` para isolar a transformação e a cor, seguindo o [idioma Canvas](https://github.com/renanfranca/Kof4j/blob/da5afcaa487336dd4ec4042032892bb4e6c18dcb/training/idioms/ui.md#L266). Isso impede que o ajuste dos créditos afete desenhos posteriores.
 - Preservar os PNGs históricos e NOTICE. A mudança de apresentação do contato é uma exceção explicitamente escolhida; o e-mail antigo não aparece nos créditos.
 
 ## Testes e entrega
@@ -885,7 +885,7 @@ O copyright vem do PNG; o contato é desenhado separadamente. Usar a mesma rende
 - Mostrar foco do teclado com contorno neutro de 1 pixel no perímetro da área do jogo; botões externos terão seu próprio contorno discreto. Nenhum retângulo acompanhará as linhas do menu.
 - Manter confirmação direta por Enter e toque, nomes acessíveis e proteção contra ações duplicadas.
 
-Para ajustar texto no Canvas, seguir a orientação do [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277):
+Para ajustar texto no Canvas, seguir a orientação do [training de UI](https://github.com/renanfranca/Kof4j/blob/d71297be97da6a41e870493919a7ccc0e075091a/training/idioms/ui.md#L277):
 
 > `measureText` returns a `Double` (width in px) for text layout.
 
@@ -958,7 +958,7 @@ No SHA `02eb48e55102b5f0cafd85020b77f37da07060fa`, Chrome `139.0.7258.154`, JS, 
 3. Com foco em Confirmar, Baixo muda a seleção de y=120 para y=139. Cima/Enter inicia a partida conservando foco em Pausar; Direita por seis passos mantém x=0. Soltar e usar Tab até o receptor permite uma nova pressão levar x a 30.
 4. Uma cópia temporária Kof, compilada e executada em JS, permite `game-action` também durante Play: a mesma pressão leva x=0 a x=30 sem clicar ou focar o receptor. Porém, manter Direita e sair de Pausar por Shift+Tab deixa movimento ativo até x=60. Esse protótipo demonstra viabilidade e uma lacuna, não é uma correção aceita.
 
-A distinção vem do filtro de [GameControls.kf](src/main/kof/sifuture/GameControls.kf:319), que aceita `game-action` só em Menu/Pause. O observador está na coluna dos controles, não no documento inteiro. O [training de UI](../kof/training/idioms/ui.md:380) estabelece que `Event.target()` identifica a origem do evento, e o runtime JS consultado registra o observador no nó DOM. O [contrato atual](.agent/specifications/port-sifuture-to-kof.md:34) limita movimento ao receptor; estendê-lo muda esse contrato.
+A distinção vem do filtro de [GameControls.kf](src/main/kof/sifuture/GameControls.kf:319), que aceita `game-action` só em Menu/Pause. O observador está na coluna dos controles, não no documento inteiro. O [training de UI](https://github.com/renanfranca/Kof4j/blob/9e223557f7f976ba07177e0c0ca4cf1bce41b01a/training/idioms/ui.md#L380) estabelece que `Event.target()` identifica a origem do evento, e o runtime JS consultado registra o observador no nó DOM. O [contrato atual](.agent/specifications/port-sifuture-to-kof.md:34) limita movimento ao receptor; estendê-lo muda esse contrato.
 
 ### Critérios para eventual execução, separados das observações
 

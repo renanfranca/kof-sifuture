@@ -37,7 +37,7 @@ A soltura deve ser observada nos controles. Tocar a antiga opção depois de abr
 
 ## Regra Kof e realização no alvo
 
-O [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277) orienta:
+O [training de UI](https://github.com/renanfranca/Kof4j/blob/570f8f650e8393fb1aa06921dfdabd01e396537f/training/idioms/ui.md#L277) orienta:
 
 > `measureText` returns a `Double` (width in px) for text layout.
 
@@ -50,11 +50,11 @@ drawCreditBlock(firstLines, credits.x, credits.firstY, scale)
 drawCreditBlock(secondLines, credits.x, credits.secondY, scale)
 ```
 
-`width` é a maior medida entre todas as linhas. Assim, reduzir para 130 px preserva a proporção dos dois blocos; `save`/`restore` isolam a transformação e a cor. O [capítulo Learn Kof sobre UI](/home/renanfranca/projects/kof/learn/35-kof-ui.md:3) estabelece:
+`width` é a maior medida entre todas as linhas. Assim, reduzir para 130 px preserva a proporção dos dois blocos; `save`/`restore` isolam a transformação e a cor. O [capítulo Learn Kof sobre UI](https://github.com/renanfranca/Kof4j/blob/d71297be97da6a41e870493919a7ccc0e075091a/learn/35-kof-ui.md#L3) estabelece:
 
 > only the JS target draws
 
-Os testes JVM/JS do modelo e os testes de desenho no Chrome têm papéis distintos; compilação sozinha não prova aparência. O registro de Canvas em [KofUi.java](/home/renanfranca/projects/kof/kof-compiler/src/main/java/dev/kof/compiler/KofUi.java:503) oferece `fillText`, `measureText` e `transform`, sem setter de fonte nessa lista. Os menus usam a fonte sans-serif 10 px do contexto e transformação 1.2, com tamanho observado 12.000000476837158px no Chrome. Isso atende aproximadamente 12 px sem adicionar API ao compilador. Para recolher o bitmap usa-se seu `View` pai: Canvas não está na família `isDomWidget` do registro atual, que aceita `setStyle`.
+Os testes JVM/JS do modelo e os testes de desenho no Chrome têm papéis distintos; compilação sozinha não prova aparência. O registro de Canvas em [KofUi.java](https://github.com/renanfranca/Kof4j/blob/d71297be97da6a41e870493919a7ccc0e075091a/kof-compiler/src/main/java/dev/kof/compiler/KofUi.java#L503) oferece `fillText`, `measureText` e `transform`, sem setter de fonte nessa lista. Os menus usam a fonte sans-serif 10 px do contexto e transformação 1.2, com tamanho observado 12.000000476837158px no Chrome. Isso atende aproximadamente 12 px sem adicionar API ao compilador. Para recolher o bitmap usa-se seu `View` pai: Canvas não está na família `isDomWidget` do registro atual, que aceita `setStyle`.
 
 ## Aceite visual
 
@@ -118,7 +118,7 @@ Plano: “Mais nitidez, espaço no guia e animação em cada retorno”. Execuç
 
 Os menus e a pausa usam fonte bitmap branca com serifas, tamanho nominal 14 px e peso Bold. Os créditos usam tamanho nominal 9 px, peso Regular, azul RGB(0,128,255) e texto literal preservado. Cada PNG tem apenas alpha 0/255. Máscaras, métricas e licença da referência local Liberation Serif estão em `fonts/`; o gerador reproduz os assets diretamente em `assets/` e as métricas Kof. O nome completo mede 123 px; `renan.andradefranca@gmail.com`, 114 px. Todas as linhas ficam dentro de 130 px. Baselines locais 8/18 e 8/18/28; imagens criadas uma vez pelo GameView; posicionamento inteiro sem transformação ou redimensionamento pelo renderizador.
 
-O [training de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:287) orienta a composição por imagem:
+O [training de UI](https://github.com/renanfranca/Kof4j/blob/45d839322f80c69deceeef70937b43a4df31e7ff/training/idioms/ui.md#L287) orienta a composição por imagem:
 
 ```kof
 c.drawImage(logo, 5, 5)
@@ -132,7 +132,7 @@ canvas.drawImage(item.image, cursor + item.left, baseline + item.top)
 cursor = cursor + item.advance
 ```
 
-O avanço define a posição do próximo caractere, e os deslocamentos alinham sua máscara à baseline. `measure` soma os mesmos avanços. Isso evita reduzir texto já desenhado; o desenho usa os pixels de tamanho final. A [referência de módulos local](/home/renanfranca/projects/kof/docs/language-reference/modules.md) orientou imports explícitos nas fixtures. `learn/35-kof-ui.md` distingue modelo e desenho: “only the JS target draws”. A realização atual está em `KofUi.java:522` e `js/JsRuntimeUiWidgets.java:477–483`, que chama `ctx.drawImage(img, x, y)`; o teste `KofJsBrowserE2ETest.java:847` exercita a mesma operação. As provas de pixels são do app JS no Chrome, não da compilação JVM.
+O avanço define a posição do próximo caractere, e os deslocamentos alinham sua máscara à baseline. `measure` soma os mesmos avanços. Isso evita reduzir texto já desenhado; o desenho usa os pixels de tamanho final. A [referência de módulos local](https://github.com/renanfranca/Kof4j/blob/45d839322f80c69deceeef70937b43a4df31e7ff/docs/language-reference/modules.md) orientou imports explícitos nas fixtures. `learn/35-kof-ui.md` distingue modelo e desenho: “only the JS target draws”. A realização atual está em `KofUi.java:522` e `js/JsRuntimeUiWidgets.java:477–483`, que chama `ctx.drawImage(img, x, y)`; o teste `KofJsBrowserE2ETest.java:847` exercita a mesma operação. As provas de pixels são do app JS no Chrome, não da compilação JVM.
 
 O guia tem painel externo preto de 248 px, padding 16 nos quatro lados e conteúdo 216 px. O estilo interno não repete padding. Tabela, listas e parágrafos cabem na coluna; fonte 14, entrelinha 20 e títulos 16 preservados. A seção Especial vem antes de Mais detalhes e está visível com os detalhes fechados. O texto completo sobre carga e disponibilidade continua nos detalhes. Crescimento vertical e retorno por Voltar foram exercitados; não houve rolagem horizontal.
 
@@ -233,7 +233,7 @@ A escala observada corresponde a16px, com tolerância0,001 para a representaçã
 
 ### Regra Kof e evidência do alvo
 
-O [idioma de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277) orienta:
+O [idioma de UI](https://github.com/renanfranca/Kof4j/blob/cf1d88fa3b599d78d7130a4b5a335ffb3d116f45/training/idioms/ui.md#L277) orienta:
 
 > `save`/`restore` stack the context state (alpha, transform,
 > colors) — without them, an adjustment leaks into all the following drawing.
@@ -248,7 +248,7 @@ target.fillText(text, 0, 0)
 target.restore()
 ```
 
-A transformação coloca a origem na posição desejada e multiplica a fonte padrão10px por1,6. `restore` recupera o estado anterior; a próxima imagem conserva suas coordenadas. O registro `KofUi.java:516–521`, a implementação `JsRuntimeUiWidgets.java:449–475` e `UiE2ETest.java:672` foram consultados diretamente; os métodos já existem e delegam ao contexto Canvas no navegador. A antiga página `docs/ui/PLAN-CANVAS-WIDGET.md` não enumera todas essas operações, por isso não foi usada como prova de ausência. O [capítulo Learn Kof35](/home/renanfranca/projects/kof/learn/35-kof-ui.md:3) afirma:
+A transformação coloca a origem na posição desejada e multiplica a fonte padrão10px por1,6. `restore` recupera o estado anterior; a próxima imagem conserva suas coordenadas. O registro `KofUi.java:516–521`, a implementação `JsRuntimeUiWidgets.java:449–475` e `UiE2ETest.java:672` foram consultados diretamente; os métodos já existem e delegam ao contexto Canvas no navegador. A antiga página `docs/ui/PLAN-CANVAS-WIDGET.md` não enumera todas essas operações, por isso não foi usada como prova de ausência. O [capítulo Learn Kof35](https://github.com/renanfranca/Kof4j/blob/cf1d88fa3b599d78d7130a4b5a335ffb3d116f45/learn/35-kof-ui.md#L3) afirma:
 
 > only the JS target draws
 
@@ -296,7 +296,7 @@ PASS menu, Enter and Space, conservative confirmation, pause, result and menu in
 
 As mensagens PARSE do unittest são esperadas no caso `test_real_compile_failure_does_not_publish`, que injeta sintaxe inválida e exige rejeição sem publicação. Não representam falha na aplicação. Evidência local opcional do gate: `.agent/tmp/validation/20261008T014051-6u7fx6zr/summary.json`.
 
-Revisão estrutural no mesmo contexto da implementação: nenhuma alteração de produção necessária. Relógio no modelo, texto no renderizador e visibilidade/foco nos controles; os dois canvases e estilos são criados uma vez. O helper recebe todos os dados do desenho e restaura o contexto, sem reter pedido mutável. `exitComplete` distingue o quadro vazio da abertura do menu. A repetição das dimensões fixas nos estilos é uma oportunidade futura, protegida pela geometria independente, sem justificar refactor neste ciclo. O [idioma de UI](/home/renanfranca/projects/kof/training/idioms/ui.md:277) e os anti-patterns `duplicate-state.md`/`unnecessary-abstraction.md` foram novamente consultados. Rubrica e classificações locais opcionais: `.agent/tmp/credits-text.structural-review.md`.
+Revisão estrutural no mesmo contexto da implementação: nenhuma alteração de produção necessária. Relógio no modelo, texto no renderizador e visibilidade/foco nos controles; os dois canvases e estilos são criados uma vez. O helper recebe todos os dados do desenho e restaura o contexto, sem reter pedido mutável. `exitComplete` distingue o quadro vazio da abertura do menu. A repetição das dimensões fixas nos estilos é uma oportunidade futura, protegida pela geometria independente, sem justificar refactor neste ciclo. O [idioma de UI](https://github.com/renanfranca/Kof4j/blob/cf1d88fa3b599d78d7130a4b5a335ffb3d116f45/training/idioms/ui.md#L277) e os anti-patterns `duplicate-state.md`/`unnecessary-abstraction.md` foram novamente consultados. Rubrica e classificações locais opcionais: `.agent/tmp/credits-text.structural-review.md`.
 
 A auditoria de critérios confirmou as escolhas aprovadas; a auditoria de asserções confirmou as observações correspondentes no modelo e na aplicação real. A inspeção visual do agente conferiu os12 recortes de créditos/menu/pausa em320/1200px e densidades1/2, com nome/e-mail completos e nenhuma opção cortada. Não houve aprovação visual humana; essa aceitação continua pendente. Os108 assets históricos comparados à base mantêm seus blobs Git, incluindo números do HUD. Só os glifos gerados foram retirados.
 

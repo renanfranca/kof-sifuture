@@ -53,9 +53,9 @@ Saída de ambos os checks, pelo wrapper real:
 {"success":true,"filesChecked":1,"errorCount":0,"diagnostics":[]}
 ```
 
-`filesChecked` conta uma entrada, não 25 arquivos individualmente contabilizados. A prova de importação é o ciclo válido → erro SEM011 em Answer.kf importado → restauração dos bytes → válido, executado em ambos os alvos. [Training de CLI](../../../kof/training/tooling/cli.md:17) e [Learn Kof 32](../../../kof/learn/32-cli-tooling.md:70) descrevem o papel de check; o contrato concreto e o teste da distribuição instalada fundamentam esta aceitação. A implementação consultada de CmdCheck retorna a quantidade de entradas:
+`filesChecked` conta uma entrada, não 25 arquivos individualmente contabilizados. A prova de importação é o ciclo válido → erro SEM011 em Answer.kf importado → restauração dos bytes → válido, executado em ambos os alvos. [Training de CLI](https://github.com/renanfranca/Kof4j/blob/84f2dd985aa558b646ead5067ca676675ec6d681/training/tooling/cli.md#L17) e [Learn Kof 32](https://github.com/renanfranca/Kof4j/blob/84f2dd985aa558b646ead5067ca676675ec6d681/learn/32-cli-tooling.md#L70) descrevem o papel de check; o contrato concreto e o teste da distribuição instalada fundamentam esta aceitação. A implementação consultada de CmdCheck retorna a quantidade de entradas:
 
-[CmdCheck.java](../../../kof/kof-cli/src/main/java/dev/kof/cli/CmdCheck.java:82):
+[CmdCheck.java](https://github.com/renanfranca/Kof4j/blob/84f2dd985aa558b646ead5067ca676675ec6d681/kof-cli/src/main/java/dev/kof/cli/CmdCheck.java#L82):
 
 ```java
         int count = files.size();
@@ -117,7 +117,7 @@ Reparo local executado em 25/10/2026 sobre a base revisada `7798e7d6ec8aa31a9ebe
 | Construtor nomeado pela classe | Construtores `constructor()`/`constructor(Int)` e `ClassName()`/`ClassName(Int, Int)` medem uma linha, iniciam e terminam em suas linhas próprias e conservam 0/1/0/2 parâmetros. | `AnalyzerTest.namedAndExplicitConstructorsHaveIsolatedSpansAndParameterCounts` verifica as linhas 2, 5, 8 e 11 e seus parâmetros. O caso original atribuía o segundo construtor à primeira ocorrência de `constructor`; o teste distingue cada classe. O check oficial JVM aprovou os quatro formatos. |
 | Coerência e faixa do protocolo JSON | `filesChecked` deve ser inteiro JSON em 1..2147483647; `errorCount`, em 0..2147483647. Aprovação exige `success=true`, exit 0 e zero ERROR. Rejeição exige `success=false`, exit 1 e ERROR positivo reconciliado. | Os testes públicos `check --json` preservam literalmente o relatório aprovado no máximo de `filesChecked`, rejeitam os dois campos em 2147483648 com campo inválido explícito, rejeitam `success=false` com zero ERROR e preservam uma rejeição coerente com exit 1. Booleanos, decimais, negativos e reconciliação continuam cobertos. |
 
-O critério segue o contrato consumido pelo KofMut, [CLI §Baseline](../../../kof-mut/docs/cli.md:116):
+O critério segue o contrato consumido pelo KofMut, [CLI §Baseline](https://github.com/renanfranca/kof-mut/blob/a40b20ac37afac302efc2a0dae7702e44720e166/docs/cli.md#L116):
 
 > “A coherent rejection has `success: false`, exit 1 and a positive error count matching ERROR diagnostics.”
 
@@ -212,14 +212,14 @@ Os outros alvos e combinações estão no registro completo `.agent/tmp/sensors-
 
 A forma escolhida segue a documentação local de classes: `new` permanece sintaxe válida para instanciar uma classe, e a referência gradual de Learn Kof ensina classes mutáveis com campos e `constructor(...)` explícito. O check dos 12 exemplos é a evidência de implementação atual para estes argumentos concretos.
 
-[Trecho do idiom de classes](../../../../projects/kof/training/idioms/classes.md:58):
+[Trecho do idiom de classes](https://github.com/renanfranca/Kof4j/blob/2ce237104816309e258402af5ffffd12f2781e80/training/idioms/classes.md#L58):
 
 ```text
 `new User("Mel", 30)` remains valid, but `User("Mel", 30)` is the
 recommended form — the compiler treats both as instance construction.
 ```
 
-[Trecho do capítulo de classes em Learn Kof](../../../../projects/kof/learn/07-classes-and-objects.md:83):
+[Trecho do capítulo de classes em Learn Kof](https://github.com/renanfranca/Kof4j/blob/2ce237104816309e258402af5ffffd12f2781e80/learn/07-classes-and-objects.md#L83):
 
 ```kof
 class Conta {
@@ -249,9 +249,9 @@ A afirmação anterior deste registro, de que construtores explícitos sem corpo
 
 > “Therefore the grammar below is presented in EBNF as an extractive description of the real parser — not as the specification the parser follows.”
 
-[Racional da gramática Kof em `grammar.md`](../../../../projects/kof/docs/language-reference/grammar.md:15). Em outras palavras, a produção é uma descrição do parser, não um contrato que determine o comportamento que ele deveria ter. A produção consultada é:
+[Racional da gramática Kof em `grammar.md`](https://github.com/renanfranca/Kof4j/blob/2ce237104816309e258402af5ffffd12f2781e80/docs/language-reference/grammar.md#L15). Em outras palavras, a produção é uma descrição do parser, não um contrato que determine o comportamento que ele deveria ter. A produção consultada é:
 
-[Gramática Kof em `grammar.md`](../../../../projects/kof/docs/language-reference/grammar.md:144):
+[Gramática Kof em `grammar.md`](https://github.com/renanfranca/Kof4j/blob/2ce237104816309e258402af5ffffd12f2781e80/docs/language-reference/grammar.md#L144):
 
 ```text
 constructor-declaration = [ "constructor" ] , "(" , [ parameter-list ] , ")" ,
@@ -536,7 +536,7 @@ Na raiz do KofMut, validação nova e sequencial:
 | `kof test src/test/kof/kofmut/Run.kf --tag multiple-invocations` | 0 | 86.363 |
 | `./scripts/check` | 0 | 2822.044 |
 
-Compatibilidade: 9/0; várias execuções: 3/0; check completo: CLI 32/0, ciclo 47/0, instalação 31/0, frontend 15/0. O compilador controlado atrasado em 11 s falha com o limite antigo e conclui com o novo. Os ensaios reais lentos de detecção/sobrevivência levam 10008/9608 ms, acima de 8500 e abaixo de 25000. Bloqueio retorna 2 após cerca de 30 s, sem aprovação nem avaliação do projeto, com limpeza e recuperação normal. O check completo inclui a prova de interrupção da preparação aos 90 s e a preservação das recusas por evidência inválida ou falha real. [Suplemento completo do KofMut](../../../kof-mut/.agent/validation/multiple-invocations-recovery.md#authorized-timeout-integration-acceptance-2026-10-26).
+Compatibilidade: 9/0; várias execuções: 3/0; check completo: CLI 32/0, ciclo 47/0, instalação 31/0, frontend 15/0. O compilador controlado atrasado em 11 s falha com o limite antigo e conclui com o novo. Os ensaios reais lentos de detecção/sobrevivência levam 10008/9608 ms, acima de 8500 e abaixo de 25000. Bloqueio retorna 2 após cerca de 30 s, sem aprovação nem avaliação do projeto, com limpeza e recuperação normal. O check completo inclui a prova de interrupção da preparação aos 90 s e a preservação das recusas por evidência inválida ou falha real. [Suplemento completo do KofMut](https://github.com/renanfranca/kof-mut/blob/338c7b3501d2ec91a9072f1e68ac827aae7f5d36/.agent/validation/multiple-invocations-recovery.md#authorized-timeout-integration-acceptance-2026-10-26).
 
 Aceite desta continuidade concluído: preparação, check completo e quatro provas reais aprovados. A ressalva obsoleta sobre rejeição de um segundo resumo pode ser retirada dos dois guias. A prova cobre a árvore avaliada e JVM; não promete duração universal, não instala gatilhos e não encerra M2–M5/S1–S3. Evidências locais opcionais em `.agent/tmp/timeouts-20261026/`, com logs, tempos, receitas, relatórios, inventários e auditorias; os resultados essenciais acima permitem compreender o aceite sem esses arquivos.
 
@@ -562,7 +562,7 @@ A [especificação aprovada](../specifications/port-sifuture-to-kof.md#historica
 exige preservar regras históricas, com seed injetável nos testes e uma recompensa
 por contato da nave. A revisão histórica é `50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3`
 em `/home/renanfranca/projects/sifuture`. O código histórico foi lido, não
-executado nesta entrega. Em [Meteor.java](../../../sifuture/src/Meteor.java#L111):
+executado nesta entrega. Em [Meteor.java](https://github.com/renanfranca/sifuture/blob/50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3/src/Meteor.java#L111):
 
 ```java
 this.y = Math.abs(random.nextInt() % BACK_GROUND_HEIGHT) + StageCount.stage1.getHeight();
@@ -571,7 +571,7 @@ this.y = Math.abs(random.nextInt() % BACK_GROUND_HEIGHT) + StageCount.stage1.get
 Essa expressão soma o cabeçalho ao sorteio. Em Kof, o cenário com seed 71 foi
 executado e exige y=201; outros cem resets exigem x entre 176 e 375 e y entre
 30 e 201. A equivalência de seeds entre Java histórico e Kof não é alegada.
-O [idioma de stdlib](../../../kof/training/idioms/stdlib.md#rng--determinism-you-can-test-x8-slices-12)
+O [idioma de stdlib](https://github.com/renanfranca/Kof4j/blob/73d9c7f4706692b80e3105d28287b8f0abba90ac/training/idioms/stdlib.md#rng--determinism-you-can-test-x8-slices-12)
 mostra a intenção de usar seed explícita:
 
 ```kof
@@ -580,7 +580,7 @@ rng.seed(42)
 
 A seed fixa torna a expectativa reproduzível. O resultado exato de seed 71
 vem da execução atual nos dois alvos, sem depender da versão antiga do corpus.
-O limite histórico em [Meteor.java](../../../sifuture/src/Meteor.java#L149) é:
+O limite histórico em [Meteor.java](https://github.com/renanfranca/sifuture/blob/50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3/src/Meteor.java#L149) é:
 
 ```java
 this.x --;
@@ -590,7 +590,7 @@ if (this.x < INVISIBLE_LEFT_POSITION){
 Portanto sair de -24 para -25 ainda não relança. O passo seguinte deve
 relançar. O cenário ampliado verifica os dois lados do limite estrito.
 
-A animação histórica em [Meteor.java](../../../sifuture/src/Meteor.java#L190)
+A animação histórica em [Meteor.java](https://github.com/renanfranca/sifuture/blob/50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3/src/Meteor.java#L190)
 usa `timing=2` no reset horizontal e avança `collisionDraw` até três imagens.
 A expectativa permanente lê a API usada pelo desenho, em
 [GameJourney.kf](https://github.com/renanfranca/kof-sifuture/blob/f4af07a9e703f0ef30f90eb6b42f254c627429bd/src/test/kof/sifuture/game/GameJourney.kf#L722):
@@ -604,7 +604,7 @@ Cada avanço consulta `impactFrame()`, cobrindo 0/0/1/1/2/2; no sexto passo
 o impacto termina e o meteoro relança. A divisão por dois não é repetida
 na assertion nem na fixture. O browser também compara pixels dos três sprites.
 
-O contato histórico em [AirShip.java](../../../sifuture/src/AirShip.java#L374)
+O contato histórico em [AirShip.java](https://github.com/renanfranca/sifuture/blob/50fc40d04acd0f3f2a6dd103c0fc3121608bd4e3/src/AirShip.java#L374)
 usa a borda esquerda do meteoro, com limites inclusivos nos dois eixos. A
 [expressão Kof](../../src/main/kof/sifuture/game/Meteor.kf#L83) preservada é:
 
@@ -624,21 +624,21 @@ no passo posterior aos contatos. O caso x=111 só é ausência no primeiro passo
 no segundo ele entra em x=110; não se exige ausência artificial nesse ponto.
 
 A regra Kof de classe mutável usa campos públicos e atribuição direta. A
-[referência de classes](../../../kof/docs/language-reference/classes.md#1-classes-mutable-state)
+[referência de classes](https://github.com/renanfranca/Kof4j/blob/73d9c7f4706692b80e3105d28287b8f0abba90ac/docs/language-reference/classes.md#1-classes-mutable-state)
 registra:
 
 > **Fields are public by default** (no `private`); direct write.
 
-O [idioma de classes](../../../kof/training/idioms/classes.md#explicit-constructor--mutable-state-the-real-class-form)
-e [Learn Kof 07](../../../kof/learn/07-classes-and-objects.md#3-mutable-state--class-with-fields--constructor)
+O [idioma de classes](https://github.com/renanfranca/Kof4j/blob/73d9c7f4706692b80e3105d28287b8f0abba90ac/training/idioms/classes.md#explicit-constructor--mutable-state-the-real-class-form)
+e [Learn Kof 07](https://github.com/renanfranca/Kof4j/blob/73d9c7f4706692b80e3105d28287b8f0abba90ac/learn/07-classes-and-objects.md#3-mutable-state--class-with-fields--constructor)
 orientam esse uso. As fixtures alteram campos para posicionar entidades e
 consultam métodos para observar comportamento. Learn 23 define o teste:
 
 > Inside the test, `assert(cond[, "msg"])` marks the failure with a clear message.
 
-Fonte: [Learn Kof 23](../../../kof/learn/23-testing.md#23--testing).
+Fonte: [Learn Kof 23](https://github.com/renanfranca/Kof4j/blob/73d9c7f4706692b80e3105d28287b8f0abba90ac/learn/23-testing.md#23--testing).
 O contrato atual também é exercitado por
-[StructuredTestE2ETest](../../../kof/kof-compiler/src/test/java/dev/kof/compiler/StructuredTestE2ETest.java#L146),
+[StructuredTestE2ETest](https://github.com/renanfranca/Kof4j/blob/73d9c7f4706692b80e3105d28287b8f0abba90ac/kof-compiler/src/test/java/dev/kof/compiler/StructuredTestE2ETest.java#L146),
 que exige exit 1 e a mensagem da assertion falha. Aqui as provas foram
 executadas nos alvos JVM e JS, não apenas compiladas.
 
@@ -1497,7 +1497,7 @@ atribuído a essa declaração. É o risco que o plano pedia para cobrir.
 
 **Ciclo 2, caso que nenhum teste cobria.** A gramática admite cláusula de
 throws entre os parâmetros e o bloco do construtor
-([grammar.md:144](../../../kof/docs/language-reference/grammar.md:144)):
+([grammar.md:144](https://github.com/renanfranca/Kof4j/blob/33a9982756f8268fccce246063f5f18572a50db2/docs/language-reference/grammar.md#L144)):
 
 > constructor-declaration = [ "constructor" ] , "(" , [ parameter-list ] , ")" ,
 >                           [ throws-clause ] , block ;

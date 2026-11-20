@@ -28,12 +28,12 @@ Contrato de adaptação preservado do plano externo aprovado, seção “Calibra
 | depth | Corpo no nível zero; if, loops, switch e try acrescentam um nível. Catch/case não acrescentam outro; else if mantém o nível da cadeia. |
 | statements | Nodes StatementNode, incluindo controles, inicializador de for, statement vazio e return sintético de corpo de expressão; exclui BlockStmt e função local no pai. |
 
-A regra de corpo de expressão vem da [referência de funções](../../../kof/docs/language-reference/functions.md:28):
+A regra de corpo de expressão vem da [referência de funções](https://github.com/renanfranca/Kof4j/blob/84f2dd985aa558b646ead5067ca676675ec6d681/docs/language-reference/functions.md#L28):
 
 > **Body**: block `{ … }`, or `= expression` (expression body — becomes
 > `return expression`), or `;` (abstract).
 
-O parser expõe esse return no AST; por isso o contador vê um statement mesmo sem `return` escrito. [Training de funções](../../../kof/training/idioms/functions.md:1) e [Learn Kof 06](../../../kof/learn/06-functions.md:1) orientam a leitura. As fixtures Java exercitam parsing e contagem, não executam todos esses exemplos como programas. Os checks e os 114 testes do jogo foram executados em JVM/JS separadamente.
+O parser expõe esse return no AST; por isso o contador vê um statement mesmo sem `return` escrito. [Training de funções](https://github.com/renanfranca/Kof4j/blob/84f2dd985aa558b646ead5067ca676675ec6d681/training/idioms/functions.md#L1) e [Learn Kof 06](https://github.com/renanfranca/Kof4j/blob/84f2dd985aa558b646ead5067ca676675ec6d681/learn/06-functions.md#L1) orientam a leitura. As fixtures Java exercitam parsing e contagem, não executam todos esses exemplos como programas. Os checks e os 114 testes do jogo foram executados em JVM/JS separadamente.
 
 Localizações do AST nem sempre são o começo da declaração. O adaptador cruza os nodes com tokens oficiais e delimitadores balanceados, sem uma segunda gramática. Provas específicas cobrem cabeçalhos em várias linhas, construtores, lambdas e corpos de expressão. Novas formas sintáticas precisam de prova própria. As contagens não prometem equivalência perfeita com AST JavaScript.
 
@@ -780,14 +780,14 @@ O guia fixado de Katacombs, `scripts/guides/structural.mjs:8`, estabelece:
 
 > Not this: splitting mid-responsibility to duck the count. Two half-files that only work together are worse than one long file.
 
-[Fonte histórica](https://github.com/SDiamante13/katacombs-kata-ts/blob/44cb39c916e9a05de561123d7b13554ee6e0a516/scripts/guides/structural.mjs#L8). Isso impede tratar uma divisão no ponto 150 como correção de design. O [training contra abstração desnecessária](../../../kof/training/anti-patterns/unnecessary-abstraction.md:48) acrescenta:
+[Fonte histórica](https://github.com/SDiamante13/katacombs-kata-ts/blob/44cb39c916e9a05de561123d7b13554ee6e0a516/scripts/guides/structural.mjs#L8). Isso impede tratar uma divisão no ponto 150 como correção de design. O [training contra abstração desnecessária](https://github.com/renanfranca/Kof4j/blob/0c62e41c178b8cc036abadfa81fd2e310e7fd280/training/anti-patterns/unnecessary-abstraction.md#L48) acrescenta:
 
 > Add a layer only when it solves a concrete problem:
 > - tested swappability (interface + multiple implementations);
 > - cross-cutting transaction/cleanup;
 > - real shared state.
 
-Logo, cada extração proposta abaixo precisa de um problema e de um custo de coordenação explícitos. Faltando essa justificativa, a conclusão fica limitada. O estado mutável e o construtor explícito seguem o [idioma de classes](../../../kof/training/idioms/classes.md:38); não se propõe substituir entidades mutáveis por records para satisfazer o contador.
+Logo, cada extração proposta abaixo precisa de um problema e de um custo de coordenação explícitos. Faltando essa justificativa, a conclusão fica limitada. O estado mutável e o construtor explícito seguem o [idioma de classes](https://github.com/renanfranca/Kof4j/blob/84f2dd985aa558b646ead5067ca676675ec6d681/training/idioms/classes.md#L38); não se propõe substituir entidades mutáveis por records para satisfazer o contador.
 
 ### Correlação das dez funções com outras métricas
 
