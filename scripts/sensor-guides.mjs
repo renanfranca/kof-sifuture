@@ -33,6 +33,7 @@ export const kernels = {
   'unnamed-arrange': 'a long arrange is a missing name',
   'leaked-secret': 'rotate it first, then remove it',
   'stale-doc': 'fix the doc or build the thing',
+  'machine-bound-link': 'pin a permalink, or write the path as text',
 };
 
 export function guideNamed(name) {

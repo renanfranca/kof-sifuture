@@ -17,7 +17,7 @@ paths it finds; it does not certify quality.
 npm run lint:sensor      # structural, test and comment rules on .kf files changed against main
 npm run dup:sensor       # PMD CPD 7.17.0 on the same files, except test code (50 tokens, 5 lines)
 npm run secret:sensor    # Gitleaks on the files Git would publish
-npm run docs:sensor      # npm scripts named in Markdown exist; relative links resolve
+npm run docs:sensor      # npm scripts named in Markdown exist; links resolve inside the repository
 npm run sensors:debt     # all rules on every .kf file, report only (exit 0)
 npm run sensors:doctor   # tools, versions and command files
 npm run check            # the full gate, in order, stopping at the first failure
@@ -71,6 +71,7 @@ check.
 | `deferred-work` | `todo`, `fixme`, `xxx` or `hack` in a comment |
 | `leaked-secret` | any Gitleaks rule |
 | `stale-doc` | `missing-script` or `broken-link` in tracked Markdown |
+| `machine-bound-link` | `outside-repo`: an absolute link, or a relative link that leaves the repository |
 
 The limits and their calibration are recorded in
 [sensor-calibration.md](.agent/validation/sensor-calibration.md). The test code

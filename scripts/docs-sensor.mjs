@@ -9,7 +9,8 @@ import { coach, sensorReport } from './sensor-report.mjs';
 const { root: projectRoot, paths: requested } = sensorArguments();
 const scripts = JSON.parse(readFileSync(path.join(projectRoot, 'package.json'), 'utf8')).scripts ?? {};
 
-const docGuide = guideNamed('stale-doc');
+const staleDoc = guideNamed('stale-doc');
+const ruleGuides = { 'outside-repo': guideNamed('machine-bound-link') };
 
 const NPM_CALL = /\bnpm (run )?([a-z][\w:-]*)/g;
 const FENCE = /```([\w-]*)\r?\n([\s\S]*?)```/g;
@@ -58,29 +59,39 @@ function linkedFile(target) {
   return target.split('#')[0].replace(LINE_SUFFIX, '');
 }
 
-function brokenLinks(text, docPath) {
+function leavesRepository(file, from) {
+  const relative = path.relative(projectRoot, path.resolve(from, file));
+
+  return path.isAbsolute(file) || relative.startsWith('..');
+}
+
+function linkFinding(target, from) {
+  const file = linkedFile(target);
+  if (leavesRepository(file, from)) return { rule: 'outside-repo', detail: `Links to \`${target}\`, outside the repository.` };
+  if (!existsSync(path.resolve(from, file))) return { rule: 'broken-link', detail: `Links to \`${target}\`, which does not exist.` };
+
+  return null;
+}
+
+function linkFindings(text, docPath) {
   const from = path.dirname(path.resolve(projectRoot, docPath));
 
   return [...text.matchAll(LINK)]
     .filter((match) => !EXTERNAL.test(match[1]))
-    .filter((match) => !existsSync(path.resolve(from, linkedFile(match[1]))))
-    .map((match) => ({
-      rule: 'broken-link',
-      line: lineOf(text, match.index),
-      detail: `Links to \`${match[1]}\`, which does not exist.`,
-    }));
+    .map((match) => ({ ...linkFinding(match[1], from), line: lineOf(text, match.index) }))
+    .filter((finding) => finding.rule);
 }
 
 function inspect(docPath) {
   const text = readFileSync(path.resolve(projectRoot, docPath), 'utf8');
 
-  return [...missingScripts(text), ...brokenLinks(text, docPath)]
+  return [...missingScripts(text), ...linkFindings(text, docPath)]
     .sort((a, b) => a.line - b.line)
     .map((finding) => ({ ...finding, docPath }));
 }
 
 function format(finding, coached) {
-  return [`${finding.docPath}:${finding.line} ERROR ${finding.rule}`, `  ${finding.detail}`, coach(docGuide, coached)].join(
+  return [`${finding.docPath}:${finding.line} ERROR ${finding.rule}`, `  ${finding.detail}`, coach(ruleGuides[finding.rule] ?? staleDoc, coached)].join(
     '\n',
   );
 }

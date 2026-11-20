@@ -322,7 +322,7 @@ A decisão final desta conversa é: **entre direções opostas, vence a última 
 
 ## Base verificada e implementação
 
-Hoje, o modelo impede uma segunda direção. Em [Game.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/game/Game.kf:65):
+Hoje, o modelo impede uma segunda direção. Em [Game.kf](src/main/kof/sifuture/game/Game.kf:65):
 
 ```kof
 if (screen != Screen.Play || zone == Zone.Neutral || activeZone != Zone.Neutral) { return }
@@ -360,7 +360,7 @@ Nos testes determinísticos, começar em `(60, 100)`, sem obstáculos próximos.
 | Pausa e teclado | Pausar limpa todas as direções; continuar exige nova pressão. Foco, Enter, tecla `1` e prioridade do direcional conservam seus contratos. | Reutilizar regressões existentes e acrescentar pausa com dois dedos mantidos. |
 | Layout e conforto | Exatamente quatro setas; dimensões previstas; controles abaixo do canvas, sem sobreposição ou rolagem horizontal em 320 px. | Medições e capturas em 320/1200 px; jogar no Chrome do Android real, incluindo o combate com subchefe. |
 
-Ampliar a observação de [browser_controls.py](/home/renanfranca/projects/kof-sifuture/tests/browser_controls.py:23) para reconhecer **posição horizontal e vertical**: hoje ela procura a nave somente em `y = 100`, o que não comprova diagonais. Conferir qual botão recebeu cada soltura simulada.
+Ampliar a observação de [browser_controls.py](tests/browser_controls.py:23) para reconhecer **posição horizontal e vertical**: hoje ela procura a nave somente em `y = 100`, o que não comprova diagonais. Conferir qual botão recebeu cada soltura simulada.
 
 ## Validação e entrega
 
@@ -393,7 +393,7 @@ Worker `primary`: chat `01a108c9-623d-7f10-a9f5-a49eba70b808`, `gpt-6.1-sol`/`me
 
 Conforme seus esclarecimentos: ao chegar a zero vidas, a nave deixa de criar disparos. Lasers, blaster e especial já lançados continuam até terminar seu movimento ou efeito. O resultado de fase concluída com vidas restantes conserva o comportamento atual.
 
-A causa está em [Game.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/game/Game.kf:130):
+A causa está em [Game.kf](src/main/kof/sifuture/game/Game.kf:130):
 
 ```kof
 ship.advanceVisual()
@@ -630,7 +630,7 @@ Gate de entrega deste ciclo: repetir todos os onze checks no complemento documen
 
 ## Purpose and success
 
-**Sim: o núcleo das mecânicas já está implementado e aceito nos ciclos de gameplay, incluindo subchefe e boss final. A v1 completa continua aberta.** A própria [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:3) registra:
+**Sim: o núcleo das mecânicas já está implementado e aceito nos ciclos de gameplay, incluindo subchefe e boss final. A v1 completa continua aberta.** A própria [especificação](.agent/specifications/port-sifuture-to-kof.md:3) registra:
 
 > subchief and final boss combat slices implemented. Full v1 remains open.
 
@@ -648,7 +648,7 @@ O próximo ciclo escolhido entregará **abertura com créditos animados → menu
 
 ## Context and limits
 
-- Preservar a animação histórica dos créditos. A frequência será a determinada pela [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:148):
+- Preservar a animação histórica dos créditos. A frequência será a determinada pela [especificação](.agent/specifications/port-sifuture-to-kof.md:148):
 
   > Credits MUST appear once when the application opens. Enter or touch MUST skip them. They MUST NOT recur within the same running application instance.
 
@@ -668,7 +668,7 @@ O próximo ciclo escolhido entregará **abertura com créditos animados → menu
 
    Isso mantém posição e relógios da animação juntos, permitindo redesenhar sem acelerar sua execução.
 
-4. **Consolidar testes e documentação.** Ampliar as jornadas existentes e promover as três provas complementares do boss já [registradas](/home/renanfranca/projects/kof-sifuture/.agent/validation/stage-hud-result.md:837) à suíte permanente. Atualizar a especificação, o EXECPLAN e os registros de aceite existentes, preservando a história dos ciclos anteriores.
+4. **Consolidar testes e documentação.** Ampliar as jornadas existentes e promover as três provas complementares do boss já [registradas](.agent/validation/stage-hud-result.md:837) à suíte permanente. Atualizar a especificação, o EXECPLAN e os registros de aceite existentes, preservando a história dos ciclos anteriores.
 
 ## Progress
 
@@ -684,9 +684,9 @@ As verificações abaixo são **planejadas**, ainda não resultados do novo cicl
 | Critério e fonte | Contexto, ação e resultado esperado | Prova prevista |
 |---|---|---|
 | Créditos — [histórico](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/MenuCanvas.java#L192) | Abertura começa em x=-134; primeiro avanço mostra x=-129. Preservar chegada, 50 quadros de espera e saída vertical histórica. Redesenhar não avança a animação. | JVM/JS nas transições; Chrome com relógio controlado e comparação dos sprites. |
-| Exibição única — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:148) | Enter focado ou toque pula somente para Menu. Manter Enter pressionado não inicia a partida. Retornos de Controles, pausa e resultado não repetem créditos. | Ampliar `browser.py`, observando também o evento seguinte à transição. |
-| Navegação — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:144) | Seleção inicial Novo Jogo; Baixo seleciona Controles; repetição mantida não navega novamente. Toque executa diretamente a opção tocada. Voltar de Controles conserva essa seleção. | Modelo e Chrome em 320/1200; nomes acessíveis, foco e ausência de Carregar/Opções neste recorte. |
-| Continuar — [especificação](/home/renanfranca/projects/kof-sifuture/.agent/specifications/port-sifuture-to-kof.md:150) | Pausar uma partida com movimento e projéteis ativos congela estado. Continuar conserva a partida; o primeiro passo avança uma vez, sem recuperar movimento mantido. | Reutilizar provas de pausa e acrescentar a navegação pela nova tela. |
+| Exibição única — [especificação](.agent/specifications/port-sifuture-to-kof.md:148) | Enter focado ou toque pula somente para Menu. Manter Enter pressionado não inicia a partida. Retornos de Controles, pausa e resultado não repetem créditos. | Ampliar `browser.py`, observando também o evento seguinte à transição. |
+| Navegação — [especificação](.agent/specifications/port-sifuture-to-kof.md:144) | Seleção inicial Novo Jogo; Baixo seleciona Controles; repetição mantida não navega novamente. Toque executa diretamente a opção tocada. Voltar de Controles conserva essa seleção. | Modelo e Chrome em 320/1200; nomes acessíveis, foco e ausência de Carregar/Opções neste recorte. |
+| Continuar — [especificação](.agent/specifications/port-sifuture-to-kof.md:150) | Pausar uma partida com movimento e projéteis ativos congela estado. Continuar conserva a partida; o primeiro passo avança uma vez, sem recuperar movimento mantido. | Reutilizar provas de pausa e acrescentar a navegação pela nova tela. |
 | Reiniciar — mesma fonte | Reiniciar uma partida evoluída restaura nave em `(0,100)`, três vidas, score zero, posição 5, arma básica, zero cargas e chefes inativos. Uma seed fixa reproduz a nova partida. | JVM/JS pelo comando de reinício; Chrome pela ação real, verificando também o primeiro passo. |
 | Menu principal — mesma fonte | Abandonar durante combate retorna ao menu com Novo Jogo selecionado; passos seguintes não retomam a tentativa. Novo Jogo começa uma partida limpa, sem créditos. | Modelo e Chrome, incluindo teclas e contatos mantidos durante a saída. |
 | Regressões | Resultado mantém suas duas confirmações; combate, controles e geometria atuais continuam aceitos. As três provas complementares do boss tornam-se permanentes. | Suíte completa e sete jornadas existentes. |
@@ -750,7 +750,7 @@ Incorporar este complemento ao `EXECPLAN.md` durante a execução, preservando o
 
 ## Menu e confirmação
 
-Atualmente, tocar na ação principal força a primeira opção, conforme [GameControls.kf:174](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameControls.kf:174):
+Atualmente, tocar na ação principal força a primeira opção, conforme [GameControls.kf:174](src/main/kof/sifuture/GameControls.kf:174):
 
 ```kof
 if (game.screen == Screen.Menu) { game.menuSelection = 0 }
@@ -828,7 +828,7 @@ Ampliar as jornadas existentes, sem criar testes de helpers internos:
 - **Contato:** observar o texto literal e sua transformação no Canvas, conferir ausência do desenho antigo e inspecionar capturas320/1200 quanto a corte e legibilidade.
 - **Regressões:** conservar reset com seed, pausa, movimento, resultado e combate.
 
-As novas regressões devem demonstrar falha antes das correções. Executar os [onze comandos previstos](/home/renanfranca/projects/kof-sifuture/EXECPLAN.md:696), exigindo saída zero e nenhuma falha.
+As novas regressões devem demonstrar falha antes das correções. Executar os [onze comandos previstos](EXECPLAN.md:696), exigindo saída zero e nenhuma falha.
 
 Atualizar especificação, README e aceites existentes com fontes, expectativas, assertions, resultados, SHA, identidade Kof, navegador e CI disponível. Evidências ficam em `.agent/tmp/`. Auditar separadamente a expectativa correta e a suficiência da prova.
 
@@ -867,7 +867,7 @@ $implement-approved-plan # Melhorar textos, seleção e guia de controles
 
 Conforme suas escolhas: texto Kof uniforme nos créditos e menus, nave como indicador de seleção, guia curto de controles e remoção da instrução fixa no rodapé.
 
-Hoje existe uma mistura de imagem e texto. Em [GameView.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameView.kf:88):
+Hoje existe uma mistura de imagem e texto. Em [GameView.kf](src/main/kof/sifuture/GameView.kf:88):
 
 ```kof
 canvas.drawImage(copyright0, game.credits.x, game.credits.firstY)

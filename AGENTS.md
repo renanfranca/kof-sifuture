@@ -12,7 +12,7 @@
 ## Mandatory retrieval in every session
 
 At the start of every agent session in this repository, read the local
-[training index](/home/renanfranca/projects/kof/training/README.md). A mention
+training index (`~/projects/kof/training/README.md`). A mention
 of a directory in this file does not load its contents into the agent's context.
 Before **each Kof-specific decision** in advice, planning, review, explanation,
 or implementation, open the relevant `training/` files. This applies even when
@@ -31,17 +31,16 @@ do not invent a rule.
 ## Route each question to its source
 
 The expected local source is the
-[Kof4j repository](/home/renanfranca/projects/kof), also available at
-`~/projects/kof/`.
+Kof4j repository at `~/projects/kof/`.
 
 1. **What is valid Kof and what does it mean?** Read the relevant page in the
-   [language reference](/home/renanfranca/projects/kof/docs/language-reference/README.md),
+   language reference (`~/projects/kof/docs/language-reference/README.md`),
    including its status or gaps when relevant. Use it for the language contract.
 2. **How should this be expressed in Kof?** Read the topic's `training/idioms/`
    and `training/anti-patterns/` files. Use their examples and reasoning to
    choose an idiom, then check the language contract as needed.
 3. **How can the user understand the concept?** Read the relevant chapter of
-   [Learn Kof](/home/renanfranca/projects/kof/learn/README.md) for a gradual
+   Learn Kof (`~/projects/kof/learn/README.md`) for a gradual
    explanation and a small example. For Kof-related user-facing answers, use
    that chapter when one covers the concept; check its examples against current
    sources before treating them as supported behavior.
@@ -50,11 +49,11 @@ The expected local source is the
    compile or run a focused proof on the target in question. A successful
    compile alone does not prove runtime behavior or idiomatic use.
 5. **What is being developed or decided?** Read the
-   [development index](/home/renanfranca/projects/kof/docs/development/README.md),
+   development index (`~/projects/kof/docs/development/README.md`),
    the relevant plan, and
-   [DECISIONS.md](/home/renanfranca/projects/kof/docs/development/DECISIONS.md)
+   `~/projects/kof/docs/development/DECISIONS.md`
    when an architectural decision applies. The
-   [future index](/home/renanfranca/projects/kof/docs/development/future/README.md)
+   future index (`~/projects/kof/docs/development/future/README.md`)
    describes proposals or paused work; do not present them as implemented.
 
 For example, a mutable class calls for the classes idiom and language reference;

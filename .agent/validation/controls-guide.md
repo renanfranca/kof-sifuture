@@ -41,7 +41,7 @@ O [training de UI](https://github.com/renanfranca/Kof4j/blob/570f8f650e8393fb1aa
 
 > `measureText` returns a `Double` (width in px) for text layout.
 
-Em [GameView.kf](/home/renanfranca/projects/kof-sifuture/src/main/kof/sifuture/GameView.kf:180), a mesma escala é passada para os dois blocos:
+Em [GameView.kf](../../src/main/kof/sifuture/GameView.kf:180), a mesma escala é passada para os dois blocos:
 
 ```kof
 var scale = 0.75
