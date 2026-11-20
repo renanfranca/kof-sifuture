@@ -518,10 +518,28 @@ sequência. O experimento é uma orientação, sem nova execução atribuída aq
 Uma **fixture** é uma entrada de teste que prepara uma situação determinística
 usando modelo, desenho e controles reais.
 
-Instale Python Playwright e Pillow. Os scripts atuais abrem Chrome gráfico
-em `/usr/bin/google-chrome`; é necessário esse executável e uma sessão
-gráfica disponível. Uma instalação apenas do pacote Playwright não garante
-essas condições.
+Instale as versões fixadas de Playwright e Pillow e o Chromium que vem com
+essa versão do Playwright:
+
+```bash
+python3 -m pip install --user -r tests/requirements-browser.txt
+python3 -m playwright install chromium
+```
+
+Se o Python do sistema recusar `pip install --user` por ser gerenciado
+externamente (PEP 668), instale num ambiente virtual e ative-o antes de rodar
+as jornadas, ou acrescente `--break-system-packages` sabendo que isso mexe nos
+pacotes do usuário.
+
+Todas as jornadas abrem o navegador pela função `launch` de
+`tests/journey_browser.py`: o Chromium do Playwright, em modo headless, sem
+sessão gráfica e sem usar o Chrome do sistema. Ela também fixa a semente:
+cada página recebe a mesma sequência de `crypto.getRandomValues`, de onde o
+`random.int` do Kof tira a semente da partida, então a mesma partida se repete
+em todas as rodadas. Cada versão do Playwright traz
+uma versão própria do Chromium, então fixar o Playwright fixa o navegador.
+Atualizar `tests/requirements-browser.txt` muda o desenho das capturas e exige
+uma prova nova de estabilidade (abaixo).
 
 ```bash
 python3 tests/browser.py
@@ -555,6 +573,29 @@ Esperar uma derrota espontânea não é um critério determinístico: coleta de
 vida e evolução podem prolongar a tentativa. As três colisões preparadas
 permitem verificar o encerramento e as duas confirmações do resultado.
 Redesenhos sem avanço verificam a separação entre modelo e apresentação.
+
+### Comparar capturas entre rodadas
+
+As jornadas gravam capturas PNG em `.agent/tmp/`. Para provar que a aparência
+não mudou, ou que as capturas são estáveis, rode uma **rodada** (as sete
+jornadas, uma depois da outra) por pasta de destino nova e compare as rodadas:
+
+```bash
+python3 scripts/journey_pixels.py capture .agent/tmp/rodadas/a
+python3 scripts/journey_pixels.py capture .agent/tmp/rodadas/b
+python3 scripts/journey_pixels.py compare .agent/tmp/rodadas/a .agent/tmp/rodadas/b
+```
+
+O `capture` grava em `summary.txt` a versão do navegador, o código de saída de
+cada jornada e a quantidade de capturas, guarda o log de cada jornada e copia
+para `png/` só as capturas escritas naquela rodada; ele não apaga nada. O
+`compare` confere os pixels RGB decodificados e o tamanho de cada captura, por
+nome, e imprime, por exemplo, `runs=2 common=186 only_some=0 unstable=0`,
+seguido do nome de cada captura instável (`unstable`) ou ausente de alguma
+rodada (`only_some`). Ele sai com código diferente de 0 se houver alguma.
+
+Depois de atualizar o Playwright, rode cinco rodadas sem mudar o código e
+confirme `unstable=0 only_some=0` antes de usar as capturas como prova.
 
 A automação Python pode ser verificada com:
 

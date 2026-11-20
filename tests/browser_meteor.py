@@ -8,6 +8,7 @@ from pathlib import Path
 
 from PIL import Image
 from playwright.sync_api import sync_playwright
+from journey_browser import launch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from kof_project import served_build
@@ -43,10 +44,7 @@ def main():
     with served_build(kof=args.kof, fixture=ROOT / "tests/meteor-motion.kf",
                       model_only=True, assets=frames) as url:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(
-                executable_path="/usr/bin/google-chrome", headless=False,
-                args=["--no-sandbox", "--headless=new"]
-            )
+            browser = launch(playwright)
             try:
                 page = browser.new_page()
                 errors = []

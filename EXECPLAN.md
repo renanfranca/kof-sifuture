@@ -1776,3 +1776,14 @@ Na mesma branch, a pedido do usuário: `kof-mut.json` passa a usar
 ## `check`: tipos das fixtures de navegador — 10/11/2026
 
 - [x] Passo `types:fixtures` depois de `types:js`: checa no alvo JS cada `tests/*.kf` como entrada real (`kof_project.py check --fixture`), como as jornadas montam o build; um `import` faltando em arquivo alcançado por uma fixture reprova o `check` e o sumário nomeia a fixture. Produção sem diff. Plano em [`.agent/execplans/check-fixture-imports.md`](.agent/execplans/check-fixture-imports.md), aceite em [`.agent/validation/check-fixture-imports.md`](.agent/validation/check-fixture-imports.md).
+
+## Capturas determinísticas nas jornadas de navegador — 20/11/2026
+
+- [x] Issue #35: as jornadas abrem o Chromium 159.0.8154.6 do Playwright 1.65.2
+  (fixado em `tests/requirements-browser.txt`) por `tests/journey_browser.py`,
+  com `--disable-partial-raster` e semente fixa em `crypto.getRandomValues` por
+  página. `scripts/journey_pixels.py` faz `capture` e `compare`. Cinco rodadas
+  seguidas: `runs=5 common=186 only_some=0 unstable=0` (no Chrome 158 do sistema,
+  28 instáveis em três). Plano em
+  [`.agent/execplans/journey-determinism.md`](.agent/execplans/journey-determinism.md),
+  aceite em [`.agent/validation/journey-determinism.md`](.agent/validation/journey-determinism.md).

@@ -4,6 +4,7 @@ import re
 import sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from journey_browser import launch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from kof_project import served_build
@@ -223,8 +224,7 @@ def main():
         f"{hashlib.sha256((ROOT / 'assets' / (name + '.png')).read_bytes()).hexdigest()}  {name}.png" for name in names) + "\n")
     with served_build(fixture=ROOT / "tests/boss.kf") as url:
         with sync_playwright() as p:
-            browser = p.chromium.launch(executable_path="/usr/bin/google-chrome", headless=False,
-                                        args=["--no-sandbox", "--headless=new"])
+            browser = launch(p)
             try:
                 print("Chrome", browser.version)
                 for width in (320, 1200):
