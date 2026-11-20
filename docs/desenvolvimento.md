@@ -541,10 +541,28 @@ not a new run claimed here.
 A **fixture** is a test entry that prepares a deterministic situation using
 the real model, drawing, and controls.
 
-Install Python Playwright and Pillow. Current scripts open graphical Chrome at
-`/usr/bin/google-chrome`; that executable and an available graphical session
-are required. Installing only the Playwright package does not guarantee
-these conditions.
+Install the pinned Playwright and Pillow versions and the Chromium that ships
+with that Playwright version:
+
+```bash
+python3 -m pip install --user -r tests/requirements-browser.txt
+python3 -m playwright install chromium
+```
+
+If the system Python refuses `pip install --user` because it is externally
+managed (PEP 668), install into a virtual environment and activate it before
+running the journeys, or add `--break-system-packages` knowing that it changes
+the user's packages.
+
+Every journey opens the browser through the `launch` function in
+`tests/journey_browser.py`: Playwright's Chromium, in headless mode, with no
+graphical session and without the system Chrome. It also pins the seed: every
+page gets the same `crypto.getRandomValues` sequence, which Kof's `random.int`
+uses to seed the game, so the same game repeats in every run. Each Playwright
+version ships
+its own Chromium version, so pinning Playwright pins the browser. Updating
+`tests/requirements-browser.txt` changes how captures render and requires a new
+stability proof (below).
 
 ```bash
 python3 tests/browser.py
@@ -579,6 +597,29 @@ Waiting for a spontaneous defeat is not deterministic: life pickups and
 upgrades can extend a run. Three prepared collisions let the scripts check
 ending and both result confirmations. Redraws without advancement check the
 separation between model and presentation.
+
+### Compare captures between runs
+
+The journeys write PNG captures to `.agent/tmp/`. To prove that the appearance
+did not change, or that captures are stable, record one **run** (the seven
+journeys, one after another) per new destination folder and compare the runs:
+
+```bash
+python3 scripts/journey_pixels.py capture .agent/tmp/rodadas/a
+python3 scripts/journey_pixels.py capture .agent/tmp/rodadas/b
+python3 scripts/journey_pixels.py compare .agent/tmp/rodadas/a .agent/tmp/rodadas/b
+```
+
+`capture` writes the browser version, each journey's exit code, and the capture
+count to `summary.txt`, keeps each journey's log, and copies to `png/` only the
+captures written during that run; it deletes nothing. `compare` checks each
+capture's decoded RGB pixels and size, by name, and prints, for example,
+`runs=2 common=186 only_some=0 unstable=0`, followed by the name of each
+unstable capture (`unstable`) or capture missing from some run (`only_some`).
+It exits with a nonzero code if there is any.
+
+After updating Playwright, record five runs without changing code and confirm
+`unstable=0 only_some=0` before using captures as evidence.
 
 Python automation can be checked with:
 

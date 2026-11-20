@@ -11,6 +11,7 @@ import sys
 
 from PIL import Image
 from playwright.sync_api import sync_playwright
+from journey_browser import launch
 from browser import record_keyboard, tab_to
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -631,8 +632,7 @@ def main():
     args = parser.parse_args()
     with served_build(kof=args.kof, fixture=ROOT / "tests/weapons.kf") as url:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(executable_path="/usr/bin/google-chrome", headless=False,
-                                                 args=["--no-sandbox", "--headless=new"])
+            browser = launch(playwright)
             try:
                 items_background_and_life(browser, url)
                 weapon_frames(browser, url)
@@ -644,8 +644,7 @@ def main():
                 browser.close()
     with served_build(kof=args.kof) as url:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(executable_path="/usr/bin/google-chrome", headless=False,
-                                                 args=["--no-sandbox", "--headless=new"])
+            browser = launch(playwright)
             try:
                 for width in (320, 1200):
                     page = browser.new_page(viewport={"width": width, "height": 800})

@@ -9,6 +9,7 @@ from contextlib import nullcontext
 import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from journey_browser import launch
 from PIL import Image, ImageChops, ImageColor
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
@@ -790,10 +791,7 @@ def main():
     server = nullcontext(args.url) if args.url else served_build(kof=args.kof)
     with server as url, served_build(kof=args.kof, fixture=Path(__file__).parent / "weapons.kf") as result_url:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(
-                executable_path="/usr/bin/google-chrome", headless=False,
-                args=["--no-sandbox", "--headless=new"]
-            )
+            browser = launch(playwright)
             try:
                 startup_context = browser.new_context(viewport={"width": 800, "height": 600})
                 credits_animation(browser, url)

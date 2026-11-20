@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from PIL import Image
 from playwright.sync_api import sync_playwright
+from journey_browser import launch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from kof_project import served_build
@@ -388,8 +389,7 @@ def main():
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     with served_build(fixture=ROOT / "tests/stage.kf") as url, served_build() as app_url:
         with sync_playwright() as p:
-            browser = p.chromium.launch(executable_path="/usr/bin/google-chrome", headless=False,
-                                        args=["--no-sandbox", "--headless=new"])
+            browser = launch(p)
             try:
                 for width in (320, 1200):
                     for journey in (pause_navigation, hud_and_pause, moving_result, right_held_result, right_input_clearing, defeat_projectiles, defeat_effects):
