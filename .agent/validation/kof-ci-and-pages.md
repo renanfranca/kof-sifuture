@@ -86,7 +86,7 @@ Both commands returned 0 and ended with:
 1 passed, 0 failed
 ```
 
-The [Kof target training](../../../kof/training/reference/targets.md) describes the embedded GraalJS execution. [Learn Kof testing](../../../kof/learn/23-testing.md) explains per-case isolation. The target results above are runtime evidence, rather than compilation-only evidence.
+The [Kof target training](https://github.com/renanfranca/Kof4j/blob/22eeb5e818e19c4be142179378dff175b40d1195/training/reference/targets.md) describes the embedded GraalJS execution. [Learn Kof testing](https://github.com/renanfranca/Kof4j/blob/22eeb5e818e19c4be142179378dff175b40d1195/learn/23-testing.md) explains per-case isolation. The target results above are runtime evidence, rather than compilation-only evidence.
 
 The existing `python3 scripts/kof_project.py build --output DIRECTORY` returned 0 into a new empty directory. The complete output contained 34 files. It was packed with the same `tar` flags as `actions/upload-pages-artifact`, extracted into a separate directory, and compared with `diff -r`; there were no differences. A local HTTP server served the build under `/kof-sifuture/`. Every file was fetched with `curl` and compared byte-for-byte:
 

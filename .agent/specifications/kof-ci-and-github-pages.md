@@ -35,24 +35,24 @@ Pull requests MUST NOT build a publishable Pages artifact, deploy the applicatio
 
 ### Why JS tests do not need a browser
 
-The local [target training reference](/home/renanfranca/projects/kof/training/reference/targets.md:135) states:
+The local [target training reference](https://github.com/renanfranca/Kof4j/blob/2dc3163e8202a14d152e75f4e948554e17b62a91/training/reference/targets.md#L135) states:
 
 > ES Modules 2022+ via embedded GraalJS (KofJsRunner) — no Node.js
 
-The [CLI training reference](/home/renanfranca/projects/kof/training/tooling/cli.md:18) documents `kof test` with `--target jvm|native|js`. [Learn Kof's testing chapter](/home/renanfranca/projects/kof/learn/23-testing.md:42) explains:
+The [CLI training reference](https://github.com/renanfranca/Kof4j/blob/2dc3163e8202a14d152e75f4e948554e17b62a91/training/tooling/cli.md#L18) documents `kof test` with `--target jvm|native|js`. [Learn Kof's testing chapter](https://github.com/renanfranca/Kof4j/blob/2dc3163e8202a14d152e75f4e948554e17b62a91/learn/23-testing.md#L42) explains:
 
 > Each test runs **in isolation** (one failing does not interrupt the others).
 
 That isolation concerns cases within a Kof invocation. CI must additionally preserve independence between the two target jobs.
 
-The current [JS branch of `CmdTest.java`](/home/renanfranca/projects/kof/kof-cli/src/main/java/dev/kof/cli/CmdTest.java:153) calls:
+The current [JS branch of `CmdTest.java`](https://github.com/renanfranca/Kof4j/blob/2dc3163e8202a14d152e75f4e948554e17b62a91/kof-cli/src/main/java/dev/kof/cli/CmdTest.java#L153) calls:
 
 ```java
                                     code[0] = dev.kof.runtime.KofJsRunner.run(java.nio.file.Path.of(entry),
                                             System.out, System.in, System.err, false, new String[0]);
 ```
 
-The `false` argument is `openWindow`. In [the runner](/home/renanfranca/projects/kof/kof-runtime/src/main/java/dev/kof/runtime/KofJsRunner.java:75), module execution precedes the optional window path:
+The `false` argument is `openWindow`. In [the runner](https://github.com/renanfranca/Kof4j/blob/2dc3163e8202a14d152e75f4e948554e17b62a91/kof-runtime/src/main/java/dev/kof/runtime/KofJsRunner.java#L75), module execution precedes the optional window path:
 
 ```java
             Source source = Source.newBuilder("js", moduleFile.toFile())
@@ -111,7 +111,7 @@ def kof_executable(override=None):
 
 An explicit executable takes precedence over `KOF`, which takes precedence over PATH lookup. CI can therefore select the verified distribution without changing the local command interface.
 
-The [distribution training reference](/home/renanfranca/projects/kof/training/distribution/install.md:21) records:
+The [distribution training reference](https://github.com/renanfranca/Kof4j/blob/2dc3163e8202a14d152e75f4e948554e17b62a91/training/distribution/install.md#L21) records:
 
 > Artifacts: `kof-<version>-<system>.tar.gz` (Linux/macOS) or `.zip`
 > (Windows), accompanied by `SHA256SUMS`.
@@ -164,7 +164,7 @@ These checks establish that the existing entry artifacts are present and that ge
                 shutil.copyfile(asset, destination / Path(asset).name)
 ```
 
-The destination preserves the generated application's relative `assets/` URLs. The [Learn Kof JS chapter](/home/renanfranca/projects/kof/learn/37-kofjs.md:54) describes the deployment model:
+The destination preserves the generated application's relative `assets/` URLs. The [Learn Kof JS chapter](https://github.com/renanfranca/Kof4j/blob/2dc3163e8202a14d152e75f4e948554e17b62a91/learn/37-kofjs.md#L54) describes the deployment model:
 
 > `kof build --target=js` generates `index.html` + modules: serve the
 > folder as a static web application (any HTTP server).

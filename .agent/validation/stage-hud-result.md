@@ -575,7 +575,7 @@ weapons.advance()
 A conjunção exige vidas positivas e uma das duas fases permitidas. Ela restringe a
 criação em `attemptFire`; `advance` permanece fora da condição e conclui tiros e efeitos
 ativos. A permissão usa as próprias vidas, conforme
-[duplicate-state.md](../../../kof/training/anti-patterns/duplicate-state.md#rule):
+[duplicate-state.md](https://github.com/renanfranca/Kof4j/blob/a047163a182a795bc15925258422104e6dd29000/training/anti-patterns/duplicate-state.md#rule):
 
 > If a value can be derived from another, derive it (method or function).
 > Do not store projections.
@@ -887,7 +887,7 @@ PASS pause freezes active combat, navigation continues once, Restart resets and 
 
 Fonte histórica: SiFuture `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, `MenuCanvas.java:98–109,192–217`, inspecionada estaticamente, sem executar o JAR. A frequência por instância vem da especificação aprovada; o restart histórico que repetia créditos não é reproduzido. Os PNGs têm copyright0 134×31 e copyright1 134×30.
 
-Trecho fiel de [MenuCanvas.java](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:192), linhas194–210 (omissões marcadas):
+Trecho fiel de [MenuCanvas.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/MenuCanvas.java#L192), linhas194–210 (omissões marcadas):
 
 ```java
 if (this.i < Midlet.width/4) {
@@ -903,7 +903,7 @@ if ((this.j1 >= -this.copyright0.getHeight()) || (this.j0 <= Midlet.height)) {
 
 Incrementar x de cinco em cinco sob `x < 176/4` chega a46, não44. A espera dura cinquenta atualizações. O `||` conserva a saída enquanto qualquer imagem ainda atende à condição; y0=283/y1=-32 encerra a saída e o passo seguinte abre Menu. Posições iniciais -134/110/141 e menu no passo260 foram conferidos separadamente das assertions. O recorte de Opções/Música, as três opções da pausa, os bloqueios de entrada e as duas confirmações de resultado seguem a especificação e o plano deste ciclo.
 
-Kof consultado: treinamento `language/classes.md`, `idioms/classes.md`, `idioms/functions.md`, `idioms/ui.md`, `anti-patterns/fake-idioms.md`, `anti-patterns/duplicate-state.md` e tooling/cli; referência classes/closures; Learn 07,23,35-kof-ui; registro KofUi e implementação/testes UI JS. Regra do [treinamento de classes](/home/renanfranca/projects/kof/training/idioms/classes.md:35), também explicada em [Learn Kof, capítulo07](/home/renanfranca/projects/kof/learn/07-classes-and-objects.md:55):
+Kof consultado: treinamento `language/classes.md`, `idioms/classes.md`, `idioms/functions.md`, `idioms/ui.md`, `anti-patterns/fake-idioms.md`, `anti-patterns/duplicate-state.md` e tooling/cli; referência classes/closures; Learn 07,23,35-kof-ui; registro KofUi e implementação/testes UI JS. Regra do [treinamento de classes](https://github.com/renanfranca/Kof4j/blob/1536b9e06a4b886e38020444c1c33355f2c59567/training/idioms/classes.md#L35), também explicada em [Learn Kof, capítulo07](https://github.com/renanfranca/Kof4j/blob/1536b9e06a4b886e38020444c1c33355f2c59567/learn/07-classes-and-objects.md#L55):
 
 > for **mutable state** use explicit fields + `constructor(...)`.
 
@@ -1035,7 +1035,7 @@ A sonda termina0 porque confirma a reprodução do defeito; esse exit não é ac
 
 > Preservar chegada, 50 quadros de espera e saída vertical histórica.
 
-No [histórico MenuCanvas.java](/home/renanfranca/projects/sifuture/src/MenuCanvas.java:199), revisão `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, a chegada em x46 já é o primeiro quadro que incrementa delay:
+No [histórico MenuCanvas.java](https://github.com/renanfranca/sifuture/blob/6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f/src/MenuCanvas.java#L199), revisão `6f59817aef0f8aaf56bf7d8854d20c26e84bfc4f`, a chegada em x46 já é o primeiro quadro que incrementa delay:
 
 ```java
                     if (this.delay < 50) {

@@ -1,7 +1,7 @@
 # Revalidação com Kof 0.7.0 (SiFuture e KofMut)
 
 Data: 2026-11-03 (UTC). Repete a matriz do registro
-[Kof 0.6.10](../../../kof-mut/.agent/validation/kof-0610-revalidation.md) e
+[Kof 0.6.10](https://github.com/renanfranca/kof-mut/blob/64c85f886fe117b80440bea22da60dc13865f369/.agent/validation/kof-0610-revalidation.md) e
 executa a parte do KofMut que ficou de fora naquela ocasião. Nenhum commit,
 download ou alteração de distribuição Kof foi feito; os dois checkouts ficaram
 limpos antes e depois.

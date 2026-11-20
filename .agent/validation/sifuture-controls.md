@@ -200,7 +200,7 @@ var movementControls = Row(listOf(gameColumn, specialColumn))
 movementControls.setStyle(Style("width: 264; flex-wrap: nowrap; align-self: center; align-items: flex-start; gap: 16; padding: 0"))
 ```
 
-`Column` empilha canvas/cruz; `Row` dispõe as duas colunas horizontalmente. A coluna de altura 220 define a referência vertical do Especial, e largura 264/nowrap impede quebra responsiva. [Learn Kof 35](/home/renanfranca/projects/kof/learn/35-kof-ui.md:162) apresenta `Column`/`Row`; [training UI](/home/renanfranca/projects/kof/training/idioms/ui.md:405) registra “the compiler owns the parse (D-UI-STYLE/UI007)”. O parser `KofStyleParser.java:65–88` admite os estilos usados, e o runtime `JsRuntimeUiWidgets.java:246,297` monta os filhos na ordem dada. Não há JavaScript/CSS de aplicação escrito à mão nem alteração de saída gerada. A execução real em KofJS/Chrome, não apenas a compilação, provou a geometria e entrada.
+`Column` empilha canvas/cruz; `Row` dispõe as duas colunas horizontalmente. A coluna de altura 220 define a referência vertical do Especial, e largura 264/nowrap impede quebra responsiva. [Learn Kof 35](https://github.com/renanfranca/Kof4j/blob/fee486d60bd04fe90bd6ef34f105f6870e27162b/learn/35-kof-ui.md#L162) apresenta `Column`/`Row`; [training UI](https://github.com/renanfranca/Kof4j/blob/fee486d60bd04fe90bd6ef34f105f6870e27162b/training/idioms/ui.md#L405) registra “the compiler owns the parse (D-UI-STYLE/UI007)”. O parser `KofStyleParser.java:65–88` admite os estilos usados, e o runtime `JsRuntimeUiWidgets.java:246,297` monta os filhos na ordem dada. Não há JavaScript/CSS de aplicação escrito à mão nem alteração de saída gerada. A execução real em KofJS/Chrome, não apenas a compilação, provou a geometria e entrada.
 
 ### Resultado por critério no gate inicial
 
@@ -405,11 +405,11 @@ O [contrato atual](../specifications/port-sifuture-to-kof.md:34) limita o movime
 
 > Arrows move the ship only when they originate at the overlay.
 
-O [training de eventos](../../../kof/training/idioms/ui.md:380) explica a origem:
+O [training de eventos](https://github.com/renanfranca/Kof4j/blob/9e223557f7f976ba07177e0c0ca4cf1bce41b01a/training/idioms/ui.md#L380) explica a origem:
 
 > `target()` returns the **id** of the node that originated the event
 
-O [Learn Kof 35](../../../kof/learn/35-kof-ui.md:5) delimita a prova visual:
+O [Learn Kof 35](https://github.com/renanfranca/Kof4j/blob/9e223557f7f976ba07177e0c0ca4cf1bce41b01a/learn/35-kof-ui.md#L5) delimita a prova visual:
 
 > only the JS target draws
 
@@ -503,7 +503,7 @@ clearKeyboard() {
 }
 ```
 
-Essa operação não atribui os campos `heldLeft/Right/Up/Down`; limpa apenas a entrada efetiva, quando o pad não a controla. As provas de retorno com tecla mantida e de prioridade do direcional demonstram a consequência no alvo JS. O [training](../../../kof/training/anti-patterns/duplicate-state.md:72) orienta a classificação derivada:
+Essa operação não atribui os campos `heldLeft/Right/Up/Down`; limpa apenas a entrada efetiva, quando o pad não a controla. As provas de retorno com tecla mantida e de prioridade do direcional demonstram a consequência no alvo JS. O [training](https://github.com/renanfranca/Kof4j/blob/9e223557f7f976ba07177e0c0ca4cf1bce41b01a/training/anti-patterns/duplicate-state.md#L72) orienta a classificação derivada:
 
 > If a value can be derived from another, derive it (method or function).
 > Do not store projections.
@@ -600,15 +600,15 @@ overlay.text = if (playing && focused) "Teclado ativo" else "Ativar teclado do j
 
 `focused` é local, recalculado; nenhum campo “teclado ativado” foi introduzido. O aviso e o nome são duas apresentações da mesma condição. Focus/blur dos receptores atualizam a apresentação, e `update()` cobre transições de tela. A opção retida também atualiza ao ganhar foco fora da sua tela original. Movimento, especial, confirmação, bloqueios de teclas mantidas e prioridade do direcional conservaram a implementação.
 
-O [training de eventos](../../../kof/training/idioms/ui.md:380) explica a origem do foco:
+O [training de eventos](https://github.com/renanfranca/Kof4j/blob/8aa6802aa4fcd4f9612f8249447cdf41c89a6e6d/training/idioms/ui.md#L380) explica a origem do foco:
 
 > `Event.key()/value()/x()/y()/target()/relatedTarget()` read the real DOM event
 
-O [anti-pattern de estado duplicado](../../../kof/training/anti-patterns/duplicate-state.md:73) prescreve:
+O [anti-pattern de estado duplicado](https://github.com/renanfranca/Kof4j/blob/8aa6802aa4fcd4f9612f8249447cdf41c89a6e6d/training/anti-patterns/duplicate-state.md#L73) prescreve:
 
 > If a value can be derived from another, derive it (method or function).
 
-Consultados também [Learn Kof 35](../../../kof/learn/35-kof-ui.md:191), parser Style, runtime JS de widgets/eventos, testes UiStyleCssE2ETest, classes/idiomas, referência de classes e training CLI. A implementação usa apenas APIs existentes; nenhum arquivo do Kof foi alterado. Kof instalado `0.5.0-beta`; essas fontes locais não identificam o SHA do pacote instalado. A prova de UI foi executada no alvo JS em Chrome, não inferida da compilação JVM.
+Consultados também [Learn Kof 35](https://github.com/renanfranca/Kof4j/blob/8aa6802aa4fcd4f9612f8249447cdf41c89a6e6d/learn/35-kof-ui.md#L191), parser Style, runtime JS de widgets/eventos, testes UiStyleCssE2ETest, classes/idiomas, referência de classes e training CLI. A implementação usa apenas APIs existentes; nenhum arquivo do Kof foi alterado. Kof instalado `0.5.0-beta`; essas fontes locais não identificam o SHA do pacote instalado. A prova de UI foi executada no alvo JS em Chrome, não inferida da compilação JVM.
 
 ### Conferência semântica dos critérios
 

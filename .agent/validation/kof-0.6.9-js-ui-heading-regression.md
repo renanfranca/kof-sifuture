@@ -166,7 +166,7 @@ controle mudava duas variáveis ao mesmo tempo. O caso D separa as duas.
 
 ## Causa no compilador
 
-Em [BuiltinUiCallTyper.java](../../../kof/kof-compiler/src/main/java/dev/kof/compiler/BuiltinUiCallTyper.java#L39),
+Em [BuiltinUiCallTyper.java](https://github.com/renanfranca/Kof4j/blob/c74cc85d87945e6505aef81bdc50bff999b77893/kof-compiler/src/main/java/dev/kof/compiler/BuiltinUiCallTyper.java#L39),
 o analisador semântico tipa `Column`/`Row` sem visitar o argumento:
 
 ```java
@@ -190,17 +190,17 @@ retornar. O commit `5fb5b910a` removeu exatamente essa visita no caso de
 ```
 
 Sem a visita, `heading(...)` não recebe método resolvido. No lowering,
-[ExpressionBareCallLowerer.java](../../../kof/kof-compiler/src/main/java/dev/kof/compiler/ExpressionBareCallLowerer.java#L62)
+[ExpressionBareCallLowerer.java](https://github.com/renanfranca/Kof4j/blob/c74cc85d87945e6505aef81bdc50bff999b77893/kof-compiler/src/main/java/dev/kof/compiler/ExpressionBareCallLowerer.java#L62)
 só usa o receptor implícito quando `getResolvedMethod(mc)` existe. Caso
 contrário, cai na emissão de função de topo
-([linha 279](../../../kof/kof-compiler/src/main/java/dev/kof/compiler/ExpressionBareCallLowerer.java#L279)):
+([linha 279](https://github.com/renanfranca/Kof4j/blob/c74cc85d87945e6505aef81bdc50bff999b77893/kof-compiler/src/main/java/dev/kof/compiler/ExpressionBareCallLowerer.java#L279)):
 
 ```java
                 ops.add(new KofCall(CompilerTypes.mainClassType(driver.currentModule), mc.methodName(), argTypes, returnType, KofCallKind.FUNCTION));
 ```
 
 No backend JS, `KofCallKind.FUNCTION` vira um identificador nu
-([JsCallEmitter.java](../../../kof/kof-compiler/src/main/java/dev/kof/compiler/js/JsCallEmitter.java#L140)).
+([JsCallEmitter.java](https://github.com/renanfranca/Kof4j/blob/c74cc85d87945e6505aef81bdc50bff999b77893/kof-compiler/src/main/java/dev/kof/compiler/js/JsCallEmitter.java#L140)).
 No JVM, vira uma chamada para `Default.Main`. O caso F passa porque o
 `listOf` em uma declaração própria é visitado pelo analisador.
 
@@ -262,7 +262,7 @@ JS de regras do jogo. Essas suítes não instanciam `ControlsGuide`. O
 `ControlsGuide`. Esses passes não contradizem o defeito. O caso de `break`
 (registro `kof-0.6.7-js-break-issue.md`) é outro defeito.
 
-O [Learn Kof](../../../kof/learn/35-kof-ui.md#L5) situa a renderização de
+O [Learn Kof](https://github.com/renanfranca/Kof4j/blob/c74cc85d87945e6505aef81bdc50bff999b77893/learn/35-kof-ui.md#L5) situa a renderização de
 `kof.ui` no JS:
 
 > `kof.ui` is Kof's UI platform. Rendering is **KofJS**: the same program
