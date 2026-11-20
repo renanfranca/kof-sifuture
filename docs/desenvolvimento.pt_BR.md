@@ -150,7 +150,9 @@ node scripts/kof-tests.mjs --target js
 pelo wrapper e os testes pelo `scripts/kof-tests.mjs`, com o executável `kof`
 resolvido no `PATH`. Cada comando completo de check ou
 teste tem timeout de 30 segundos; `budgetMs: 0` remove apenas o orçamento total
-da avaliação. O escopo explícito atual em
+da avaliação. `maxParallelMutants: 4`, o máximo do KofMut, avalia até quatro
+mutantes ao mesmo tempo; evite outro trabalho pesado durante uma rodada, porque
+a máquina sobrecarregada pode levar um comando a passar do timeout. O escopo explícito atual em
 [`kof-mut-scope.json`](../kof-mut-scope.json) seleciona os arquivos inteiros `Background.kf` e `Meteor.kf`. Edite esse array JSON para escolher outros
 caminhos de produção `.kf`; são caminhos explícitos, sem glob. O KofMut copia
 as entradas configuradas e avalia o escopo em cópias isoladas do projeto.
