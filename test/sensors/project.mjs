@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -34,6 +35,21 @@ export function runSensorWith(env, script, root, ...args) {
   const result = spawnSync(process.execPath, [path.join(repositoryRoot, 'scripts', script), '--root', root, ...args], {
     encoding: 'utf8',
     env,
+  });
+  return { code: result.status, out: result.stdout, err: result.stderr };
+}
+
+export function syntheticToken() {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const body = [...randomBytes(36)].map((byte) => alphabet[byte % alphabet.length]).join('');
+  return ['gh', 'p_', body].join('');
+}
+
+export function fireHook(script, root, payload, env = {}) {
+  const result = spawnSync(process.execPath, [path.join(repositoryRoot, script), '--root', root], {
+    encoding: 'utf8',
+    input: JSON.stringify(payload),
+    env: { ...process.env, ...env },
   });
   return { code: result.status, out: result.stdout, err: result.stderr };
 }

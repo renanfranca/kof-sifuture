@@ -1,8 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { accessSync, constants, existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 
 import { sensorArguments } from './sensor-arguments.mjs';
+import { HOOK_EVENTS, lastSeen } from './sensor-liveness.mjs';
 
 function executable(file) {
   try {
@@ -59,9 +61,46 @@ function examineCommands(root) {
     .map((entry) => ({ label: entry.name, detail: entry.file, ok: existsSync(path.join(root, entry.file)) }));
 }
 
+const MANIFEST = '.codex/hooks.json';
+const ROOTED = /\$\(git rev-parse --show-toplevel\)\/([^"'\s]+)/;
+
+function readManifest(root) {
+  try {
+    return JSON.parse(readFileSync(path.join(root, MANIFEST), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function scriptsOf(groups = []) {
+  return groups.flatMap((group) => group.hooks ?? []).map((hook) => hook.command?.match(ROOTED)?.[1]).filter(Boolean);
+}
+
+function lastFired(root, event) {
+  const at = lastSeen(root, event);
+  if (at === null) return { label: `last ${event}`, detail: 'never fired', ok: true, state: 'UNAVAILABLE' };
+  return { label: `last ${event}`, detail: new Date(at).toISOString(), ok: true };
+}
+
+function hookNode() {
+  const appNode = path.join(homedir(), '.local', 'bin', 'node');
+  const version = executable(appNode) && firstLine(appNode, ['--version']);
+  return { label: 'hook node', detail: version || '—', where: appNode, ok: Boolean(version) };
+}
+
+function examineHooks(root) {
+  const manifest = readManifest(root);
+  if (manifest === null) return [{ label: 'manifest', detail: MANIFEST, ok: false }];
+
+  const scripts = HOOK_EVENTS.flatMap((event) =>
+    scriptsOf(manifest.hooks?.[event]).map((script) => ({ label: event, detail: script, ok: existsSync(path.join(root, script)) })),
+  );
+  return [{ label: 'manifest', detail: MANIFEST, ok: true }, ...scripts, ...HOOK_EVENTS.map((event) => lastFired(root, event)), hookNode()];
+}
+
 function row(entry, width) {
   const where = entry.where ? `  ${entry.where}` : '';
-  return `    ${entry.label.padEnd(width)}  ${entry.detail}${where}  ${entry.ok ? 'ok' : 'MISSING'}`;
+  return `    ${entry.label.padEnd(width)}  ${entry.detail}${where}  ${entry.state ?? (entry.ok ? 'ok' : 'MISSING')}`;
 }
 
 function section(title, entries) {
@@ -72,7 +111,8 @@ function section(title, entries) {
 const { root } = sensorArguments();
 const toolStates = tools.map(examineTool);
 const commandStates = examineCommands(root);
-const broken = [...toolStates, ...commandStates].filter((entry) => !entry.ok);
+const hookStates = examineHooks(root);
+const broken = [...toolStates, ...commandStates, ...hookStates].filter((entry) => !entry.ok);
 
 process.stdout.write(
   [
@@ -81,6 +121,8 @@ process.stdout.write(
     section('Tools', toolStates),
     '',
     section('Commands', commandStates),
+    '',
+    section('Codex hooks', hookStates),
     '',
     '  This report checks configuration and liveness; it is not a quality certificate.',
     '',

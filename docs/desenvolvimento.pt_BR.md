@@ -135,6 +135,59 @@ complexidade 10, parâmetros 4, profundidade 2, statements 17; CPD com 50 tokens
 e 5 linhas, fora do código de teste. O
 [SENSORS.md](../SENSORS.md) lista todos os comandos e regras (em inglês).
 
+## Hooks do Codex
+
+O [`.codex/hooks.json`](../.codex/hooks.json) liga os sensores a três eventos
+de uma sessão do Codex CLI: o `codex` do terminal, o app desktop e o
+`codex exec`, que é o que o `luna`, o `lc` e o `lp` usam. O estado fica em
+`.sensors/ledger/`, ignorado pelo Git.
+
+- **SessionStart** tira uma foto dos arquivos sujos do worktree. Ao retomar
+  uma sessão, a foto antiga continua valendo, então uma mudança feita com a
+  sessão fechada aparece no comando seguinte.
+- **PostToolUse**, depois de cada `Bash` ou `apply_patch`, compara o worktree
+  com o último olhar e roda `lint`, `dup` e `gitleaks` nos arquivos que
+  mudaram. Arquivo que não é `.kf` passa só pelo gitleaks. Quando há achado,
+  o Codex mostra ao agente um erro da ferramenta que começa com "The command
+  ran", porque o comando já rodou. Os arquivos mudados entram no ledger da
+  sessão.
+- **Stop**, no fim do turno, olha os arquivos do ledger que continuam
+  sujos. Se o ledger estiver vazio, olha todo o worktree sujo. Ele roda
+  baratos, depois tipos em JVM e JS, depois testes Kof em JVM e JS, e para no
+  primeiro grupo que falhar. O orçamento dos testes é de 120 s. O tipo usa uma
+  entrada que também importa cada módulo de produção alterado, para que um
+  arquivo novo que ninguém importa ainda seja checado. Se algo falha, o Stop
+  devolve o turno ao agente com os achados, no máximo uma vez por conjunto de
+  achados e três vezes por sessão. Depois disso, ou quando o Codex avisa
+  `stop_hook_active`, ele só reporta. Cada veredicto fica em
+  `.sensors/ledger/<sessão>.stop.log`, porque o Codex nem sempre mostra a
+  mensagem do Stop.
+
+Para ativar, são dois passos, ambos seus:
+
+1. Marque o projeto como confiável, aceitando o pedido ao abrir o Codex ou
+   rodando `codex exec --trust`. A confiança vale para o caminho do checkout
+   principal. Um worktree do mesmo repositório lê o manifesto desse checkout.
+2. No Codex interativo, abra `/hooks` e aprove os três hooks. Se a
+   declaração de um hook mudar no `.codex/hooks.json`, ele volta como
+   `modified` e precisa de nova aprovação. Mudar o conteúdo dos scripts não
+   pede nova aprovação.
+
+`npm run sensors:doctor` mostra, na seção `Codex hooks`, o manifesto, o script
+de cada evento, o último disparo de cada um e o `node` em `~/.local/bin`.
+
+`SENSORS=git` desliga os hooks numa sessão. Para tirá-los de vez, apague o
+`.codex/hooks.json`. O app desktop pode herdar um `PATH` que só tem
+`~/.local/bin`, por isso `node`, `mvn` e `java` precisam ter links nessa
+pasta. O link do `node` aponta para uma versão fixa do nvm e precisa ser
+refeito quando a versão padrão mudar.
+
+Limites conhecidos:
+- O watcher atribui à sessão qualquer mudança no worktree enquanto ela está
+  aberta, mesmo que venha de outro editor.
+- Quando o mesmo teste continua vermelho depois de uma devolução, o Stop só
+  reporta, e o agente pode terminar o turno.
+
 ## Conferir e mutar um arquivo manualmente
 
 Execute o check JSON e a suíte completa nos dois alvos do projeto:

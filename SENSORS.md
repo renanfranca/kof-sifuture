@@ -49,6 +49,14 @@ shows how many (`, N discarded`). `incomplete`, `no_scope`, a report that
 contradicts exit 3, one from another run, or one that cannot be read fails the
 check.
 
+The Codex CLI hooks in [.codex/hooks.json](.codex/hooks.json) run the same
+sensors during a Codex session. After each `Bash` or `apply_patch`, they run
+`lint`, `dup` and Gitleaks on the files that changed. At the end of a turn,
+they run the cheap sensors, then the JVM and JS type checks, then the Kof
+tests, without mutation. `SENSORS=git` turns them off.
+[docs/desenvolvimento.md](docs/desenvolvimento.md#codex-hooks) explains the
+events, how to trust and approve them, and their limits.
+
 ## Rules and limits
 
 | Rule | Finding |

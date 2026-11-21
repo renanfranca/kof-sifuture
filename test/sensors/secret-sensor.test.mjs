@@ -1,14 +1,7 @@
 import assert from 'node:assert/strict';
-import { randomBytes } from 'node:crypto';
 import { test } from 'node:test';
 
-import { aProject, runSensor, runSensorWith, writeInto } from './project.mjs';
-
-function syntheticToken() {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const body = [...randomBytes(36)].map((byte) => alphabet[byte % alphabet.length]).join('');
-  return ['gh', 'p_', body].join('');
-}
+import { aProject, runSensor, runSensorWith, syntheticToken, writeInto } from './project.mjs';
 
 test('secret sensor reports a synthetic token with its location, redacted, and passes once it is removed', () => {
   const token = syntheticToken();
