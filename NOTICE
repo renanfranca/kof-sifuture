@@ -73,9 +73,26 @@ temporary report outside the repository; sensors-doctor reports the Kof,
 KofMut, Node, Maven, Java and Gitleaks tools of this project; code comments
 were removed to follow AGENTS.md.
 
-Os scripts Node acima e as regras de comentário e de teste do analisador
-Java foram adaptados do Katacombs, sob a licença MIT abaixo. As adaptações
-estão descritas no parágrafo anterior.
+The Codex CLI hooks are adapted from the same Katacombs commit:
+.codex/hooks.json, .codex/hooks/post-edit-sensor.mjs and, under scripts/,
+worktree-baseline.mjs, worktree-watch.mjs, session-ledger.mjs,
+ledger-path.mjs, hook-io.mjs, sensor-liveness.mjs, sensor-tier.mjs,
+edit-sensors.mjs, stop-sensor.mjs, stop-verdict.mjs, stop-response.mjs and
+stop-continuation.mjs, with dirtyPaths in git-changes.mjs and the hook
+section of sensors-doctor.mjs. Adaptations: every script takes a project root
+(--root) and keeps its state in .sensors/ledger/; the edit sensors run the
+Kof lint and duplication sensors and Gitleaks, without automatic formatting;
+the Stop runs the cheap sensors, then kof_project.py check on JVM and JS with
+an entry that also imports each changed production module, then
+kof-tests.mjs on JVM and JS within a 120 s budget, with no mutation and no
+design review; the Stop scope and the Stop answer are folded into
+stop-verdict.mjs and stop-response.mjs; liveness is stamped per hook event;
+the PostToolUse answer says the command already ran, because Codex shows a
+block to the agent as a tool error; code comments were removed.
+
+Os scripts Node acima, as regras de comentário e de teste do analisador
+Java e os hooks do Codex CLI foram adaptados do Katacombs, sob a licença MIT
+abaixo. As adaptações estão descritas nos parágrafos anteriores.
 
 MIT License
 

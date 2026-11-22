@@ -36,6 +36,18 @@ export function allKofFiles(root) {
   return [...new Set([...tracked, ...untracked])].filter((file) => existsSync(path.join(root, file))).sort();
 }
 
+const RENAMED_OR_COPIED = /^[RC]/;
+
+export function dirtyPaths(root) {
+  const entries = paths(git(root, 'status', '--porcelain=v1', '-z', '--untracked-files=all'));
+  const dirty = [];
+  for (let at = 0; at < entries.length; at += 1) {
+    dirty.push(entries[at].slice(3));
+    if (RENAMED_OR_COPIED.test(entries[at])) at += 1;
+  }
+  return [...new Set(dirty)].sort();
+}
+
 export function publishableFiles(root) {
   return paths(git(root, 'ls-files', '-co', '--exclude-standard', '-z'))
     .filter((file) => existsSync(path.join(root, file)))

@@ -145,6 +145,58 @@ parameters 4, depth 2, statements 17; CPD 50 tokens and 5 lines, not applied
 to test code. [SENSORS.md](../SENSORS.md) lists
 every command and rule.
 
+## Codex hooks
+
+[`.codex/hooks.json`](../.codex/hooks.json) ties the sensors to three events
+of a Codex CLI session: `codex` in a terminal, the desktop app, and
+`codex exec`, which `luna`, `lc` and `lp` use. Their state lives in
+`.sensors/ledger/`, which Git ignores.
+
+- **SessionStart** takes a snapshot of the dirty files in the worktree. A
+  resumed session keeps its earlier snapshot, so a change made while the
+  session was closed shows up at the next command.
+- **PostToolUse**, after each `Bash` or `apply_patch`, compares the worktree
+  with the last look and runs `lint`, `dup` and `gitleaks` on the files that
+  changed. A file that is not `.kf` only goes through Gitleaks. With a
+  finding, Codex shows the agent a tool error that starts with "The command
+  ran", because the command already ran. The changed files go into the
+  session ledger.
+- **Stop**, at the end of the turn, looks at the ledger files that are still
+  dirty. With an empty ledger it looks at the whole dirty worktree. It runs
+  the cheap sensors, then JVM and JS type checks, then the Kof tests on JVM
+  and JS, and stops at the first group that fails. The tests have a 120 s
+  budget. The type check uses an entry that also imports every changed
+  production module, so a new file that nothing imports yet is still checked.
+  When something fails, the Stop hands the turn back to the agent with the
+  findings, at most once per set of findings and three times per session.
+  After that, or when Codex sets `stop_hook_active`, it only reports. Each
+  verdict is kept in `.sensors/ledger/<session>.stop.log`, because Codex does
+  not always show the Stop message.
+
+Turning them on takes two steps, both yours:
+
+1. Trust the project, by accepting the prompt when Codex opens it or with
+   `codex exec --trust`. Trust is recorded for the main checkout path. A
+   worktree of the same repository reads that checkout's manifest.
+2. In interactive Codex, open `/hooks` and approve the three hooks. When a
+   hook declaration in `.codex/hooks.json` changes, it comes back as
+   `modified` and needs approval again. Changing the scripts themselves does
+   not.
+
+`npm run sensors:doctor` shows, under `Codex hooks`, the manifest, the script
+of each event, when each one last fired, and the `node` in `~/.local/bin`.
+
+`SENSORS=git` turns the hooks off for a session. To remove them for good,
+delete `.codex/hooks.json`. The desktop app may inherit a `PATH` with only
+`~/.local/bin`, so `node`, `mvn` and `java` need links there. The `node` link
+points at a fixed nvm version and has to be redone when the default changes.
+
+Known limits:
+- The watcher credits the session with any change to the worktree while it
+  is open, even one made by another editor.
+- When the same test stays red after a hand back, the Stop only reports and
+  the agent can end its turn.
+
 ## Check and mutate a source file manually
 
 Run the JSON check and complete test suite on both supported project targets:

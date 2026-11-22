@@ -3,12 +3,18 @@ import { test } from 'node:test';
 
 import path from 'node:path';
 
+import { stamp } from '../../scripts/sensor-liveness.mjs';
 import { aProject, runSensor, runSensorWith } from './project.mjs';
 
 const healthy = JSON.stringify({ scripts: { 'docs:sensor': 'node scripts/docs-sensor.mjs' } });
 
+const hook = (script) => ({ hooks: [{ type: 'command', command: `node "$(git rev-parse --show-toplevel)/${script}"` }] });
+const manifest = (stopScript) =>
+  JSON.stringify({ hooks: { SessionStart: [hook('scripts/worktree-baseline.mjs')], PostToolUse: [hook('.codex/hooks/post-edit-sensor.mjs')], Stop: [hook(stopScript)] } });
+const hookScripts = { 'scripts/worktree-baseline.mjs': '', '.codex/hooks/post-edit-sensor.mjs': '', 'scripts/stop-sensor.mjs': '' };
+
 test('sensors doctor lists every tool with its version and path, and says it is not a quality certificate', () => {
-  const root = aProject({ 'package.json': healthy, 'scripts/docs-sensor.mjs': '' });
+  const root = aProject({ 'package.json': healthy, 'scripts/docs-sensor.mjs': '', '.codex/hooks.json': manifest('scripts/stop-sensor.mjs'), ...hookScripts });
 
   const report = runSensor('sensors-doctor.mjs', root);
 
@@ -33,4 +39,27 @@ test('sensors doctor fails and names what is missing when a command file is gone
   assert.match(report.out, /\n {4}lint:sensor +scripts\/lint-sensor\.mjs +MISSING\n/);
   assert.match(report.out, /\n {4}gitleaks +— +— +MISSING\n/);
   assert.match(report.out, /\n {4}node +v\d+\S* +\S+ +ok\n/);
+});
+
+test('sensors doctor lists the Codex hooks, the scripts they name, when each event last fired and the node the app would use', () => {
+  const root = aProject({ 'package.json': healthy, 'scripts/docs-sensor.mjs': '', '.codex/hooks.json': manifest('scripts/stop-sensor.mjs'), ...hookScripts });
+  stamp(root, 'Stop', Date.parse('2026-11-21T12:00:00Z'));
+
+  const report = runSensor('sensors-doctor.mjs', root);
+
+  assert.equal(report.code, 0, report.out + report.err);
+  assert.match(report.out, /\n {2}Codex hooks\n {4}manifest +\.codex\/hooks\.json +ok\n/);
+  assert.match(report.out, /\n {4}Stop +scripts\/stop-sensor\.mjs +ok\n/);
+  assert.match(report.out, /\n {4}last Stop +2026-11-21T12:00:00\.000Z +ok\n/);
+  assert.match(report.out, /\n {4}last SessionStart +never fired +UNAVAILABLE\n/);
+  assert.match(report.out, /\n {4}hook node +v\d+\S* +\S+\/\.local\/bin\/node +ok\n/);
+});
+
+test('sensors doctor fails when the Codex manifest names a hook script that does not exist', () => {
+  const root = aProject({ 'package.json': healthy, 'scripts/docs-sensor.mjs': '', '.codex/hooks.json': manifest('scripts/gone.mjs'), ...hookScripts });
+
+  const report = runSensor('sensors-doctor.mjs', root);
+
+  assert.equal(report.code, 1, report.err);
+  assert.match(report.out, /\n {4}Stop +scripts\/gone\.mjs +MISSING\n/);
 });

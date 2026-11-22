@@ -1787,3 +1787,16 @@ Na mesma branch, a pedido do usuário: `kof-mut.json` passa a usar
   28 instáveis em três). Plano em
   [`.agent/execplans/journey-determinism.md`](.agent/execplans/journey-determinism.md),
   aceite em [`.agent/validation/journey-determinism.md`](.agent/validation/journey-determinism.md).
+
+## M3 dos sensores: hooks reais no Codex CLI — 21/11/2026
+
+- [x] `.codex/hooks.json` liga SessionStart, PostToolUse (`Bash|apply_patch`) e
+  Stop aos sensores: baratos depois de cada comando; no fim do turno, baratos
+  → tipos JVM e JS → testes Kof JVM e JS, com no máximo três devoluções por
+  sessão, sem mutação. Provado como callback real em `codex exec`, no terminal
+  e no app desktop (P1 a P8), depois de confiar no projeto e aprovar os hooks
+  em `/hooks`. As provas acharam e corrigiram três defeitos: módulo novo sem
+  checagem de tipos, nome do teste cortado no motivo do Stop e baseline
+  sobrescrito ao retomar a sessão. `npm run test:sensors` 72 de 72. Plano em
+  [`.agent/execplans/codex-sensor-hooks.md`](.agent/execplans/codex-sensor-hooks.md),
+  aceite em [`.agent/validation/sensors-adoption.md`](.agent/validation/sensors-adoption.md#m3-hooks-do-codex).

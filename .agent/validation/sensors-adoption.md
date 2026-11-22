@@ -1770,3 +1770,101 @@ commits.
 
 O PASS do `check` não avalia código Kof novo nem mutação nesta branch, porque
 ela não altera `.kf`; os SKIP dizem isso no sumário.
+
+<a id="m3-hooks-do-codex"></a>
+
+## M3 — hooks reais no Codex CLI — 21/11/2026
+
+Base `bd2453a`, branch `feat/codex-sensor-hooks`. Codex CLI `0.170.0`, que se
+atualizou sozinho para `0.171.0` durante o trabalho (as provas do M0 em diante
+são na 0.171.0); app desktop com o binário próprio `0.169.0-alpha.11.1`. Node
+`v24.22.3`, Luna `gpt-6-luna` com esforço `high`. Plano em
+[codex-sensor-hooks.md](../execplans/codex-sensor-hooks.md), com o registro
+completo de cada tentativa no Progress.
+
+### Ativação
+
+| Passo | Observado |
+| --- | --- |
+| `codex exec` sem confiança no projeto | aviso `Untrusted project-local configuration is disabled`; nenhum hook disparou |
+| confiança gravada | `[projects."/home/renanfranca/projects/kof-sifuture"]`, mesmo com a sessão aberta num worktree irmão: o Codex lê o manifesto do checkout principal |
+| `hooks/list` do `codex app-server` | os três hooks `untrusted` até a aprovação em `/hooks`, `trusted` depois; trocar a declaração no manifesto os devolve como `modified`; mudar só o conteúdo dos scripts não |
+
+### M0, canário (callback real)
+
+| Contexto | Sessão | Resultado |
+| --- | --- | --- |
+| `codex exec` | `01a1fdd6-0762-78a2-a275-dfc2d8449cc7` | SessionStart, dois PostToolUse `Bash` com `probe-canary.txt`, dois Stop (`stop_hook_active` `false` e `true`); resposta final com `CANARY-POST-01a1fdd6-…` e `CANARY-STOP-OK` |
+| terminal (TUI) | `01a1fe10-8b56-7793-b10f-9456c958d466` | os três eventos; PostToolUse `Bash` e `apply_patch` (o patch vem em `tool_input.command`); `CANARY-POST-…` entregue. Desvio aceito pelo usuário: o agente copiou a razão do Stop em vez de responder `CANARY-STOP-OK`, porque o prompt mandava copiar toda mensagem `CANARY` |
+| app desktop | `01a1fe21-e924-7352-8ea4-972e6ecb53e1` | os três eventos; razão do Stop chegou como `<hook_prompt …>`; `CANARY-STOP-OK`; `process.execPath` `~/.nvm/versions/node/v24.22.3/bin/node`, alvo de `~/.local/bin/node` |
+
+Um bloqueio no PostToolUse chega ao agente como erro da ferramenta
+(`ERROR codex_core::tools::router: error=…`), e o agente repetiu o comando. Por
+isso a razão do hook começa com "The command ran and its changes are on disk".
+
+### M3, provas (callback real)
+
+| Prova | `codex exec` (`01a1fe4e-…`) | terminal (`01a1ff3f-…`) | app (`01a1ffcc-…`) |
+| --- | --- | --- | --- |
+| P1 achado na primeira chamada depois da edição | PASSA | PASSA | PASSA |
+| P2 sem achado depois da correção; ledger com `Probe.kf` | PASSA | PASSA | PASSA |
+| P3 leituras não mudam o ledger | PASSA | PASSA | PASSA |
+| P4 mudança externa entra no próximo olhar | — | PASSA na 3ª tentativa | — |
+| P5 Stop devolve citando o teste, depois de baratos e tipos PASS | PASSA na 2ª tentativa | PASSA | PASSA |
+| P6 Stop devolve com o erro de tipo, testes `NOT RUN` | PASSA | PASSA | PASSA |
+| P7 Stop deixa terminar com os sete passos PASS | PASSA | PASSA | PASSA na 2ª tentativa |
+| P8 `luna` no Bash do executor | PASSA com desvio | — | — |
+
+Trechos do `.stop.log` das sessões:
+
+    STOP SENSORS: lint PASS · dup PASS · gitleaks PASS · types:jvm PASS · types:js PASS · tests:jvm FAIL · tests:js FAIL
+    FAIL probe total sums the operands: assertion failed
+
+    STOP SENSORS: lint PASS · dup PASS · gitleaks PASS · types:jvm FAIL · types:js FAIL · tests:jvm NOT RUN · tests:js NOT RUN
+    src/main/kof/sifuture/probe/Probe.kf:25:5: ERROR SEM021: type mismatch: cannot assign String to 'x: Int'
+
+Defeitos achados pelas provas e corrigidos por TDD:
+
+1. Tipos: o `kof_project.py check` usa `import sifuture.*`, que não alcança um
+   subpacote novo; `Int x = "texto"` num `sifuture/probe/Probe.kf` não importado
+   deu exit 0. O Stop passa `--fixture` com uma entrada que também importa cada
+   módulo de produção alterado, e troca o nome curto do diagnóstico
+   (`Probe.kf:4:5`) pelo caminho do escopo.
+2. P5 no `codex exec`: o relatório tinha 62.427 caracteres com as 410 linhas
+   `PASS`, e o `FAIL` do teste ficava depois do corte de 6.000 do motivo. As
+   linhas `PASS` saem (`(409 passing tests left out)`) e cada `FAIL <nome>:` vira
+   o achado `failing-test@<nome>`, estável entre execuções.
+3. P4 no terminal: ao retomar uma sessão, o Codex dispara SessionStart de
+   novo, e o baseline era sobrescrito com o arquivo externo dentro. O
+   SessionStart agora só grava o baseline de uma sessão que ainda não tem um.
+
+Desvios e tentativas:
+- A P5 do app e a P7 do terminal dependiam do `136` da P6, que só bate quando
+  "17 operandos" inclui o `a`. No app a função tinha `a + 1 … + 17`; a P7
+  reprovou nos testes e o Stop só reportou, porque o mesmo achado já tinha sido
+  devolvido na P5. A repetição com `153` passou.
+- P8: o worktree tinha o trabalho desta branch ainda sem commit, então o Stop
+  com ledger vazio olhou essas mudanças e saiu `answer=continue` com
+  `gitleaks PASS` e o resto SKIP, em vez de `STOP SENSORS: SKIP`. Sem
+  `decision`, como pedido; as três marcas de último disparo ficaram depois da
+  chamada.
+
+### Aceite por critério
+
+| Critério | Verificação | Resultado |
+| --- | --- | --- |
+| A1 três contextos, disparo e entrega | M0 por contexto, com `canary.jsonl` limpo e `session_id` novo | atendido; terminal com o desvio aceito |
+| A2 PostToolUse, ledger e mudança externa | P1 a P4 e `test/sensors/edit-hook.test.mjs` | atendido |
+| A3 ordem baratos → tipos → testes e saída | P5 a P7 e testes com comandos falsos em `test/sensors/stop-hook.test.mjs` | atendido |
+| A4 A, A, B, C, D e `stop_hook_active` | teste com payload sintético; `stop_hook_active` `true` no segundo Stop real do M0 e das provas | atendido |
+| A5 limites | `git diff --name-only main` e `git status`; nenhum arquivo em `src/`, `tests/`, `kof-mut.json` ou regras dos sensores; probes e `.sensors/` fora do commit | atendido (ver validação final) |
+| A6 doctor | `test/sensors/sensors-doctor.test.mjs` (script citado e ausente é `MISSING`) e `npm run sensors:doctor` real: `last SessionStart 2026-11-21T20:29:05.937Z`, `last PostToolUse 2026-11-21T21:33:48.245Z`, `last Stop 2026-11-21T21:34:11.517Z`, `hook node v24.22.3 ~/.local/bin/node ok` | atendido |
+
+Pendências: o `npm run check` continua sem checar um módulo de produção que nada
+importa (o Stop checa; o `check` não mudou); o watcher atribui à sessão
+qualquer mudança no worktree enquanto ela está aberta; quando o mesmo teste
+continua vermelho depois de uma devolução, o Stop só reporta. No M0 do app, uma segunda
+sessão `01a1fe21-e985-71d1-893f-252c43e9203e`, aberta 32 ms antes, só fez
+leituras; a origem não foi explicada. Hooks do Claude
+Code ficam para depois, por decisão do usuário. Evidência local opcional em
+`.agent/tmp/codex-sensor-hooks/`.
