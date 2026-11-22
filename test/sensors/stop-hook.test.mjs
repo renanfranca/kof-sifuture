@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 
@@ -218,14 +218,18 @@ test('a session id that is not a safe file name stays inside the ledger and is n
   assert.deepEqual(changedThisSession(root, '/absolute/other'), ['b.kf']);
 });
 
-test('the type check imports every changed production module, so a file nothing imports yet is still checked', () => {
+test('the type tier runs the normal project check for each target, without an entry of its own', () => {
   const root = committed({ 'src/main/kof/sifuture/probe/Probe.kf': 'package sifuture.probe\n' });
-  const [jvm] = stopTiers.types;
+  const changed = ['src/main/kof/sifuture/probe/Probe.kf', 'src/test/kof/sifuture/probe/ProbeJourney.kf'];
 
-  const args = jvm.args(['src/main/kof/sifuture/probe/Probe.kf', 'src/test/kof/sifuture/probe/ProbeJourney.kf'], root);
+  const commands = stopTiers.types.map((step) => [step.name, step.program, ...step.args(changed, root).slice(1)]);
 
-  const entry = args[args.indexOf('--fixture') + 1];
-  assert.equal(readFileSync(entry, 'utf8'), 'import sifuture.*\nimport sifuture.probe.Probe\n');
+  assert.deepEqual(commands, [
+    ['types:jvm', 'python3', 'check', '--target', 'jvm'],
+    ['types:js', 'python3', 'check', '--target', 'js'],
+  ]);
+  assert.ok(stopTiers.types.every((step) => step.args(changed, root)[0].endsWith(path.join('scripts', 'kof_project.py'))));
+  assert.equal(existsSync(path.join(root, '.sensors', 'ledger', 'types-entry.kf')), false);
 });
 
 test('a type error reported by file name alone is shown at the changed file it belongs to', () => {

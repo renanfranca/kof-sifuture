@@ -35,8 +35,9 @@ UNAVAILABLE, never PASS. No suppression comments or baselines exist.
 each browser fixture `tests/*.kf` as its own entry (`types:fixtures`), the
 Python tests, the Kof tests on JVM and JS, `lint:sensor`, `dup:sensor`,
 `docs:sensor` and then mutation. The fixture check exists because the other type
-checks use an `import sifuture.*` entry that hides a missing `import`, while the
-browser journeys build from each fixture; it stops at the first failing fixture
+checks use an entry that imports every production directory, which puts the
+files of one directory in the same unit and hides a missing `import` between
+them, while the browser journeys build from each fixture; it stops at the first failing fixture
 and names it, and prints SKIP when `tests` has no fixture. Mutation runs KofMut with `kof-mut.json` on the production `.kf` files
 changed against `main`; without such a file it prints SKIP and claims nothing.
 KofMut exit 1 (a survivor) or 2 fails the check. On exit 3 the check reads the

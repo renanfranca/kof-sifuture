@@ -1800,3 +1800,14 @@ Na mesma branch, a pedido do usuário: `kof-mut.json` passa a usar
   sobrescrito ao retomar a sessão. `npm run test:sensors` 72 de 72. Plano em
   [`.agent/execplans/codex-sensor-hooks.md`](.agent/execplans/codex-sensor-hooks.md),
   aceite em [`.agent/validation/sensors-adoption.md`](.agent/validation/sensors-adoption.md#m3-hooks-do-codex).
+
+## Check de tipos sobre todos os módulos de produção — 21/11/2026
+
+- [x] Issue #44: sem `--fixture`, `kof_project.py check` escreve na entrada um
+  `import <pacote>.*` por pasta de `src/main/kof` com `.kf` (hoje
+  `sifuture` e `sifuture.game`), então um módulo de produção que nada importa
+  é checado em JVM e JS. O build e o `--fixture` ficaram iguais. O Stop dos
+  hooks deixou de gerar `.sensors/ledger/types-entry.kf` e usa o check normal;
+  `.codex/hooks.json` sem diff. Plano em
+  [`.agent/execplans/check-all-production-modules.md`](.agent/execplans/check-all-production-modules.md),
+  aceite em [`.agent/validation/check-all-production-modules.md`](.agent/validation/check-all-production-modules.md).
