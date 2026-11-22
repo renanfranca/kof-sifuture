@@ -116,6 +116,41 @@ class KofProjectTest(unittest.TestCase):
 
         self.assertEqual(code, 0)
 
+    def write_isolated_probe(self, declaration):
+        probe = self.root / "src/main/kof/sifuture/probe/Probe.kf"
+        probe.parent.mkdir()
+        probe.write_text(f"package sifuture.probe\n\nprobe() {{\n    {declaration}\n}}\n")
+
+    def test_check_reports_a_type_error_in_a_production_module_nothing_imports(self):
+        self.write_isolated_probe('Int x = "texto"')
+
+        for target in ("jvm", "js"):
+            with self.subTest(target=target):
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    code = project.check(target=target, json_output=True, root=self.root)
+
+                self.assertNotEqual(code, 0)
+                errors = [item for item in json.loads(output.getvalue())["diagnostics"] if item["severity"] == "ERROR"]
+                self.assertTrue(any(item["file"].endswith("Probe.kf") for item in errors), errors)
+
+    def test_check_accepts_a_well_typed_production_module_nothing_imports(self):
+        self.write_isolated_probe("Int x = 7")
+
+        for target in ("jvm", "js"):
+            with self.subTest(target=target):
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    code = project.check(target=target, json_output=True, root=self.root)
+
+                self.assertEqual(code, 0, output.getvalue())
+
+    def test_check_accepts_the_unchanged_project(self):
+        for target in ("jvm", "js"):
+            with self.subTest(target=target):
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    code = project.check(target=target, json_output=True, root=self.root)
+
+                self.assertEqual(code, 0, output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

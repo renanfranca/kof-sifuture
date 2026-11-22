@@ -165,8 +165,9 @@ of a Codex CLI session: `codex` in a terminal, the desktop app, and
   dirty. With an empty ledger it looks at the whole dirty worktree. It runs
   the cheap sensors, then JVM and JS type checks, then the Kof tests on JVM
   and JS, and stops at the first group that fails. The tests have a 120 s
-  budget. The type check uses an entry that also imports every changed
-  production module, so a new file that nothing imports yet is still checked.
+  budget. The type check is the normal project check, which already imports
+  every production directory, so a new file that nothing imports yet is still
+  checked.
   When something fails, the Stop hands the turn back to the agent with the
   findings, at most once per set of findings and three times per session.
   After that, or when Codex sets `stop_hook_active`, it only reports. Each
@@ -341,7 +342,9 @@ defines:
 > used to expand directory imports.
 
 So `import sifuture.*` finds the app relative to the prepared root of the
-build and type check. Tests do not use that tree: with `[sources]`, each suite
+build and type check. Because expansion is per directory, `import sifuture.*`
+does not pull the files of `sifuture/game/`; the build gets them because files
+in `sifuture/` import them. Tests do not use that tree: with `[sources]`, each suite
 declares `package sifuture.game` and imports each rules module by name, such
 as `import sifuture.game.Game`; `import sifuture.game.*` would import its own
 package (`PKG007`).
@@ -350,7 +353,12 @@ package (`PKG007`).
 project commands prepare a disposable tree outside the checkout and without
 an ancestor `kof.toml`. They copy canonical source bytes, generate a small
 import entry, and invoke the official CLI. The build includes only the app,
-with entry `import sifuture.*`. The tree is removed after the command,
+with entry `import sifuture.*`. The type check, without `--fixture`, writes one
+`import <package>.*` line for each `src/main/kof` directory that has `.kf`
+files, in alphabetical order (today `import sifuture.*` and
+`import sifuture.game.*`), so a production module that nothing imports is also
+checked. With `--fixture`, the fixture is the whole entry. The tree is removed
+after the command,
 including on failure. There is no need to prepare sources or assets by hand.
 
 The wrapper checks for `index.html` and `Default.mjs` before copying output

@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { cheapSensors, rollCall, runStep, scopedFiles } from './edit-sensors.mjs';
-import { ledgerRoot } from './ledger-path.mjs';
 import { repositoryRoot } from './sensor-arguments.mjs';
 import { changedThisSession } from './session-ledger.mjs';
 import { worktreeChanges } from './worktree-watch.mjs';
@@ -13,30 +11,9 @@ const script = (name) => path.join(repositoryRoot, 'scripts', name);
 
 const wholeProject = (name, program, args) => ({ name, targets: (files) => files.filter(isKof), program, args: () => args });
 
-const PRODUCTION = 'src/main/kof/';
-
-function moduleOf(file) {
-  return file.slice(PRODUCTION.length, -'.kf'.length).split('/').join('.');
-}
-
-function typeEntry(targets, root) {
-  const modules = targets.filter((file) => file.startsWith(PRODUCTION) && existsSync(path.join(root, file))).map(moduleOf);
-  const entry = path.join(ledgerRoot(root), 'types-entry.kf');
-  mkdirSync(path.dirname(entry), { recursive: true });
-  writeFileSync(entry, ['import sifuture.*', ...modules.map((module) => `import ${module}`), ''].join('\n'));
-  return entry;
-}
-
-const typeCheck = (target) => ({
-  name: `types:${target}`,
-  targets: (files) => files.filter(isKof),
-  program: 'python3',
-  args: (targets, root) => [script('kof_project.py'), 'check', '--target', target, '--fixture', typeEntry(targets, root)],
-});
-
 export const stopTiers = {
   cheap: cheapSensors,
-  types: ['jvm', 'js'].map(typeCheck),
+  types: ['jvm', 'js'].map((target) => wholeProject(`types:${target}`, 'python3', [script('kof_project.py'), 'check', '--target', target])),
   tests: ['jvm', 'js'].map((target) => wholeProject(`tests:${target}`, process.execPath, [script('kof-tests.mjs'), '--target', target])),
 };
 

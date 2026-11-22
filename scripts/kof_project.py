@@ -64,7 +64,7 @@ def _copy_sources(source, destination):
 
 
 @contextlib.contextmanager
-def prepared_sources(*, fixture=None, model_only=False, root=ROOT):
+def prepared_sources(*, fixture=None, model_only=False, root=ROOT, entry="import sifuture.*\n"):
     """Yield a fresh source tree; copy source bytes and write a root entry."""
     root = Path(root).resolve()
     with tempfile.TemporaryDirectory(prefix="sifuture-kof-") as name:
@@ -79,7 +79,7 @@ def prepared_sources(*, fixture=None, model_only=False, root=ROOT):
         if fixture is not None:
             shutil.copyfile(fixture, source / "Main.kf")
         else:
-            (source / "Main.kf").write_text("import sifuture.*\n")
+            (source / "Main.kf").write_text(entry)
         yield source
 
 
@@ -158,8 +158,15 @@ def _check_report(output, code):
     return report
 
 
+def _production_entry(main):
+    """Import every production package directory so modules nothing imports are still checked."""
+    packages = sorted({".".join(path.parent.relative_to(main).parts) for path in main.rglob("*.kf")} - {""})
+    return "".join(f"import {package}.*\n" for package in packages)
+
+
 def check(*, target="jvm", json_output=False, kof=None, root=ROOT, fixture=None):
-    with prepared_sources(fixture=fixture, root=root) as source:
+    entry = _production_entry(Path(root).resolve() / "src/main/kof")
+    with prepared_sources(fixture=fixture, root=root, entry=entry) as source:
         try:
             result = subprocess.run([str(kof_executable(kof)), "check", str(source / "Main.kf"),
                                      "--target", target, "--json"], capture_output=True, text=True, check=False)

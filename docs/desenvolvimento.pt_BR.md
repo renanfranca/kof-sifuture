@@ -154,9 +154,9 @@ de uma sessão do Codex CLI: o `codex` do terminal, o app desktop e o
 - **Stop**, no fim do turno, olha os arquivos do ledger que continuam
   sujos. Se o ledger estiver vazio, olha todo o worktree sujo. Ele roda
   baratos, depois tipos em JVM e JS, depois testes Kof em JVM e JS, e para no
-  primeiro grupo que falhar. O orçamento dos testes é de 120 s. O tipo usa uma
-  entrada que também importa cada módulo de produção alterado, para que um
-  arquivo novo que ninguém importa ainda seja checado. Se algo falha, o Stop
+  primeiro grupo que falhar. O orçamento dos testes é de 120 s. O tipo usa o
+  check normal do projeto, que já importa cada pasta de produção, então um
+  arquivo novo que ninguém importa ainda é checado. Se algo falha, o Stop
   devolve o turno ao agente com os achados, no máximo uma vez por conjunto de
   achados e três vezes por sessão. Depois disso, ou quando o Codex avisa
   `stop_hook_active`, ele só reporta. Cada veredicto fica em
@@ -331,7 +331,9 @@ define:
 > used to expand directory imports.
 
 Assim, `import sifuture.*` localiza a aplicação relativa à raiz preparada do
-build e do check de tipos. Os testes não usam essa árvore: com `[sources]`, cada
+build e do check de tipos. Como a expansão é por pasta, `import sifuture.*` não
+puxa os arquivos de `sifuture/game/`; o build os recebe porque arquivos de
+`sifuture/` os importam. Os testes não usam essa árvore: com `[sources]`, cada
 suíte declara `package sifuture.game` e importa cada módulo das regras pelo
 nome, como `import sifuture.game.Game`; `import sifuture.game.*` importaria o
 próprio pacote (`PKG007`).
@@ -340,7 +342,11 @@ próprio pacote (`PKG007`).
 comandos do projeto preparam uma árvore descartável fora do checkout e sem
 `kof.toml` ancestral. Copiam os bytes das fontes canônicas, geram uma pequena
 entrada de import e chamam o CLI oficial. O build inclui somente a aplicação,
-com entrada `import sifuture.*`. A árvore é removida após o
+com entrada `import sifuture.*`. O check de tipos, sem `--fixture`, escreve uma
+linha `import <pacote>.*` para cada pasta de `src/main/kof` que tenha `.kf`, em
+ordem alfabética (hoje `import sifuture.*` e `import sifuture.game.*`), então um
+módulo de produção que nada importa também é checado. Com `--fixture`, a
+fixture é a entrada inteira. A árvore é removida após o
 comando, inclusive em falha. Não é preciso preparar fontes ou assets à mão.
 
 O wrapper verifica `index.html` e `Default.mjs` antes de copiar a saída e os
