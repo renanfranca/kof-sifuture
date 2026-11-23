@@ -1811,3 +1811,15 @@ Na mesma branch, a pedido do usuário: `kof-mut.json` passa a usar
   `.codex/hooks.json` sem diff. Plano em
   [`.agent/execplans/check-all-production-modules.md`](.agent/execplans/check-all-production-modules.md),
   aceite em [`.agent/validation/check-all-production-modules.md`](.agent/validation/check-all-production-modules.md).
+
+## Prova real do Stop e capturas como evidência — 22/11/2026
+
+- [x] Prova por callback real do Codex (`codex exec`) do tier de tipos do Stop
+  depois do PR #45: erro de tipo num subpacote que nada importa devolve o turno
+  com `types:* FAIL` e `tests:* NOT RUN`; sem o erro, os sete passos PASS.
+- [x] Issue #42 fechada sem correção: as capturas das jornadas são evidência
+  para pessoas olharem, não teste, e `scripts/journey_pixels.py` fica como
+  diagnóstico manual sem promessa de estabilidade. Diagnóstico e tentativa
+  descartada no registro. Plano em
+  [`.agent/execplans/stop-callback-and-release-capture.md`](.agent/execplans/stop-callback-and-release-capture.md),
+  aceite em [`.agent/validation/stop-callback-and-release-capture.md`](.agent/validation/stop-callback-and-release-capture.md).

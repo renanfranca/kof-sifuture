@@ -621,8 +621,7 @@ page gets the same `crypto.getRandomValues` sequence, which Kof's `random.int`
 uses to seed the game, so the same game repeats in every run. Each Playwright
 version ships
 its own Chromium version, so pinning Playwright pins the browser. Updating
-`tests/requirements-browser.txt` changes how captures render and requires a new
-stability proof (below).
+`tests/requirements-browser.txt` can change how captures render.
 
 ```bash
 python3 tests/browser.py
@@ -660,9 +659,17 @@ separation between model and presentation.
 
 ### Compare captures between runs
 
-The journeys write PNG captures to `.agent/tmp/`. To prove that the appearance
-did not change, or that captures are stable, record one **run** (the seven
-journeys, one after another) per new destination folder and compare the runs:
+The journeys write PNG captures to `.agent/tmp/` as evidence for people to look
+at. They are not a test: what matters on screen is checked by explicit
+assertions in the journeys (sprites, positions, sizes, opacity, text). Two runs
+are not promised to produce identical pixels. For example, a capture taken right
+after a keyboard event can still show the previous frame, and a button tapped
+earlier can keep its `:hover` look or lose it depending on timing (issue #42).
+
+`scripts/journey_pixels.py` is a manual diagnostic tool for when you want to look
+for visual differences, for example around a Kof or Playwright update. Record one
+**run** (the seven journeys, one after another) per new destination folder and
+compare the runs:
 
 ```bash
 python3 scripts/journey_pixels.py capture .agent/tmp/rodadas/a
@@ -676,10 +683,9 @@ captures written during that run; it deletes nothing. `compare` checks each
 capture's decoded RGB pixels and size, by name, and prints, for example,
 `runs=2 common=186 only_some=0 unstable=0`, followed by the name of each
 unstable capture (`unstable`) or capture missing from some run (`only_some`).
-It exits with a nonzero code if there is any.
-
-After updating Playwright, record five runs without changing code and confirm
-`unstable=0 only_some=0` before using captures as evidence.
+It exits with a nonzero code if there is any. A difference is a lead to
+inspect, not a failure: compare it against runs of the unchanged code, because
+some captures vary from run to run.
 
 Python automation can be checked with:
 
