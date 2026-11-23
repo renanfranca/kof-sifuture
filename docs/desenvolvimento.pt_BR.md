@@ -597,8 +597,7 @@ cada página recebe a mesma sequência de `crypto.getRandomValues`, de onde o
 `random.int` do Kof tira a semente da partida, então a mesma partida se repete
 em todas as rodadas. Cada versão do Playwright traz
 uma versão própria do Chromium, então fixar o Playwright fixa o navegador.
-Atualizar `tests/requirements-browser.txt` muda o desenho das capturas e exige
-uma prova nova de estabilidade (abaixo).
+Atualizar `tests/requirements-browser.txt` pode mudar o desenho das capturas.
 
 ```bash
 python3 tests/browser.py
@@ -635,9 +634,18 @@ Redesenhos sem avanço verificam a separação entre modelo e apresentação.
 
 ### Comparar capturas entre rodadas
 
-As jornadas gravam capturas PNG em `.agent/tmp/`. Para provar que a aparência
-não mudou, ou que as capturas são estáveis, rode uma **rodada** (as sete
-jornadas, uma depois da outra) por pasta de destino nova e compare as rodadas:
+As jornadas gravam capturas PNG em `.agent/tmp/` como evidência para pessoas
+olharem. Elas não são teste: o que importa na tela é conferido por asserções
+explícitas nas jornadas (sprites, posições, tamanhos, opacidade, textos). Não há
+promessa de que duas rodadas gerem os mesmos pixels. Por exemplo, uma captura
+logo depois de um evento de teclado pode ainda mostrar o quadro anterior, e um
+botão tocado antes pode manter ou perder a aparência de `:hover` conforme o
+tempo (issue #42).
+
+`scripts/journey_pixels.py` é uma ferramenta manual de diagnóstico, para quando
+você quiser procurar diferenças visuais, por exemplo ao atualizar o Kof ou o
+Playwright. Rode uma **rodada** (as sete jornadas, uma depois da outra) por
+pasta de destino nova e compare as rodadas:
 
 ```bash
 python3 scripts/journey_pixels.py capture .agent/tmp/rodadas/a
@@ -651,10 +659,9 @@ para `png/` só as capturas escritas naquela rodada; ele não apaga nada. O
 `compare` confere os pixels RGB decodificados e o tamanho de cada captura, por
 nome, e imprime, por exemplo, `runs=2 common=186 only_some=0 unstable=0`,
 seguido do nome de cada captura instável (`unstable`) ou ausente de alguma
-rodada (`only_some`). Ele sai com código diferente de 0 se houver alguma.
-
-Depois de atualizar o Playwright, rode cinco rodadas sem mudar o código e
-confirme `unstable=0 only_some=0` antes de usar as capturas como prova.
+rodada (`only_some`). Ele sai com código diferente de 0 se houver alguma. Uma diferença é uma pista
+para investigar, não uma falha: compare com rodadas do código sem mudança,
+porque algumas capturas variam de uma rodada para outra.
 
 A automação Python pode ser verificada com:
 
